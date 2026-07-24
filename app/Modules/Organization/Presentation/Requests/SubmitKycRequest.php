@@ -35,7 +35,7 @@ final class SubmitKycRequest extends BaseRequest
         ];
     }
 
-    public function toDto(int $organizationId): SubmitKycDTO
+    public function toDto(?int $organizationId = null): SubmitKycDTO
     {
         return new SubmitKycDTO(
             organizationId: $organizationId,

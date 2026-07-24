@@ -35,7 +35,7 @@ final class CreateStoreOpeningRequestRequest extends BaseRequest
         ];
     }
 
-    public function toDto(int $organizationId): CreateStoreOpeningRequestDTO
+    public function toDto(?int $organizationId = null): CreateStoreOpeningRequestDTO
     {
         return new CreateStoreOpeningRequestDTO(
             organizationId: $organizationId,

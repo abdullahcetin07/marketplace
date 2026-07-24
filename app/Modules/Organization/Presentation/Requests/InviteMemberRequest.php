@@ -39,7 +39,7 @@ final class InviteMemberRequest extends BaseRequest
         ];
     }
 
-    public function toDto(int $organizationId): InviteMemberDTO
+    public function toDto(?int $organizationId = null): InviteMemberDTO
     {
         return new InviteMemberDTO(
             organizationId: $organizationId,

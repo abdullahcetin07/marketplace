@@ -44,7 +44,7 @@ final class UpsertBankAccountRequest extends BaseRequest
         ];
     }
 
-    public function toDto(int $organizationId): UpsertBankAccountDTO
+    public function toDto(?int $organizationId = null): UpsertBankAccountDTO
     {
         return new UpsertBankAccountDTO(
             organizationId: $organizationId,
