@@ -1,0 +1,23 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(php --version)",
+      "Bash(composer --version)",
+      "Bash(docker --version)",
+      "Bash(git --version)",
+      "Bash(php -r \"echo PHP_VERSION;\")",
+      "Bash(composer show *)",
+      "Bash(rmdir docker/supervisor)",
+      "Bash(printf '*\\\\n!.gitignore\\\\n')",
+      "Bash(printf '*\\\\n!private/\\\\n!public/\\\\n!.gitignore\\\\n')",
+      "Bash(touch app/Core/Infrastructure/Models/.gitkeep app/Modules/.gitkeep database/Modules/.gitkeep tests/Modules/.gitkeep)",
+      "Bash(php -r 'json_decode\\(file_get_contents\\(\"composer.json\"\\), true, 512, JSON_THROW_ON_ERROR\\); echo \"composer.json valid\\\\n\";')",
+      "Bash(php -l database/factories/AdminFactory.php)",
+      "Bash(php -l database/factories/SellerFactory.php)",
+      "Bash(php -l database/factories/CustomerFactory.php)",
+      "Bash(python -c ' *)",
+      "Bash(grep -rn \"Shared\\\\\\\\\\\\\\\\Enums\\\\\\\\\\\\\\\\Currency\\\\|Shared\\\\\\\\\\\\\\\\Enums\\\\\\\\\\\\\\\\Country\\\\|Shared\\\\\\\\\\\\\\\\Enums\\\\\\\\\\\\\\\\Language\\\\|Enums\\\\\\\\\\\\\\\\Currency;\\\\|Enums\\\\\\\\\\\\\\\\Country;\\\\|Enums\\\\\\\\\\\\\\\\Language;\" app config database tests lang)",
+      "Bash(grep -rho \"Database\\\\\\\\\\\\\\\\Modules\\\\\\\\\\\\\\\\[A-Za-z]*\\\\\\\\\\\\\\\\Factories\\\\\\\\\\\\\\\\[A-Za-z]*Factory\" app/Modules --include=*.php)"
+    ]
+  }
+}

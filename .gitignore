@@ -1,0 +1,44 @@
+/.phpunit.cache
+/node_modules
+/public/build
+/public/hot
+/public/storage
+/storage/*.key
+/storage/pail
+/storage/debugbar
+/vendor
+/.idea
+/.vscode
+/.fleet
+/.nova
+/.zed
+
+.env
+.env.backup
+.env.production
+.env.*.local
+
+.phpactor.json
+.phpunit.result.cache
+Homestead.json
+Homestead.yaml
+auth.json
+npm-debug.log
+yarn-error.log
+
+# Static analysis / tooling caches
+/.phpstan.cache
+/.pint.cache
+/_ide_helper.php
+/_ide_helper_models.php
+/.phpstorm.meta.php
+
+# Coverage
+/coverage
+/build
+clover.xml
+coverage.xml
+
+# OS noise
+.DS_Store
+Thumbs.db

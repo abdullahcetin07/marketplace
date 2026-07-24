@@ -1,0 +1,55 @@
+PROPRIETARY SOFTWARE LICENSE
+MarketplaceOS — Enterprise Marketplace Platform
+
+Copyright (c) 2026 Turuncu Kasa. All rights reserved.
+
+This software and its accompanying source code, documentation, configuration
+and assets (collectively, the "Software") are the confidential and proprietary
+property of Turuncu Kasa (the "Licensor").
+
+1. GRANT OF LICENSE
+   No licence, right or interest in the Software is granted except by a
+   separate written agreement executed by the Licensor. Absent such an
+   agreement, no person or entity is permitted to use the Software.
+
+2. RESTRICTIONS
+   Except as expressly permitted in writing by the Licensor, you may not:
+   (a) copy, reproduce, publish or distribute the Software, in whole or part;
+   (b) modify, adapt, translate or create derivative works of the Software;
+   (c) reverse engineer, decompile or disassemble the Software;
+   (d) sublicense, rent, lease, lend, sell or otherwise transfer the Software;
+   (e) remove or obscure any proprietary notice contained in the Software.
+
+3. CONFIDENTIALITY
+   The Software constitutes a trade secret of the Licensor. You must protect
+   it with no less than reasonable care and must not disclose it to any third
+   party without the Licensor's prior written consent.
+
+4. THIRD-PARTY COMPONENTS
+   The Software depends on third-party open source components, each of which
+   remains governed by its own licence. Those licences are reproduced in the
+   installed dependency tree (see the `vendor/` directory after installation)
+   and are not superseded by this licence.
+
+5. NO WARRANTY
+   THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+   IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+   FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+
+6. LIMITATION OF LIABILITY
+   IN NO EVENT SHALL THE LICENSOR BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+   LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+   FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+   DEALINGS IN THE SOFTWARE.
+
+7. TERMINATION
+   Any breach of this licence terminates your rights immediately and without
+   notice. Upon termination you must destroy all copies of the Software in
+   your possession or control.
+
+8. GOVERNING LAW
+   This licence is governed by the laws of the Republic of Türkiye. The courts
+   of Istanbul shall have exclusive jurisdiction over any dispute arising from
+   it.
+
+For licensing enquiries: legal@turuncukasa.com

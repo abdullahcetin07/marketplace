@@ -1,0 +1,175 @@
+###############################################################################
+# MarketplaceOS — local development stack
+#
+#   make up        start everything
+#   make install   first-time setup (composer, key, migrate, seed)
+#   make shell     a shell inside the app container
+#
+# Every service the application depends on runs here, at the versions
+# production runs. "Works on my machine" is a category of bug this file exists
+# to eliminate.
+###############################################################################
+
+name: marketplaceos
+
+services:
+
+  app:
+    build:
+      context: .
+      target: dev
+      args:
+        PHP_VERSION: "8.4"
+    volumes:
+      # Bind-mount the source so edits are live. vendor/ is a named volume so
+      # the host's (possibly absent, possibly wrong-platform) vendor directory
+      # never shadows the container's.
+      - .:/var/www/html:cached
+      - vendor:/var/www/html/vendor
+    environment:
+      PHP_IDE_CONFIG: "serverName=marketplaceos"
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [marketplaceos]
+
+  nginx:
+    image: nginx:1.27-alpine
+    ports:
+      - "${APP_PORT:-8080}:80"
+    volumes:
+      - .:/var/www/html:cached
+      - ./docker/nginx/default.conf:/etc/nginx/conf.d/default.conf:ro
+    depends_on: [app]
+    networks: [marketplaceos]
+
+  # Queue workers. Separate container from the web process on purpose: a
+  # long-running worker must not be restarted every time nginx reloads, and
+  # its memory profile is entirely different.
+  horizon:
+    build:
+      context: .
+      target: dev
+    command: php artisan horizon
+    volumes:
+      - .:/var/www/html:cached
+      - vendor:/var/www/html/vendor
+    restart: unless-stopped
+    stop_signal: SIGTERM
+    stop_grace_period: 60s
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    networks: [marketplaceos]
+
+  scheduler:
+    build:
+      context: .
+      target: dev
+    command: php artisan schedule:work
+    volumes:
+      - .:/var/www/html:cached
+      - vendor:/var/www/html/vendor
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    networks: [marketplaceos]
+
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: "${DB_DATABASE:-marketplaceos}"
+      POSTGRES_USER: "${DB_USERNAME:-marketplaceos}"
+      POSTGRES_PASSWORD: "${DB_PASSWORD:-secret}"
+      # C collation keeps index ordering deterministic across platforms.
+      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=C"
+    ports:
+      - "${DB_PORT_EXTERNAL:-5432}:5432"
+    volumes:
+      - postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${DB_USERNAME:-marketplaceos} -d ${DB_DATABASE:-marketplaceos}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    networks: [marketplaceos]
+
+  redis:
+    image: redis:7-alpine
+    command: redis-server --appendonly yes --maxmemory-policy noeviction
+    ports:
+      - "${REDIS_PORT_EXTERNAL:-6379}:6379"
+    volumes:
+      - redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    networks: [marketplaceos]
+
+  opensearch:
+    image: opensearchproject/opensearch:2.18.0
+    environment:
+      discovery.type: single-node
+      bootstrap.memory_lock: "true"
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+      # Local only. The production cluster runs with the security plugin on
+      # and TLS verification enabled (config/opensearch.php).
+      DISABLE_SECURITY_PLUGIN: "true"
+      DISABLE_INSTALL_DEMO_CONFIG: "true"
+    ulimits:
+      memlock: { soft: -1, hard: -1 }
+      nofile: { soft: 65536, hard: 65536 }
+    ports:
+      - "${OPENSEARCH_PORT_EXTERNAL:-9200}:9200"
+    volumes:
+      - opensearch:/usr/share/opensearch/data
+    healthcheck:
+      test: ["CMD-SHELL", "curl -sf http://localhost:9200/_cluster/health || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 20
+    networks: [marketplaceos]
+
+  # S3-compatible storage, so the S3 driver is exercised locally rather than
+  # falling back to the local disk and hiding S3-specific bugs until staging.
+  minio:
+    image: minio/minio:latest
+    command: server /data --console-address ":9001"
+    environment:
+      MINIO_ROOT_USER: "${AWS_ACCESS_KEY_ID:-minioadmin}"
+      MINIO_ROOT_PASSWORD: "${AWS_SECRET_ACCESS_KEY:-minioadmin}"
+    ports:
+      - "${MINIO_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio:/data
+    healthcheck:
+      test: ["CMD", "mc", "ready", "local"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+    networks: [marketplaceos]
+
+  mailpit:
+    image: axllent/mailpit:latest
+    ports:
+      - "${MAILPIT_UI_PORT:-8025}:8025"
+    networks: [marketplaceos]
+
+volumes:
+  postgres:
+  redis:
+  opensearch:
+  minio:
+  vendor:
+
+networks:
+  marketplaceos:
+    driver: bridge

@@ -1,0 +1,1041 @@
+# MarketplaceOS Architecture Decision Record (ADR)
+Version: 1.0
+
+This document records all approved architecture decisions.
+
+If any document conflicts with this file, this file takes precedence until the affected documents are updated.
+
+---
+
+# ADR-001 Architecture Documents
+
+Authoritative architecture document:
+
+docs/001_Architecture.md
+
+Legacy document:
+
+docs/architecture.md
+
+Decision
+
+- Migrate any missing architectural decisions from the legacy document.
+- Preserve the amendment history.
+- Update cross references.
+- Remove the legacy document after migration.
+
+---
+
+# ADR-002 Foundation Structure
+
+Foundation is NOT a single module.
+
+Foundation is a module group.
+
+Modules:
+
+- Identity
+- Localization
+- Settings
+- Audit
+- Activity
+- Media
+- Notification
+
+Each module owns:
+
+- Models
+- Migrations
+- Services
+- Policies
+- Events
+- Jobs
+- DTOs
+- Tests
+- Documentation
+
+No Foundation module should physically exist.
+
+---
+
+# ADR-003 Document Priority
+
+Document precedence:
+
+1. CLAUDE.md
+2. Architecture_Decision_Record.md
+3. 001_Architecture.md
+4. 003_Database_Standards.md
+5. 002_Coding_Standards.md
+6. 004_Naming_Conventions.md
+7. 005_API_Standards.md
+8. Module Specifications
+
+Sprint prompts never override documentation.
+
+---
+
+# ADR-004 Primary Keys
+
+Database primary keys:
+
+BIGINT
+
+Public identifiers:
+
+UUID
+
+UUID is never used as a foreign key.
+
+---
+
+# ADR-005 Money Storage
+
+Money values are stored as integer minor units.
+
+Examples
+
+1299.90 TL
+
+↓
+
+129990
+
+Use DECIMAL only for:
+
+- Exchange rates
+- Tax rates
+- Commission percentages
+- Discount percentages
+
+API responses format money as decimal strings.
+
+---
+
+# ADR-006 Lookup Tables
+
+Lookup tables:
+
+Countries
+
+Currencies
+
+Languages
+
+Timezones
+
+Payment Methods
+
+Shipping Methods
+
+Notification channels are NOT lookup tables.
+
+---
+
+# ADR-007 Enum Naming
+
+Enum names do NOT use the Enum suffix.
+
+Correct
+
+OrderStatus
+
+OfferStatus
+
+StoreStatus
+
+Wrong
+
+OrderStatusEnum
+
+OfferStatusEnum
+
+---
+
+# ADR-008 API JSON Format
+
+API responses use snake_case.
+
+Example
+
+current_page
+
+per_page
+
+created_at
+
+updated_at
+
+Never use camelCase in REST responses.
+
+---
+
+# ADR-009 API Error Format
+
+Canonical error response:
+
+{
+    "success": false,
+    "code": "VALIDATION_ERROR",
+    "message": "Validation failed.",
+    "errors": {
+        "email": [
+            "The email field is required."
+        ]
+    }
+}
+
+Errors are included only when applicable.
+
+---
+
+# ADR-010 Service Layer
+
+Services may return:
+
+- DTO
+- Value Object
+- Domain Result
+
+Presentation layers (Filament, Console, Admin UI) may use Eloquent models when appropriate.
+
+REST APIs must never expose Eloquent models directly.
+
+---
+
+# ADR-011 Domain Models
+
+Domain models may contain:
+
+- Relationships
+- Accessors
+- Mutators
+- Scopes
+- Lightweight helper methods
+
+Business workflows belong to Services.
+
+---
+
+# ADR-012 User Model
+
+User fields:
+
+- first_name
+- last_name
+
+Email uniqueness:
+
+Composite uniqueness:
+
+(type, email)
+
+Allows the same email address to exist across different account types.
+
+---
+
+# ADR-013 Roles
+
+Current default roles:
+
+- Super Admin
+- Admin
+- Editor
+- Support
+- Finance
+- Seller
+- Seller Employee
+- Customer
+- Category Manager
+
+Category Manager remains part of the system.
+
+---
+
+# ADR-014 Soft Delete
+
+Business entities use Soft Delete.
+
+Cascade delete is allowed only for dependent child records such as:
+
+- Sessions
+- Devices
+- Temporary tokens
+- Pivot tables
+
+Business entities must never be cascade deleted.
+
+---
+
+# ADR-015 Lookup Table Status
+
+Lookup tables use:
+
+is_active
+
+Business entities use:
+
+status
+
+Lookup tables do not require workflow states.
+
+---
+
+# ADR-016 Audit Columns
+
+created_by and updated_by are mandatory for new business tables.
+
+Existing tables may be migrated incrementally.
+
+Avoid large-scale migration solely to satisfy this standard.
+
+---
+
+# ADR-017 Foundation Scope
+
+Foundation implementation includes:
+
+- Authentication
+- Authorization
+- Users
+- Localization
+- Countries
+- Languages
+- Currencies
+- Settings
+- Media
+- Notifications
+- Audit
+- Activity
+
+Deferred:
+
+- Bulk APIs
+- Webhooks
+- Idempotency Keys
+- Advanced Search
+- External Providers
+
+---
+
+# ADR-018 Documentation
+
+Documentation is considered executable architecture.
+
+Implementation must never contradict approved documentation.
+
+If ambiguity exists:
+
+STOP.
+
+Report.
+
+Wait for approval.
+
+Never guess.
+
+---
+
+# ADR-019 Domain Layer Helpers
+
+Supersedes the unqualified rule in 002_Coding_Standards §30.
+
+Allowed in the Domain layer:
+
+- now()
+- config()
+
+Forbidden in the Domain layer:
+
+- cache()
+- request()
+- encrypt()
+- decrypt()
+
+Rationale
+
+now() is a clock reading and is controllable in tests via travelTo().
+
+config() reads a static array. No I/O, no state.
+
+The forbidden four perform real infrastructure work — I/O, request state, key
+material — and are what make a Domain class untestable without booting the
+framework.
+
+Placement
+
+Caching belongs to Infrastructure (Repositories or dedicated services).
+
+Encryption belongs to Infrastructure.
+
+HTTP request access belongs to the Presentation layer.
+
+Scope note
+
+The rule covers global helper functions as well as Facade classes. A helper that
+resolves the same container binding is the same violation.
+
+---
+
+# ADR-020 Class Size
+
+Supersedes 002_Coding_Standards §23.
+
+The 300-line class limit is NOT a hard rule.
+
+It is a review threshold. A class exceeding 300 lines requires architectural
+review and documented justification.
+
+Permanently exempt, with justification recorded:
+
+- Framework interface implementations
+- Aggregate roots (such as User)
+
+The following remain STRICT:
+
+- Maximum 50 lines per method
+- Maximum 7 constructor dependencies
+- High cyclomatic complexity must be refactored
+
+Rationale
+
+Line count tracks comprehensibility poorly at the class level and well at the
+method level. A class that is long because an approved architectural decision
+made it long is not improved by splitting it into pieces that must be read
+together.
+
+---
+
+# ADR-021 DTO Naming
+
+Official suffix:
+
+DTO
+
+Examples
+
+LoginDTO
+
+RegisterUserDTO
+
+CreateProductDTO
+
+Directory
+
+Domain/DTOs
+
+Rename Domain/Data to Domain/DTOs in every module.
+
+The term "Data" is forbidden as a DTO class suffix.
+
+"DataTransferObjects" is allowed only for shared infrastructure if necessary —
+it names a pattern rather than describing a vague noun.
+
+---
+
+# ADR-022 Documentation Naming
+
+Supersedes 004_Naming_Conventions §29.
+
+Existing documentation files are NOT renamed.
+
+The standard reflects the existing structure:
+
+Governing documents
+
+NNN_PascalCase_With_Underscores.md
+
+Example: 001_Architecture.md
+
+Architecture Decision Records
+
+PascalCase_With_Underscores.md
+
+Example: Architecture_Decision_Record.md
+
+Topic and module documentation
+
+lowercase-with-hyphens.md
+
+Example: authentication.md, error-handling.md
+
+Directory READMEs
+
+README.md
+
+Rationale
+
+The numeric prefix on governing documents encodes precedence order, which is
+load-bearing information. Renaming 16 topic documents and rewriting 68 inbound
+links buys nothing — no tool consumes these filenames.
+
+---
+
+# ADR-023 ORM Metadata in Domain Models
+
+Narrows ADR-019 and 001_Architecture §5.
+
+Infrastructure-specific Eloquent metadata MAY be referenced by Domain models
+when required by the ORM.
+
+Allowed
+
+- Custom Casts
+- Observers
+- Global Scopes
+
+These references must remain DECLARATIVE ONLY.
+
+Business logic must never depend on Infrastructure services.
+
+Domain models must NEVER reference:
+
+- Services
+- Repositories
+- Cache
+- HTTP
+- Mail
+- Queue
+- Crypt
+
+Rationale
+
+This exception exists solely because Laravel Eloquent is an Active Record ORM.
+A cast must be declared on the model it applies to; there is no other seam. The
+alternative was to leave encrypt()/decrypt() inline — which ADR-019 forbids — or
+to push decryption into a service, which would make Setting::typedValue() return
+ciphertext to every other caller.
+
+The test
+
+Naming a class in casts(), observe() or addGlobalScope() is metadata.
+Calling a method on an Infrastructure service is a dependency. The first is
+allowed; the second is not.
+
+Sanctioned use
+
+App\Modules\Settings\Domain\Models\Setting names
+App\Modules\Settings\Infrastructure\Casts\EncryptedSettingValue in casts().
+
+---
+
+# ADR-024 auth() in the Domain Layer
+
+ADR-019 is NOT extended to include auth().
+
+auth() represents the authenticated Identity context, not infrastructure
+access. It is acceptable in the current architecture.
+
+Sanctioned use
+
+App\Modules\Audit\Domain\Concerns\Auditable resolves the causer through
+current_actor(), which reads auth().
+
+Note
+
+This is a deliberate scope decision, recorded so the question is not reopened.
+The forbidden list in ADR-019 remains exactly: cache(), request(), encrypt(),
+decrypt().
+
+---
+
+# ADR-025 Out-of-Band Credential Delivery
+
+REVOKES the token-in-response example approved as Identity specification Q2.
+
+Rule
+
+The backend must NEVER return password reset tokens or email verification
+tokens in any API response.
+
+Reset and verification tokens are SECURITY CREDENTIALS. They must travel only
+through an out-of-band channel — email.
+
+Rationale
+
+A token returned from an unauthenticated endpoint is not a credential, it is a
+public value. Anyone knowing an email address could obtain a valid reset token
+and seize the account in two requests. Rate limiting does not help: one request
+is enough.
+
+It also breaks the non-enumeration rule. A response carrying a token for real
+accounts and none for missing ones is an existence oracle.
+
+Frontend-agnosticism, preserved
+
+The original concern was correct: the backend must not hardcode frontend URLs.
+That is solved with configuration, not by exposing the token.
+
+    marketplace.frontend.url
+    marketplace.frontend.password_reset_path
+    marketplace.frontend.email_verify_path
+
+    FRONTEND_URL=https://site.com
+    FRONTEND_PASSWORD_RESET_PATH=/reset-password/{token}
+    FRONTEND_EMAIL_VERIFY_PATH=/verify-email/{id}/{hash}
+
+The notification composes the final URL from configuration only. A second
+frontend needs one environment value, not a backend change.
+
+Response contract
+
+POST /auth/password/forgot returns an identical envelope whether or not the
+account exists:
+
+    {
+        "success": true,
+        "message": "If an account exists for this email address, password reset
+                    instructions have been sent."
+    }
+
+No token. No user information. No timing differences.
+
+The same rule applies to email verification.
+
+Scope
+
+This is platform-wide, not Identity-specific. It binds every credential a
+future module issues — organization invitations, API keys, webhook secrets.
+
+If a credential grants access, it leaves through the channel its owner
+controls, never through the response body of the request that created it.
+
+---
+
+# ADR-026 Shared Security Primitives Live in Core
+
+Cross-cutting security primitives are placed in `app/Core` behind a contract,
+never inside the module that first needs them.
+
+First instance: the one-time-password store.
+
+- `App\Core\Domain\Contracts\OtpStoreContract`
+- `App\Core\Infrastructure\Otp\CacheOtpStore`
+
+Rationale
+
+OTP is needed by more than Identity. It will back email-verification fallback,
+sensitive-action confirmation, store-ownership verification, organization
+invitations and high-risk-operation confirmation. If it lived in Identity,
+every one of those modules would have to import Identity — which the layering
+rule forbids (§5).
+
+Core is depended on by every module (§5: modules → Core → Shared), so a
+primitive placed there is reachable everywhere without a cross-module import.
+
+The rule
+
+If a security primitive is generic — it operates on an opaque identifier and
+carries no business meaning — it belongs in Core. The *usage* stays in the
+module: Identity owns its `EmailOtpNotification` and its 2FA flow; it borrows
+only the store.
+
+Related abstractions applying existing rules (no separate ADR):
+
+- **TOTP provider** — `TotpProviderContract` in Identity, so no service or
+  controller depends on `Google2FA` directly (§13.1, depend on contracts).
+- **Recovery codes** — count, length and hash algorithm are configuration, not
+  hardcoded (`002` §16).
+
+---
+
+# ADR-027 Audit Is the Platform's Forensic Event Store
+
+The audit trail records **every forensic event**, not only model changes. A row
+carries a generic `event_type` and a `severity` that is **independent of the
+type**. Model create/update/delete are one category among many.
+
+Superseded framing
+
+The original table answered one question — "what changed on this record?" Its
+whole vocabulary was `created|updated|deleted|restored`, each tied to a model
+diff. That made a whole class of forensic events unrecordable: a detected
+brute-force login has an actor, an IP and a severity, but **nothing changed on
+a record**, so there was nowhere to put it. Q6's "high-severity audit event"
+had no shape to take.
+
+The decision
+
+- `event_type` — `App\Modules\Audit\Domain\Enums\AuditEventType`. Categories:
+  `MODEL_*` (lifecycle), `SECURITY_*` (login, brute force, credential
+  stuffing), and governance seams declared ahead of their emitters
+  (`PERMISSION_CHANGED`, `COMMISSION_CHANGED`, `PAYMENT_CONFIGURATION_CHANGED`,
+  `STORE_TRANSFERRED`).
+- `severity` — `App\Modules\Audit\Domain\Enums\AuditSeverity`:
+  `INFO · NOTICE · WARNING · HIGH · CRITICAL`. Independent of type, because the
+  same type is routine in one context and an incident in another — a login is
+  `INFO`, a login *storm* is `HIGH`. It maps onto PSR/syslog levels so a SIEM
+  export needs no translation table.
+- `metadata` (jsonb) — context for events that are **not** a model diff, where
+  `old_values`/`new_values` are meaningless. The email an attacker targeted,
+  the failure count, the distinct-IP count.
+- `event`, `auditable_type`, `auditable_id` become **nullable**. A security
+  event has no model verb and may name no record at all — an attack on an
+  address that was never registered.
+
+Model changes are unaffected: the `Auditable` trait now stamps `MODEL_*` at
+`INFO` alongside the diff it already wrote. Standalone events come through a new
+`App\Modules\Audit\Application\Services\AuditLogger`.
+
+Audit vs Activity, restated
+
+Audit is the **immutable forensic log** — evidential, 730 days, the SIEM feed.
+Activity is the **user's own timeline** — narrative, 365 days. A suspicious
+login is written to *both*: forensic evidence in Audit, and a "someone tried to
+get in" line the account owner sees in Activity.
+
+Consumer direction (layering)
+
+Audit now **subscribes** to security events raised across the platform, exactly
+as Activity subscribes to Identity's. The producer announces and stays ignorant
+of the trail; Audit imports the producer's `Domain\Events` and nothing else.
+The layering test is amended to permit this precisely — a model, service or
+action import from another module is still a leak and still fails
+(`tests/Architecture/LayeringTest.php`).
+
+Cost
+
+The audit table is no longer a pure model-diff log; readers must filter on
+`event_type` to get the old "just the changes" view (`scopeSecurity`,
+`scopeAtLeastSeverity` exist for the new views). Widening Audit's remit means
+every future producer of a `SECURITY_*` event adds a subscription, and the
+layering exception widens module-by-module — each addition a reviewed decision,
+not a blanket opening.
+
+---
+
+# ADR-028 Stores Are Created Only by Admin Approval of a Request
+
+An Organization may **never** create a Store directly. It may only submit a
+**Store Opening Request**. An administrator reviews the request. A Store is
+created **only** after approval. Store creation is **never** automatic.
+
+This is the canonical rule for the Organization ↔ Store relationship.
+
+The workflow
+
+```
+Organization ── submits ──▶ StoreOpeningRequest (Pending)
+                                   │
+                              Admin reviews
+                              ┌────┴────┐
+                         Approved     Rejected
+                              │            │
+                StoreOpeningApproved   StoreOpeningRejected   (domain events)
+                              │
+                 the Store module creates the Store
+```
+
+The boundary
+
+- `StoreOpeningRequest` is owned by **Organization**. The `Store` model is owned
+  by the **Store** module. Organization never imports Store and never
+  instantiates a Store — it announces `StoreOpeningApproved`, and Store (a
+  future module) subscribes and creates the storefront. This keeps the two
+  modules isolated and the direction one-way (§4, events between modules).
+- An approved request references the created store by **UUID**
+  (`created_store_uuid`), never a foreign key — Organization must not have a
+  schema dependency on a table it does not own.
+
+Store limits
+
+An Organization has a maximum number of Stores. The architecture supports **both
+a system-wide default and an organization-specific limit**, resolved first
+non-null wins:
+
+1. per-organization override (`organizations.store_limit_override`)
+2. the Organization's plan limit (`OrganizationPlan.store_limit`, null = unlimited)
+3. system default (`config('marketplace.organization.default_store_limit')`)
+
+Plans (Starter → 1, Business → 5, Enterprise → unlimited) are a **lookup table**,
+operator-configurable without a release. The limit is enforced fail-fast at
+submission and **authoritatively at approval** — the plan or override may change
+while a request sits pending, so approval is the binding gate.
+
+Rationale
+
+A marketplace's trust rests on every storefront having passed a human check. An
+automatically-created Store is an automatically-created liability — a fraudulent
+or malformed shop live before anyone looked. The two-step flow makes "a Store
+exists" imply "an admin approved it," always.
+
+Cost
+
+Slower store creation for the seller and a standing admin review queue. That
+latency is the price of the guarantee, and it is deliberate. The seller-facing
+UX must make the pending state legible so the wait does not read as a failure.
+
+Full specification: [docs/modules/Organization.md](modules/Organization.md).
+
+---
+
+# ADR-029 Organization Ownership
+
+An Organization has **exactly one Owner**, always. The Owner **cannot be
+removed**. Ownership is changed only by **transfer** to another active member,
+and only after a successful transfer does the previous Owner lose the Owner
+role. An Organization can never exist without an Owner.
+
+Enforcement (defence in depth)
+
+1. **Schema** — `organizations.owner_id` is NOT NULL with `restrictOnDelete`: the
+   database refuses to delete a user who owns an org, and refuses an org with no
+   owner.
+2. **Transfer is atomic** — `TransferOwnershipAction` promotes the target member
+   to Owner and demotes the current Owner to a chosen role in one transaction,
+   then repoints `owner_id`. There is no intermediate state with zero or two
+   Owners. The target must be an **active member** and a **Seller** (a Seller
+   Employee cannot own).
+3. **Removal is not a transfer** — removing the Owner's membership is refused by
+   both the policy and the action while they are the Owner. The only path out of
+   ownership is a transfer.
+
+Rationale
+
+An ownerless company is a company nobody is accountable for — no one to receive
+payouts, answer a dispute, or authorise a change. Making "no Owner" and "Owner
+removed" unreachable states means every Organization always has a responsible
+principal. Two Owners is equally forbidden: it splits accountability and doubles
+the privilege surface.
+
+Cost
+
+Ownership changes take a deliberate, audited transfer rather than an edit — the
+outgoing Owner cannot simply "leave." That friction is the point.
+
+# ADR-030 Organization Isolation (multi-tenancy)
+
+A User may belong to **multiple Organizations**. Each membership carries its
+**own role**. All Organization-scoped data is **isolated by `organization_id`**,
+and **no Organization may access another's resources**.
+
+**This is a platform-wide rule.** It binds every future seller-owned module —
+Store, Product, Offer, Inventory, Order, Shipping, Campaign, Dashboard and any
+other — not just Organization. A resource that belongs to an organization must:
+
+- carry an `organization_id` (directly, or transitively through its parent), and
+- be filtered by the acting membership's `organization_id` on **every** read and
+  write, in the repository/policy layer, never left to the caller.
+
+Membership, not the platform guard, is the tenancy boundary: a Seller
+authenticated at the platform level still sees only the organizations they are a
+member of, and within one, only that organization's data. `owns()` in the
+seller-facing policies resolves to "is an active member of THIS resource's
+organization," and the repositories scope every query by it.
+
+Rationale
+
+Multi-vendor marketplaces leak sideways when tenancy is an afterthought: one
+seller enumerating another's orders by id is the classic breach. Making
+`organization_id` scoping a load-bearing, tested rule from the first module means
+later modules inherit isolation instead of re-deriving (and mis-deriving) it.
+
+Supersedes: the Organization spec's "a seller owns at most one" (§11) — a user
+may own or belong to several. `owner_id` remains the canonical single Owner **per
+organization**; "which organizations does this user belong to" is a membership
+query.
+
+Cost
+
+Every seller-facing query and policy carries an organization scope; forgetting it
+is a cross-tenant leak, so it is enforced by architecture/security tests, not
+convention. Cross-organization features (if ever needed) become explicit,
+audited exceptions rather than the accidental default.
+
+Full specification: [docs/modules/Organization.md](modules/Organization.md).
+
+---
+
+# ADR-031 Platform Invitation Architecture
+
+The invitation mechanism is **platform infrastructure, not Organization business
+logic**. It lives in `app/Core` (like `BaseNotification` and the OTP store), and
+Organization is merely its **first consumer**. Store, Team, Admin and any future
+module reuse the same architecture.
+
+The pieces (in Core / Shared)
+
+- `App\Shared\Enums\InvitationStatus` — the shared lifecycle: `Pending`,
+  `Accepted`, `Rejected`, `Expired`, `Cancelled`.
+- `App\Core\Domain\Contracts\InvitationTokenizerContract` — generates a raw
+  token, hashes it, and verifies a presented token against a stored hash.
+  `App\Core\Infrastructure\Invitations\Sha256InvitationTokenizer` is the
+  implementation (deterministic SHA-256 so a hash can be looked up in O(1);
+  high-entropy tokens do not need a salted, per-row hash the way passwords do).
+- `App\Core\Domain\Concerns\HasInvitationLifecycle` — a trait a module's
+  invitation model uses for the status/expiry transitions and the acceptability
+  check. The module owns the model (its FKs, its target role); Core owns the
+  mechanism.
+
+The invariants (bind every consumer)
+
+1. **Invitations never create users.** Accepting an invitation attaches an
+   existing account to something; it never registers one.
+2. **Acceptance requires an authenticated account.** The accept endpoint is
+   behind auth. A recipient with no account must **register first, then complete
+   the invitation** — the front end routes them through registration and back.
+3. **Only the hash is stored.** The raw token is generated, emailed once
+   (out-of-band, ADR-025), and never persisted or returned by any API. The
+   database holds `token_hash` only; verification hashes the presented token and
+   compares.
+4. **Single-use and time-bound.** An accepted/expired/cancelled invitation
+   cannot be reused; issuing a fresh invitation invalidates the prior pending one
+   for the same target.
+
+Rationale
+
+Every module that grows a team needs the same flow, and it is a flow that is
+easy to get subtly wrong (leaking a token, letting an unauthenticated caller
+accept, auto-creating a shadow account). Building it once, in Core, behind a
+tested contract means the second and third consumers inherit the security
+properties instead of re-deriving them.
+
+Cost
+
+A consumer cannot bend the mechanism to auto-create a user or return a token —
+those doors are closed by the architecture. The register-first detour adds a step
+for a brand-new recipient, which is the correct trade for never minting an
+account from an email link.
+
+Full specification: [docs/modules/Organization.md](modules/Organization.md) §6.
+
+---
+
+# ADR-032 Event-Driven, Idempotent Store Creation
+
+A Store is created **only** by a listener consuming `StoreOpeningApproved`
+(ADR-028) — never by a seller action, never by the Store module itself. Creation
+is **idempotent**, keyed on the opening request's UUID: a replay, a redelivery,
+or a double-dispatch of the same event creates **one** Store, never two. On
+success the listener emits `StoreCreated`.
+
+Enforcement: `stores.opening_request_uuid` is UNIQUE; the listener looks it up
+and returns early if a store already exists for that request.
+
+Rationale: ADR-028 makes approval the sole creation trigger; this states the
+consumer contract. Event delivery is at-least-once, so idempotency is not
+optional — a duplicated storefront is a customer-facing defect and corrupts the
+store-limit accounting.
+
+Cost: creation must be written defensively (unique key + upsert-or-skip) and a
+creation failure must be observable (the request stays approved but storeless)
+and retryable.
+
+# ADR-033 Cross-Context References by id/UUID, Never by Code
+
+A downstream context references an upstream aggregate by its **id and UUID**,
+with an optional database FK for integrity, but **never imports the upstream
+module's models, services or repositories**. Store persists only
+`organization_id` and `organization_uuid`; it has no `belongsTo(Organization)`
+relation. Data it needs from upstream arrives in an **event payload** or through
+a **published Core query contract** (see ADR — §9.1 mechanism) — never a live
+cross-module code call.
+
+**This is platform-wide.** Product, Catalog, Offer, Order and Payment follow the
+same rule: reference the parent by id/UUID, read what they need through events or
+a Core query contract, import nothing.
+
+Rationale: it generalises the `created_store_uuid` pattern ADR-028 already uses
+in the other direction, and it is what keeps `LayeringTest`'s module-isolation
+rule enforceable while contexts still relate.
+
+Cost: no `$store->organization->name` convenience; upstream data that must stay
+fresh is read through a query contract or refreshed by an event. Denormalised
+copies can go stale unless a change event updates them.
+
+# ADR-034 The Public Storefront Is a Distinct, Unauthenticated Read Surface
+
+Store data splits in two, served by two separate surfaces:
+
+- **Public** — name, branding, SEO, public contact, locale. Served **without
+  authentication**, resolved by slug/path (`/store/{slug}`, ADR-035), allow-list
+  only. Only a live (Active) store renders; internal ids and private fields never
+  appear.
+- **Private** — settings, operational internals, draft state. Behind the seller
+  guard + org capabilities (ADR-030) and the admin guard.
+
+Rationale: a storefront is meant to be seen by anonymous shoppers — the
+platform's first public read boundary. Keeping it a separate surface (its own
+controllers, resources, throttle and domain-resolution middleware) stops a
+private field leaking into a page anyone can load.
+
+Cost: two resource shapes per concept (public vs private) and the discipline that
+the public resource is allow-list, never deny-list.
+
+Full specification: [docs/modules/Store.md](modules/Store.md).
+
+---
+
+# ADR-035 Stores Are Addressed by Platform Path in v1 (No Custom Domains)
+
+A storefront is reached **only** through the platform URL structure —
+`/store/{slug}` (localised, e.g. `/magaza/{slug}`) — resolved by the store's
+globally-unique `slug`. **v1 supports no per-store domains**: no custom domains,
+no subdomains, no DNS/TXT verification, no host-based resolution. This scopes
+ADR-034's public read surface to slug/path resolution.
+
+The Store model stays **extensible** for domains without rework: the slug is
+already the single public identifier, `Store::isLive()` is the one place a
+"serving" precondition would tighten, and the authorization port already has the
+shape for an Owner-only domain capability. Introducing custom domains later is a
+**dedicated future ADR** that adds a `StoreDomain` aggregate, a
+`StoreManageDomains` capability (Owner-only — a domain change alters public
+business identity), and a host-resolution middleware — additively, breaking
+nothing built here.
+
+Rationale: custom domains carry disproportionate complexity (DNS verification,
+certificate issuance, host routing, tenant-to-host mapping) for v1. Path
+addressing ships the storefront now; the deferral is explicit, not an omission.
+
+Cost: sellers cannot use their own domain in v1; every store lives under the
+platform host. Re-introducing domains means the future ADR's migration + model,
+not a redesign.
+
+Full specification: [docs/modules/Store.md](modules/Store.md) §5.
+
+---
+
+# ADR-036 The Public Storefront Is Composed, Not Owned
+
+The public storefront is the marketplace's **canonical public entry point** and a
+**long-term read contract**, not a single module's page. Store owns only the
+storefront **core** — identity, branding, SEO, contact, locale. Everything else a
+storefront eventually shows (products, categories, campaigns, reviews, statistics)
+is **contributed by the module that owns it**, through composition — Store never
+depends on those modules.
+
+The mechanism is a Core seam:
+
+- `StorefrontContributorContract` (Core) — a future module implements it to add a
+  section to the public payload: `key(): string` (a namespaced section name) and
+  `contribute(StorefrontContext): array` (the section's public data).
+- `StorefrontContext` (Core) — a scalar-only context (store id/uuid/slug, owning
+  org id, language/currency codes) handed to each contributor, so a contributor
+  needs no Store model (ADR-033).
+- `StorefrontRegistry` (Core) — modules register their contributor in their own
+  service provider, exactly as they register permissions.
+
+Store's public assembler builds the core and merges each registered contributor's
+output under `extensions[key]`. Adding products to the storefront is a Product
+module that registers a contributor — **no change to Store**.
+
+The public resource is a **strict allow-list**: identity, branding, SEO, contact,
+locale, and `extensions`. No internal id (the UUID is the only identifier),
+permissions, settings, audit, or private configuration ever appears. The contract
+is designed to be *extended additively* — a new section is a new key, never a
+reshaped envelope — because a public API that breaks its shape breaks every
+deployed client.
+
+Rationale: a marketplace storefront accretes concerns for years. Composition keeps
+Store a stable bounded context while the storefront grows, and keeps the public
+contract stable while its contents expand.
+
+Cost: contributors run per public request, so each must be cheap or cached; the
+registry is another platform seam to understand. A contributor that throws must
+degrade to omitting its section, never break the core storefront.
+
+Full specification: [docs/modules/Store.md](modules/Store.md) §12.
+
+---
+
+END OF FILE

@@ -1,0 +1,31 @@
+includes:
+	- vendor/larastan/larastan/extension.neon
+
+parameters:
+	level: 6
+
+	paths:
+		- app
+		- config
+		- database
+		- routes
+		- tests
+
+	tmpDir: .phpstan.cache
+
+	checkMissingIterableValueType: false
+	checkGenericClassInNonGenericObjectType: false
+	checkModelProperties: true
+	checkOctaneCompatibility: false
+
+	treatPhpDocTypesAsCertain: false
+	reportUnmatchedIgnoredErrors: true
+
+	excludePaths:
+		- app/Shared/Support/helpers.php
+
+	ignoreErrors:
+		# Filament panel providers return $this-chained builders that Larastan
+		# cannot always resolve through the fluent API.
+		- identifier: missingType.generics
+		  path: app/Providers/Filament/*
