@@ -2,7 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Core\Domain\Exceptions\BaseException;
 use App\Core\Presentation\Middleware\CaptureAuditContext;
 use App\Http\Middleware\AssignCorrelationId;
 use Illuminate\Auth\AuthenticationException;
@@ -10,9 +9,7 @@ use Illuminate\Foundation\Application;
 use Illuminate\Foundation\Configuration\Exceptions;
 use Illuminate\Foundation\Configuration\Middleware;
 use Illuminate\Http\Request;
-use Illuminate\Support\Facades\Log;
 use Symfony\Component\HttpFoundation\Response;
-use Throwable;
 
 return Application::configure(basePath: dirname(__DIR__))
     ->withRouting(
@@ -105,24 +102,21 @@ return Application::configure(basePath: dirname(__DIR__))
         });
 
         /*
-        | Anything unexpected is written to the dedicated errors channel with
-        | the correlation id attached, so a customer report can be traced to a
-        | stack trace in one lookup.
+        | Unexpected exceptions reach the dedicated `errors` channel through the
+        | FRAMEWORK'S OWN reporting, not a callback here: the default log channel
+        | is the `stack`, and that stack is `daily,errors` (config/logging.php).
+        | Laravel's handler already writes the class, file, line AND the stack
+        | trace — strictly more than a hand-rolled reporter did.
+        |
+        | There is deliberately no report() callback using the Log facade. The
+        | exception handler is installed by HandleExceptions, which runs BEFORE
+        | RegisterFacades — so a facade call in a reporter has no root during
+        | early bootstrap, and every such failure gets replaced by
+        | "A facade root has not been set", destroying the real exception.
         */
-        $exceptions->report(function (Throwable $e): void {
-            if ($e instanceof BaseException) {
-                return;
-            }
-
-            Log::channel('errors')->error($e->getMessage(), [
-                'exception' => $e::class,
-                'file' => $e->getFile(),
-                'line' => $e->getLine(),
-            ]);
-        });
 
         /*
-        | Never leak an internal message on a 500 in production.
+        | One report per exception instance, however many handlers observe it.
         */
         $exceptions->dontReportDuplicates();
     })
