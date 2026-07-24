@@ -2,8 +2,6 @@
 
 declare(strict_types=1);
 
-use App\Shared\Enums\Language;
-
 return [
 
     'name' => env('APP_NAME', 'MarketplaceOS'),
@@ -41,9 +39,15 @@ return [
     |
     */
 
-    'locale' => env('APP_LOCALE', Language::Turkish->value),
+    /*
+    | Plain ISO codes, never a Language model: Language is a LOOKUP TABLE owned
+    | by the Localization module, and config is loaded before the database is
+    | reachable and must survive `config:cache`. The same env keys back
+    | `marketplace.localization.default_language`, so the two agree by default.
+    */
+    'locale' => env('APP_LOCALE', 'tr'),
 
-    'fallback_locale' => env('APP_FALLBACK_LOCALE', Language::English->value),
+    'fallback_locale' => env('APP_FALLBACK_LOCALE', 'en'),
 
     'faker_locale' => env('APP_FAKER_LOCALE', 'tr_TR'),
 

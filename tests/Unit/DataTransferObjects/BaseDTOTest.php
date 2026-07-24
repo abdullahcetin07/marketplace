@@ -3,18 +3,30 @@
 declare(strict_types=1);
 
 use App\Core\Domain\DataTransferObjects\BaseDTO;
-use App\Shared\Enums\Country;
 
 /*
 | BaseDTO hydration. These behaviours are what let controllers hand a typed
 | object to a service instead of a raw array.
 */
 
+/*
+| A LOCAL fixture enum, deliberately not a production one. This file tests
+| BaseDTO's scalar<->backed-enum casting, not any domain vocabulary; the previous
+| coupling to App\Shared\Enums\Country broke the moment Country was promoted to a
+| Localization lookup table (CLAUDE.md "enum or lookup table"). A fixture cannot
+| break that way again, and a Unit test must not reach for a database-backed model.
+*/
+enum FixtureCountry: string
+{
+    case TR = 'TR';
+    case DE = 'DE';
+}
+
 final class FixtureAddressData extends BaseDTO
 {
     public function __construct(
         public readonly string $city,
-        public readonly Country $country,
+        public readonly FixtureCountry $country,
     ) {}
 }
 
@@ -52,7 +64,7 @@ it('falls back to declared defaults for absent keys', function (): void {
 it('casts a scalar into a backed enum', function (): void {
     $dto = FixtureAddressData::fromArray(['city' => 'İstanbul', 'country' => 'TR']);
 
-    expect($dto->country)->toBe(Country::TR);
+    expect($dto->country)->toBe(FixtureCountry::TR);
 });
 
 it('casts a nested array into a nested DTO', function (): void {
@@ -62,7 +74,7 @@ it('casts a nested array into a nested DTO', function (): void {
     ]);
 
     expect($dto->address)->toBeInstanceOf(FixtureAddressData::class)
-        ->and($dto->address->country)->toBe(Country::TR);
+        ->and($dto->address->country)->toBe(FixtureCountry::TR);
 });
 
 it('serialises to a snake_case array with enums unwrapped', function (): void {
