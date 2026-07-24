@@ -27,7 +27,7 @@ final class RemoveMemberAction extends BaseAction
 
     private int $removedUserId;
 
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var OrganizationMember $member */
         $member = $arguments[0];

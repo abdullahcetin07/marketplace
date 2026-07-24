@@ -21,7 +21,7 @@ use Illuminate\Support\Facades\DB;
  */
 final class LogoutAction extends BaseAction
 {
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var User $user */
         /** @var Request $request */

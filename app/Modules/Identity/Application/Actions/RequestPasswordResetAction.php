@@ -40,7 +40,7 @@ final class RequestPasswordResetAction extends BaseAction
 
     public function __construct(private readonly UserRepositoryContract $users) {}
 
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var PasswordResetRequestDTO $data */
         $data = $arguments[0];
@@ -53,7 +53,7 @@ final class RequestPasswordResetAction extends BaseAction
             // phase — and it must never change what the caller sees.
             $this->logAudit($data, null, 'unknown_address');
 
-            return;
+            return null;
         }
 
         /*
@@ -64,7 +64,7 @@ final class RequestPasswordResetAction extends BaseAction
         if (! $user->canAuthenticate()) {
             $this->logAudit($data, $user->getKey(), 'account_not_active');
 
-            return;
+            return null;
         }
 
         try {

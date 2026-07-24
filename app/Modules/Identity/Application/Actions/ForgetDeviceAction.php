@@ -44,7 +44,7 @@ final class ForgetDeviceAction extends BaseAction
      * @param  UserDevice  $arguments [0]
      * @param  User  $arguments [1] the acting user (the owner)
      */
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var UserDevice $device */
         $device = $arguments[0];

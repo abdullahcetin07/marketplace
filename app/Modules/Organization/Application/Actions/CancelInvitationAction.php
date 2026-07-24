@@ -16,7 +16,7 @@ use App\Modules\Organization\Domain\Models\OrganizationInvitation;
  */
 final class CancelInvitationAction extends BaseAction
 {
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var OrganizationInvitation $invitation */
         $invitation = $arguments[0];

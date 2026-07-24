@@ -27,7 +27,7 @@ final class ResendVerificationAction extends BaseAction
 
     public function __construct(private readonly UserRepositoryContract $users) {}
 
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var ResendVerificationDTO $data */
         $data = $arguments[0];
@@ -38,7 +38,7 @@ final class ResendVerificationAction extends BaseAction
         if ($user === null || $user->hasVerifiedEmail()) {
             $this->log($data, $user?->getKey(), skipped: true);
 
-            return;
+            return null;
         }
 
         try {

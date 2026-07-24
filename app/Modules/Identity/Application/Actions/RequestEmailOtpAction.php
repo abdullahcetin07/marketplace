@@ -43,7 +43,7 @@ final class RequestEmailOtpAction extends BaseAction
         private readonly TwoFactorService $twoFactor,
     ) {}
 
-    public function handle(mixed ...$arguments): void
+    public function handle(mixed ...$arguments): mixed
     {
         /** @var TwoFactorChallengeDTO $data */
         $data = $arguments[0];
@@ -57,7 +57,7 @@ final class RequestEmailOtpAction extends BaseAction
         if ($user === null || ! $passwordOk || ! $user->hasTwoFactorEnabled()) {
             $this->log($data, $user?->getKey(), issued: false);
 
-            return;
+            return null;
         }
 
         try {
