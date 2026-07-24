@@ -35,7 +35,7 @@ Schedule::call(function (): void {
     DB::table('audit_entries')
         ->where('created_at', '<', now()->subDays($days))
         ->delete();
-})->dailyAt('03:00')->onOneServer()->name('prune-audit-entries');
+})->name('prune-audit-entries')->dailyAt('03:00')->onOneServer();
 
 Schedule::call(function (): void {
     $days = (int) config('marketplace.security.retention.activity_days', 365);
@@ -43,7 +43,7 @@ Schedule::call(function (): void {
     DB::table('activity_entries')
         ->where('created_at', '<', now()->subDays($days))
         ->delete();
-})->dailyAt('03:15')->onOneServer()->name('prune-activity-entries');
+})->name('prune-activity-entries')->dailyAt('03:15')->onOneServer();
 
 /*
 | Login attempts are the shortest-lived of the three: they exist for attack
@@ -55,14 +55,14 @@ Schedule::call(function (): void {
     DB::table('login_attempts')
         ->where('created_at', '<', now()->subDays($days))
         ->delete();
-})->dailyAt('03:30')->onOneServer()->name('prune-login-attempts');
+})->name('prune-login-attempts')->dailyAt('03:30')->onOneServer();
 
 /*
 | Revoked and long-idle session rows. @see SessionService::prune()
 */
 Schedule::call(function (): void {
     app(App\Modules\Identity\Application\Services\SessionService::class)->prune();
-})->dailyAt('03:45')->onOneServer()->name('prune-user-sessions');
+})->name('prune-user-sessions')->dailyAt('03:45')->onOneServer();
 
 /*
 | Expired Sanctum tokens are dead weight and a (small) attack surface.
