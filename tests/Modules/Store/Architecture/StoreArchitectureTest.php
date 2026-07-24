@@ -60,9 +60,15 @@ arch('Store never imports Organization internals (ADR-033)')
     ]);
 
 /*
-| The Domain layer is framework-agnostic: it must not reach for HTTP, the
-| container, or the UI. (The global ADR-019 purity rule in LayeringTest already
+| The Domain layer is framework-agnostic: it must not reach for the UI or for
+| its own outer layers. (The global ADR-019 purity rule in LayeringTest already
 | bars cache/request/encrypt; this pins the Store-specific surfaces.)
+|
+| Domain\Exceptions is exempt from the HTTP rule ON PURPOSE: a BaseException
+| carries its own HTTP status, so `Illuminate\Http\Response` is the house
+| pattern there — Core's BaseException and all three Organization exceptions do
+| exactly the same. LayeringTest already records that carve-out for
+| BaseException; this mirrors it rather than contradicting it.
 */
 arch('the Store Domain layer knows nothing of HTTP or Filament')
     ->expect('App\Modules\Store\Domain')
@@ -71,7 +77,8 @@ arch('the Store Domain layer knows nothing of HTTP or Filament')
         'Filament',
         'App\Modules\Store\Presentation',
         'App\Modules\Store\Infrastructure',
-    ]);
+    ])
+    ->ignoring('App\Modules\Store\Domain\Exceptions');
 
 arch('Store DTOs are immutable value objects')
     ->expect('App\Modules\Store\Domain\DTOs')
