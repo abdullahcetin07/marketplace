@@ -11,6 +11,7 @@ use App\Core\Infrastructure\Otp\CacheOtpStore;
 use App\Shared\Rules\StrongPassword;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
+use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Date;
@@ -59,10 +60,43 @@ final class AppServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->configureModels();
+        $this->configureFactories();
         $this->configureDatabase();
         $this->configurePasswords();
         $this->configureRateLimiting();
         $this->configureUrls();
+    }
+
+    /**
+     * Teach Eloquent where module factories live.
+     *
+     * A module's factory sits with its module, not in the shared factory
+     * directory (see database/Modules/README.md):
+     *
+     *   App\Modules\Store\Domain\Models\Store
+     *     -> Database\Modules\Store\Factories\StoreFactory
+     *
+     * Laravel's default resolver strips the app namespace and prefixes
+     * `Database\Factories\`, which would look for
+     * `Database\Factories\Modules\Store\Domain\Models\StoreFactory` — a path
+     * that does not exist. Registered once here rather than as a `newFactory()`
+     * on all ~28 models, so a new module model needs no boilerplate.
+     *
+     * `app/Models` (User, Admin, Seller, Customer) keeps Laravel's own
+     * convention, which is exactly where those factories already live.
+     */
+    private function configureFactories(): void
+    {
+        Factory::guessFactoryNamesUsing(static function (string $modelName): string {
+            if (str_starts_with($modelName, 'App\\Modules\\')) {
+                $segments = explode('\\', substr($modelName, strlen('App\\Modules\\')));
+                $module = $segments[0];
+
+                return 'Database\\Modules\\'.$module.'\\Factories\\'.class_basename($modelName).'Factory';
+            }
+
+            return 'Database\\Factories\\'.class_basename($modelName).'Factory';
+        });
     }
 
     /**
