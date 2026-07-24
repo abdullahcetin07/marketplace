@@ -8,7 +8,6 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Schema;
 use Symfony\Component\Console\Output\ConsoleOutput;
-use Throwable;
 
 /**
  * ADR-012: `users.name` becomes `first_name` + `last_name`.
