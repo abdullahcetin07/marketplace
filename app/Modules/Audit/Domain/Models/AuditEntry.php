@@ -142,7 +142,17 @@ final class AuditEntry extends Model
         return $diff;
     }
 
-    public function wasChanged(string $attribute): bool
+    /**
+     * Whether THIS ENTRY recorded a change to the given attribute.
+     *
+     * Deliberately NOT named `wasChanged()`: Eloquent already defines
+     * `Model::wasChanged($attributes = null)`, and overriding it with a
+     * narrower signature is a fatal incompatible-declaration error. The two
+     * also mean different things — Eloquent's answers "did this model instance
+     * change during the current request?", while this answers "does this
+     * historical record contain that attribute?".
+     */
+    public function attributeWasChanged(string $attribute): bool
     {
         return array_key_exists($attribute, $this->new_values ?? []);
     }
