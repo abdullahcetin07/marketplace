@@ -4,7 +4,6 @@ declare(strict_types=1);
 
 namespace App\Core\Presentation\Resources;
 
-use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 
 /**
@@ -27,10 +26,13 @@ abstract class BaseResource extends JsonResource
      */
     public static $wrap = null;
 
-    /**
-     * @return array<string, mixed>
-     */
-    abstract public function toArray(Request $request): array;
+    /*
+    | Every subclass implements toArray(Request): array — all 14 do today. It is
+    | deliberately NOT re-declared abstract here: JsonResource::toArray() is a
+    | CONCRETE method, and PHP rejects redeclaring an inherited concrete method as
+    | abstract ("Cannot make non abstract method ... abstract"). The contract is
+    | therefore documented and enforced by review, not by the type system.
+    */
 
     /**
      * The public identifier. Always the UUID, never the primary key.
