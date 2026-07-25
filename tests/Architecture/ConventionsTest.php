@@ -82,9 +82,28 @@ arch('nothing outside the TOTP provider depends on Google2FA')
 | monolith (ADR-002): controllers live in App\Modules\*\Presentation\Controllers
 | and each module owns its *ServiceProvider. The module layout is enforced by
 | LayeringTest and the per-module architecture tests, so the preset is scoped to
-| the non-module code it was written for.
+| the code it was written for — everything below is a house pattern the preset
+| has no way to know about, not a violation.
 */
-arch()->preset()->laravel()->ignoring('App\Modules');
+arch()->preset()->laravel()->ignoring([
+    'App\Modules',
+    // The preset ties each Laravel base type to its skeleton namespace —
+    // controllers to App\Http\Controllers, form requests to App\Http\Requests,
+    // notifications to App\Notifications. ADR-002 puts the project's own base
+    // classes in Core and the concrete ones in the modules instead.
+    'App\Core\Presentation\Controllers',
+    'App\Core\Presentation\Requests',
+    'App\Core\Application\Notifications',
+    // Exceptions sit next to whatever throws them, not in one App\Exceptions
+    // bucket; enums are shared vocabulary in App\Shared\Enums (CLAUDE.md), and
+    // the two rules above already prove they are enums and traits.
+    'App\Core\Domain\Exceptions',
+    'App\Core\Infrastructure\Search',
+    'App\Shared\Enums',
+    // Filament names its panel registrars `*PanelProvider`, not
+    // `*ServiceProvider`. Following the package beats following the preset.
+    'App\Providers\Filament',
+]);
 
 /*
 | The security preset flags every md5/sha1 call, on the assumption that a hash
