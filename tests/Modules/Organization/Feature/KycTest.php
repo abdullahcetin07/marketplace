@@ -76,7 +76,13 @@ it('encrypts the national id and keeps it out of the audit trail', function (): 
 
 it('stores an uploaded document on the private disk as pending', function (): void {
     $org = Organization::factory()->create();
-    $file = UploadedFile::fake()->create('tax.pdf', 200, 'application/pdf');
+    // The collection sniffs the file on disk, and `create()` leaves it empty —
+    // an empty file is `application/x-empty`, whatever mime the fake claims.
+    // Real PDF bytes are what the accepted-mime check is actually reading.
+    $file = UploadedFile::fake()->createWithContent(
+        'tax.pdf',
+        "%PDF-1.4\n1 0 obj<</Type/Catalog>>endobj\ntrailer<</Root 1 0 R>>\n%%EOF\n",
+    );
 
     $document = app(UploadDocumentAction::class)->run($org, OrganizationDocumentType::TaxCertificate, $file);
 
