@@ -180,6 +180,45 @@ class User extends Authenticatable implements MustVerifyEmail
         return null;
     }
 
+    /**
+     * Hydrate every row as the subclass its `type` column names.
+     *
+     * Roles and permissions are stored polymorphically, keyed on the model's
+     * morph class — which for an admin's row is `App\Models\Admin`, because
+     * that is the class that assigned the role. A row loaded through the
+     * UNSCOPED base `User` (route model binding, the admin user list, any
+     * `creator()` relation) therefore reported no roles at all: `hasRole()`
+     * looked for `App\Models\User` and found nothing.
+     *
+     * That is not a cosmetic difference. `UserPolicy` refuses to let a lesser
+     * admin act on a super-admin by asking `$target->isSuperAdmin()`; with a
+     * base-hydrated target that guard answered false and the escalation was
+     * allowed. Hydrating the concrete subclass keeps ONE morph identity per
+     * row, whichever class was used to read it.
+     *
+     * Only the base class does this — a subclass is already the right class,
+     * and its global scope guarantees the row's type matches.
+     *
+     * @param  array<string, mixed>|object  $attributes
+     */
+    public function newFromBuilder($attributes = [], $connection = null): static
+    {
+        if (static::actorType() === null) {
+            $type = UserType::tryFrom((string) (((array) $attributes)['type'] ?? ''));
+
+            if ($type !== null) {
+                $model = $type->model();
+
+                /** @var static $concrete */
+                $concrete = (new $model)->newFromBuilder($attributes, $connection);
+
+                return $concrete;
+            }
+        }
+
+        return parent::newFromBuilder($attributes, $connection);
+    }
+
     // ---------------------------------------------------------------------
     // Authorisation
     // ---------------------------------------------------------------------
