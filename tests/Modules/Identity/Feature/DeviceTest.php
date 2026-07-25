@@ -20,8 +20,18 @@ beforeEach(function (): void {
     $this->seedRolesAndPermissions();
 });
 
+/*
+| The acting customer is `registered()` — carrying the `customer` role that
+| registration assigns — because DevicePolicy gates these endpoints on
+| `device.*` and only the role grants them. A role-less customer is denied for
+| lacking the permission, which would make the "cannot touch another user's
+| device" assertions below pass for the wrong reason: they are here to prove
+| OWNERSHIP scoping, and ownership is only reached once the permission holds.
+| `$other` stays role-less; it is only ever the owner of a foreign row.
+*/
+
 it('lists only the current user devices', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $other = Customer::factory()->create();
 
     UserDevice::factory()->count(2)->create(['user_id' => $me->getKey()]);
@@ -35,7 +45,7 @@ it('lists only the current user devices', function (): void {
 });
 
 it('never exposes the fingerprint', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     UserDevice::factory()->create([
         'user_id' => $me->getKey(),
         'fingerprint' => 'super-secret-fingerprint',
@@ -50,7 +60,7 @@ it('never exposes the fingerprint', function (): void {
 
 it('trusts a device', function (): void {
     Event::fake([DeviceTrusted::class]);
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $device = UserDevice::factory()->create(['user_id' => $me->getKey()]);
     $this->actingAsCustomer($me);
 
@@ -63,7 +73,7 @@ it('trusts a device', function (): void {
 });
 
 it('reports an expired trust as untrusted', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     // Trusted longer ago than the trust window.
     $device = UserDevice::factory()->trustExpired()->create(['user_id' => $me->getKey()]);
     $this->actingAsCustomer($me);
@@ -76,7 +86,7 @@ it('reports an expired trust as untrusted', function (): void {
 });
 
 it('cannot trust another user device', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $other = Customer::factory()->create();
     $device = UserDevice::factory()->create(['user_id' => $other->getKey()]);
     $this->actingAsCustomer($me);
@@ -88,7 +98,7 @@ it('cannot trust another user device', function (): void {
 
 it('cannot view another user device implicitly', function (): void {
     // The list is scoped; a foreign device simply is not in it.
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $other = Customer::factory()->create();
     UserDevice::factory()->create(['user_id' => $other->getKey()]);
     $this->actingAsCustomer($me);
@@ -101,7 +111,7 @@ it('cannot view another user device implicitly', function (): void {
 */
 
 it('forgets a device and revokes its sessions', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $device = UserDevice::factory()->create(['user_id' => $me->getKey()]);
 
     // A live cookie session on this device.
@@ -128,7 +138,7 @@ it('forgets a device and revokes its sessions', function (): void {
 });
 
 it('cannot forget another user device', function (): void {
-    $me = Customer::factory()->create();
+    $me = Customer::factory()->registered()->create();
     $other = Customer::factory()->create();
     $device = UserDevice::factory()->create(['user_id' => $other->getKey()]);
     $this->actingAsCustomer($me);

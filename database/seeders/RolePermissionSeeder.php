@@ -165,12 +165,22 @@ final class RolePermissionSeeder extends Seeder
 
         /*
         | Customer — assigned on registration. Manages their own sessions and
-        | reads their own activity feed; everything else a customer may do is
-        | either public or gated by ownership rather than by a permission.
+        | devices and reads their own activity feed; everything else a customer
+        | may do is either public or gated by ownership rather than by a
+        | permission.
+        |
+        | `device.*` mirrors `session.*`: Identity §12 registers devices for all
+        | three actor types, ownership-scoped, and DevicePolicy gates the
+        | customer-facing /devices endpoints on them. Without them here no
+        | customer could list, trust or forget their own devices at all — and
+        | the ownership scoping DevicePolicy exists for was never reached.
+        | `update` is the trust action; there is no create verb (a device is
+        | recognised at login, never created by hand).
         */
         $this->role('customer', $guard)->syncPermissions([
             'activity.view',
             ...PermissionRegistry::forResource('session', ['view_any', 'view', 'delete']),
+            ...PermissionRegistry::forResource('device', ['view_any', 'view', 'update', 'delete']),
         ]);
     }
 
