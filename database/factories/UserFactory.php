@@ -149,9 +149,15 @@ class UserFactory extends Factory
     public function withTwoFactor(): static
     {
         return $this->state(fn (): array => [
-            'two_factor_secret' => Str::random(32),
+            // A VALID base32 secret. Google2FA rejects anything outside the
+            // base32 alphabet (A-Z, 2-7), so Str::random() makes verifyKey()
+            // throw InvalidCharactersException. The value itself is irrelevant.
+            'two_factor_secret' => 'JBSWY3DPEHPK3PXPJBSWY3DPEHPK3PXP',
+            // Recovery codes are stored HASHED in production. Hash::check() on a
+            // strict Bcrypt hasher throws on a non-bcrypt string, so store real
+            // bcrypt hashes — verification then iterates them without blowing up.
             'two_factor_recovery_codes' => json_encode(
-                array_map(static fn (): string => Str::random(10), range(1, 8)),
+                array_map(static fn (): string => Hash::make(Str::random(10)), range(1, 8)),
                 JSON_THROW_ON_ERROR,
             ),
             'two_factor_confirmed_at' => now(),

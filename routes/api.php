@@ -129,12 +129,19 @@ Route::prefix('v1')
             Route::post('/email/resend', [EmailVerificationController::class, 'resend'])
                 ->name('email.resend');
 
-            // Email-OTP fallback (Q5), requested mid-login and unauthenticated.
-            // The CODE is emailed, never returned — the one 2FA value ADR-025
-            // applies to.
-            Route::post('/two-factor/email-otp', [TwoFactorController::class, 'requestEmailOtp'])
-                ->name('two-factor.email-otp');
         });
+
+        /*
+        | Email-OTP fallback (Q5): public and requested mid-login, but
+        | rate-limited like the rest of the credential surface. Registered
+        | OUTSIDE the auth/ path prefix so it is served at /two-factor/email-otp
+        | — the path the controller documents and a sibling of the enrolment
+        | routes — not /auth/two-factor/email-otp. The CODE is emailed, never
+        | returned: the one 2FA value ADR-025 applies to.
+        */
+        Route::post('/two-factor/email-otp', [TwoFactorController::class, 'requestEmailOtp'])
+            ->middleware('throttle:auth')
+            ->name('two-factor.email-otp');
 
         /*
         |------------------------------------------------------------------
