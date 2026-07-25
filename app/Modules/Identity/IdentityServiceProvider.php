@@ -23,6 +23,7 @@ use App\Modules\Identity\Domain\Contracts\TotpProviderContract;
 use App\Modules\Identity\Infrastructure\Repositories\SessionRepository;
 use App\Modules\Identity\Infrastructure\Repositories\UserRepository;
 use App\Modules\Identity\Infrastructure\Totp\Google2FaTotpProvider;
+use App\Modules\Identity\Presentation\Policies\DevicePolicy;
 use App\Modules\Identity\Presentation\Policies\UserPolicy;
 use App\Modules\Identity\Presentation\Policies\UserSessionPolicy;
 use App\Shared\Enums\UserType;

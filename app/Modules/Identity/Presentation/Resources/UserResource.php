@@ -64,7 +64,13 @@ final class UserResource extends BaseResource
             // capability, never on role name.
             'permissions' => $this->when(
                 $this->isSelf($request),
-                fn (): array => $this->resource->getAllPermissions()->pluck('name')->all(),
+                // loadMissing (explicit, allowed under preventLazyLoading) before
+                // getAllPermissions, which reads permissions + roles.permissions.
+                // In a list the rendered row is a fresh query result, not the
+                // authenticated instance, so those relations are not yet loaded.
+                fn (): array => $this->resource
+                    ->loadMissing('roles.permissions', 'permissions')
+                    ->getAllPermissions()->pluck('name')->all(),
             ),
 
             ...$this->timestamps(),
