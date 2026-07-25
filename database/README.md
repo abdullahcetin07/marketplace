@@ -14,7 +14,8 @@ factories/    One per actor type
 | Table | Why it exists |
 |---|---|
 | `users` | Identity for all three actor types |
-| `password_reset_tokens`, `sessions` | Framework auth |
+| `password_reset_tokens`, `sessions` | Framework auth — customer reset tokens |
+| `admin_password_reset_tokens`, `seller_password_reset_tokens` | One token table per broker; a shared one lets a token cross actor types (see `config/auth.php`) |
 | `cache`, `cache_locks` | Degraded-mode fallback; Redis is the real cache |
 | `jobs`, `job_batches` | Queue fallback |
 | `failed_jobs` | **Not** a fallback — always used, so a Redis flush cannot destroy failure records |
