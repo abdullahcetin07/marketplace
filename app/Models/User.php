@@ -234,10 +234,18 @@ class User extends Authenticatable implements MustVerifyEmail
      * Spatie reads this to scope role and permission lookups, which is why a
      * seller's `store.update` and an admin's `store.update` are separate
      * records that cannot be confused for one another.
+     *
+     * The row's `type` first, then the CLASS's actor type. The second fallback
+     * is what makes `Admin::query()->permission('security.receive_alerts')`
+     * work: Spatie asks a bare `new Admin` for its guard, and that instance has
+     * no `type` yet — the column is stamped on create. Falling straight through
+     * to Customer there sent every model-less lookup to the wrong guard and
+     * threw, which is how a permission-scoped admin query became a swallowed
+     * exception and a security alert nobody received.
      */
     public function guardName(): string
     {
-        return ($this->type ?? UserType::Customer)->guard();
+        return ($this->type ?? static::actorType() ?? UserType::Customer)->guard();
     }
 
     /**
