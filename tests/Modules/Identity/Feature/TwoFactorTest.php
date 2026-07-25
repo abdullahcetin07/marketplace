@@ -71,7 +71,10 @@ it('rejects confirmation with a wrong code', function (): void {
 
     $this->postJson('/api/v1/two-factor/confirm', ['code' => '000000'])
         ->assertStatus(401)
-        ->assertJsonPath('code', 'INVALID_CREDENTIALS');
+        // A wrong code during enrolment is DISCLOSABLE (AuthenticationFailed):
+        // the owner is already authenticated, so telling them the 2FA code was
+        // wrong leaks nothing and is more useful than a generic credential error.
+        ->assertJsonPath('code', 'TWO_FACTOR_INVALID');
 
     expect($customer->fresh()->hasTwoFactorEnabled())->toBeFalse();
 });
