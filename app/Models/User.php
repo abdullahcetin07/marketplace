@@ -36,6 +36,7 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Laravel\Sanctum\HasApiTokens;
 use LogicException;
+use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
 
 /**
@@ -105,7 +106,11 @@ class User extends Authenticatable implements MustVerifyEmail
     // (password, remember_token, two_factor_secret, two_factor_recovery_codes)
     // are on the trait's global exclusion list and never reach the trail.
     use Auditable;
-    use HasRoles;
+    // The Spatie check is aliased so the override below can wrap it without
+    // recursing through checkPermissionTo(), which calls hasPermissionTo().
+    use HasRoles {
+        hasPermissionTo as protected spatieHasPermissionTo;
+    }
     use HasStatus;
     use HasUuid;
     use Notifiable;
@@ -247,6 +252,35 @@ class User extends Authenticatable implements MustVerifyEmail
     public function getDefaultGuardName(): string
     {
         return $this->guardName();
+    }
+
+    /**
+     * A permission that does not exist for this actor's guard is a DENIAL,
+     * not an error.
+     *
+     * Permissions here are deliberately registered per guard — `user.view_any`
+     * exists for `admin` and for nobody else (PermissionRegistry). Asking a
+     * customer whether they hold it is therefore an ordinary, expected question
+     * with the answer "no"; it is what every admin endpoint asks before it
+     * refuses a customer. Spatie's default answer is to throw
+     * PermissionDoesNotExist, which turned those refusals into 500s instead of
+     * 403s — the platform failed loudly on its own happy path for a denial.
+     *
+     * Swallowing the exception costs the typo safety net: a misspelt permission
+     * name now denies silently rather than blowing up. That is the cheaper
+     * failure — `make permissions` plus the registry is what catches typos, and
+     * a policy that errors instead of denying is a worse bug than one that is
+     * merely over-strict.
+     *
+     * @param  string|int|\BackedEnum|\Spatie\Permission\Contracts\Permission  $permission
+     */
+    public function hasPermissionTo($permission, $guardName = null): bool
+    {
+        try {
+            return $this->spatieHasPermissionTo($permission, $guardName);
+        } catch (PermissionDoesNotExist) {
+            return false;
+        }
     }
 
     /**
