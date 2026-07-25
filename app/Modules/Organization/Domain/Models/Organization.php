@@ -227,9 +227,18 @@ final class Organization extends Model
      * limit actually bind: the Nth approval is refused once the allowance is
      * used. When Store exists, this switches to the real store count (or the
      * approved requests it created).
+     *
+     * An unsaved organization owns nothing, so it short-circuits before the
+     * query — otherwise the relation is scoped by a null key and still hits the
+     * database, which is both a wasted round trip and a hard failure anywhere
+     * the model exists without one.
      */
     public function currentStoreCount(): int
     {
+        if (! $this->exists) {
+            return 0;
+        }
+
         return $this->storeOpeningRequests()->approved()->count();
     }
 
