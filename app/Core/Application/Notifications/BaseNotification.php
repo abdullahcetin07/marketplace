@@ -88,7 +88,7 @@ abstract class BaseNotification extends Notification implements ShouldQueue
     final public function via(mixed $notifiable): array
     {
         return collect($this->channels())
-            ->filter(fn (NotificationType $type): bool => $this->shouldSend($type, $notifiable))
+            ->filter(fn (NotificationType $type): bool => $this->shouldSendType($type, $notifiable))
             ->map(fn (NotificationType $type): string => $type->channel())
             ->unique()
             ->values()
@@ -113,8 +113,13 @@ abstract class BaseNotification extends Notification implements ShouldQueue
     /**
      * A channel is used when it has a provider AND the recipient has not opted
      * out — unless this is a security alert, which overrides preferences.
+     *
+     * NOT named `shouldSend`: Laravel treats a public `shouldSend($notifiable,
+     * $channel)` as a delivery-gate convention and NotificationFake invokes it
+     * by name with a different signature — a collision that fataled every
+     * faked-notification test. This is our own per-CHANNEL preference check.
      */
-    protected function shouldSend(NotificationType $type, mixed $notifiable): bool
+    protected function shouldSendType(NotificationType $type, mixed $notifiable): bool
     {
         if (! $type->isImplemented()) {
             return false;

@@ -106,12 +106,16 @@ final class AuditContext
     /**
      * Non-HTTP origin: a console command, a queue worker, a seeder.
      *
-     * All request fields are null, and `origin` says why — which is the
-     * distinction the old implementation could not express.
+     * Request fields (IP, agent, URL) are null — there is no request — but the
+     * correlation id is still adopted from the ambient one when present, so an
+     * audit row written outside HTTP stitches to the same incident as the events
+     * of that run. This mirrors BaseEvent, which reads the same id; the two now
+     * agree. `correlation_id()` reads app('correlation_id'), not request(), so
+     * the Domain-purity rule (ADR-019) holds.
      */
     public static function system(string $origin = 'system'): self
     {
-        return new self(origin: $origin);
+        return new self(origin: $origin, correlationId: correlation_id() ?: null);
     }
 
     /**

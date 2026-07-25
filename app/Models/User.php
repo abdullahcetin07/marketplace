@@ -433,7 +433,7 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * Consulted by BaseNotification::shouldSend().
+     * Consulted by BaseNotification::shouldSendType().
      *
      * Deny-list semantics: no row means "send it". Database notifications and
      * security alerts bypass this entirely — a user must not be able to mute

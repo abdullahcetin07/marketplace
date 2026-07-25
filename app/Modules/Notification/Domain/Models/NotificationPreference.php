@@ -23,7 +23,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * opt-out to one notification, so a user can mute marketing email without
  * muting order updates.
  *
- * TWO THINGS THIS CANNOT SILENCE, enforced in BaseNotification::shouldSend():
+ * TWO THINGS THIS CANNOT SILENCE, enforced in BaseNotification::shouldSendType():
  *   - database notifications, which are the in-app inbox
  *   - security alerts, because a user must not be able to mute the message
  *     telling them their password was changed
