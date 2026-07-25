@@ -66,6 +66,13 @@ abstract class TestCase extends BaseTestCase
     {
         $admin ??= Admin::factory()->create();
 
+        // Hand the guard a fully-hydrated row, exactly as the user provider
+        // does in production. A freshly factory-built model only holds the
+        // columns the factory set, so reading a nullable column it omitted
+        // (e.g. two_factor_secret) throws under preventAccessingMissingAttributes.
+        // refresh() reloads every column in place, preserving object identity.
+        $admin->refresh();
+
         $this->actingAs($admin, 'admin');
 
         return $admin;
@@ -75,6 +82,10 @@ abstract class TestCase extends BaseTestCase
     {
         $seller ??= Seller::factory()->create();
 
+        // See actingAsAdmin: hydrate the full row so strict mode does not throw
+        // on a nullable column the factory omitted.
+        $seller->refresh();
+
         $this->actingAs($seller, 'seller');
 
         return $seller;
@@ -83,6 +94,10 @@ abstract class TestCase extends BaseTestCase
     protected function actingAsCustomer(?Customer $customer = null): Customer
     {
         $customer ??= Customer::factory()->create();
+
+        // See actingAsAdmin: hydrate the full row so strict mode does not throw
+        // on a nullable column the factory omitted.
+        $customer->refresh();
 
         $this->actingAs($customer, 'customer');
 
