@@ -34,12 +34,17 @@ return [
     | Guard
     |--------------------------------------------------------------------------
     |
-    | Which guard Sanctum consults for a stateful (cookie) request. Customers
-    | are the API's audience; admins and sellers use their panels.
+    | Which guards Sanctum consults for a stateful (cookie) request. All three
+    | actor types reach the API: customers as its primary audience, and admins
+    | and sellers through the `/api/v1/admin/*` and seller endpoints the
+    | Organization and Store modules added behind `auth:sanctum`. Each guard
+    | still resolves ONLY its own actor type (users.type-scoped providers), so
+    | listing all three consults the right one per request without weakening
+    | guard isolation.
     |
     */
 
-    'guard' => ['customer'],
+    'guard' => ['admin', 'seller', 'customer'],
 
     /*
     |--------------------------------------------------------------------------
