@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Models\User;
+use Illuminate\Auth\Access\Response;
 use Illuminate\Foundation\Support\Providers\AuthServiceProvider as ServiceProvider;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\Facades\Log;
@@ -51,10 +52,15 @@ final class AuthServiceProvider extends ServiceProvider
         | both a misconfigured role and a probing attacker, and they are
         | invisible otherwise — the user just sees a 403.
         */
-        Gate::after(static function (?User $user, string $ability, ?bool $result): void {
+        Gate::after(static function (?User $user, string $ability, Response|bool|null $result): void {
+            // Laravel 12 passes an Access\Response here (not just a bool) whenever
+            // a policy returns Response::allow()/deny() — which BasePolicy does.
+            // A denial is `false` OR a denied Response.
+            $denied = $result === false || ($result instanceof Response && $result->denied());
+
             // A guest denial carries no actor to attribute; only log an
             // authenticated user's denial (the forensic signal we want).
-            if ($result === false && $user instanceof User) {
+            if ($denied && $user instanceof User) {
                 Log::channel('audit')->notice('Authorisation denied', [
                     'user_id' => $user->getKey(),
                     'user_type' => $user->type?->value,
