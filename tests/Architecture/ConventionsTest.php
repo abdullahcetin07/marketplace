@@ -86,4 +86,16 @@ arch('nothing outside the TOTP provider depends on Google2FA')
 */
 arch()->preset()->laravel()->ignoring('App\Modules');
 
-arch()->preset()->security();
+/*
+| The security preset flags every md5/sha1 call, on the assumption that a hash
+| is protecting something. None of these are: the timezone repository hashes a
+| name to shorten a cache key, and the rest implement Laravel's own email
+| verification convention, where the URL signature is the credential and
+| `sha1(email)` only proves the link matches the account.
+*/
+arch()->preset()->security()->ignoring([
+    'App\Modules\Localization\Infrastructure\Repositories\TimezoneRepository',
+    'App\Modules\Identity\Application\Actions\VerifyEmailAction',
+    'App\Modules\Identity\Application\Services\AuthService',
+    'App\Modules\Identity\Infrastructure\Notifications\VerifyEmailNotification',
+]);
