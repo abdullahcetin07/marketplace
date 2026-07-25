@@ -10,6 +10,7 @@ use App\Models\Seller;
 use App\Models\User;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Seeders\RolePermissionSeeder;
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
 use Illuminate\Support\Facades\Http;
 use Spatie\Permission\Models\Permission;
@@ -57,6 +58,30 @@ abstract class TestCase extends BaseTestCase
     {
         $this->seedPlatform();
         $this->seedRolesAndPermissions();
+    }
+
+    /**
+     * Sign in as exactly one actor, on exactly one guard.
+     *
+     * Laravel's actingAs() sets the user on ONE guard and makes it the default;
+     * it does not clear the others. A test that acts as an admin and then as a
+     * customer therefore leaves the admin still authenticated, and
+     * `auth:sanctum` — configured to accept any of `admin`, `seller`,
+     * `customer` — resolves the admin again. Every "…but denies a customer"
+     * assertion then silently re-tests the admin and passes for the wrong
+     * reason, or, as here, fails with a 200 nobody can explain.
+     *
+     * Forgetting the resolved guards first reproduces production, where every
+     * request resolves its guards from scratch. Overridden here rather than in
+     * the three helpers below so tests calling actingAs() directly get it too.
+     *
+     * @param  string|null  $guard
+     */
+    public function actingAs(Authenticatable $user, $guard = null): static
+    {
+        $this->app['auth']->forgetGuards();
+
+        return parent::actingAs($user, $guard);
     }
 
     /**
