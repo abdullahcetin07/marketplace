@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Tests;
 
+use App\Core\Domain\Context\AuditContext;
 use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Seller;
@@ -20,6 +21,16 @@ abstract class TestCase extends BaseTestCase
     protected function setUp(): void
     {
         parent::setUp();
+
+        /*
+        | AuditContext memoises itself in a static, which outlives the
+        | application between tests in one process. Left alone, whatever the
+        | first model write in the suite captured — usually the system context
+        | with no correlation id — is what every later test reads, and binding
+        | a correlation id has no effect. Clearing it restores the production
+        | behaviour of resolving the context once per request.
+        */
+        AuditContext::forget();
 
         /*
         | No test may reach the network. Without this a forgotten HTTP call
