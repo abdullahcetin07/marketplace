@@ -53,9 +53,15 @@ return Application::configure(basePath: dirname(__DIR__))
         */
         $middleware->statefulApi();
 
-        $middleware->api(prepend: [
-            Laravel\Sanctum\Http\Middleware\CheckAbilities::class,
-        ]);
+        /*
+        | NOTE: CheckAbilities is deliberately NOT prepended onto the api group.
+        | As a global middleware it demands `$request->user()->currentAccessToken()`
+        | on EVERY /api/v1 request, which 401s both public endpoints (the public
+        | storefront) and session/cookie-authenticated ones (no access token) —
+        | only bearer-token requests survive. Token-ability checks belong on the
+        | specific routes that need them, via the `abilities` / `ability` aliases
+        | registered below.
+        */
 
         /*
         | CSRF is on for every web route. The API routes are exempt only where
