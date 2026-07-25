@@ -76,6 +76,14 @@ arch('nothing outside the TOTP provider depends on Google2FA')
     ->expect('PragmaRX\Google2FA')
     ->toOnlyBeUsedIn('App\Modules\Identity\Infrastructure\Totp');
 
-arch()->preset()->laravel();
+/*
+| Laravel's preset assumes the DEFAULT skeleton — controllers only in
+| App\Http\Controllers, providers only in App\Providers. This is a modular
+| monolith (ADR-002): controllers live in App\Modules\*\Presentation\Controllers
+| and each module owns its *ServiceProvider. The module layout is enforced by
+| LayeringTest and the per-module architecture tests, so the preset is scoped to
+| the non-module code it was written for.
+*/
+arch()->preset()->laravel()->ignoring('App\Modules');
 
 arch()->preset()->security();

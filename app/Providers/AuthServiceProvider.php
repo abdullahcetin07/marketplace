@@ -40,8 +40,10 @@ final class AuthServiceProvider extends ServiceProvider
         | BasePolicy::before() so the two cannot disagree — a Gate::define()
         | ability that has no policy still respects it.
         */
-        Gate::before(static function (User $user, string $ability): ?bool {
-            return $user->isSuperAdmin() ? true : null;
+        Gate::before(static function (?User $user, string $ability): ?bool {
+            // Gate runs before() for guests too, with a null user. A guest is
+            // never a super-admin, so fall through (null) to the real checks.
+            return $user?->isSuperAdmin() ? true : null;
         });
 
         /*
@@ -49,8 +51,10 @@ final class AuthServiceProvider extends ServiceProvider
         | both a misconfigured role and a probing attacker, and they are
         | invisible otherwise — the user just sees a 403.
         */
-        Gate::after(static function (User $user, string $ability, ?bool $result): void {
-            if ($result === false) {
+        Gate::after(static function (?User $user, string $ability, ?bool $result): void {
+            // A guest denial carries no actor to attribute; only log an
+            // authenticated user's denial (the forensic signal we want).
+            if ($result === false && $user instanceof User) {
                 Log::channel('audit')->notice('Authorisation denied', [
                     'user_id' => $user->getKey(),
                     'user_type' => $user->type?->value,

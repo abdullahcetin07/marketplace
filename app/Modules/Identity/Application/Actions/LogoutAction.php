@@ -44,6 +44,8 @@ final class LogoutAction extends BaseAction
             $request->session()->invalidate();
             $request->session()->regenerateToken();
         }
+
+        return null;
     }
 
     protected function after(mixed $result, mixed ...$arguments): void

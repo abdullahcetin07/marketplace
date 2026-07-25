@@ -85,6 +85,8 @@ final class RequestPasswordResetAction extends BaseAction
             // caller this address is real.
             report($e);
         }
+
+        return null;
     }
 
     /**

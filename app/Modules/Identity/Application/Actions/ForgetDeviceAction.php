@@ -69,6 +69,8 @@ final class ForgetDeviceAction extends BaseAction
         });
 
         $this->revokedUuids = $revokedUuids;
+
+        return null;
     }
 
     protected function after(mixed $result, mixed ...$arguments): void

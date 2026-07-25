@@ -21,5 +21,7 @@ final class RejectInvitationAction extends BaseAction
         $invitation = $arguments[0];
 
         $invitation->markRejected();
+
+        return null;
     }
 }

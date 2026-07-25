@@ -69,6 +69,8 @@ final class RequestEmailOtpAction extends BaseAction
         } catch (Throwable $e) {
             report($e);
         }
+
+        return null;
     }
 
     private function log(TwoFactorChallengeDTO $data, ?int $userId, bool $issued): void

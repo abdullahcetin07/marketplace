@@ -22,5 +22,7 @@ final class CancelInvitationAction extends BaseAction
         $invitation = $arguments[0];
 
         $invitation->markCancelled();
+
+        return null;
     }
 }

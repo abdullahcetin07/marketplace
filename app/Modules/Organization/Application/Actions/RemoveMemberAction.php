@@ -45,6 +45,8 @@ final class RemoveMemberAction extends BaseAction
         AuditContext::withReasonFor($reason, function () use ($member): void {
             $member->delete();
         });
+
+        return null;
     }
 
     protected function after(mixed $result, mixed ...$arguments): void

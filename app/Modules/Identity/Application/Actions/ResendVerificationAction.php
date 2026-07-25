@@ -51,6 +51,8 @@ final class ResendVerificationAction extends BaseAction
             // A mail failure must not become a 500 that reveals the account.
             report($e);
         }
+
+        return null;
     }
 
     private function log(ResendVerificationDTO $data, ?int $userId, bool $skipped): void
