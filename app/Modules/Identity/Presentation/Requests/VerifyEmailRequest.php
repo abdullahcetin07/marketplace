@@ -43,6 +43,22 @@ final class VerifyEmailRequest extends BaseRequest
         ];
     }
 
+    /**
+     * Route parameters are not part of the input Laravel validates, so the
+     * rules above would have failed `required` on every genuine link. Merging
+     * them in is what makes "constrain the route params here" true rather than
+     * merely intended.
+     */
+    protected function prepareForValidation(): void
+    {
+        parent::prepareForValidation();
+
+        $this->merge([
+            'uuid' => $this->route('uuid'),
+            'hash' => $this->route('hash'),
+        ]);
+    }
+
     public function uuid(): string
     {
         return (string) $this->route('uuid');
