@@ -98,8 +98,11 @@ final class LoginAction extends BaseAction
             $session->device->trust();
         }
 
-        $user->recordLogin($request->ip());
-
+        // recordLogin() is NOT called here. The Login listener in
+        // EventServiceProvider owns the stamp (docs/logging.md) and the guard
+        // login above already fired that event — calling it here too counted
+        // every sign-in twice. The listener also covers the sign-ins that never
+        // reach this action, such as the Filament panels.
         $this->recordAttempt($data, $request, $user, null);
 
         return $session;
