@@ -53,7 +53,12 @@ final class RegisterRequest extends BaseRequest
             | duplicate. @see docs/authentication.md
             */
             'email' => [
-                'required', 'string', 'email:rfc,dns', 'max:255',
+                // email:rfc (not rfc,dns) — consistent with every other email
+                // rule (login, reset, otp, resend). The dns MX lookup added a
+                // network round-trip to every signup and rejected addresses
+                // whose DNS was momentarily down; the emailed verification link
+                // is the authoritative proof the address exists and is reachable.
+                'required', 'string', 'email:rfc', 'max:255',
                 Rule::unique('users', 'email')
                     ->where(fn ($query) => $query->where('type', $type->value)->whereNull('deleted_at')),
             ],

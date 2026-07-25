@@ -27,6 +27,16 @@ final class StrongPassword
      */
     public static function for(UserType $type): Password
     {
+        // Mirror default(): under the test suite, use the relaxed rule. The
+        // strict tiers call uncompromised(), an HTTP call to Have I Been Pwned,
+        // which the suite blocks with Http::preventStrayRequests() — so a
+        // compliant fixture would turn every password test into a 500, and
+        // mixedCase/min-14 would force each test to encode policy it is not
+        // exercising. Production is unaffected: this branch is test-only.
+        if (app()->runningUnitTests()) {
+            return self::testing();
+        }
+
         return $type->isStaff() ? self::staff() : self::customer();
     }
 

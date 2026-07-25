@@ -71,7 +71,12 @@ abstract class TestCase extends BaseTestCase
         // columns the factory set, so reading a nullable column it omitted
         // (e.g. two_factor_secret) throws under preventAccessingMissingAttributes.
         // refresh() reloads every column in place, preserving object identity.
+        // loadMissing eager-loads the Spatie relations every authorization check
+        // touches (hasPermissionTo reads permissions + roles.permissions); without
+        // it, the first policy/resource check lazy-loads and preventLazyLoading
+        // throws — production only logs it, so this is a test-only artefact.
         $admin->refresh();
+        $admin->loadMissing('roles.permissions', 'permissions');
 
         $this->actingAs($admin, 'admin');
 
@@ -82,9 +87,10 @@ abstract class TestCase extends BaseTestCase
     {
         $seller ??= Seller::factory()->create();
 
-        // See actingAsAdmin: hydrate the full row so strict mode does not throw
-        // on a nullable column the factory omitted.
+        // See actingAsAdmin: hydrate the full row and the Spatie relations so
+        // strict mode throws on neither a missing column nor a lazy-loaded role.
         $seller->refresh();
+        $seller->loadMissing('roles.permissions', 'permissions');
 
         $this->actingAs($seller, 'seller');
 
@@ -95,9 +101,10 @@ abstract class TestCase extends BaseTestCase
     {
         $customer ??= Customer::factory()->create();
 
-        // See actingAsAdmin: hydrate the full row so strict mode does not throw
-        // on a nullable column the factory omitted.
+        // See actingAsAdmin: hydrate the full row and the Spatie relations so
+        // strict mode throws on neither a missing column nor a lazy-loaded role.
         $customer->refresh();
+        $customer->loadMissing('roles.permissions', 'permissions');
 
         $this->actingAs($customer, 'customer');
 
