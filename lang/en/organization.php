@@ -74,10 +74,25 @@ return [
         'action' => [
             'upload' => 'Upload a document',
             'view' => 'Open',
+            'download' => 'Download',
+            'approve' => 'Approve',
+            'request_revision' => 'Request a revision',
+            'reject' => 'Reject',
+        ],
+        'review' => [
+            'notes' => 'Note for the seller',
+            'notes_hint' => 'Shown to the seller. Say exactly what has to change.',
+            'approved' => 'The document has been approved.',
+            'needs_revision' => 'The document has been sent back for revision.',
+            'rejected' => 'The document has been rejected.',
         ],
         'empty' => [
             'heading' => 'No documents yet',
             'description' => 'Upload your tax certificate, trade registry document and signature circular so the review can start.',
+        ],
+        'admin_empty' => [
+            'heading' => 'This company has uploaded nothing yet',
+            'description' => 'There is no evidence to review. Approving now means approving without documents.',
         ],
     ],
     'bank' => [

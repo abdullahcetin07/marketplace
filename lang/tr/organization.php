@@ -74,10 +74,25 @@ return [
         'action' => [
             'upload' => 'Belge yükle',
             'view' => 'Aç',
+            'download' => 'İndir',
+            'approve' => 'Onayla',
+            'request_revision' => 'Düzeltme iste',
+            'reject' => 'Reddet',
+        ],
+        'review' => [
+            'notes' => 'Satıcıya not',
+            'notes_hint' => 'Satıcıya gösterilir. Neyin düzeltilmesi gerektiğini açıkça yazın.',
+            'approved' => 'Belge onaylandı.',
+            'needs_revision' => 'Belge düzeltme için geri gönderildi.',
+            'rejected' => 'Belge reddedildi.',
         ],
         'empty' => [
             'heading' => 'Henüz belge yok',
             'description' => 'İncelemenin başlayabilmesi için vergi levhanızı, ticaret sicil belgenizi ve imza sirkülerinizi yükleyin.',
+        ],
+        'admin_empty' => [
+            'heading' => 'Bu şirket henüz belge yüklemedi',
+            'description' => 'İncelenecek bir kanıt yok. Şimdi onaylamak, belgesiz onaylamak demektir.',
         ],
     ],
     'bank' => [

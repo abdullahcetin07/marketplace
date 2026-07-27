@@ -12,6 +12,7 @@ use App\Modules\Organization\Application\Actions\SuspendOrganizationAction;
 use App\Modules\Organization\Domain\Enums\OrganizationStatus;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource\Pages;
+use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource\RelationManagers\DocumentsRelationManager;
 use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -40,6 +41,7 @@ use Illuminate\Database\Eloquent\Builder;
  * audit-exclusion from being undone by the UI that reads the record.
  *
  * @see App\Modules\Organization\Presentation\Controllers\Api\Admin\OrganizationController
+ * @see OrganizationResource\RelationManagers\DocumentsRelationManager
  */
 final class OrganizationResource extends Resource
 {
@@ -256,6 +258,16 @@ final class OrganizationResource extends Resource
         }
 
         return '•••• '.mb_substr($value, -$visible);
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            DocumentsRelationManager::class,
+        ];
     }
 
     /**
