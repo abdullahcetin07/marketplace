@@ -30,9 +30,11 @@ use Livewire\Livewire;
 */
 
 beforeEach(function (): void {
-    // Registration resolves the default language and currency, which throw if
-    // Localization is unseeded.
+    // Registration resolves the default language and currency (throw if
+    // Localization is unseeded) and assigns the base Seller role, which must
+    // exist for the seller guard — so seed roles and permissions too.
     $this->seedPlatform();
+    $this->seedRolesAndPermissions();
 
     Filament::setCurrentPanel(Filament::getPanel('seller'));
 });
@@ -84,7 +86,10 @@ it('registers a seller', function (): void {
         ->and($seller->email_verified_at)->toBeNull()
         // Mirrors CreateAdminCommand: a concrete, editable preference set.
         ->and($seller->language_id)->not->toBeNull()
-        ->and($seller->currency_id)->not->toBeNull();
+        ->and($seller->currency_id)->not->toBeNull()
+        // Given the base Seller role on signup, so the panel is usable — an
+        // account with no role could sign in and then do nothing.
+        ->and($seller->hasRole(config('marketplace.roles.seller')))->toBeTrue();
 });
 
 it('signs the new seller in on the seller guard and no other', function (): void {

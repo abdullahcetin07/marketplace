@@ -137,7 +137,7 @@ final class Register extends BaseRegister
         | the Seller subclass on create, and `status` starts Active — approval
         | is an Organization-level gate, not an identity-level one.
         */
-        return Seller::create([
+        $seller = Seller::create([
             'first_name' => $data['first_name'],
             'last_name' => $lastName !== '' ? $lastName : null,
             'email' => $data['email'],
@@ -148,5 +148,17 @@ final class Register extends BaseRegister
             'country_id' => app(CountryRepositoryContract::class)->default()?->getKey(),
             'timezone_id' => app(TimezoneRepositoryContract::class)->default()?->getKey(),
         ]);
+
+        /*
+        | The base Seller role, so the panel is usable the moment they land in
+        | it — an account with no role can sign in and then do nothing. By NAME
+        | via config, never by id (roles are referenced by name everywhere), and
+        | resolved against this user's seller guard. What the role lets them DO —
+        | open a store — stays gated downstream at the Organization/Store level;
+        | granting it here is about panel access, not store approval.
+        */
+        $seller->assignRole(config('marketplace.roles.seller'));
+
+        return $seller;
     }
 }
