@@ -39,6 +39,37 @@ return [
         'closed' => 'Closed',
     ],
 
+    'OrganizationStatus' => [
+        'pending' => 'Pending Review',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'suspended' => 'Suspended',
+        'archived' => 'Archived',
+    ],
+
+    'StoreOpeningRequestStatus' => [
+        'draft' => 'Draft',
+        'pending' => 'Pending Review',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+        'cancelled' => 'Cancelled',
+    ],
+
+    'OrganizationDocumentStatus' => [
+        'pending' => 'Pending Review',
+        'approved' => 'Approved',
+        'needs_revision' => 'Needs Revision',
+        'rejected' => 'Rejected',
+    ],
+
+    'OrganizationDocumentType' => [
+        'tax_certificate' => 'Tax certificate',
+        'trade_registry' => 'Trade registry document',
+        'signature_circular' => 'Signature circular',
+        'id_document' => 'Identity document',
+        'other' => 'Other',
+    ],
+
     'OfferStatus' => [
         'draft' => 'Draft',
         'pending' => 'Pending Approval',

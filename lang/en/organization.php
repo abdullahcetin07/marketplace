@@ -26,14 +26,42 @@ return [
 
     // Filament labels.
     'singular' => 'Organization',
+    'plural' => 'Organizations',
     'legal_name' => 'Legal name',
+    'display_name' => 'Trading name',
+    'display_name_hint' => 'Left blank, the legal name is used.',
+    'slug' => 'Short name',
+    'slug_hint' => 'Letters, digits and dashes only. It cannot be changed later.',
+    'country' => 'Country',
+    'currency' => 'Currency',
+    'status' => 'Status',
     'plan' => 'Plan',
     'action' => [
+        'create' => 'Register your company',
         'approve' => 'Approve',
         'reject' => 'Reject',
         'suspend' => 'Suspend',
         'reinstate' => 'Reinstate',
         'reason' => 'Reason',
+    ],
+    'empty' => [
+        'heading' => 'You have no company yet',
+        'description' => 'Register your legal company to start selling. Once it is approved you can request a store.',
+    ],
+    'kyc' => [
+        'title' => 'Company verification (KYC)',
+        'submitted_at' => 'Submitted at',
+        'not_submitted' => 'Not submitted yet',
+        'tax_number' => 'Tax number',
+        'registration_number' => 'Registration number',
+        'authorized_person_name' => 'Authorised person',
+    ],
+    'bank' => [
+        'title' => 'Payout account',
+        'account_holder' => 'Account holder',
+        'bank_name' => 'Bank',
+        'iban' => 'IBAN',
+        'not_set' => 'Not set yet',
     ],
     'store_request' => [
         'singular' => 'Store opening request',

@@ -26,14 +26,42 @@ return [
 
     // Filament etiketleri.
     'singular' => 'Kuruluş',
+    'plural' => 'Kuruluşlar',
     'legal_name' => 'Yasal ad',
+    'display_name' => 'Ticari ad',
+    'display_name_hint' => 'Boş bırakılırsa yasal ad kullanılır.',
+    'slug' => 'Kısa ad',
+    'slug_hint' => 'Yalnızca harf, rakam ve tire. Sonradan değiştirilemez.',
+    'country' => 'Ülke',
+    'currency' => 'Para birimi',
+    'status' => 'Durum',
     'plan' => 'Plan',
     'action' => [
+        'create' => 'Şirketini oluştur',
         'approve' => 'Onayla',
         'reject' => 'Reddet',
         'suspend' => 'Askıya al',
         'reinstate' => 'Yeniden etkinleştir',
         'reason' => 'Gerekçe',
+    ],
+    'empty' => [
+        'heading' => 'Henüz bir şirketiniz yok',
+        'description' => 'Satışa başlamak için önce yasal şirketinizi kaydedin. Onay sonrası mağaza açma talebi oluşturabilirsiniz.',
+    ],
+    'kyc' => [
+        'title' => 'Şirket doğrulama (KYC)',
+        'submitted_at' => 'Gönderim tarihi',
+        'not_submitted' => 'Henüz gönderilmedi',
+        'tax_number' => 'Vergi numarası',
+        'registration_number' => 'Ticaret sicil numarası',
+        'authorized_person_name' => 'Yetkili kişi',
+    ],
+    'bank' => [
+        'title' => 'Ödeme hesabı',
+        'account_holder' => 'Hesap sahibi',
+        'bank_name' => 'Banka',
+        'iban' => 'IBAN',
+        'not_set' => 'Henüz tanımlanmadı',
     ],
     'store_request' => [
         'singular' => 'Mağaza açma talebi',

@@ -39,6 +39,37 @@ return [
         'closed' => 'Kapatıldı',
     ],
 
+    'OrganizationStatus' => [
+        'pending' => 'İnceleme Bekliyor',
+        'approved' => 'Onaylandı',
+        'rejected' => 'Reddedildi',
+        'suspended' => 'Askıya Alındı',
+        'archived' => 'Arşivlendi',
+    ],
+
+    'StoreOpeningRequestStatus' => [
+        'draft' => 'Taslak',
+        'pending' => 'İnceleme Bekliyor',
+        'approved' => 'Onaylandı',
+        'rejected' => 'Reddedildi',
+        'cancelled' => 'İptal Edildi',
+    ],
+
+    'OrganizationDocumentStatus' => [
+        'pending' => 'İnceleme Bekliyor',
+        'approved' => 'Onaylandı',
+        'needs_revision' => 'Düzeltme Gerekiyor',
+        'rejected' => 'Reddedildi',
+    ],
+
+    'OrganizationDocumentType' => [
+        'tax_certificate' => 'Vergi levhası',
+        'trade_registry' => 'Ticaret sicil belgesi',
+        'signature_circular' => 'İmza sirküleri',
+        'id_document' => 'Kimlik belgesi',
+        'other' => 'Diğer',
+    ],
+
     'OfferStatus' => [
         'draft' => 'Taslak',
         'pending' => 'Onay Bekliyor',
