@@ -82,11 +82,16 @@ return [
     ],
     'bank' => [
         'title' => 'Payout account',
+        'action' => 'Set the payout account',
         'account_holder' => 'Account holder',
         'bank_name' => 'Bank',
         'iban' => 'IBAN',
+        'iban_hint' => 'Stored encrypted. Only the last four digits are shown afterwards.',
+        'iban_on_file' => 'Currently on file: :iban. Enter the IBAN again to replace it.',
+        'currency' => 'Payout currency',
         'not_set' => 'Not set yet',
     ],
+    'bank_account_updated' => 'Your payout account has been saved.',
     'store_request' => [
         'singular' => 'Store opening request',
         'name' => 'Store name',

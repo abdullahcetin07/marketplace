@@ -82,11 +82,16 @@ return [
     ],
     'bank' => [
         'title' => 'Ödeme hesabı',
+        'action' => 'Ödeme hesabını tanımla',
         'account_holder' => 'Hesap sahibi',
         'bank_name' => 'Banka',
         'iban' => 'IBAN',
+        'iban_hint' => 'Şifrelenerek saklanır. Sonrasında yalnızca son dört hanesi gösterilir.',
+        'iban_on_file' => 'Kayıtlı hesap: :iban. Değiştirmek için IBAN’ı yeniden girin.',
+        'currency' => 'Ödeme para birimi',
         'not_set' => 'Henüz tanımlanmadı',
     ],
+    'bank_account_updated' => 'Ödeme hesabınız kaydedildi.',
     'store_request' => [
         'singular' => 'Mağaza açma talebi',
         'name' => 'Mağaza adı',
