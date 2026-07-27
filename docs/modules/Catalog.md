@@ -1,10 +1,11 @@
 # Catalog Module Specification
 
-**Status: PROPOSED — awaiting architecture-review approval.** No code may be written
-against this until the ADRs below (ADR-037 … ADR-041) are ratified in
+**Status: APPROVED (2026-07-27) — Phase 1 cleared to build.** The decisions in §0 and
+the rulings in §13 are ratified. The formal ADR-037 … ADR-041 entries in
 [docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) and the
-amendment log in [docs/001_Architecture.md](../001_Architecture.md). This document is
-the review artifact; it states each decision AND its cost, per project culture.
+amendment log in [docs/001_Architecture.md](../001_Architecture.md) are written as the
+FIRST step of the Phase 1 scaffold (mirroring how the Store module landed ADR-032…036).
+This document states each decision AND its cost, per project culture.
 
 The Catalog is the next major sprint after Store (frozen v1.0). It is large, so this
 spec scopes **Phase 1 = the catalog structure only** (§0.6). Offers, inventory, pricing,
@@ -239,12 +240,28 @@ management. Filament admin resources on the **admin** panel, gated on
 `catalog.taxonomy.manage` (Category Manager, Admin, Super Admin).
 
 # 5. Product authoring (seller) + moderation (Category Manager)
+
+The seller has **two entry points** to putting a product up for sale. Only the second is
+built in Phase 1; both become "sell" in the Offer sprint:
+1. **Select an existing catalog product** and offer it (price/stock). → **Offer, Phase 2.**
+2. **"Open a product" (ürün aç)** — the product is not in the catalog, so the seller
+   enters its details and submits a **product creation request**. → **Catalog, Phase 1.**
+
+**The product IS the request** (RULED). Unlike a Store Opening Request — where approval
+creates a *different* thing (a Store) — approving a product creates nothing new; the
+product simply moves to `Published`. So the moderation state lives on the Product's own
+`status` (§2.6), and there is **no separate `ProductCreationRequest` entity**. This is
+the same NeedsRevision moderation pattern already shipped for KYC documents, and the same
+approve/reject shape as the Store Opening Request the admin panel already serves.
+
 - **Seller** (seller panel): create/edit **own** draft products, add media, set
   attributes, generate variants, submit for review. Scoped to `proposed_by_org_uuid` —
   a seller never sees or edits another seller's proposals (the same membership-scoping
   wall the Organization panels use).
-- **Category Manager** (admin panel): a review queue — approve (`Published`), reject or
-  request revision with a reason; edit/curate any product.
+- **Category Manager** (admin panel): a review queue — approve (`Published`), reject, or
+  request a revision with a reason (`NeedsRevision` → back to the seller); edit/curate
+  any product. Admins and Super Admin can moderate too; Category Manager is the role that
+  owns the queue day to day (ADR-013 / ADR-038).
 
 # 6. Media
 Product gallery + per-variant images via the Media module (`HasMedia`). Public disk for
@@ -297,19 +314,29 @@ Products: `DraftProduct`, `UpdateProduct`, `SetProductAttributes`, `GenerateVari
 `RejectProduct`, `ArchiveProduct`. Each owns one transaction; side effects
 (search indexing, events) fire in `BaseAction::after()` (after commit).
 
-# 13. Open questions for the review (decide before P1 code)
-1. **Category tree storage** — adjacency + materialised path vs nested set vs a package
-   (e.g. `kalnoy/nestedset`). Trade-off: write-simplicity vs descendant-read speed.
-2. **Near-duplicate matching without a GTIN** — auto-merge, suggest-on-author, or
-   manual-only in the moderation queue? (Affects §3.4 and the authoring UX.)
-3. **Who seeds the initial taxonomy** — a migration/seeder of top categories, or
-   Category-Manager-authored from empty?
-4. **Variant generation UX** — cartesian auto-generate from selected attribute values,
-   vs explicit per-variant rows. (Domain is the same; the action differs.)
-5. **Localization depth** — which fields are per-locale in P1 (title/description/category
-   name) vs single-locale-now-with-a-follow-up.
-6. **Does a seller author into the shared catalog in P1, or only Category Managers seed
-   it and seller authoring waits for Offer?** (Narrows §5; smaller P1 if the latter.)
+# 13. Rulings (settled at approval, 2026-07-27)
+1. **Category tree storage — RULED: adjacency list + a materialised `path` column**,
+   self-owned, no tree package. Writes stay a single parent pointer; descendant reads use
+   the path prefix. Cost: the path must be rewritten on a move (rare, and a bounded
+   subtree update) — accepted over a package dependency or nested-set write complexity.
+2. **Near-duplicate matching — RULED: suggest-on-author + manual merge in moderation;
+   NEVER auto-merge.** When a seller authors a product, surface likely existing matches
+   (by GTIN, then title/brand) so they can pick one instead of creating a duplicate; the
+   Category Manager catches the rest in the queue. Auto-merge is rejected — silently
+   fusing two products is unrecoverable and a data-integrity risk.
+3. **Initial taxonomy — RULED: a starter seeder** of top-level categories + a few common
+   attributes, so the catalog is not empty on day one; the Category Manager extends it
+   from there. (Not committed as fixtures a seller depends on — an editable starting set.)
+4. **Variant generation UX — RULED: cartesian auto-generate** from the variant-defining
+   attribute values the seller selects, with the ability to prune/disable specific
+   combinations. The domain stores explicit variants either way; the action generates.
+5. **Localization — RULED: tr + en from the start** for title, description, category and
+   attribute labels (the platform is bilingual and Localization already exists).
+   Retrofitting per-locale columns later is more expensive than carrying them now.
+6. **Seller authoring in P1 — RULED: YES.** The "ürün aç" path (§5, entry point 2) is a
+   Phase-1 deliverable: seller submits → Category Manager moderates → Published. The
+   "select existing + price/stock" path and all selling are Offer (Phase 2). The product
+   carries its own moderation status (§5); there is no separate request entity.
 
 # 14. Phasing after this sprint
 Phase 2 **Offer** (seller price/stock/condition against a Variant; the store↔product
