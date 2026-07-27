@@ -92,6 +92,22 @@ return [
         'not_set' => 'Not set yet',
     ],
     'bank_account_updated' => 'Your payout account has been saved.',
+
+    /*
+    | The admin review surface — what a reviewer reads before deciding. Every
+    | encrypted field is shown masked: the point is verification, not exposure.
+    */
+    'review' => [
+        'company' => 'Company',
+        'kyc' => 'Company verification (KYC)',
+        'bank' => 'Payout account',
+        'owner' => 'Owner',
+        'owner_email' => 'Owner email',
+        'registered_at' => 'Registered at',
+        'verified_at' => 'Verified at',
+        'masked_hint' => 'Only the last four digits are shown; the value is encrypted at rest.',
+        'not_provided' => 'Not provided',
+    ],
     'store_request' => [
         'singular' => 'Store opening request',
         'plural' => 'Store opening requests',

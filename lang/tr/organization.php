@@ -92,6 +92,22 @@ return [
         'not_set' => 'Henüz tanımlanmadı',
     ],
     'bank_account_updated' => 'Ödeme hesabınız kaydedildi.',
+
+    /*
+    | Yönetici inceleme yüzeyi — kararı vermeden önce okunanlar. Şifreli alanlar
+    | daima maskeli gösterilir: amaç doğrulamak, ifşa etmek değil.
+    */
+    'review' => [
+        'company' => 'Şirket',
+        'kyc' => 'Şirket doğrulama (KYC)',
+        'bank' => 'Ödeme hesabı',
+        'owner' => 'Sahip',
+        'owner_email' => 'Sahip e-postası',
+        'registered_at' => 'Kayıt tarihi',
+        'verified_at' => 'Doğrulanma tarihi',
+        'masked_hint' => 'Yalnızca son dört hane gösterilir; değer şifreli saklanır.',
+        'not_provided' => 'Girilmedi',
+    ],
     'store_request' => [
         'singular' => 'Mağaza açma talebi',
         'plural' => 'Mağaza açma talepleri',
