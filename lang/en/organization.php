@@ -122,6 +122,8 @@ return [
         'verified_at' => 'Verified at',
         'masked_hint' => 'Only the last four digits are shown; the value is encrypted at rest.',
         'not_provided' => 'Not provided',
+        'pending_documents' => 'Documents awaiting review',
+        'pending_documents_warning' => 'This company still has :count document(s) awaiting review. Review them first, or approve deliberately.',
     ],
     'store_request' => [
         'singular' => 'Store opening request',

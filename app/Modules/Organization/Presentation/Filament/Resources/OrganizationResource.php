@@ -9,6 +9,7 @@ use App\Modules\Organization\Application\Actions\ApproveOrganizationAction;
 use App\Modules\Organization\Application\Actions\RejectOrganizationAction;
 use App\Modules\Organization\Application\Actions\RestoreOrganizationAction;
 use App\Modules\Organization\Application\Actions\SuspendOrganizationAction;
+use App\Modules\Organization\Domain\Enums\OrganizationDocumentStatus;
 use App\Modules\Organization\Domain\Enums\OrganizationStatus;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource\Pages;
@@ -180,6 +181,18 @@ final class OrganizationResource extends Resource
                     ->badge()
                     ->color(fn (OrganizationStatus $state): string => self::statusColor($state))
                     ->formatStateUsing(fn (OrganizationStatus $state): string => $state->value),
+
+                /*
+                | The soft nudge, at queue level: a company with unreviewed
+                | documents is visible as such before anyone opens it. It does
+                | not block approval — the domain has no such rule and this
+                | surface does not invent one (ADR-018).
+                */
+                Tables\Columns\TextColumn::make('pending_documents_count')
+                    ->label(__('organization.review.pending_documents'))
+                    ->badge()
+                    ->color(fn (mixed $state): string => ((int) $state) > 0 ? 'warning' : 'gray'),
+
                 Tables\Columns\TextColumn::make('plan.name')->label(__('organization.plan'))->toggleable(),
                 Tables\Columns\TextColumn::make('created_at')->dateTime()->sortable()->toggleable(),
             ])
@@ -217,6 +230,23 @@ final class OrganizationResource extends Resource
             ->icon($icon)
             ->color($color)
             ->requiresConfirmation()
+            /*
+            | A soft nudge, not a gate: approving a company whose documents
+            | nobody has read is almost always a mistake, but whether it is
+            | allowed is the domain's call, and the domain permits it. So the
+            | modal says so and lets the admin proceed.
+            */
+            ->modalDescription(function (Organization $record) use ($name): ?string {
+                if ($name !== 'approve') {
+                    return null;
+                }
+
+                $pending = self::pendingDocumentCount($record);
+
+                return $pending > 0
+                    ? __('organization.review.pending_documents_warning', ['count' => $pending])
+                    : null;
+            })
             ->form([
                 Forms\Components\Textarea::make('reason')->label(__('organization.action.reason'))->required($reasonRequired)->maxLength(1000),
             ])
@@ -261,6 +291,27 @@ final class OrganizationResource extends Resource
     }
 
     /**
+     * How many documents are still awaiting review.
+     *
+     * Read from the list query's `withCount` when it is there, and counted
+     * directly when it is not — the modal is also reachable from surfaces that
+     * did not select the aggregate, and strict mode turns a missing attribute
+     * into an exception rather than a zero.
+     */
+    private static function pendingDocumentCount(Organization $record): int
+    {
+        $counted = $record->getAttributes()['pending_documents_count'] ?? null;
+
+        if ($counted !== null) {
+            return (int) $counted;
+        }
+
+        return $record->documents()
+            ->where('status', OrganizationDocumentStatus::Pending->value)
+            ->count();
+    }
+
+    /**
      * @return array<int, class-string>
      */
     public static function getRelations(): array
@@ -278,7 +329,11 @@ final class OrganizationResource extends Resource
         return parent::getEloquentQuery()
             // The review infolist reads the owner, the KYC row and the payout
             // account; strict mode turns a missed eager load into an exception.
-            ->with(['plan', 'country', 'currency', 'owner', 'kyc', 'bankAccount.currency']);
+            ->with(['plan', 'country', 'currency', 'owner', 'kyc', 'bankAccount.currency'])
+            ->withCount([
+                'documents as pending_documents_count' => static fn (Builder $query) => $query
+                    ->where('status', OrganizationDocumentStatus::Pending->value),
+            ]);
     }
 
     /**

@@ -122,6 +122,8 @@ return [
         'verified_at' => 'Doğrulanma tarihi',
         'masked_hint' => 'Yalnızca son dört hane gösterilir; değer şifreli saklanır.',
         'not_provided' => 'Girilmedi',
+        'pending_documents' => 'İnceleme bekleyen belge',
+        'pending_documents_warning' => 'Bu şirketin inceleme bekleyen :count belgesi var. Önce onları inceleyin ya da bilerek onaylayın.',
     ],
     'store_request' => [
         'singular' => 'Mağaza açma talebi',
