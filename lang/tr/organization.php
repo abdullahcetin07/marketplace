@@ -50,6 +50,13 @@ return [
     ],
     'kyc' => [
         'title' => 'Şirket doğrulama (KYC)',
+        'action' => 'Şirket bilgilerini gönder',
+        'national_id' => 'Yetkili kişinin TC kimlik numarası',
+        'national_id_hint' => 'Şifrelenerek saklanır ve bir daha gösterilmez.',
+        'national_id_on_file' => 'Kayıtlı bir kimlik numarası var. Değiştirmek istemiyorsanız boş bırakın.',
+        'metadata' => 'Ülkeye özel bilgiler',
+        'metadata_key' => 'Alan',
+        'metadata_value' => 'Değer',
         'submitted_at' => 'Gönderim tarihi',
         'not_submitted' => 'Henüz gönderilmedi',
         'tax_number' => 'Vergi numarası',

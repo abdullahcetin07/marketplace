@@ -50,6 +50,13 @@ return [
     ],
     'kyc' => [
         'title' => 'Company verification (KYC)',
+        'action' => 'Submit company details',
+        'national_id' => 'National id of the authorised person',
+        'national_id_hint' => 'Stored encrypted and never shown again.',
+        'national_id_on_file' => 'An id is already on file. Leave blank to keep it.',
+        'metadata' => 'Country-specific details',
+        'metadata_key' => 'Field',
+        'metadata_value' => 'Value',
         'submitted_at' => 'Submitted at',
         'not_submitted' => 'Not submitted yet',
         'tax_number' => 'Tax number',
