@@ -76,6 +76,7 @@ final class SellerPanelProvider extends PanelProvider
             */
             ->resources([
                 \App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource::class,
+                \App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource::class,
                 \App\Modules\Store\Presentation\Filament\Seller\Resources\StoreResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')

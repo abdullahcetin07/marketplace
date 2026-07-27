@@ -94,7 +94,31 @@ return [
     'bank_account_updated' => 'Ödeme hesabınız kaydedildi.',
     'store_request' => [
         'singular' => 'Mağaza açma talebi',
+        'plural' => 'Mağaza açma talepleri',
         'name' => 'Mağaza adı',
+        'slug' => 'Mağaza adresi',
+        'slug_hint' => 'Yalnızca harf, rakam ve tire. Mağazanız /store/bu-adres üzerinden açılacak.',
+        'organization_hint' => 'Mağazanın bağlı olacağı şirket.',
+        'description' => 'Ne satacaksınız?',
+        'reason' => 'İnceleme ekibine not',
+        'reason_hint' => 'İsteğe bağlı. Talebi anlamalarına yardımcı olacak her şey.',
+        'submitted_at' => 'Gönderim tarihi',
+        'review_notes' => 'İnceleme notu',
+        'created' => 'Taslak kaydedildi. Hazır olduğunuzda incelemeye gönderin.',
+        'submitted' => 'Talebiniz incelemeye gönderildi.',
+        'submit_failed' => 'Talep gönderilemedi',
+        'cancelled' => 'Talep geri çekildi.',
+        'cancel_failed' => 'Talep geri çekilemedi',
+        'action' => [
+            'create' => 'Mağaza talebi oluştur',
+            'submit' => 'İncelemeye gönder',
+            'submit_confirm' => 'Gönderildikten sonra talep inceleme ekibine iletilir ve düzenlenemez. Yine de geri çekebilirsiniz.',
+            'cancel' => 'Geri çek',
+        ],
+        'empty' => [
+            'heading' => 'Henüz mağaza talebiniz yok',
+            'description' => 'Satışa başlamak için mağaza talebi oluşturun. İnceleme ekibi onayladığında mağazanız otomatik olarak açılır.',
+        ],
     ],
 
     'invitation' => [

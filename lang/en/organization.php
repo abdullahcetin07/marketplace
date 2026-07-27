@@ -94,7 +94,31 @@ return [
     'bank_account_updated' => 'Your payout account has been saved.',
     'store_request' => [
         'singular' => 'Store opening request',
+        'plural' => 'Store opening requests',
         'name' => 'Store name',
+        'slug' => 'Store address',
+        'slug_hint' => 'Letters, digits and dashes only. Your store will be reachable at /store/this-address.',
+        'organization_hint' => 'The company the store will trade under.',
+        'description' => 'What will you sell?',
+        'reason' => 'Note for the reviewer',
+        'reason_hint' => 'Optional. Anything that helps the team understand the request.',
+        'submitted_at' => 'Submitted at',
+        'review_notes' => 'Reviewer notes',
+        'created' => 'Draft saved. Submit it when you are ready for review.',
+        'submitted' => 'Your request has been sent for review.',
+        'submit_failed' => 'This request could not be submitted',
+        'cancelled' => 'The request has been withdrawn.',
+        'cancel_failed' => 'This request could not be withdrawn',
+        'action' => [
+            'create' => 'Request a store',
+            'submit' => 'Send for review',
+            'submit_confirm' => 'Once submitted, the request goes to the review team and can no longer be edited. You can still withdraw it.',
+            'cancel' => 'Withdraw',
+        ],
+        'empty' => [
+            'heading' => 'No store requests yet',
+            'description' => 'Request a store to start selling. The review team approves it, and your store is created automatically.',
+        ],
     ],
 
     'invitation' => [
