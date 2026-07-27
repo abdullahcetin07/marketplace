@@ -63,6 +63,23 @@ return [
         'registration_number' => 'Ticaret sicil numarası',
         'authorized_person_name' => 'Yetkili kişi',
     ],
+    'document' => [
+        'plural' => 'Belgeler',
+        'type' => 'Belge türü',
+        'status' => 'Durum',
+        'file' => 'Dosya',
+        'file_hint' => 'PDF veya görsel, en fazla 10 MB. Gizli olarak saklanır ve yalnızca inceleme ekibiyle paylaşılır.',
+        'review_notes' => 'İnceleme notu',
+        'uploaded_at' => 'Yüklenme tarihi',
+        'action' => [
+            'upload' => 'Belge yükle',
+            'view' => 'Aç',
+        ],
+        'empty' => [
+            'heading' => 'Henüz belge yok',
+            'description' => 'İncelemenin başlayabilmesi için vergi levhanızı, ticaret sicil belgenizi ve imza sirkülerinizi yükleyin.',
+        ],
+    ],
     'bank' => [
         'title' => 'Ödeme hesabı',
         'account_holder' => 'Hesap sahibi',

@@ -63,6 +63,23 @@ return [
         'registration_number' => 'Registration number',
         'authorized_person_name' => 'Authorised person',
     ],
+    'document' => [
+        'plural' => 'Documents',
+        'type' => 'Document type',
+        'status' => 'Status',
+        'file' => 'File',
+        'file_hint' => 'PDF or image, up to 10 MB. Stored privately and shared only with the reviewing team.',
+        'review_notes' => 'Reviewer notes',
+        'uploaded_at' => 'Uploaded at',
+        'action' => [
+            'upload' => 'Upload a document',
+            'view' => 'Open',
+        ],
+        'empty' => [
+            'heading' => 'No documents yet',
+            'description' => 'Upload your tax certificate, trade registry document and signature circular so the review can start.',
+        ],
+    ],
     'bank' => [
         'title' => 'Payout account',
         'account_holder' => 'Account holder',

@@ -11,6 +11,7 @@ use App\Modules\Organization\Domain\Enums\OrganizationStatus;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationPlan;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource\Pages;
+use App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource\RelationManagers;
 use App\Shared\Enums\UserType;
 use Filament\Forms;
 use Filament\Infolists;
@@ -266,7 +267,9 @@ final class OrganizationResource extends Resource
      */
     public static function getRelations(): array
     {
-        return [];
+        return [
+            RelationManagers\DocumentsRelationManager::class,
+        ];
     }
 
     /**
