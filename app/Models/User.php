@@ -34,6 +34,7 @@ use Illuminate\Foundation\Auth\User as Authenticatable;
 use Illuminate\Notifications\DatabaseNotification;
 use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
+use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
 use LogicException;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
@@ -441,6 +442,32 @@ class User extends Authenticatable implements MustVerifyEmail
     // ---------------------------------------------------------------------
 
     /**
+     * The column that points AT a user — always `user_id`, never `seller_id`.
+     *
+     * Eloquent derives a HasMany's foreign key from the class the relation is
+     * called on, not the class that declared it. Under single-table
+     * inheritance that is the wrong end: every relation below is declared once
+     * here and inherited, so `$seller->sessions()` went looking for
+     * `user_sessions.seller_id` — a column that does not exist and never will.
+     * There is one `users` table (see the class docblock), and everything that
+     * references a row in it uses `user_id`.
+     *
+     * `self::class`, deliberately: this must answer "user" no matter which
+     * subclass is asking. It is the only sane answer here, because no
+     * `admin_id`, `seller_id` or `customer_id` column exists anywhere in the
+     * schema — the discriminator is `users.type`, not the foreign key.
+     *
+     * Cost: a future table that genuinely wanted a subclass-named key would
+     * have to name it explicitly. That is the right trade — an explicit key is
+     * a two-word argument, whereas the default being wrong is a query that
+     * fails at runtime in whichever code path nobody exercised.
+     */
+    public function getForeignKey(): string
+    {
+        return Str::snake(class_basename(self::class)).'_'.$this->getKeyName();
+    }
+
+    /**
      * Active and historical sessions. @see docs/authentication.md §Sessions
      *
      * @return HasMany<UserSession, $this>
@@ -476,12 +503,20 @@ class User extends Authenticatable implements MustVerifyEmail
     /**
      * Field-level changes this user CAUSED, across every model.
      *
+     * `static::class`, not `self::class`: the causer is recorded as the
+     * concrete actor class — AuditLogger, the Auditable trait and
+     * AuditEntry::scopeCausedBy() all write and match `$causer::class`, which
+     * for a signed-in administrator is `App\Models\Admin`. Reading it back as
+     * `App\Models\User` matched no row ever written, so this relation reported
+     * an empty trail for every real actor. The two sides have to name the
+     * class the same way.
+     *
      * @return HasMany<AuditEntry, $this>
      */
     public function auditEntries(): HasMany
     {
         return $this->hasMany(AuditEntry::class, 'causer_id')
-            ->where('causer_type', self::class);
+            ->where('causer_type', static::class);
     }
 
     /**
