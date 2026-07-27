@@ -47,7 +47,12 @@ final class SellerPanelProvider extends PanelProvider
             ->authGuard(UserType::Seller->guard())
             ->authPasswordBroker('sellers')
             ->login()
-            ->registration()
+            /*
+            | Our own page, not Filament's. The stock one posts a single `name`
+            | field, which this platform's user model does not have and will not
+            | be given (ADR-012). @see App\Filament\Seller\Auth\Register
+            */
+            ->registration(\App\Filament\Seller\Auth\Register::class)
             ->passwordReset()
             ->emailVerification()
             ->profile(isSimple: false)

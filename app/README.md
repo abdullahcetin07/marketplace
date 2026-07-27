@@ -6,6 +6,7 @@ Shared/      Enums, traits, rules, helpers used everywhere.
 Modules/     Business modules. Empty until Sprint 1.
 Models/      User + the three actor subclasses (Admin, Seller, Customer).
 Providers/   Service providers, including both Filament panels.
+Filament/    Panel-level pages that belong to no module (auth pages).
 Http/        Global middleware.
 Console/     Artisan commands.
 ```
