@@ -81,13 +81,29 @@ return [
         'withdrawn' => 'Withdrawn',
     ],
 
+    /*
+    | Keyed by the enum's SHORT class name, so the module-owned
+    | App\Modules\Catalog\Domain\Enums\ProductStatus and the Sprint-0
+    | placeholder App\Shared\Enums\ProductStatus resolve here together. The
+    | union of both case sets: `needs_revision` is the Catalog lifecycle's
+    | (§2.6), `unpublished` is the placeholder's and the Catalog enum has no
+    | such state.
+    */
     'ProductStatus' => [
         'draft' => 'Draft',
-        'pending_review' => 'Pending Review',
+        'pending_review' => 'In review',
+        'needs_revision' => 'Needs revision',
         'published' => 'Published',
         'unpublished' => 'Unpublished',
         'rejected' => 'Rejected',
         'archived' => 'Archived',
+    ],
+
+    'AttributeType' => [
+        'select' => 'Select',
+        'text' => 'Text',
+        'number' => 'Number',
+        'boolean' => 'Yes/No',
     ],
 
     'NotificationType' => [

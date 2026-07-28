@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Providers\Filament;
 
+use App\Modules\Catalog\Presentation\Filament\Resources\AttributeResource;
+use App\Modules\Catalog\Presentation\Filament\Resources\BrandResource;
+use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource;
+use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource;
 use App\Modules\Identity\Presentation\Filament\Resources\UserResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
 use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequestResource;
@@ -81,6 +85,13 @@ final class AdminPanelProvider extends PanelProvider
                 OrganizationResource::class,
                 StoreOpeningRequestResource::class,
                 StoreResource::class,
+
+                // Catalog (ADR-037–041). The moderation queue first: it is the
+                // Category Manager's daily surface, the taxonomy is maintenance.
+                ProductModerationResource::class,
+                CategoryResource::class,
+                AttributeResource::class,
+                BrandResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

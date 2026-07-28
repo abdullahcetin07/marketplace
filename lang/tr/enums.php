@@ -81,13 +81,29 @@ return [
         'withdrawn' => 'Geri Çekildi',
     ],
 
+    /*
+    | Keyed by the enum's SHORT class name, so the module-owned
+    | App\Modules\Catalog\Domain\Enums\ProductStatus and the Sprint-0
+    | placeholder App\Shared\Enums\ProductStatus resolve here together. The
+    | union of both case sets: `needs_revision` is the Catalog lifecycle's
+    | (§2.6), `unpublished` is the placeholder's and the Catalog enum has no
+    | such state.
+    */
     'ProductStatus' => [
         'draft' => 'Taslak',
-        'pending_review' => 'İncelemede',
+        'pending_review' => 'Değerlendirmede',
+        'needs_revision' => 'Düzeltme Bekliyor',
         'published' => 'Yayında',
         'unpublished' => 'Yayından Kaldırıldı',
         'rejected' => 'Reddedildi',
         'archived' => 'Arşivlendi',
+    ],
+
+    'AttributeType' => [
+        'select' => 'Seçim',
+        'text' => 'Metin',
+        'number' => 'Sayı',
+        'boolean' => 'Evet/Hayır',
     ],
 
     'NotificationType' => [

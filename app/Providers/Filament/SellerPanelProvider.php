@@ -78,6 +78,12 @@ final class SellerPanelProvider extends PanelProvider
                 \App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource::class,
                 \App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource::class,
                 \App\Modules\Store\Presentation\Filament\Seller\Resources\StoreResource::class,
+
+                // "Ürün aç" (Catalog §5). The seller-panel product resource is
+                // a DIFFERENT class from the admin moderation queue — sharing
+                // one would put a cross-org admin surface a registration
+                // mistake away from a seller.
+                \App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')
