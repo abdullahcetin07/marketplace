@@ -430,7 +430,7 @@ it('normalises a free value through its attribute type', function (): void {
         new ProductAttributeValueDTO(attributeUuid: $organic->uuid, value: 'yes'),
     ]);
 
-    $values = $product->fresh()->attributes()->get()
+    $values = $product->fresh()->descriptiveAttributes()->get()
         ->mapWithKeys(fn (Attribute $a): array => [$a->code => $a->getRelation('pivot')->getAttribute('value')]);
 
     expect($values['garanti'])->toBe('24')
@@ -457,11 +457,11 @@ it('replaces the whole attribute set rather than merging into it', function (): 
         new ProductAttributeValueDTO(attributeUuid: $b->uuid, valueUuid: $b->values()->first()->uuid),
     ]);
 
-    expect($product->fresh()->attributes()->count())->toBe(2);
+    expect($product->fresh()->descriptiveAttributes()->count())->toBe(2);
 
     SetProductAttributesAction::make()->run($product->fresh(), [
         new ProductAttributeValueDTO(attributeUuid: $a->uuid, valueUuid: $a->values()->first()->uuid),
     ]);
 
-    expect($product->fresh()->attributes()->count())->toBe(1);
+    expect($product->fresh()->descriptiveAttributes()->count())->toBe(1);
 });

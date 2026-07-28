@@ -45,12 +45,12 @@ final class BindCategoryAttributeAction extends BaseAction
             throw CatalogException::attributeCannotDefineVariants($attribute->code);
         }
 
-        $category->attributes()->syncWithoutDetaching([
+        $category->schemaAttributes()->syncWithoutDetaching([
             $attribute->getKey() => [
                 'is_required' => $data->isRequired,
                 'is_variant_defining' => $data->isVariantDefining,
                 'is_filterable' => $data->isFilterable,
-                'position' => $data->position ?? $category->attributes()->count(),
+                'position' => $data->position ?? $category->schemaAttributes()->count(),
             ],
         ]);
 

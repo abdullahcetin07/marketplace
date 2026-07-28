@@ -122,9 +122,13 @@ final class Category extends Model
      * merely descriptive in "Mobilya", which is the whole reason the flags live
      * on the binding rather than on the attribute.
      *
+     * NOT NAMED `attributes()`, for the same reason as
+     * `Product::descriptiveAttributes()`: it would collide with Eloquent's own
+     * `$attributes` property and break on property access.
+     *
      * @return BelongsToMany<Attribute, $this>
      */
-    public function attributes(): BelongsToMany
+    public function schemaAttributes(): BelongsToMany
     {
         return $this->belongsToMany(Attribute::class, 'category_attribute')
             ->withPivot(['is_required', 'is_variant_defining', 'is_filterable', 'position'])

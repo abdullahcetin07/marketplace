@@ -72,7 +72,7 @@ function panelCategory(): array
     $category = Category::factory()->childOf($root)->create(['name_tr' => 'Tişört']);
 
     $colour = Attribute::factory()->variantDefining()->withValues(3)->create(['code' => 'renk']);
-    $category->attributes()->attach($colour, ['is_variant_defining' => true]);
+    $category->schemaAttributes()->attach($colour, ['is_variant_defining' => true]);
 
     return ['category' => $category, 'colour' => $colour->fresh()];
 }

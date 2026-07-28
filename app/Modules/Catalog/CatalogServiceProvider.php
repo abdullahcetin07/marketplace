@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Catalog;
 
 use App\Core\Domain\Contracts\CatalogQueryContract;
+use App\Modules\Catalog\Application\Listeners\SyncProductSearchIndex;
 use App\Modules\Catalog\Domain\Contracts\AttributeRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\BrandRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategoryRepositoryContract;
@@ -24,6 +25,7 @@ use App\Modules\Catalog\Presentation\Policies\CategoryPolicy;
 use App\Modules\Catalog\Presentation\Policies\ProductPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -40,9 +42,9 @@ use Illuminate\Support\ServiceProvider;
  * here has no price and no stock, which is precisely what lets many sellers sell
  * one catalog entry (ADR-037). Those concerns arrive with Offer and Inventory.
  *
- * IT SUBSCRIBES TO NOTHING. Unlike Store, the Catalog is not created by another
- * context's event, so there is no `Event::subscribe()` here and no consumer-side
- * import at all.
+ * IT SUBSCRIBES TO NO OTHER MODULE. Unlike Store, the Catalog is not created by
+ * another context's event, so there is no consumer-side import at all — the one
+ * subscriber below listens to Catalog's own events.
  *
  * Phase 1 registers no `StorefrontContributorContract` (ADR-041): a store page
  * lists its Offers, and Offers do not exist yet.
@@ -77,6 +79,31 @@ final class CatalogServiceProvider extends ServiceProvider
 
         Gate::policy(Category::class, CategoryPolicy::class);
         Gate::policy(Product::class, ProductPolicy::class);
+
+        /*
+        | Search (§10). Index on ProductPublished, drop on ProductArchived —
+        | the only two transitions that change whether a product is findable.
+        |
+        | Catalog subscribing to Catalog's OWN events, which is not the
+        | cross-module consumer pattern: it is simply where the reaction to a
+        | published product belongs while Offer does not exist. When Offer
+        | ships it subscribes to the same events from its own provider.
+        */
+        Event::subscribe(SyncProductSearchIndex::class);
+
+        /*
+        | AUDIT is already wired — `Product` uses the Auditable trait (ADR-027),
+        | so every field change on a catalog entry is recorded without a
+        | listener. That is the whole mechanism for aggregates; the subscriber
+        | pattern is for SECURITY events, which this module raises none of.
+        |
+        | ACTIVITY (the user timeline) is deliberately NOT wired here. A
+        | timeline listener belongs to the Activity module, which would have to
+        | import Catalog's events to write it — and `LayeringTest` states that
+        | nothing imports Catalog. The same follow-up is open for Organization
+        | (see its freeze notice), so this is the established shape rather than
+        | an omission: one Activity change, later, covering both modules.
+        */
     }
 
     /**

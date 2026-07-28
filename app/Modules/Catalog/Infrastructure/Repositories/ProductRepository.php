@@ -43,7 +43,8 @@ final class ProductRepository implements ProductRepositoryContract
         'brand',
         'variants',
         'variants.attributeValues',
-        'attributes',
+        'descriptiveAttributes',
+        'descriptiveAttributes.values',
         'media',
     ];
 

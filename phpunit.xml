@@ -44,6 +44,15 @@
         <env name="QUEUE_CONNECTION" value="sync"/>
         <env name="SESSION_DRIVER" value="array"/>
         <env name="SCOUT_DRIVER" value="null"/>
+        <!--
+          Scout dispatches indexing onto config('scout.queue'), whose connection
+          defaults to redis. The null driver stops the suite reaching a search
+          cluster but not a queue, so the first Searchable model made every save
+          in its tests try to resolve `redis` and fail on DNS. Pointing the
+          connection at sync makes config/scout.php's stated intent — "queued in
+          every environment except tests" — actually true.
+        -->
+        <env name="SCOUT_QUEUE_CONNECTION" value="sync"/>
         <env name="TELESCOPE_ENABLED" value="false"/>
         <env name="DEBUGBAR_ENABLED" value="false"/>
     </php>

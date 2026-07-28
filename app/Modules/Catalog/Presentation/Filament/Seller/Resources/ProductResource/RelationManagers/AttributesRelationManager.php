@@ -40,7 +40,7 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class AttributesRelationManager extends RelationManager
 {
-    protected static string $relationship = 'attributes';
+    protected static string $relationship = 'descriptiveAttributes';
 
     public static function getTitle(Model $ownerRecord, string $pageClass): string
     {
@@ -84,7 +84,7 @@ final class AttributesRelationManager extends RelationManager
     {
         $fields = [];
 
-        foreach ($this->descriptiveAttributes() as $attribute) {
+        foreach ($this->descriptiveAttributesFor() as $attribute) {
             $key = 'attr_'.$attribute->getKey();
             $required = $this->isRequired($attribute);
 
@@ -118,7 +118,7 @@ final class AttributesRelationManager extends RelationManager
 
         $assignments = [];
 
-        foreach ($this->descriptiveAttributes() as $attribute) {
+        foreach ($this->descriptiveAttributesFor() as $attribute) {
             $raw = $data['attr_'.$attribute->getKey()] ?? null;
 
             if ($raw === null || $raw === '') {
@@ -163,7 +163,7 @@ final class AttributesRelationManager extends RelationManager
 
         $state = [];
 
-        foreach ($product->attributes()->get() as $attribute) {
+        foreach ($product->descriptiveAttributes()->get() as $attribute) {
             $pivot = $attribute->getRelation('pivot');
 
             $state['attr_'.$attribute->getKey()] = $attribute->type->usesPredefinedValues()
@@ -179,7 +179,7 @@ final class AttributesRelationManager extends RelationManager
      *
      * @return array<int, Attribute>
      */
-    private function descriptiveAttributes(): array
+    private function descriptiveAttributesFor(): array
     {
         /** @var Product $product */
         $product = $this->getOwnerRecord();

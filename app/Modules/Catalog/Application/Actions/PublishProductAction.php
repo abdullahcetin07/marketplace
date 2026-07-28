@@ -91,7 +91,7 @@ final class PublishProductAction extends BaseAction
             return;
         }
 
-        $provided = $product->attributes()->get()
+        $provided = $product->descriptiveAttributes()->get()
             ->map(static fn (Attribute $attribute): int => (int) $attribute->getKey())
             ->all();
 

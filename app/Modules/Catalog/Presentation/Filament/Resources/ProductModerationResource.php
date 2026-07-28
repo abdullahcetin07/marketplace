@@ -156,7 +156,7 @@ final class ProductModerationResource extends Resource
             ])->columns(3),
 
             Infolists\Components\Section::make(__('catalog.product.attributes'))->schema([
-                Infolists\Components\RepeatableEntry::make('attributes')
+                Infolists\Components\RepeatableEntry::make('descriptiveAttributes')
                     ->hiddenLabel()
                     ->schema([
                         Infolists\Components\TextEntry::make('code')->label(__('catalog.attribute.code')),

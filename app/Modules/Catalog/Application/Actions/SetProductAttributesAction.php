@@ -66,7 +66,7 @@ final class SetProductAttributesAction extends BaseAction
                 : $this->freePivot($attribute, $assignment);
         }
 
-        $product->attributes()->sync($sync);
+        $product->descriptiveAttributes()->sync($sync);
 
         return $product->refresh();
     }

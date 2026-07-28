@@ -87,7 +87,7 @@ final class AttributeRepository implements AttributeRepositoryContract
      */
     public function schemaFor(Category $category): Collection
     {
-        return $category->attributes()->with($this->with)->get();
+        return $category->schemaAttributes()->with($this->with)->get();
     }
 
     /**
@@ -95,7 +95,7 @@ final class AttributeRepository implements AttributeRepositoryContract
      */
     public function variantDefiningFor(Category $category): Collection
     {
-        return $category->attributes()
+        return $category->schemaAttributes()
             ->with($this->with)
             ->wherePivot('is_variant_defining', true)
             ->get();
@@ -106,7 +106,7 @@ final class AttributeRepository implements AttributeRepositoryContract
      */
     public function requiredFor(Category $category): Collection
     {
-        return $category->attributes()
+        return $category->schemaAttributes()
             ->with($this->with)
             ->wherePivot('is_required', true)
             ->get();

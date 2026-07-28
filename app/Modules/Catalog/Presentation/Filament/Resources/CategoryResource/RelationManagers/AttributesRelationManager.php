@@ -28,7 +28,7 @@ use Filament\Tables\Table;
  */
 final class AttributesRelationManager extends RelationManager
 {
-    protected static string $relationship = 'attributes';
+    protected static string $relationship = 'schemaAttributes';
 
     public static function getTitle(\Illuminate\Database\Eloquent\Model $ownerRecord, string $pageClass): string
     {

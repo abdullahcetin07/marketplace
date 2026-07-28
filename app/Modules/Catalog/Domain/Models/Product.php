@@ -20,6 +20,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 use Illuminate\Database\Eloquent\Relations\HasOne;
 use Illuminate\Database\Eloquent\SoftDeletes;
 use Illuminate\Support\Carbon;
+use Laravel\Scout\Searchable;
 use Spatie\MediaLibrary\HasMedia as HasMediaContract;
 
 /**
@@ -87,6 +88,7 @@ final class Product extends Model implements HasMediaContract
     use HasLocalizedText;
     use HasMedia;
     use HasUuid;
+    use Searchable;
     use SoftDeletes;
 
     protected $table = 'products';
@@ -168,9 +170,17 @@ final class Product extends Model implements HasMediaContract
      * The pivot carries `attribute_value_id` for `Select` types and a raw
      * `value` string for Text/Number/Boolean — one row per attribute either way.
      *
+     * NOT NAMED `attributes()`. Eloquent already has a `$attributes` property
+     * for a model's raw column values, so a relation of that name works when
+     * called as a method and SILENTLY returns the wrong thing when read as a
+     * property — `$product->attributes` would hand back the column array. The
+     * relation is renamed rather than the collision documented, because a trap
+     * that only springs on one of two identical-looking syntaxes will be walked
+     * into again.
+     *
      * @return BelongsToMany<Attribute, $this>
      */
-    public function attributes(): BelongsToMany
+    public function descriptiveAttributes(): BelongsToMany
     {
         return $this->belongsToMany(Attribute::class, 'product_attribute_value')
             ->withPivot(['attribute_value_id', 'value'])
@@ -302,6 +312,177 @@ final class Product extends Model implements HasMediaContract
         return $organizationUuid === null
             ? $query->whereRaw('1 = 0')
             : $query->where('proposed_by_org_uuid', $organizationUuid);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search (§10)
+    |--------------------------------------------------------------------------
+    |
+    | Products are indexed on `ProductPublished` and dropped on `ProductArchived`
+    | (the listeners), and `shouldBeSearchable()` is the backstop under both: any
+    | other save of a non-published product can never sneak a draft into the
+    | index.
+    |
+    | PHASE 1 EXPOSES CATALOG SEARCH TO STAFF AND SELLERS ONLY. Buyer-facing
+    | search waits on Offer — you cannot usefully search to buy something that
+    | has no price and no seller. Indexing the attribute and variant facets NOW
+    | means the filters are ready when Offer ships, which is cheaper than
+    | reindexing a populated catalog later.
+    */
+
+    /**
+     * Only published products belong in the index (§10).
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status->isSearchable();
+    }
+
+    public function searchableAs(): string
+    {
+        return 'products';
+    }
+
+    /**
+     * The document.
+     *
+     * `id` is the UUID, never the internal key — the search index is read by
+     * clients and an internal id must not leave the application
+     * (non-negotiable #7).
+     *
+     * NO PRICE AND NO STOCK FIELD (ADR-037). When Offer ships, price-sorted
+     * search reads Offer's index, not this one.
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->uuid,
+            'title' => $this->localized('title'),
+            'title_en' => $this->title_en,
+            'description' => $this->localized('description'),
+            'brand' => $this->brand?->name,
+            'category' => $this->category->localized('name'),
+            // The path makes "everything under Giyim" a prefix filter on the
+            // index, the same shape the database uses (§13.1).
+            'category_path' => $this->category->path,
+            'gtin' => $this->gtin,
+            'status' => $this->status->value,
+            // Facets, ready for Offer (§10).
+            'attributes' => $this->searchableAttributeValues(),
+            'skus' => $this->variants->pluck('sku')->values()->all(),
+            'published_at' => $this->published_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Fields `multi_match` targets, with relevance boosts.
+     *
+     * Title outranks everything: a shopper typing "tişört" means the product,
+     * not a description that mentions one. Brand and category rank above free
+     * text because they are curated and a match there is a stronger signal.
+     *
+     * @return array<int, string>
+     */
+    public function searchableFields(): array
+    {
+        return ['title^5', 'brand^3', 'category^2', 'skus^2', 'gtin', 'description'];
+    }
+
+    /**
+     * Explicit mapping — the index is created with this on first write.
+     *
+     * Without it every field gets dynamic mapping, which produces unpredictable
+     * types and, for Turkish, visibly wrong results: `İSTANBUL` would not match
+     * `istanbul` and `ürün` would not match `urun` (docs/search.md).
+     *
+     * The `keyword` fields are filters, not text: a status or a SKU is matched
+     * exactly or not at all, and analysing them would be actively harmful.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function searchableMapping(): array
+    {
+        return [
+            'id' => ['type' => 'keyword'],
+            'title' => ['type' => 'text', 'analyzer' => 'turkish_analyzer'],
+            'title_en' => ['type' => 'text'],
+            'description' => ['type' => 'text', 'analyzer' => 'turkish_analyzer'],
+            'brand' => ['type' => 'text', 'analyzer' => 'turkish_analyzer',
+                'fields' => ['raw' => ['type' => 'keyword']]],
+            'category' => ['type' => 'text', 'analyzer' => 'turkish_analyzer',
+                'fields' => ['raw' => ['type' => 'keyword']]],
+            'category_path' => ['type' => 'keyword'],
+            'gtin' => ['type' => 'keyword'],
+            'status' => ['type' => 'keyword'],
+            'attributes' => ['type' => 'keyword'],
+            'skus' => ['type' => 'keyword'],
+            'published_at' => ['type' => 'date'],
+        ];
+    }
+
+    /**
+     * Attribute values as flat `code:value` keywords — the shape a facet filter
+     * queries (`attributes: "renk:kirmizi"`), from both the product's own
+     * descriptive values and its variants' axes.
+     *
+     * @return array<int, string>
+     */
+    private function searchableAttributeValues(): array
+    {
+        $facets = [];
+
+        foreach ($this->descriptiveAttributes as $attribute) {
+            $pivot = $attribute->getRelation('pivot');
+            $valueId = $pivot->getAttribute('attribute_value_id');
+
+            $value = $valueId !== null
+                ? $attribute->values->firstWhere('id', (int) $valueId)?->value
+                : $pivot->getAttribute('value');
+
+            if (is_string($value) && $value !== '') {
+                $facets[] = $attribute->code.':'.$value;
+            }
+        }
+
+        foreach ($this->variants as $variant) {
+            foreach ($variant->attributeValues as $value) {
+                $facets[] = $value->attribute->code.':'.$value->value;
+            }
+        }
+
+        return array_values(array_unique($facets));
+    }
+
+    /**
+     * Everything `toSearchableArray()` reads, so a full reindex never trips
+     * strict mode's lazy-load guard — Scout loads models in chunks of its own
+     * and does not go through the repositories.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->with($this->searchRelations());
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function searchRelations(): array
+    {
+        return [
+            'category',
+            'brand',
+            'descriptiveAttributes',
+            'descriptiveAttributes.values',
+            'variants',
+            'variants.attributeValues',
+            'variants.attributeValues.attribute',
+        ];
     }
 
     /**

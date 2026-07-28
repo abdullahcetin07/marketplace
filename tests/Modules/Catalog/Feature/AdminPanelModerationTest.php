@@ -114,7 +114,7 @@ it('refuses to approve a product missing a required attribute, with the reason',
     $product = queuedProduct();
 
     $material = Attribute::factory()->withValues(2)->create(['code' => 'malzeme']);
-    $product->category->attributes()->attach($material, ['is_required' => true]);
+    $product->category->schemaAttributes()->attach($material, ['is_required' => true]);
 
     Livewire::test(ListProductModeration::class)
         ->callTableAction('publish', $product)

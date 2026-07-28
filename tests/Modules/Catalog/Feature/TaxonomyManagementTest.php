@@ -255,8 +255,8 @@ it('binds one attribute to two categories with opposite flags', function (): voi
         isVariantDefining: false,
     ));
 
-    expect($clothing->attributes()->wherePivot('is_variant_defining', true)->count())->toBe(1)
-        ->and($furniture->attributes()->wherePivot('is_variant_defining', true)->count())->toBe(0);
+    expect($clothing->schemaAttributes()->wherePivot('is_variant_defining', true)->count())->toBe(1)
+        ->and($furniture->schemaAttributes()->wherePivot('is_variant_defining', true)->count())->toBe(0);
 });
 
 it('re-configures an existing binding rather than failing on it', function (): void {
@@ -275,8 +275,8 @@ it('re-configures an existing binding rather than failing on it', function (): v
         isRequired: true,
     ));
 
-    expect($category->attributes()->count())->toBe(1)
-        ->and($category->attributes()->wherePivot('is_required', true)->count())->toBe(1);
+    expect($category->schemaAttributes()->count())->toBe(1)
+        ->and($category->schemaAttributes()->wherePivot('is_required', true)->count())->toBe(1);
 });
 
 it('refuses to make a non-enumerable attribute a variant axis in a category', function (): void {

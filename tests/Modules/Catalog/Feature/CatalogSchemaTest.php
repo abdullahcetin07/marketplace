@@ -155,24 +155,24 @@ it('binds an attribute to a category with per-category flags', function (): void
     $furniture = Category::factory()->create();
     $colour = Attribute::factory()->create(['code' => 'renk']);
 
-    $clothing->attributes()->attach($colour, ['is_variant_defining' => true, 'is_required' => true]);
-    $furniture->attributes()->attach($colour, ['is_variant_defining' => false, 'is_required' => false]);
+    $clothing->schemaAttributes()->attach($colour, ['is_variant_defining' => true, 'is_required' => true]);
+    $furniture->schemaAttributes()->attach($colour, ['is_variant_defining' => false, 'is_required' => false]);
 
     // Read through wherePivot — the same narrowing AttributeRepository uses, so
     // this proves the query the integrity rules actually run, not just the row.
-    expect($clothing->attributes()->wherePivot('is_variant_defining', true)->count())->toBe(1)
-        ->and($furniture->attributes()->wherePivot('is_variant_defining', true)->count())->toBe(0)
-        ->and($clothing->attributes()->wherePivot('is_required', true)->count())->toBe(1)
-        ->and($furniture->attributes()->wherePivot('is_required', true)->count())->toBe(0);
+    expect($clothing->schemaAttributes()->wherePivot('is_variant_defining', true)->count())->toBe(1)
+        ->and($furniture->schemaAttributes()->wherePivot('is_variant_defining', true)->count())->toBe(0)
+        ->and($clothing->schemaAttributes()->wherePivot('is_required', true)->count())->toBe(1)
+        ->and($furniture->schemaAttributes()->wherePivot('is_required', true)->count())->toBe(0);
 });
 
 it('allows only one binding per attribute per category', function (): void {
     $category = Category::factory()->create();
     $attribute = Attribute::factory()->create();
 
-    $category->attributes()->attach($attribute);
+    $category->schemaAttributes()->attach($attribute);
 
-    expect(fn () => $category->attributes()->attach($attribute))
+    expect(fn () => $category->schemaAttributes()->attach($attribute))
         ->toThrow(QueryException::class);
 });
 
@@ -180,9 +180,9 @@ it('allows only one value per attribute per product', function (): void {
     $product = Product::factory()->create();
     $attribute = Attribute::factory()->create();
 
-    $product->attributes()->attach($attribute, ['value' => 'pamuk']);
+    $product->descriptiveAttributes()->attach($attribute, ['value' => 'pamuk']);
 
-    expect(fn () => $product->attributes()->attach($attribute, ['value' => 'yun']))
+    expect(fn () => $product->descriptiveAttributes()->attach($attribute, ['value' => 'yun']))
         ->toThrow(QueryException::class);
 });
 
