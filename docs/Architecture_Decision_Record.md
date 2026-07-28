@@ -1038,4 +1038,146 @@ Full specification: [docs/modules/Store.md](modules/Store.md) §12.
 
 ---
 
+# ADR-037 The Catalog Is Shared; the Seller↔Product Link Is an Offer, Never a Copy
+
+A **Product is platform-owned and shared**. One canonical entry — title, brand,
+category, attributes, images, variants — describes a product for the whole
+marketplace, and many sellers sell against it. A seller never receives their own
+copy of a product; the seller↔product link is an **Offer** (a later sprint) that
+references a catalog Product/Variant **by uuid**.
+
+This is the Trendyol/Amazon/Hepsiburada model, chosen deliberately over the
+per-seller-products model (Etsy/Shopify), where every seller owns their own
+product rows.
+
+In Phase 1 a seller may only **propose/author** a product into the shared
+catalog. The proposal is moderated (ADR-038); nothing about it is private to
+that seller once published.
+
+A **Product carries no price and no stock.** That is the boundary the whole
+decision rests on: it is exactly what lets one product be sold by many sellers at
+different prices without duplication. Price/stock belong to Offer and Inventory.
+
+Rationale: the buyer experience the platform is built for — one product page,
+many sellers, a comparable price list — is only expressible if the product is
+one row that all sellers point at. Per-seller copies make that page a
+reconciliation problem forever.
+
+Cost: deduplication and moderation become first-class problems on day one. Two
+sellers proposing "iPhone 15 128GB" must converge on ONE catalog entry, or the
+shared catalog degrades into the per-seller mess we rejected. We pay for this
+with a moderation lifecycle and GTIN/barcode uniqueness that the simpler model
+would not need, plus a Category-Manager workload that scales with seller count.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.3.
+
+---
+
+# ADR-038 The Taxonomy Is Central and Owned by the Category Manager
+
+Categories form a **tree owned by the platform**, maintained by the existing
+**Category Manager** role (ADR-013 — the role was reserved for exactly this).
+Each category carries an **attribute schema**: which attributes apply, which are
+required, and which are variant-defining *in that category*. The same attribute
+(Renk) may be variant-defining in "Giyim" and merely descriptive in "Mobilya".
+
+A product attaches to a **leaf** category and must satisfy that category's
+schema. Sellers cannot invent categories, attributes or attribute values.
+
+Tree storage is an **adjacency list plus a materialised `path` column**,
+self-owned, with no tree package: writes stay a single parent pointer, and
+descendant reads are a path-prefix scan.
+
+Rationale: consistent categories and typed attributes are what make search,
+filtering and comparison work at all — the difference between a marketplace and
+a flea market. Free-form seller tagging produces a catalog that cannot be
+faceted.
+
+Cost: the Category Manager is a throughput bottleneck. Onboarding a genuinely
+new kind of product requires a human to extend the taxonomy first, which is
+slower than free-form tagging. The materialised path must be rewritten when a
+subtree moves — rare, and a bounded update, but it is real write complexity we
+accepted over a package dependency or nested-set writes.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.4, §13.1.
+
+---
+
+# ADR-039 Variants Are First-Class; a "Simple" Product Is a One-Variant Product
+
+A Product has **1..n ProductVariants**. A variant is a unique combination of its
+category's **variant-defining** attribute values (Beden=M, Renk=Kırmızı) and
+carries the `sku`. The **variant — not the product — is the unit** that Offer,
+Inventory, cart lines and order lines will reference.
+
+A product with no variant axes is modelled as a **single `is_default` variant**,
+never as a special case in the schema or the code. There is no "simple product"
+branch.
+
+Rationale: retrofitting variants later means rewriting Offer, Inventory, cart and
+order lines around a new sellable unit — far more expensive than carrying one
+join now. Clothing and footwear are unsellable without variants, so "later" was
+never really available for this market.
+
+Cost: every read path carries the product→variant join even for single-variant
+products, and the authoring UI is meaningfully more complex than a flat product
+form (the seller picks values, the platform generates the cartesian product and
+lets them prune it).
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.5, §13.4.
+
+---
+
+# ADR-040 The Catalog References Other Contexts by id/UUID (Reaffirms ADR-033)
+
+Catalog **imports no other module's models and is imported by none**. It
+references the **proposing organization by uuid only** (`proposed_by_org_uuid`),
+for provenance and moderation scoping — there is no `organization()` relation and
+no Organization or Store import anywhere in the module.
+
+Downstream contexts (Offer, Inventory, Search, Storefront) reach the Catalog
+**only** through the Core `CatalogQueryContract` and the Catalog's domain events,
+exactly as they reach Store through `StoreQueryContract` (ADR-033/034).
+
+Rationale: this is ADR-033 applied to the first module built after the Org/Store
+freeze. Restating it as its own ADR makes the Catalog's obligation explicit
+rather than inherited by implication, and gives the seller-scoping rule
+(`proposed_by_org_uuid`, not a membership join) a citable home.
+
+Cost: no `$product->organization->name` convenience; the proposing company's
+display name must be resolved through a contract or denormalised on the event
+that needs it. Seller scoping is by uuid comparison rather than a FK join, which
+is slightly less expressive to query.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.7.
+
+---
+
+# ADR-041 The Catalog Enriches the Storefront Only Once Products Are Sellable
+
+Per ADR-036 the public storefront is composed from
+`StorefrontContributorContract` implementations. **Catalog registers no
+storefront contributor in Phase 1.**
+
+A store page shows *its* products, and "its products" means that store's
+**Offers** — which do not exist yet. A contributor that listed catalog products
+on a store page would be asserting a store↔product relationship the platform has
+not defined. The product-listing contributor therefore ships with **Offer**,
+which owns that relationship, and Phase 1 touches neither Store nor the
+storefront.
+
+Rationale: composition (ADR-036) only helps if each contributor is registered by
+the module that actually owns the relationship being displayed. Registering an
+empty or guessed one now would fix the section's shape before the owning module
+exists.
+
+Cost: the Catalog ships with **nothing buyer-visible**. Phase 1 demos are
+admin/seller-facing only, and the platform carries a fully-populated catalog that
+no customer can see until Offer ships. We accepted that over building the
+sellable surface on a catalog schema that had not yet been exercised.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.8.
+
+---
+
 END OF FILE

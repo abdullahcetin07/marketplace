@@ -2,8 +2,9 @@
 
 The seven Foundation modules delivered in Sprint 1.
 
-**Business modules — Product, Catalog, Offer, Order, Payment — do not exist
-yet.** They are Sprint 2 and later. **Store** is now building (ADR-032–034).
+**Business modules — Offer, Inventory, Order, Payment — do not exist yet.** They
+are later sprints. **Organization** and **Store** are frozen v1.0 (ADR-028–036);
+**Catalog** is now building (ADR-037–041).
 
 ---
 
@@ -20,6 +21,7 @@ yet.** They are Sprint 2 and later. **Store** is now building (ADR-032–034).
 | **Notification** | Channels, preferences, queued delivery | [notifications.md](../../docs/notifications.md) |
 | **Organization** | Legal seller company: KYC, members, invitations, documents, bank account, store-opening requests (ADR-028–031) — *frozen v1.0* | [modules/Organization.md](../../docs/modules/Organization.md) |
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
+| **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *building (Phase 1)* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is
 exercised; no product media is attached and no SMS/push provider is bound.
@@ -56,6 +58,7 @@ asserted individually in `tests/Architecture/LayeringTest.php`:
 | **Activity** → Identity **events only** | subscribe | The consumer knows the producer's event contract, never the reverse. |
 | **Store** → Organization **events only** | subscribe | Store creates the storefront from `StoreOpeningApproved` (ADR-032). References the company by id/uuid, never a model (ADR-033). |
 | **Organization** → Store **events only** | subscribe | Organization records `created_store_uuid` from `StoreCreated` (ADR-032 back-reference). |
+| **Catalog** → *nothing* | — | Not an exception, the absence of one. Catalog subscribes to no module: it is not created by another context's event, and it holds the proposing company as a bare `proposed_by_org_uuid` (ADR-040). Downstream contexts will read it through the Core `CatalogQueryContract`. |
 
 Everything else goes through domain events. `RecordIdentityActivity` is the
 worked example: Identity announces `UserLoggedIn` and stops; Activity

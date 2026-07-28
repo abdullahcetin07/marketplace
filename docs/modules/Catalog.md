@@ -1,11 +1,12 @@
 # Catalog Module Specification
 
-**Status: APPROVED (2026-07-27) — Phase 1 cleared to build.** The decisions in §0 and
-the rulings in §13 are ratified. The formal ADR-037 … ADR-041 entries in
-[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) and the
-amendment log in [docs/001_Architecture.md](../001_Architecture.md) are written as the
-FIRST step of the Phase 1 scaffold (mirroring how the Store module landed ADR-032…036).
-This document states each decision AND its cost, per project culture.
+**Status: BUILDING — Phase 1 in progress.** Approved 2026-07-27; the decisions in §0
+and the rulings in §13 are ratified. **ADR-037 … ADR-041 are recorded** in
+[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
+entries in the amendment log at the end of
+[docs/001_Architecture.md](../001_Architecture.md) (mirroring how the Store module
+landed ADR-032…036). This document states each decision AND its cost, per project
+culture.
 
 The Catalog is the next major sprint after Store (frozen v1.0). It is large, so this
 spec scopes **Phase 1 = the catalog structure only** (§0.6). Offers, inventory, pricing,
@@ -354,9 +355,9 @@ be built ahead of its approval (CLAUDE.md).
 
 ---
 
-## Ratification checklist (when approved)
-- [ ] Add ADR-037 … ADR-041 to `docs/Architecture_Decision_Record.md`.
-- [ ] Add the amendment-log entries to `docs/001_Architecture.md`.
-- [ ] Add `Catalog` to `app/Modules/README.md` and this file to the modules index.
-- [ ] Resolve the §13 open questions and fold the rulings into this doc.
-- [ ] Only then: scaffold `app/Modules/Catalog/*` (Phase 1).
+## Ratification checklist
+- [x] Add ADR-037 … ADR-041 to `docs/Architecture_Decision_Record.md`.
+- [x] Add the amendment-log entries to `docs/001_Architecture.md`.
+- [x] Add `Catalog` to `app/Modules/README.md` and this file to the modules index.
+- [x] Resolve the §13 open questions and fold the rulings into this doc.
+- [x] Only then: scaffold `app/Modules/Catalog/*` (Phase 1).

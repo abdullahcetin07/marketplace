@@ -36,6 +36,11 @@ return [
     // Store after Organization: it subscribes to StoreOpeningApproved (ADR-032).
     App\Modules\Store\StoreServiceProvider::class,
 
+    // Business modules (Sprint: Catalog)
+    // Independent of Organization and Store — it references the proposing
+    // company by uuid only and subscribes to nothing (ADR-040).
+    App\Modules\Catalog\CatalogServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

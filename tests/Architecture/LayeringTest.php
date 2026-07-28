@@ -209,6 +209,50 @@ arch('Store depends only on Audit, Localization, and Organization events')
         'App\Modules\Organization\Presentation',
     ]);
 
+/*
+| Catalog is the shared product catalog — the first module built after the
+| Organization/Store freeze, and the strictest case of ADR-033 yet (restated as
+| ADR-040). It subscribes to NOTHING: unlike Store it is not created by another
+| module's event, so it has no consumer-direction exception at all. The proposing
+| company travels as `proposed_by_org_uuid` — a bare string — and downstream
+| contexts read Catalog through the Core `CatalogQueryContract`.
+|
+| Its two permitted dependencies are the platform-wide ones every module has:
+| Localization (reference data) and the Audit trait on its Product aggregate
+| (ADR-027 — a catalog entry is a curated asset; who changed what matters).
+| Media is reached through `App\Shared\Traits\HasMedia`, not by importing the
+| Media module, so Media stays on the forbidden list.
+|
+| Store is listed WHOLESALE, with no events escape hatch: ADR-041 rules that
+| Catalog registers no storefront contributor in Phase 1 and touches neither
+| Store nor the storefront. If that changes it changes by ADR, not by import.
+*/
+arch('Catalog depends only on Audit and Localization, and subscribes to nothing')
+    ->expect('App\Modules\Catalog')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+    ]);
+
+/*
+| The mirror of the rule above: nothing built so far may reach INTO Catalog.
+| Offer, Inventory and Search will read it through the Core contract when they
+| exist; until then the only correct number of importers is zero, and stating it
+| here means the first accidental import fails the build rather than quietly
+| establishing a precedent.
+*/
+arch('no existing module depends on Catalog')
+    ->expect('App\Modules\Catalog')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Catalog',
+        'App\Providers\Filament',
+    ]);
+
 arch('Core never depends on a module')
     ->expect('App\Core')
     ->not->toUse('App\Modules')
@@ -247,6 +291,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Organization\Domain',
         'App\Modules\Settings\Domain',
         'App\Modules\Store\Domain',
+        'App\Modules\Catalog\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -268,7 +313,13 @@ arch('no encryption Facades in any Domain layer')
 */
 
 it('has no Domain/Data directories left', function (): void {
-    expect(glob(app_path('Modules/*/Domain/Data'), GLOB_ONLYDIR))->toBe([]);
+    // Resolved from this file, not app_path(): architecture tests are not bound
+    // to Tests\TestCase (see tests/Pest.php), so the application container may
+    // not be booted when this runs. Under random execution order that made the
+    // helper throw or not depending on what ran first.
+    $modules = dirname(__DIR__, 2).'/app/Modules';
+
+    expect(glob($modules.'/*/Domain/Data', GLOB_ONLYDIR))->toBe([]);
 })->group('arch');
 
 arch('every module DTO carries the DTO suffix')
@@ -313,6 +364,18 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Store\Infrastructure',
         'App\Modules\Store\Presentation',
         'App\Modules\Store\StoreServiceProvider',
+        // Catalog — non-DTO namespaces ignored so its Domain\DTOs stay covered
+        // (they must carry the suffix), like the modules above.
+        'App\Modules\Catalog\Application',
+        'App\Modules\Catalog\Domain\Models',
+        'App\Modules\Catalog\Domain\Enums',
+        'App\Modules\Catalog\Domain\Events',
+        'App\Modules\Catalog\Domain\Contracts',
+        'App\Modules\Catalog\Domain\Concerns',
+        'App\Modules\Catalog\Domain\Exceptions',
+        'App\Modules\Catalog\Infrastructure',
+        'App\Modules\Catalog\Presentation',
+        'App\Modules\Catalog\CatalogServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')

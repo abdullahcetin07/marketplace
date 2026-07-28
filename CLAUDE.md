@@ -8,9 +8,7 @@ ADR-032–036).** Custom domains are cut from v1 (ADR-035: path-addressed
 `/store/{slug}`) and return only via a future dedicated ADR. The public storefront
 is composed (ADR-036): future modules enrich it via the Core
 `StorefrontContributorContract` + `StorefrontRegistry`, never by Store depending
-on them. Next major sprint is unstarted — likely Product/Catalog, which references
-Store by id/uuid (ADR-033) and enriches the storefront through the contributor
-contract (ADR-036).
+on them. **The current sprint is Catalog, Phase 1** (ADR-037–041).
 
 Foundation is a **module group, not a module** (ADR-002). Seven modules exist:
 Identity, Localization, Settings, Audit, Activity, Media, Notification.
@@ -27,19 +25,29 @@ documented follow-ups: `OrganizationSettings` and the Activity user-timeline
 listener (see the freeze notice in
 [docs/modules/Organization.md](docs/modules/Organization.md)).
 
-**The Store module is building** ([docs/modules/Store.md](docs/modules/Store.md),
-ADR-032–034). It consumes `StoreOpeningApproved` to create the storefront
-(ADR-028/032), references its owning company by id/uuid only — never importing an
-Organization model (ADR-033) — and exposes a separate public read surface
-(ADR-034). Phases 1–2 are done: idempotent event-driven creation + `StoreCreated`
-back-reference; operational-state transitions (lifecycle events); the Core
-`OrganizationAuthorizationContract` (Store.md §20.1) with `StoreManage`
-(Owner/Manager) + `StoreManageDomains` (Owner-only) capabilities; the Core
-`StoreQueryContract`; slug/number generators behind contracts. Phase 3 (domains)
-next. **Store is NOT products, catalogue, offers, inventory, orders or payments.**
+**Store is complete and FROZEN** (v1.0, ADR-032–036). It consumes
+`StoreOpeningApproved` to create the storefront (ADR-028/032), references its
+owning company by id/uuid only — never importing an Organization model (ADR-033)
+— and exposes a separate public read surface (ADR-034), path-addressed and
+composed. **Store is NOT products, catalogue, offers, inventory, orders or
+payments.**
 
-**Do not create Product, Catalog, Offer, Order or Payment modules.** Those are
-later sprints, and only after their architecture review is approved.
+**The Catalog module is building** ([docs/modules/Catalog.md](docs/modules/Catalog.md),
+ADR-037–041). Phase 1 is the **catalog structure only**: the category tree +
+per-category attribute schema (Category Manager, ADR-038), brands, the
+Product/ProductVariant aggregate with variants first-class (ADR-039), product
+media, seller authoring ("ürün aç") under a moderation lifecycle, and the Core
+`CatalogQueryContract`. The catalog is **shared** — one product, many sellers —
+and a seller never gets a copy (ADR-037).
+
+**A Product has no price and no stock.** That is the module's defining boundary:
+price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It
+also registers no storefront contributor in Phase 1 (ADR-041) and imports neither
+Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
+(ADR-040).
+
+**Do not create Offer, Inventory, Order or Payment modules.** Those are later
+sprints, and only after their architecture review is approved.
 
 ---
 
