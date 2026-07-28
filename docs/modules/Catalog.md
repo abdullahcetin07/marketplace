@@ -189,9 +189,17 @@ attribute values that distinguishes it (`variant_attribute_value` pivot), `is_de
 soft-deletes. Every product has ≥1 variant; the combination is unique within a product.
 
 ## 2.6 Enums (module-owned, no `Enum` suffix)
-- `ProductStatus`: `Draft`, `PendingReview`, `Published`, `Rejected`, `Archived`.
+- `ProductStatus`: `Draft`, `PendingReview`, `NeedsRevision`, `Published`, `Rejected`,
+  `Archived`. **`NeedsRevision`** is the "request a revision" state of §3.1/§5 — a
+  moderator sends a product back to the seller with a reason; the seller edits and
+  re-submits (`PendingReview` again). (The abbreviated list earlier in review omitted it;
+  §3.1/§5 are normative — the six cases here are the truth.)
 - `AttributeType`: `Select`, `Text`, `Number`, `Boolean` (extendable).
 - (`is_active` for Category/Brand is lookup-style boolean, ADR-015, not a status enum.)
+- **This enum is module-owned** at `App\Modules\Catalog\Domain\Enums\ProductStatus`. A
+  Sprint-0 placeholder `App\Shared\Enums\ProductStatus` exists (referenced only by a
+  transition test); leave it untouched — the Store precedent is that the module owns its
+  real status enum and the Shared placeholder is not reused.
 
 ---
 
