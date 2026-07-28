@@ -236,6 +236,52 @@ it('publishes once the required attribute is supplied', function (): void {
     expect($product->fresh()->status)->toBe(ProductStatus::Published);
 });
 
+it('publishes when a required attribute is also a variant axis', function (): void {
+    // A category may legitimately mark Beden both REQUIRED and VARIANT-DEFINING
+    // — "every garment must state a size, and size is the axis".
+    //
+    // Those two flags used to deadlock: the publish guard looked for the value
+    // on the PRODUCT, while SetProductAttributesAction refuses to put a variant
+    // axis there (§2.4), so the product could never be published by any route.
+    //
+    // The axis is satisfied by the VARIANTS carrying it, which submission
+    // already guarantees (§3.3) — so the publish guard skips it.
+    $category = leafCategory();
+    $size = Attribute::factory()->variantDefining()->withValues(2)->create(['code' => 'beden']);
+
+    BindCategoryAttributeAction::make()->run($category, new BindCategoryAttributeDTO(
+        attributeUuid: $size->uuid,
+        isRequired: true,
+        isVariantDefining: true,
+    ));
+
+    $product = draftedProduct($category);
+    SubmitProductForReviewAction::make()->run($product);
+
+    PublishProductAction::make()->run($product->fresh(), new ModerationDecisionDTO);
+
+    expect($product->fresh()->status)->toBe(ProductStatus::Published);
+});
+
+it('still demands a required attribute that is not an axis', function (): void {
+    // The skip above must not become a loophole: a purely descriptive required
+    // attribute is still enforced.
+    $category = leafCategory();
+    $material = Attribute::factory()->withValues(2)->create(['code' => 'malzeme']);
+
+    BindCategoryAttributeAction::make()->run($category, new BindCategoryAttributeDTO(
+        attributeUuid: $material->uuid,
+        isRequired: true,
+        isVariantDefining: false,
+    ));
+
+    $product = draftedProduct($category);
+    SubmitProductForReviewAction::make()->run($product);
+
+    expect(fn () => PublishProductAction::make()->run($product->fresh(), new ModerationDecisionDTO))
+        ->toThrow(CatalogException::class);
+});
+
 it('lets a draft save without its required attributes', function (): void {
     // The other half of the §3.2 placement: a form nobody can leave and come
     // back to is a form nobody finishes.

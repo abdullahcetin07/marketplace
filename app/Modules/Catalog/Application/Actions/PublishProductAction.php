@@ -85,7 +85,28 @@ final class PublishProductAction extends BaseAction
      */
     private function guardSchemaConformance(Product $product): void
     {
-        $required = $this->attributes->requiredFor($product->category);
+        $axes = $this->attributes->variantDefiningFor($product->category)
+            ->map(static fn (Attribute $attribute): int => (int) $attribute->getKey())
+            ->all();
+
+        /*
+        | REQUIRED **AND** VARIANT-DEFINING IS A LEGITIMATE COMBINATION, and it
+        | must not deadlock. "Every garment states a size, and size is the axis"
+        | is exactly how a clothing category is configured.
+        |
+        | An axis's values live on the VARIANTS, not on the product —
+        | SetProductAttributesAction refuses to write one to
+        | `product_attribute_value` (§2.4). So looking for it there would demand
+        | a row no code path can create, and the product would be unpublishable
+        | by any route.
+        |
+        | Skipping it loses nothing: submission already guarantees at least one
+        | variant (§3.3), and a variant cannot exist without a value on every
+        | axis its combination key is built from. The axis is satisfied by
+        | construction; only DESCRIPTIVE requirements need checking here.
+        */
+        $required = $this->attributes->requiredFor($product->category)
+            ->reject(static fn (Attribute $attribute): bool => in_array((int) $attribute->getKey(), $axes, true));
 
         if ($required->isEmpty()) {
             return;
