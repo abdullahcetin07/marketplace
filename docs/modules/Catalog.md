@@ -102,8 +102,14 @@ more expensive mistake.
 ## 0.7 ADR-040 — Cross-context references by id/UUID (reaffirms ADR-033)
 
 Catalog imports no other module's models and is imported by none. It references the
-**proposing organization by uuid** (provenance/moderation only). Later modules (Offer,
-Inventory, Search, Storefront) reach the Catalog only through the Core
+**proposing organization by BOTH internal id and uuid** (provenance/moderation only) —
+`proposed_by_org_id` for the internal tenancy filter (resolved through the existing Core
+`OrganizationAuthorizationContract::organizationIdsForUser()`, which returns internal
+ids) and `proposed_by_org_uuid` for public identity. This is the same internal-id-for-
+scoping + uuid-for-public split the rest of the codebase uses (how Store references
+Organization); it needs no change to the frozen contract, and the internal id never
+leaves the app (non-negotiable #7 holds). ADR-033 sanctions references by id/UUID. Later
+modules (Offer, Inventory, Search, Storefront) reach the Catalog only through the Core
 `CatalogQueryContract` (§8) and domain events (§7).
 
 ## 0.8 ADR-041 — Catalog enriches the storefront only once products are sellable
@@ -175,8 +181,9 @@ one brand (nullable for unbranded/generic).
 
 ## 2.4 `Product` (aggregate root)
 `uuid`, `category_id` (leaf), `brand_id?`, `title` (localizable), `slug` (unique),
-`description` (localizable), `gtin`/barcode?, `status` (§2.7), `proposed_by_org_uuid`
-(provenance, ADR-040), timestamps, soft-deletes, **Auditable** (ADR-027 — a catalog
+`description` (localizable), `gtin`/barcode?, `status` (§2.6), `proposed_by_org_id`
+(internal, indexed — tenancy filter via the Core auth contract) + `proposed_by_org_uuid`
+(public provenance) (§0.7, ADR-040), timestamps, soft-deletes, **Auditable** (ADR-027 — a catalog
 entry is a curated asset; who changed what and why matters). Descriptive (non-variant)
 attribute values attach here (`product_attribute_value`). Media: gallery images.
 
