@@ -11,6 +11,8 @@ use App\Modules\Catalog\Domain\Contracts\CategoryRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategorySlugGeneratorContract;
 use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\SkuGeneratorContract;
+use App\Modules\Catalog\Domain\Models\Category;
+use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultCatalogSlugGenerator;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultSkuGenerator;
 use App\Modules\Catalog\Infrastructure\Queries\CatalogQuery;
@@ -18,6 +20,11 @@ use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\ProductRepository;
+use App\Modules\Catalog\Presentation\Policies\CategoryPolicy;
+use App\Modules\Catalog\Presentation\Policies\ProductPolicy;
+use App\Shared\Enums\UserType;
+use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -26,7 +33,8 @@ use Illuminate\Support\ServiceProvider;
  * The shared, platform-level product catalog (ADR-037): the taxonomy, brands,
  * products and variants. It is the first module built after the Organization
  * and Store freeze, and it imports NEITHER of them — the proposing company is
- * carried as `proposed_by_org_uuid` and nothing else (ADR-040).
+ * carried as a bare `proposed_by_org_id` + `proposed_by_org_uuid` pair, with no
+ * relation and no model import (ADR-040/033).
  *
  * WHAT THIS MODULE IS NOT: price, stock, offers, orders or payments. A Product
  * here has no price and no stock, which is precisely what lets many sellers sell
@@ -59,10 +67,44 @@ final class CatalogServiceProvider extends ServiceProvider
         // truth for what is in the catalog; Offer, Inventory and Search ask
         // through this Core contract instead of importing Catalog.
         $this->app->singleton(CatalogQueryContract::class, CatalogQuery::class);
+
+        $this->registerPermissions();
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Catalog/migrations'));
+
+        Gate::policy(Category::class, CategoryPolicy::class);
+        Gate::policy(Product::class, ProductPolicy::class);
+    }
+
+    /**
+     * The module's permissions (§9).
+     *
+     * ABILITIES, NOT A `resource()` REGISTRATION. The generated CRUD verb set
+     * would produce `category.restore`, `product.force_delete` and the rest —
+     * permissions this module has no operation for, because a category is
+     * deactivated rather than deleted (ADR-015) and a product is archived rather
+     * than destroyed (§3.5). Naming only the ones that exist keeps the
+     * permission table an accurate description of what the system can do.
+     *
+     * THE CATEGORY MANAGER FINALLY HAS A HOME. ADR-013 reserved the role for
+     * exactly this module; until now it held only panel access. The grants
+     * themselves are in RolePermissionSeeder — this only declares that the
+     * permissions exist.
+     *
+     * `catalog.products.author` is registered on the SELLER guard alone.
+     * Permissions are guard-scoped, so a seller's authoring right cannot be
+     * confused with an admin's, and moderation is deliberately absent from the
+     * seller guard entirely rather than merely unassigned.
+     */
+    private function registerPermissions(): void
+    {
+        PermissionRegistry::ability('catalog.taxonomy.manage', [UserType::Admin]);
+        PermissionRegistry::ability('catalog.products.moderate', [UserType::Admin]);
+        PermissionRegistry::ability('catalog.products.view_any', [UserType::Admin, UserType::Seller]);
+        PermissionRegistry::ability('catalog.products.create', [UserType::Seller]);
+        PermissionRegistry::ability('catalog.products.author', [UserType::Seller]);
     }
 }

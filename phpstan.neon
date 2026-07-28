@@ -46,3 +46,21 @@ parameters:
 		# covered without anyone regenerating the baseline to get there.
 		- identifier: method.childReturnType
 		  path: database/Modules/*/Factories/*
+
+		# Pest binds Tests\TestCase to the Feature/Modules suites at RUNTIME
+		# (see tests/Pest.php), so `$this` inside a test closure really is a
+		# Tests\TestCase — but statically it is only PHPUnit's, and every
+		# `$this->actingAsSeller()` / `$this->seedAll()` reads as undefined.
+		# Scoped to tests/ and to that one identifier, so a genuinely missing
+		# method on a real class still fails. This replaced 103 baseline rows
+		# that said the same thing one call site at a time.
+		- identifier: method.notFound
+		  path: tests/*
+		  message: '#Call to an undefined method PHPUnit\\Framework\\TestCase::#'
+
+		# The same blind spot for state: Pest's `beforeEach` sets properties on
+		# the bound test case (`$this->settings = ...`), which no static model
+		# can see. Scoped identically.
+		- identifier: property.notFound
+		  path: tests/*
+		  message: '#Access to an undefined property PHPUnit\\Framework\\TestCase::#'

@@ -84,18 +84,30 @@ final class RolePermissionSeeder extends Seeder
         */
         $this->role('editor', $guard)->syncPermissions([
             'panel.admin.access',
+            // Reads the catalog to maintain its copy; does not own the taxonomy
+            // and does not moderate — those are the Category Manager's.
+            'catalog.products.view_any',
             ...PermissionRegistry::forResource('user', ['view_any', 'view']),
             ...PermissionRegistry::forResource('translation', ['view_any', 'view', 'update']),
             ...PermissionRegistry::forResource('setting', ['view_any', 'view']),
         ]);
 
         /*
-        | Category Manager — taxonomy ownership. Its meaningful permissions
-        | arrive with the Catalogue module; today it holds panel access and
-        | read-only visibility so the role exists and can be assigned.
+        | Category Manager — taxonomy ownership, and AS OF THE CATALOG SPRINT
+        | the role finally does the job ADR-013 reserved it for. It owns the
+        | category tree, the attribute schema and the brands (ADR-038), and it
+        | runs the product moderation queue day to day (§5).
+        |
+        | Moderation is granted here as well as to Admin deliberately: this is
+        | the role that does it, and an Admin holding it too is a convenience,
+        | not the intended workflow. Nothing about accounts, money or platform
+        | settings — a taxonomy editor is not an administrator.
         */
         $this->role('category_manager', $guard)->syncPermissions([
             'panel.admin.access',
+            'catalog.taxonomy.manage',
+            'catalog.products.moderate',
+            'catalog.products.view_any',
             ...PermissionRegistry::forResource('translation', ['view_any', 'view']),
         ]);
 
@@ -155,6 +167,14 @@ final class RolePermissionSeeder extends Seeder
         $this->role('seller_employee', $guard)->syncPermissions([
             'panel.seller.access',
             'activity.view',
+            // Catalog authoring IS the delegated employee's job — opening
+            // products is merchandising, not a financial or legal act, and
+            // withholding it would leave the owner personally filing every
+            // product. Confined to their own organization's proposals by
+            // ProductPolicy::owns() exactly as it confines the owner.
+            'catalog.products.view_any',
+            'catalog.products.create',
+            'catalog.products.author',
             ...PermissionRegistry::forResource('session', ['view_any', 'view', 'delete']),
         ]);
     }

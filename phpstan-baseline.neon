@@ -595,46 +595,10 @@ parameters:
 			path: tests/Architecture/LayeringTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Auth/GuardIsolationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Feature/Auth/PermissionRegistryTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertFormFieldExists\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: tests/Feature/Auth/SellerRegistrationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:get\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Auth/SellerRegistrationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Auth/SellerRegistrationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Feature/Auth/SellerRegistrationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Audit/Feature/AuditTrailTest.php
 
 		-
 			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Audit\\Domain\\Enums\\AuditEventType\>\:\:and\(\)$#'
@@ -649,124 +613,10 @@ parameters:
 			path: tests/Modules/Audit/Feature/AuditTrailTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
-			identifier: method.notFound
-			count: 10
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/AuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
-			identifier: method.notFound
-			count: 8
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/DeviceTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 17
-			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
-
-		-
 			message: '#^Parameter \#1 \$user of function verificationUrl expects App\\Models\\Customer, App\\Models\\User given\.$#'
 			identifier: argument.type
 			count: 7
 			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 16
-			path: tests/Modules/Identity/Feature/LoginTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/LoginTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withHeaders\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Identity/Feature/LoginTest.php
 
 		-
 			message: '#^Function loginPayload\(\) has parameter \$overrides with no value type specified in iterable type array\.$#'
@@ -781,147 +631,15 @@ parameters:
 			path: tests/Modules/Identity/Feature/LoginTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 22
-			path: tests/Modules/Identity/Feature/PasswordResetTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/PasswordResetTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
-			identifier: method.notFound
-			count: 11
-			path: tests/Modules/Identity/Feature/ProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
-			identifier: method.notFound
-			count: 7
-			path: tests/Modules/Identity/Feature/ProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: tests/Modules/Identity/Feature/ProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/ProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/ProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
-
-		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:postJson\(\)\.$#'
 			identifier: method.notFound
 			count: 2
 			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
 
 		-
-			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$google2fa\.$#'
-			identifier: property.notFound
-			count: 4
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
-			identifier: method.notFound
-			count: 11
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 18
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/TwoFactorTest.php
-
-		-
 			message: '#^Call to an undefined method App\\Models\\User\:\:getFilamentName\(\)\.$#'
 			identifier: method.notFound
 			count: 1
-			path: tests/Modules/Identity/Feature/UserNameTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/UserNameTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Identity/Feature/UserNameTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 4
-			path: tests/Modules/Identity/Feature/UserNameTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: tests/Modules/Identity/Feature/UserNameTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
-			identifier: method.notFound
-			count: 3
 			path: tests/Modules/Identity/Feature/UserNameTest.php
 
 		-
@@ -949,94 +667,10 @@ parameters:
 			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
-			identifier: method.notFound
-			count: 10
-			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:get\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/BankAccountTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/InvitationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/KycTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/MembershipTest.php
-
-		-
 			message: '#^Parameter \#1 \$owner of function registerOrg expects App\\Models\\Seller, App\\Models\\User given\.$#'
 			identifier: argument.type
 			count: 1
 			path: tests/Modules/Organization/Feature/MembershipTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
-			identifier: method.notFound
-			count: 5
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 4
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 7
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
 
 		-
 			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\Organization\:\:\$approved_by\.$#'
@@ -1063,12 +697,6 @@ parameters:
 			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
-
-		-
 			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Organization\\Domain\\Enums\\OrganizationStatus\|null\>\:\:and\(\)$#'
 			identifier: argument.templateType
 			count: 1
@@ -1087,60 +715,6 @@ parameters:
 			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationOwnershipTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 4
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 9
-			path: tests/Modules/Organization/Feature/SellerPanelBankAccountTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/SellerPanelBankAccountTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanNotSeeTableRecords\(\)\.$#'
 			identifier: method.notFound
 			count: 1
@@ -1153,43 +727,7 @@ parameters:
 			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 6
-			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 7
-			path: tests/Modules/Organization/Feature/SellerPanelKycTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/SellerPanelKycTest.php
-
-		-
 			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanSeeTableRecords\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 6
-			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
 			identifier: method.notFound
 			count: 1
 			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
@@ -1207,18 +745,6 @@ parameters:
 			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
-			identifier: method.notFound
-			count: 10
-			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
-
-		-
 			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Organization\\Domain\\Enums\\StoreOpeningRequestStatus\>\:\:and\(\)$#'
 			identifier: argument.templateType
 			count: 1
@@ -1231,80 +757,14 @@ parameters:
 			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Organization/Feature/StoreOpeningRequestTest.php
-
-		-
-			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$settings\.$#'
-			identifier: property.notFound
-			count: 24
-			path: tests/Modules/Settings/Feature/SettingsServiceTest.php
-
-		-
 			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
 			identifier: method.notFound
 			count: 11
 			path: tests/Modules/Store/Architecture/StoreArchitectureTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 6
-			path: tests/Modules/Store/Feature/PublicStorefrontTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/PublicStorefrontTest.php
-
-		-
 			message: '#^Access to an undefined property Pest\\Mixins\\Expectation\<Illuminate\\Support\\Collection\<\(int\|string\), mixed\>\|null\>\:\:\$not\.$#'
 			identifier: property.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
-			identifier: method.notFound
-			count: 6
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:grant\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 7
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreApiTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
 			count: 1
 			path: tests/Modules/Store/Feature/StoreApiTest.php
 
@@ -1327,88 +787,10 @@ parameters:
 			path: tests/Modules/Store/Feature/StoreApiTest.php
 
 		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreAuditTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreCreationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:grant\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreIsolationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreIsolationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreIsolationTest.php
-
-		-
 			message: '#^Function memberOf\(\) should return App\\Models\\Seller but returns App\\Models\\User\.$#'
 			identifier: return.type
 			count: 1
 			path: tests/Modules/Store/Feature/StoreIsolationTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreLifecycleTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreProfileTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
-			identifier: method.notFound
-			count: 2
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
-			identifier: method.notFound
-			count: 3
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
-
-		-
-			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
-			identifier: method.notFound
-			count: 1
-			path: tests/Modules/Store/Feature/StoreSecurityTest.php
 
 		-
 			message: '#^Undefined variable\: \$this$#'
