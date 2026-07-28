@@ -24,12 +24,30 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * storefront 403s.
  *
  * Conversions are queued, so this returns as soon as the originals are stored.
+ *
+ * TWO SHAPES OF FILE, and the difference is not cosmetic:
+ *
+ *   UploadedFile  — the request object, still in the caller's hands.
+ *   string        — a path RELATIVE TO A DISK, because an upload component
+ *                   already staged the bytes somewhere.
+ *
+ * A relative path handed to `addMedia()` is read as an absolute filesystem
+ * path, so it resolves against the working directory, finds nothing, and throws
+ * FileDoesNotExist. That is a live 500 the tests missed for a while: they only
+ * ever passed the object. A staged path must therefore travel with the disk it
+ * was staged on — `$disk` — and go through `addMediaFromDisk()`, which is a
+ * genuine cross-disk copy (the staging disk is not the `images` collection's
+ * public one).
  */
 final class AttachProductMediaAction extends BaseAction
 {
     protected bool $useTransaction = false;
 
     /**
+     * @param  mixed  ...$arguments  Product, array<UploadedFile|string> $files,
+     *                               ?string $disk — the disk the string paths
+     *                               are relative to. Ignored for UploadedFile.
+     *
      * @return array<int, Media>
      */
     public function handle(mixed ...$arguments): array
@@ -38,13 +56,25 @@ final class AttachProductMediaAction extends BaseAction
         $product = $arguments[0];
         /** @var array<int, UploadedFile|string> $files */
         $files = $arguments[1];
+        /** @var string|null $disk */
+        $disk = $arguments[2] ?? null;
 
         $attached = [];
 
         foreach ($files as $file) {
-            $attached[] = $product->addMedia($file)
-                ->preservingOriginal()
-                ->toMediaCollection('images');
+            $attached[] = $file instanceof UploadedFile
+                // PRESERVED: the caller still owns the temporary upload — a
+                // Livewire component re-renders its own preview from it, and
+                // Livewire prunes its temp directory itself.
+                ? $product->addMedia($file)
+                    ->preservingOriginal()
+                    ->toMediaCollection('images')
+                // NOT preserved, equally deliberately: the staged copy exists
+                // only to be moved here, and Spatie deletes it from the staging
+                // disk once the collection has the bytes. Preserving it would
+                // leave an orphan per upload on a disk nothing ever sweeps.
+                : $product->addMediaFromDisk($file, $disk ?? (string) config('filesystems.default'))
+                    ->toMediaCollection('images');
         }
 
         return $attached;

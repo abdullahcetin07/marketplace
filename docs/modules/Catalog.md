@@ -306,6 +306,20 @@ Product gallery + per-variant images via the Media module (`HasMedia`). Public d
 catalog imagery (it is meant to be seen), served through the CDN-fronted bucket in
 production, the local `public` disk on the test box.
 
+`AttachProductMediaAction` takes files in **two shapes**, and callers must be explicit
+about which: an `UploadedFile` (the request object, copied and left alone — a Livewire
+component still renders from it), or a **path relative to a disk**, in which case the
+disk name travels with it as the action's third argument. The upload component in the
+seller panel stages the bytes on a disk first and hands over the path, so the two must
+name the same disk — `EditProduct::uploadDisk()` is the single expression both use.
+The staged copy is *not* preserved: the media library deletes it once the collection
+has the bytes, or every upload leaves an orphan on a disk nothing sweeps.
+
+Cost: a path with no disk is ambiguous, and the media library reads it as an absolute
+filesystem path rather than refusing it — which is exactly how this shipped broken
+once. `tests/Modules/Catalog/Feature/ProductMediaTest.php` exercises the string shape,
+not only the object.
+
 # 7. Events (module-owned, past tense)
 `CategoryCreated/Updated/Archived`, `AttributeCreated/Updated`, `BrandCreated`,
 `ProductDrafted`, `ProductSubmittedForReview`, `ProductPublished`, `ProductRejected`,

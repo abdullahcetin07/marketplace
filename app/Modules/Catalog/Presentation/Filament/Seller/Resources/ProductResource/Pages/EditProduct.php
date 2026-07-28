@@ -55,6 +55,12 @@ final class EditProduct extends EditRecord
                         ->hiddenLabel()
                         ->multiple()
                         ->image()
+                        // STATED, not inherited. The component stages the upload
+                        // on a disk and hands the action a path relative to it;
+                        // if the two ever named different disks the action would
+                        // look for the bytes where they are not. Same expression,
+                        // both sides — see uploadDisk().
+                        ->disk($this->uploadDisk())
                         // The HTTP-layer cap; HasMedia::maxUploadSize() is the
                         // storage-layer backstop behind it.
                         ->maxSize(10240)
@@ -65,7 +71,7 @@ final class EditProduct extends EditRecord
                     /** @var Product $product */
                     $product = $this->getRecord();
 
-                    app(AttachProductMediaAction::class)->run($product, (array) $data['files']);
+                    app(AttachProductMediaAction::class)->run($product, (array) $data['files'], $this->uploadDisk());
 
                     Notification::make()->title(__('catalog.product.notify.updated'))->success()->send();
                 }),
@@ -111,5 +117,20 @@ final class EditProduct extends EditRecord
                     => $exception->getMessage(),
             ]);
         }
+    }
+
+    /**
+     * Where the upload component STAGES the file before the action copies it
+     * into the `images` collection.
+     *
+     * This is not the collection's disk and is not trying to be: `HasMedia`
+     * still decides that the gallery lives on the public disk. This is the
+     * short-lived landing spot in between, and it is a method rather than two
+     * literals so the component and the action cannot drift apart — the whole
+     * bug this replaced was those two disagreeing.
+     */
+    private function uploadDisk(): string
+    {
+        return (string) config('filament.default_filesystem_disk');
     }
 }
