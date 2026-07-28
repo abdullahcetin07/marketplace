@@ -1,5 +1,9 @@
 includes:
 	- vendor/larastan/larastan/extension.neon
+	# Every error that predates the PHPStan 2.x upgrade, captured so `analyse`
+	# runs green and a NEW error fails the build. Shrink it, never regenerate it
+	# to paper over new findings. @see phpstan-baseline.neon
+	- phpstan-baseline.neon
 
 parameters:
 	level: 6
@@ -13,13 +17,16 @@ parameters:
 
 	tmpDir: .phpstan.cache
 
-	checkMissingIterableValueType: false
-	checkGenericClassInNonGenericObjectType: false
+	# `checkMissingIterableValueType` and `checkGenericClassInNonGenericObjectType`
+	# were removed in PHPStan 2.0 — both behaviours are now unconditional at
+	# level 6, and leaving the keys here made the tool refuse to start at all.
 	checkModelProperties: true
 	checkOctaneCompatibility: false
 
 	treatPhpDocTypesAsCertain: false
-	reportUnmatchedIgnoredErrors: true
+	# Off while the baseline carries pre-existing errors: entries that stop
+	# matching as those are fixed must not themselves fail the build.
+	reportUnmatchedIgnoredErrors: false
 
 	excludePaths:
 		- app/Shared/Support/helpers.php

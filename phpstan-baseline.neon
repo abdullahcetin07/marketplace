@@ -1,0 +1,1435 @@
+parameters:
+	ignoreErrors:
+		-
+			message: '#^Method App\\Core\\Application\\Notifications\\BaseNotification\:\:viaQueues\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Core/Application/Notifications/BaseNotification.php
+
+		-
+			message: '#^Class App\\Core\\Domain\\DataTransferObjects\\BaseDTO implements generic interface Illuminate\\Contracts\\Support\\Arrayable but does not specify its types\: TKey, TValue$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Domain/DataTransferObjects/BaseDTO.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 1
+			path: app/Core/Domain/DataTransferObjects/BaseDTO.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Repositories\\BaseRepository\:\:all\(\) should return Illuminate\\Database\\Eloquent\\Collection\<int, TModel of Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Collection\<int, Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Core/Infrastructure/Repositories/BaseRepository.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Repositories\\BaseRepository\:\:newQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<TModel of Illuminate\\Database\\Eloquent\\Model\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Core/Infrastructure/Repositories/BaseRepository.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\Eloquent\\Model\:\:getScoutKey\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:filters\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:lazyMap\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:map\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:matchQuery\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:paginate\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:performSearch\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Core\\Infrastructure\\Search\\OpenSearchEngine\:\:search\(\) has parameter \$builder with generic class Laravel\\Scout\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$first contains unresolvable type\.$#'
+			identifier: varTag.unresolvableType
+			count: 2
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^PHPDoc tag @var for variable \$model contains unresolvable type\.$#'
+			identifier: varTag.unresolvableType
+			count: 6
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: app/Core/Infrastructure/Search/OpenSearchEngine.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:displayName\(\) return type with generic class Illuminate\\Database\\Eloquent\\Casts\\Attribute does not specify its types\: TGet, TSet$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:hasPermissionTo\(\) has parameter \$guardName with no type specified\.$#'
+			identifier: missingType.parameter
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Method App\\Models\\User\:\:unreadNotifications\(\) should return Illuminate\\Database\\Eloquent\\Relations\\HasMany\<Illuminate\\Notifications\\DatabaseNotification, \$this\(App\\Models\\User\)\> but returns Illuminate\\Database\\Eloquent\\Relations\\MorphMany\<Illuminate\\Notifications\\DatabaseNotification, \$this\(App\\Models\\User\)\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Models\\User\:\:\$appends is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$appends\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Models\\User\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Unsafe usage of new static\(\)\.$#'
+			identifier: new.static
+			count: 2
+			path: app/Models/User.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Models/User.php
+
+		-
+			message: '#^Parameter \#1 \$attributes of method Illuminate\\Database\\Eloquent\\Model\:\:update\(\) expects array\<model property of App\\Models\\User, mixed\>, array\<string, mixed\> given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Identity/Application/Actions/AdminUpdateUserAction.php
+
+		-
+			message: '#^Parameter \$exceptSessionId of method App\\Modules\\Identity\\Application\\Services\\SessionService\:\:revokeAll\(\) expects string\|null, bool\|null given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Identity/Application/Actions/ChangePasswordAction.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>password" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Identity/Application/Actions/RequestEmailOtpAction.php
+
+		-
+			message: '#^Method App\\Modules\\Identity\\Domain\\Contracts\\SessionRepositoryContract\:\:create\(\) has parameter \$attributes with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: app/Modules/Identity/Domain/Contracts/SessionRepositoryContract.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Models\\User\>\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Identity/Presentation/Controllers/Api/Admin/UserController.php
+
+		-
+			message: '#^Method App\\Modules\\Identity\\Presentation\\Filament\\Resources\\UserResource\:\:getNavigationGroup\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Identity/Presentation/Filament/Resources/UserResource.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Database\\ConnectionInterface\:\:getDriverName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Localization/Domain/Models/Translation.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>display_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Organization/Application/Actions/ResendInvitationAction.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>legal_name" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Organization/Application/Actions/ResendInvitationAction.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Modules\\Organization\\Domain\\Models\\OrganizationBankAccount\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Modules/Organization/Domain/Models/OrganizationBankAccount.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:nonOptimized\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Organization/Domain/Models/OrganizationDocument.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:performOnCollections\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Modules/Organization/Domain/Models/OrganizationDocument.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Modules\\Organization\\Domain\\Models\\OrganizationInvitation\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Modules/Organization/Domain/Models/OrganizationInvitation.php
+
+		-
+			message: '#^PHPDoc type array\<int, string\> of property App\\Modules\\Organization\\Domain\\Models\\OrganizationKyc\:\:\$hidden is not covariant with PHPDoc type list\<string\> of overridden property Illuminate\\Database\\Eloquent\\Model\:\:\$hidden\.$#'
+			identifier: property.phpDocType
+			count: 1
+			path: app/Modules/Organization/Domain/Models/OrganizationKyc.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:nonOptimized\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Organization/Domain/Models/StoreOpeningRequest.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:performOnCollections\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Modules/Organization/Domain/Models/StoreOpeningRequest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Modules\\Organization\\Domain\\Models\\Organization\>\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Organization/Presentation/Controllers/Api/Admin/OrganizationController.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Contracts\\Pagination\\LengthAwarePaginator\<int, App\\Modules\\Organization\\Domain\\Models\\StoreOpeningRequest\>\:\:getCollection\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Organization/Presentation/Controllers/Api/Admin/StoreRequestController.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Resources\\OrganizationResource\:\:getNavigationGroup\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Resources/OrganizationResource.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Resources\\StoreOpeningRequestResource\:\:getNavigationGroup\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Resources/StoreOpeningRequestResource.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Seller\\Resources\\OrganizationResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\Organization\\Domain\\Models\\Organization\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/OrganizationResource.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Seller\\Resources\\OrganizationResource\\Pages\\CreateOrganization\:\:getCreatedNotificationTitle\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/OrganizationResource/Pages/CreateOrganization.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>code" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/OrganizationResource/Pages/ViewOrganization.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>metadata" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/OrganizationResource/Pages/ViewOrganization.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Seller\\Resources\\StoreOpeningRequestResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\Organization\\Domain\\Models\\StoreOpeningRequest\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/StoreOpeningRequestResource.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Seller\\Resources\\StoreOpeningRequestResource\:\:getNavigationGroup\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/StoreOpeningRequestResource.php
+
+		-
+			message: '#^Method App\\Modules\\Organization\\Presentation\\Filament\\Seller\\Resources\\StoreOpeningRequestResource\\Pages\\CreateStoreOpeningRequest\:\:getCreatedNotificationTitle\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Organization/Presentation/Filament/Seller/Resources/StoreOpeningRequestResource/Pages/CreateStoreOpeningRequest.php
+
+		-
+			message: '#^Parameter \#3 \$model of method App\\Core\\Presentation\\Policies\\BasePolicy\<App\\Modules\\Organization\\Domain\\Models\\Organization\>\:\:allowIf\(\) expects App\\Modules\\Organization\\Domain\\Models\\Organization\|null, Illuminate\\Database\\Eloquent\\Model given\.$#'
+			identifier: argument.type
+			count: 1
+			path: app/Modules/Organization/Presentation/Policies/OrganizationPolicy.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:nonOptimized\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: app/Modules/Store/Domain/Models/StoreBranding.php
+
+		-
+			message: '#^Call to an undefined method Spatie\\Image\\Drivers\\ImageDriver\:\:performOnCollections\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: app/Modules/Store/Domain/Models/StoreBranding.php
+
+		-
+			message: '#^Method App\\Modules\\Store\\Presentation\\Filament\\Resources\\StoreResource\:\:getNavigationGroup\(\) never returns null so it can be removed from the return type\.$#'
+			identifier: return.unusedType
+			count: 1
+			path: app/Modules/Store/Presentation/Filament/Resources/StoreResource.php
+
+		-
+			message: '#^Method App\\Modules\\Store\\Presentation\\Filament\\Seller\\Resources\\StoreResource\:\:getEloquentQuery\(\) should return Illuminate\\Database\\Eloquent\\Builder\<App\\Modules\\Store\\Domain\\Models\\Store\> but returns Illuminate\\Database\\Eloquent\\Builder\<Illuminate\\Database\\Eloquent\\Model\>\.$#'
+			identifier: return.type
+			count: 1
+			path: app/Modules/Store/Presentation/Filament/Seller/Resources/StoreResource.php
+
+		-
+			message: '#^Class App\\Modules\\Store\\Presentation\\Resources\\PublicStoreResource extends generic class App\\Core\\Presentation\\Resources\\BaseResource but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/PublicStoreResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>canonical_url" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/PublicStoreResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>meta_keywords" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/PublicStoreResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>meta_title" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/PublicStoreResource.php
+
+		-
+			message: '#^Using nullsafe property access "\?\-\>robots" on left side of \?\? is unnecessary\. Use \-\> instead\.$#'
+			identifier: nullsafe.neverNull
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/PublicStoreResource.php
+
+		-
+			message: '#^Class App\\Modules\\Store\\Presentation\\Resources\\StoreResource extends generic class App\\Core\\Presentation\\Resources\\BaseResource but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Modules/Store/Presentation/Resources/StoreResource.php
+
+		-
+			message: '#^Property Illuminate\\Database\\Events\\QueryExecuted\:\:\$sql \(string\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Property Illuminate\\Database\\Events\\QueryExecuted\:\:\$time \(float\) on left side of \?\? is not nullable\.$#'
+			identifier: nullCoalesce.property
+			count: 1
+			path: app/Providers/AppServiceProvider.php
+
+		-
+			message: '#^Trait App\\Shared\\Traits\\HasCreator is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: app/Shared/Traits/HasCreator.php
+
+		-
+			message: '#^Trait App\\Shared\\Traits\\HasSeo is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: app/Shared/Traits/HasSeo.php
+
+		-
+			message: '#^Trait App\\Shared\\Traits\\HasSlug is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: app/Shared/Traits/HasSlug.php
+
+		-
+			message: '#^Trait App\\Shared\\Traits\\HasUpdater is used zero times and is not analysed\.$#'
+			identifier: trait.unused
+			count: 1
+			path: app/Shared/Traits/HasUpdater.php
+
+		-
+			message: '#^PHPDoc tag @method for method App\\Shared\\Traits\\HasUuid\:\:whereUuid\(\) return type contains generic class Illuminate\\Database\\Eloquent\\Builder but does not specify its types\: TModel$#'
+			identifier: missingType.generics
+			count: 1
+			path: app/Shared/Traits/HasUuid.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Activity\\Factories\\ActivityEntryFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Activity\\Domain\\Models\\ActivityEntry, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Activity\\Domain\\Models\\ActivityEntry\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Activity/Factories/ActivityEntryFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Audit\\Factories\\AuditEntryFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Audit\\Domain\\Models\\AuditEntry, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Audit\\Domain\\Models\\AuditEntry\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Audit/Factories/AuditEntryFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Identity\\Factories\\LoginAttemptFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Identity\\Domain\\Models\\LoginAttempt, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Identity\\Domain\\Models\\LoginAttempt\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Identity/Factories/LoginAttemptFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Identity\\Factories\\UserDeviceFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Identity\\Domain\\Models\\UserDevice, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Identity\\Domain\\Models\\UserDevice\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Identity/Factories/UserDeviceFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Identity\\Factories\\UserSessionFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Identity\\Domain\\Models\\UserSession, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Identity\\Domain\\Models\\UserSession\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Identity/Factories/UserSessionFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Localization\\Factories\\CountryFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Localization\\Domain\\Models\\Country, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Localization\\Domain\\Models\\Country\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Localization/Factories/CountryFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Localization\\Factories\\CurrencyFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Localization\\Domain\\Models\\Currency, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Localization\\Domain\\Models\\Currency\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Localization/Factories/CurrencyFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Localization\\Factories\\LanguageFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Localization\\Domain\\Models\\Language, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Localization\\Domain\\Models\\Language\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Localization/Factories/LanguageFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Localization\\Factories\\TimezoneFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Localization\\Domain\\Models\\Timezone, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Localization\\Domain\\Models\\Timezone\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Localization/Factories/TimezoneFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Localization\\Factories\\TranslationFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Localization\\Domain\\Models\\Translation, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Localization\\Domain\\Models\\Translation\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Localization/Factories/TranslationFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Notification\\Factories\\NotificationPreferenceFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Notification\\Domain\\Models\\NotificationPreference, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Notification\\Domain\\Models\\NotificationPreference\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Notification/Factories/NotificationPreferenceFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationBankAccountFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationBankAccount, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationBankAccount\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationBankAccountFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationDocumentFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationDocument, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationDocument\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationDocumentFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\Organization, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\Organization\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationInvitationFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationInvitation, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationInvitation\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationInvitationFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationKycFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationKyc, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationKyc\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationKycFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationMemberFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationMember, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationMember\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationMemberFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\OrganizationPlanFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\OrganizationPlan, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\OrganizationPlan\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/OrganizationPlanFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Organization\\Factories\\StoreOpeningRequestFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Organization\\Domain\\Models\\StoreOpeningRequest, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Organization\\Domain\\Models\\StoreOpeningRequest\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Organization/Factories/StoreOpeningRequestFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Settings\\Factories\\SettingFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Settings\\Domain\\Models\\Setting, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Settings\\Domain\\Models\\Setting\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Settings/Factories/SettingFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Modules\\Store\\Factories\\StoreFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Modules\\Store\\Domain\\Models\\Store, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Modules\\Store\\Domain\\Models\\Store\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/Modules/Store/Factories/StoreFactory.php
+
+		-
+			message: '#^PHPDoc tag @extends contains generic type Database\\Factories\\UserFactory\<App\\Models\\Admin\> but class Database\\Factories\\UserFactory is not generic\.$#'
+			identifier: generics.notGeneric
+			count: 1
+			path: database/factories/AdminFactory.php
+
+		-
+			message: '#^PHPDoc tag @extends contains generic type Database\\Factories\\UserFactory\<App\\Models\\Customer\> but class Database\\Factories\\UserFactory is not generic\.$#'
+			identifier: generics.notGeneric
+			count: 1
+			path: database/factories/CustomerFactory.php
+
+		-
+			message: '#^PHPDoc tag @extends contains generic type Database\\Factories\\UserFactory\<App\\Models\\Seller\> but class Database\\Factories\\UserFactory is not generic\.$#'
+			identifier: generics.notGeneric
+			count: 1
+			path: database/factories/SellerFactory.php
+
+		-
+			message: '#^Return type \(array\<string, mixed\>\) of method Database\\Factories\\UserFactory\:\:definition\(\) should be compatible with return type \(array\<model property of App\\Models\\User, mixed\>\) of method Illuminate\\Database\\Eloquent\\Factories\\Factory\<App\\Models\\User\>\:\:definition\(\)$#'
+			identifier: method.childReturnType
+			count: 1
+			path: database/factories/UserFactory.php
+
+		-
+			message: '#^Method Database\\Seeders\\RolePermissionSeeder\:\:role\(\) should return Spatie\\Permission\\Models\\Role but returns Spatie\\Permission\\Contracts\\Role\.$#'
+			identifier: return.type
+			count: 1
+			path: database/seeders/RolePermissionSeeder.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
+			identifier: method.notFound
+			count: 10
+			path: tests/Architecture/ConventionsTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:preset\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Architecture/ConventionsTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
+			identifier: method.notFound
+			count: 17
+			path: tests/Architecture/LayeringTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Auth/GuardIsolationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Feature/Auth/PermissionRegistryTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertFormFieldExists\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Auth/SellerRegistrationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:get\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Auth/SellerRegistrationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Auth/SellerRegistrationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Feature/Auth/SellerRegistrationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Audit/Feature/AuditTrailTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Audit\\Domain\\Enums\\AuditEventType\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Audit/Feature/AuditTrailTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<string\|null\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Audit/Feature/AuditTrailTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
+			identifier: method.notFound
+			count: 10
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/AuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
+			identifier: method.notFound
+			count: 8
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/DeviceTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 17
+			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
+
+		-
+			message: '#^Parameter \#1 \$user of function verificationUrl expects App\\Models\\Customer, App\\Models\\User given\.$#'
+			identifier: argument.type
+			count: 7
+			path: tests/Modules/Identity/Feature/EmailVerificationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 16
+			path: tests/Modules/Identity/Feature/LoginTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/LoginTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withHeaders\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/LoginTest.php
+
+		-
+			message: '#^Function loginPayload\(\) has parameter \$overrides with no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Modules/Identity/Feature/LoginTest.php
+
+		-
+			message: '#^Function loginPayload\(\) return type has no value type specified in iterable type array\.$#'
+			identifier: missingType.iterableValue
+			count: 1
+			path: tests/Modules/Identity/Feature/LoginTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 22
+			path: tests/Modules/Identity/Feature/PasswordResetTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/PasswordResetTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
+			identifier: method.notFound
+			count: 11
+			path: tests/Modules/Identity/Feature/ProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Modules/Identity/Feature/ProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Modules/Identity/Feature/ProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/ProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/ProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\|Pest\\Support\\HigherOrderTapProxy\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/SuspiciousLoginTest.php
+
+		-
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$google2fa\.$#'
+			identifier: property.notFound
+			count: 4
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
+			identifier: method.notFound
+			count: 11
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:deleteJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 18
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/TwoFactorTest.php
+
+		-
+			message: '#^Call to an undefined method App\\Models\\User\:\:getFilamentName\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsCustomer\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedRolesAndPermissions\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Property App\\Models\\User\:\:\$display_name is not writable\.$#'
+			identifier: assign.propertyReadOnly
+			count: 1
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function expect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Identity/Feature/UserNameTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Modules/Organization/Architecture/OrganizationArchitectureTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanSeeTableRecords\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
+			identifier: method.notFound
+			count: 10
+			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:get\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/AdminPanelOrganizationReviewTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/BankAccountTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/InvitationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/KycTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/MembershipTest.php
+
+		-
+			message: '#^Parameter \#1 \$owner of function registerOrg expects App\\Models\\Seller, App\\Models\\User given\.$#'
+			identifier: argument.type
+			count: 1
+			path: tests/Modules/Organization/Feature/MembershipTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 5
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationAuthorizationTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\Organization\:\:\$approved_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\Organization\:\:\$rejected_by\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\Organization\:\:\$rejection_reason\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\Organization\:\:\$suspended_by\.$#'
+			identifier: property.notFound
+			count: 2
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Organization\\Domain\\Enums\\OrganizationStatus\|null\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<Illuminate\\Support\\Carbon\|null\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<mixed\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 3
+			path: tests/Modules/Organization/Feature/OrganizationLifecycleTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationOwnershipTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsAdmin\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 4
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/OrganizationSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 9
+			path: tests/Modules/Organization/Feature/SellerPanelBankAccountTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelBankAccountTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanNotSeeTableRecords\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanSeeTableRecords\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelDocumentTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Modules/Organization/Feature/SellerPanelKycTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelKycTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanSeeTableRecords\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelOrganizationTest.php
+
+		-
+			message: '#^Access to an undefined property App\\Modules\\Organization\\Domain\\Models\\StoreOpeningRequest\:\:\$submitted_at\.$#'
+			identifier: property.notFound
+			count: 2
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Call to an undefined method Illuminate\\Testing\\TestResponse\:\:assertCanSeeTableRecords\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAsSeller\(\)\.$#'
+			identifier: method.notFound
+			count: 10
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Organization\\Domain\\Enums\\StoreOpeningRequestStatus\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Unable to resolve the template type TAndValue in call to method Pest\\Expectation\<App\\Modules\\Organization\\Domain\\Enums\\StoreOpeningRequestStatus\|null\>\:\:and\(\)$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Organization/Feature/SellerPanelStoreRequestTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Organization/Feature/StoreOpeningRequestTest.php
+
+		-
+			message: '#^Access to an undefined property PHPUnit\\Framework\\TestCase\:\:\$settings\.$#'
+			identifier: property.notFound
+			count: 24
+			path: tests/Modules/Settings/Feature/SettingsServiceTest.php
+
+		-
+			message: '#^Call to an undefined method Pest\\PendingCalls\\TestCall\:\:expect\(\)\.$#'
+			identifier: method.notFound
+			count: 11
+			path: tests/Modules/Store/Architecture/StoreArchitectureTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Modules/Store/Feature/PublicStorefrontTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/PublicStorefrontTest.php
+
+		-
+			message: '#^Access to an undefined property Pest\\Mixins\\Expectation\<Illuminate\\Support\\Collection\<\(int\|string\), mixed\>\|null\>\:\:\$not\.$#'
+			identifier: property.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 6
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:grant\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 7
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Function sellerManaging\(\) should return App\\Models\\Seller but returns App\\Models\\User\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Unable to resolve the template type TKey in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Unable to resolve the template type TValue in call to function collect$#'
+			identifier: argument.templateType
+			count: 1
+			path: tests/Modules/Store/Feature/StoreApiTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreAuditTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreCreationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:grant\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreIsolationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreIsolationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreIsolationTest.php
+
+		-
+			message: '#^Function memberOf\(\) should return App\\Models\\Seller but returns App\\Models\\User\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/Modules/Store/Feature/StoreIsolationTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreLifecycleTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedPlatform\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreProfileTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:actingAs\(\)\.$#'
+			identifier: method.notFound
+			count: 2
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:getJson\(\)\.$#'
+			identifier: method.notFound
+			count: 3
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:patchJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:postJson\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:seedAll\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Call to an undefined method PHPUnit\\Framework\\TestCase\:\:withoutMiddleware\(\)\.$#'
+			identifier: method.notFound
+			count: 1
+			path: tests/Modules/Store/Feature/StoreSecurityTest.php
+
+		-
+			message: '#^Undefined variable\: \$this$#'
+			identifier: variable.undefined
+			count: 4
+			path: tests/Pest.php
+
+		-
+			message: '#^Method Tests\\TestCase\:\:actingAsAdmin\(\) should return App\\Models\\Admin but returns App\\Models\\User\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/TestCase.php
+
+		-
+			message: '#^Method Tests\\TestCase\:\:actingAsCustomer\(\) should return App\\Models\\Customer but returns App\\Models\\User\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/TestCase.php
+
+		-
+			message: '#^Method Tests\\TestCase\:\:actingAsSeller\(\) should return App\\Models\\Seller but returns App\\Models\\User\.$#'
+			identifier: return.type
+			count: 1
+			path: tests/TestCase.php
