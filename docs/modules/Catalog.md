@@ -1,12 +1,16 @@
 # Catalog Module Specification
 
-**Status: BUILDING — Phase 1 in progress.** Approved 2026-07-27; the decisions in §0
+**Status: PHASE 1 COMPLETE (2026-07-28).** Approved 2026-07-27; the decisions in §0
 and the rulings in §13 are ratified. **ADR-037 … ADR-041 are recorded** in
 [docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
 entries in the amendment log at the end of
 [docs/001_Architecture.md](../001_Architecture.md) (mirroring how the Store module
 landed ADR-032…036). This document states each decision AND its cost, per project
 culture.
+
+Phase 1 is **not frozen** — Offer will need to reach into it, and freezing a module
+the next sprint depends on would mean unfreezing it immediately. See §15 for what
+shipped, what is deliberately absent, and the two open follow-ups.
 
 The Catalog is the next major sprint after Store (frozen v1.0). It is large, so this
 spec scopes **Phase 1 = the catalog structure only** (§0.6). Offers, inventory, pricing,
@@ -379,3 +383,73 @@ be built ahead of its approval (CLAUDE.md).
 - [x] Add `Catalog` to `app/Modules/README.md` and this file to the modules index.
 - [x] Resolve the §13 open questions and fold the rulings into this doc.
 - [x] Only then: scaffold `app/Modules/Catalog/*` (Phase 1).
+
+---
+
+# 15. What Phase 1 shipped
+
+## 15.1 Delivered
+
+| Area | Where |
+|---|---|
+| Category tree (adjacency + materialised `path`, §13.1) | `Domain/Models/Category`, `Infrastructure/Repositories/CategoryRepository` |
+| Attribute schema, per-category binding (§2.3) | `Attribute`, `AttributeValue`, `category_attribute` |
+| Brands (§2.2) | `Brand` |
+| Product + variants, variants first-class (ADR-039) | `Product`, `ProductVariant` |
+| Moderation lifecycle (§3.1) | `Domain/Enums/ProductStatus` + the product actions |
+| 19 actions (§12) | `Application/Actions/` |
+| Policies + permissions (§9) | `Presentation/Policies/`, `CatalogServiceProvider::registerPermissions()` |
+| Admin taxonomy + moderation queue | `Presentation/Filament/Resources/` |
+| Seller "ürün aç" (§5, entry point 2) | `Presentation/Filament/Seller/Resources/` |
+| Media (§6) | `HasMedia` + `AttachProductMediaAction` |
+| Search (§10) | `Product::toSearchableArray()`, `SyncProductSearchIndex` |
+| Core read contract (§8) | `App\Core\Domain\Contracts\CatalogQueryContract` |
+| Starter taxonomy (§13.3) | `Database\Modules\Catalog\Seeders\CatalogTaxonomySeeder` |
+
+Localization is **per-locale columns**, tr + en (§13.5): `title_tr` / `title_en`,
+resolved through `Domain/Concerns/HasLocalizedText`. Catalog text is *content* —
+authored per record, searched and sorted on — not UI copy, so it does not belong in
+the `translations` table.
+
+## 15.2 Deliberately absent
+
+**No price, no stock, no offers** (ADR-037) — asserted by a test over the schema, the
+search document and the rendered seller form, not merely documented. **No storefront
+contributor** (ADR-041). **No buyer-facing surface at all**: catalog search is exposed
+to staff and sellers only (§10), because searching to buy something with no price and
+no seller is not a feature.
+
+**No near-duplicate suggestion UI yet.** `ProductRepository::suggestDuplicatesFor()`
+implements the §13.2 ruling (suggest, never auto-merge) and is exercised by tests, but
+the authoring form does not yet surface its results — GTIN collision, the *exact* half
+of that ruling, is enforced at draft time and is what actually prevents duplicates.
+Surfacing the fuzzy half is a UI addition, not a model change.
+
+## 15.3 Implementation notes and follow-ups
+
+1. **Provenance is `proposed_by_org_id` + `proposed_by_org_uuid`**, not the uuid alone.
+   See the note in §2.4 — the seller tenancy wall needs the id, because the Core
+   `OrganizationAuthorizationContract` answers memberships in ids and Catalog may not
+   import Organization to translate them (ADR-040). ADR-033 already states id+uuid as
+   the platform rule and `stores` already does it.
+
+2. **The seller's organization picker is labelled by id** when a seller belongs to more
+   than one company, and hidden entirely when they belong to one (the common case).
+   Resolving a legal name would mean importing an Organization model. **Open follow-up:**
+   a legal-name label needs either a small addition to the Core contract or a
+   Presentation-layer seam — a deliberate decision, not something to smuggle in.
+
+3. **The Activity user timeline is not wired.** A timeline listener belongs to the
+   Activity module, which would have to import Catalog's events, and `LayeringTest`
+   states nothing imports Catalog. **The identical follow-up is already open for
+   Organization** (see its freeze notice), so this is one Activity change, later,
+   covering both. Audit needs nothing — `Product` carries the `Auditable` trait.
+
+4. **`PendingReview` cannot be archived.** §3.1 enumerates its transitions exactly, and
+   that is coherent: a product must not change underneath the moderator reading it, and
+   withdrawing it is a change. A seller who submits by mistake waits for a verdict.
+
+5. Two platform-level defects surfaced by being the first module of its kind, both
+   fixed: `App\Shared\Traits\HasMedia`'s conversion chain (Catalog is the first module
+   to attach media) and Scout's queue connection in `phpunit.xml` (the first Searchable
+   model). Neither was Catalog's own bug.

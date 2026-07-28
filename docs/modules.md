@@ -8,8 +8,10 @@ Audit, Activity, Media, Notification (ADR-002). This document describes the
 pattern for adding an eighth, business-facing module; treat the `Store`
 examples as the shape to follow, not as code to copy verbatim.
 
-Business modules — Organization, Store, Product, Offer, Order, Payment — do not
-exist yet and must not be created without an approved specification.
+Organization, Store and Catalog are built (ADR-028–041) and are the worked
+examples to copy. The remaining business modules — Offer, Inventory, Order,
+Payment — do not exist yet and must not be created without an approved
+specification.
 
 ---
 

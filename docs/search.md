@@ -18,6 +18,11 @@ beyond Scout's own interface, and the raw DSL stays reachable.
 
 ## Making a model searchable
 
+The worked example below is no longer hypothetical: `App\Modules\Catalog\Domain\Models\Product`
+is the first Searchable model in the platform, and it is the one to copy. It
+indexes on `ProductPublished` and drops on `ProductArchived` through a listener
+rather than Scout's automatic save hook — see `SyncProductSearchIndex` for why.
+
 ```php
 final class Product extends Model
 {
@@ -132,7 +137,7 @@ settings on first write.
 ## Operations
 
 ```bash
-make search-index M="App\Modules\Catalogue\Domain\Product"
+make search-index M="App\Modules\Catalog\Domain\Models\Product"
 php artisan scout:flush "App\...\Product"
 ```
 

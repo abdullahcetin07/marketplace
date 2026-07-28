@@ -1,12 +1,19 @@
 # database/Modules
 
-Per-module migrations and factories. **Empty until Sprint 1.**
+Per-module migrations, factories and seeders.
 
 ```
-Store/
+Catalog/
   migrations/
-  factories/
+  Factories/
+  Seeders/
 ```
+
+A module's `Seeders/` directory is for reference data the module needs to be
+usable but that an operator then owns — `CatalogTaxonomySeeder` is the worked
+example: a starting taxonomy, idempotent, and deliberately NOT registered in
+`DatabaseSeeder`, because it is run once when opening the catalog rather than on
+every seed.
 
 Registered by the module's own service provider:
 

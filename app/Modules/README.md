@@ -4,7 +4,8 @@ The seven Foundation modules delivered in Sprint 1.
 
 **Business modules — Offer, Inventory, Order, Payment — do not exist yet.** They
 are later sprints. **Organization** and **Store** are frozen v1.0 (ADR-028–036);
-**Catalog** is now building (ADR-037–041).
+**Catalog** Phase 1 is complete (ADR-037–041) and deliberately unfrozen, because
+Offer will need to extend it.
 
 ---
 
@@ -21,7 +22,7 @@ are later sprints. **Organization** and **Store** are frozen v1.0 (ADR-028–036
 | **Notification** | Channels, preferences, queued delivery | [notifications.md](../../docs/notifications.md) |
 | **Organization** | Legal seller company: KYC, members, invitations, documents, bank account, store-opening requests (ADR-028–031) — *frozen v1.0* | [modules/Organization.md](../../docs/modules/Organization.md) |
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
-| **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *building (Phase 1)* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
+| **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *Phase 1 complete* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is
 exercised; no product media is attached and no SMS/push provider is bound.

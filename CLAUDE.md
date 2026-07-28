@@ -8,7 +8,7 @@ ADR-032–036).** Custom domains are cut from v1 (ADR-035: path-addressed
 `/store/{slug}`) and return only via a future dedicated ADR. The public storefront
 is composed (ADR-036): future modules enrich it via the Core
 `StorefrontContributorContract` + `StorefrontRegistry`, never by Store depending
-on them. **The current sprint is Catalog, Phase 1** (ADR-037–041).
+on them. **Catalog Phase 1 is complete** (ADR-037–041) and is the newest module.
 
 Foundation is a **module group, not a module** (ADR-002). Seven modules exist:
 Identity, Localization, Settings, Audit, Activity, Media, Notification.
@@ -32,13 +32,18 @@ owning company by id/uuid only — never importing an Organization model (ADR-03
 composed. **Store is NOT products, catalogue, offers, inventory, orders or
 payments.**
 
-**The Catalog module is building** ([docs/modules/Catalog.md](docs/modules/Catalog.md),
-ADR-037–041). Phase 1 is the **catalog structure only**: the category tree +
-per-category attribute schema (Category Manager, ADR-038), brands, the
-Product/ProductVariant aggregate with variants first-class (ADR-039), product
-media, seller authoring ("ürün aç") under a moderation lifecycle, and the Core
+**Catalog Phase 1 is complete** ([docs/modules/Catalog.md](docs/modules/Catalog.md),
+ADR-037–041) — the **catalog structure only**: the category tree + per-category
+attribute schema (Category Manager, ADR-038), brands, the Product/ProductVariant
+aggregate with variants first-class (ADR-039), product media, seller authoring
+("ürün aç") under a moderation lifecycle, search indexing, and the Core
 `CatalogQueryContract`. The catalog is **shared** — one product, many sellers —
 and a seller never gets a copy (ADR-037).
+
+**It is deliberately NOT frozen**: Offer is the next sprint and will need to reach
+into it. See Catalog.md §15 for what shipped, what is deliberately absent, and the
+two open follow-ups (a legal-name label on the seller's org picker; the Activity
+user timeline, shared with Organization's).
 
 **A Product has no price and no stock.** That is the module's defining boundary:
 price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It
