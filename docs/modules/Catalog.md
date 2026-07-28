@@ -103,8 +103,9 @@ more expensive mistake.
 ## 0.7 ADR-040 — Cross-context references by id/UUID (reaffirms ADR-033)
 
 Catalog imports no other module's models and is imported by none. It references the
-**proposing organization by uuid** (provenance/moderation only). Later modules (Offer,
-Inventory, Search, Storefront) reach the Catalog only through the Core
+**proposing organization by id + uuid** (provenance/moderation only — see the
+implementation note in §2.4 for why both, and ADR-033 for the platform rule). Later
+modules (Offer, Inventory, Search, Storefront) reach the Catalog only through the Core
 `CatalogQueryContract` (§8) and domain events (§7).
 
 ## 0.8 ADR-041 — Catalog enriches the storefront only once products are sellable
@@ -176,10 +177,27 @@ one brand (nullable for unbranded/generic).
 
 ## 2.4 `Product` (aggregate root)
 `uuid`, `category_id` (leaf), `brand_id?`, `title` (localizable), `slug` (unique),
-`description` (localizable), `gtin`/barcode?, `status` (§2.7), `proposed_by_org_uuid`
-(provenance, ADR-040), timestamps, soft-deletes, **Auditable** (ADR-027 — a catalog
-entry is a curated asset; who changed what and why matters). Descriptive (non-variant)
-attribute values attach here (`product_attribute_value`). Media: gallery images.
+`description` (localizable), `gtin`/barcode?, `status` (§2.7),
+`proposed_by_org_id` + `proposed_by_org_uuid` (provenance, ADR-040), timestamps,
+soft-deletes, **Auditable** (ADR-027 — a catalog entry is a curated asset; who changed
+what and why matters). Descriptive (non-variant) attribute values attach here
+(`product_attribute_value`). Media: gallery images.
+
+> **Implementation note (Phase 1) — provenance is the id+uuid PAIR, not the uuid alone.**
+> This paragraph and §0.7 originally named only `proposed_by_org_uuid`. Building the
+> seller panel showed that insufficient: the seller tenancy wall has to answer "is this
+> product mine", and the Core `OrganizationAuthorizationContract` — the *only* way Catalog
+> may ask anything about memberships (ADR-040) — answers in **internal ids**. Translating
+> those ids to uuids would mean importing an Organization model, which is precisely what
+> ADR-040 forbids.
+>
+> So `Product` carries both, exactly as `stores` carries `organization_id` +
+> `organization_uuid`. This is not a new decision: **ADR-033 already states the platform
+> rule as "by its id and UUID, with an optional database FK"**, and Store is the shipped
+> precedent. The id is the tenancy filter (`Product::scopeProposedByAny()`); the uuid is
+> the identifier that leaves the application and rides on events (non-negotiable #7).
+> There is still **no `organization()` relation** and no Organization import — the FK is
+> integrity-only, and nothing about the boundary changes.
 
 **A Product has no price and no stock.** (ADR-037.)
 

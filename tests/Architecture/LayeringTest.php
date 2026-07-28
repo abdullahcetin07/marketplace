@@ -250,7 +250,15 @@ arch('no existing module depends on Catalog')
     ->expect('App\Modules\Catalog')
     ->toOnlyBeUsedIn([
         'App\Modules\Catalog',
+        // The panel providers register each module's Filament resources
+        // explicitly, per panel — that is the composition root, not a module
+        // reaching into another module.
         'App\Providers\Filament',
+        // A module's own migrations, factories, seeders and tests are part of
+        // the module; they live under database/ and tests/ only because the
+        // framework looks for them there.
+        'Database\Modules\Catalog',
+        'Tests\Modules\Catalog',
     ]);
 
 arch('Core never depends on a module')

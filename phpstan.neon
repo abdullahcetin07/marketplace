@@ -36,3 +36,13 @@ parameters:
 		# cannot always resolve through the fluent API.
 		- identifier: missingType.generics
 		  path: app/Providers/Filament/*
+
+		# Larastan types Factory::definition() as
+		# `array<model property of TModel, mixed>`, but its own PHPDoc lexer
+		# rejects that syntax in user code ("Unexpected token \"property\"") —
+		# so the type it demands is one no factory can actually write. Every
+		# factory in the project therefore declares `array<string, mixed>`.
+		# A rule rather than N baseline rows, so a new module's factories are
+		# covered without anyone regenerating the baseline to get there.
+		- identifier: method.childReturnType
+		  path: database/Modules/*/Factories/*

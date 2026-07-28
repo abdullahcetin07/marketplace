@@ -84,24 +84,33 @@ trait HasMedia
     /**
      * Conversions are queued (the default) so an upload request never blocks
      * on image processing. Horizon's `media` queue handles them.
+     *
+     * CHAIN ORDER IS DELIBERATE: `performOnCollections()` and `nonOptimized()`
+     * are declared on Spatie's `Conversion`, but `fit()` and `format()` reach it
+     * through `Conversion::__call`, which static analysis resolves to the image
+     * DRIVER rather than back to the Conversion. Everything after them in a
+     * chain therefore reads as a call on the wrong object. Putting the really
+     * declared methods first keeps the chain analysable end to end. These are
+     * independent setters on one object, so the order has no runtime meaning —
+     * only this one.
      */
     public function registerMediaConversions(?Media $media = null): void
     {
         $this->addMediaConversion('thumb')
-            ->fit(Fit::Contain, 160, 160)
-            ->format('webp')
+            ->performOnCollections('images')
             ->nonOptimized()
-            ->performOnCollections('images');
+            ->fit(Fit::Contain, 160, 160)
+            ->format('webp');
 
         $this->addMediaConversion('preview')
+            ->performOnCollections('images')
             ->fit(Fit::Contain, 480, 480)
-            ->format('webp')
-            ->performOnCollections('images');
+            ->format('webp');
 
         $this->addMediaConversion('large')
+            ->performOnCollections('images')
             ->fit(Fit::Contain, 1200, 1200)
-            ->format('webp')
-            ->performOnCollections('images');
+            ->format('webp');
     }
 
     /**
