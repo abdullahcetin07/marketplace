@@ -73,6 +73,21 @@ final class UpdateCategoryAction extends BaseAction
             $category->is_active = $data->isActive;
         }
 
+        /*
+        | ADR-047. Closing a category under existing products would leave them
+        | attached somewhere that now refuses attachment — valid on disk,
+        | invalid on their next edit, and invisible until a seller hit it. The
+        | guard lives HERE, not only in the form, because the form is one of
+        | several ways this action is reached.
+        */
+        if ($data->has('acceptsProducts') && $data->acceptsProducts !== null) {
+            if (! $data->acceptsProducts && $category->products()->exists()) {
+                throw CatalogException::categoryStillHasProducts($category->uuid);
+            }
+
+            $category->accepts_products = $data->acceptsProducts;
+        }
+
         if ($data->has('position') && $data->position !== null) {
             $category->position = $data->position;
         }

@@ -49,6 +49,7 @@ final class CreateCategoryAction extends BaseAction
             'depth' => Category::depthFor($parent),
             'slug' => $this->slugs->forCategory((string) $requested),
             'is_active' => $data->isActive,
+            'accepts_products' => $data->acceptsProducts,
             'position' => $data->position ?? $this->categories->nextPositionUnder($parent?->getKey()),
         ]);
         $category->fillLocalized('name', $data->name);

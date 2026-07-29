@@ -25,7 +25,12 @@ return [
         'depth' => 'Derinlik',
         'position' => 'Sıra',
         'is_active' => 'Aktif',
-        'is_leaf' => 'Ürün eklenebilir',
+        'is_leaf' => 'Alt kategorisi yok',
+        // ADR-047 — ürün eklenip eklenemeyeceğini artık ağaç şekli değil bu
+        // bayrak belirler. Bayraklı bir kategorinin alt kategorisi olabilir.
+        'accepts_products' => 'Ürün eklenebilir',
+        'accepts_products_hint' => 'Açıkken bu kategoriye doğrudan ürün eklenebilir. Alt kategorisi olsa bile açık bırakılabilir.',
+        'accepts_products_locked' => 'Bu kategoride ürünler var; kapatmadan önce onları başka bir kategoriye taşıyın.',
         'products_count' => 'Ürün',
         'attributes' => 'Özellik şeması',
         'empty' => [

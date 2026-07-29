@@ -31,9 +31,12 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * `/3/17/42/`. Ids, not slugs, because a rename must not invalidate the tree;
  * closed on both sides because `/1/` must not prefix-match `/17/`.
  *
- * LEAF ATTACHMENT (§3.2): products attach to a leaf only. A node with children
- * is a container, and letting products sit at both levels is exactly how a
- * taxonomy stops being a reliable filter.
+ * ATTACHMENT IS A FLAG, NOT TREE SHAPE (ADR-047, §3.2): a product attaches where
+ * `accepts_products` says so. The leaf rule it replaced made the taxonomy's
+ * shape decide — adding one sub-category to *Makyaj* silently stopped *Makyaj*
+ * holding products — which is exactly the case the owner needed to allow. The
+ * cost is that "a category with children never holds products" is no longer
+ * automatic; central curation, always the model under ADR-038, is now explicit.
  *
  * `is_active` rather than a status enum — a category is lookup-style reference
  * data (ADR-015). Deactivating is what §7's `CategoryArchived` means; nodes are
@@ -48,6 +51,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string|null $name_en
  * @property string $slug
  * @property bool $is_active
+ * @property bool $accepts_products
  * @property int $position
  * @property-read Category|null $parent
  * @property-read Collection<int, Category> $children
@@ -87,6 +91,7 @@ final class Category extends Model
         'name_en',
         'slug',
         'is_active',
+        'accepts_products',
         'position',
     ];
 
@@ -145,13 +150,31 @@ final class Category extends Model
     }
 
     /**
-     * Whether products may attach here (§3.2). A category with ANY child is a
-     * container — including inactive children, because reactivating a child must
-     * not orphan products that were attached while it was hidden.
+     * Whether this node has no children.
+     *
+     * NO LONGER THE ATTACH RULE (ADR-047) — that is `accepts_products` now. This
+     * survives because "has children" is still a real question the taxonomy
+     * asks: a branch cannot be archived or deleted out from under its subtree
+     * (§3.2), and the Category Manager's tree renders differently for a
+     * container. Inactive children count, because reactivating a hidden child
+     * must not change what was true while it was invisible.
      */
     public function isLeaf(): bool
     {
         return ! $this->children()->exists();
+    }
+
+    /**
+     * Whether a product may attach here (ADR-047, §3.2).
+     *
+     * The flag, not the tree shape. A flagged category MAY have children — a
+     * product sits at *Makyaj* while *Göz Makyajı* exists under it — which is
+     * precisely what the leaf rule made impossible and what this replaced it
+     * for.
+     */
+    public function acceptsProducts(): bool
+    {
+        return (bool) $this->accepts_products;
     }
 
     public function isRoot(): bool
@@ -231,6 +254,21 @@ final class Category extends Model
     }
 
     /**
+     * Categories a product may be filed against (ADR-047).
+     *
+     * What every seller-facing picker offers. A plain column predicate rather
+     * than `leaves()`'s `whereDoesntHave` subquery — the flag is indexed, and
+     * the two now answer different questions.
+     *
+     * @param  Builder<self>  $query
+     * @return Builder<self>
+     */
+    public function scopeAcceptsProducts(Builder $query): Builder
+    {
+        return $query->where('accepts_products', true);
+    }
+
+    /**
      * @param  Builder<self>  $query
      * @return Builder<self>
      */
@@ -246,6 +284,7 @@ final class Category extends Model
     {
         return [
             'is_active' => 'boolean',
+            'accepts_products' => 'boolean',
             'depth' => 'integer',
             'position' => 'integer',
         ];

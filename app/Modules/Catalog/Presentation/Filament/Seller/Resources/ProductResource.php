@@ -146,7 +146,7 @@ final class ProductResource extends Resource
                         ->helperText(__('catalog.product.category_hint'))
                         // LEAVES ONLY (§3.2) — the schema a product must satisfy
                         // comes from its category, and a container has none.
-                        ->options(fn (): array => self::leafCategoryOptions())
+                        ->options(fn (): array => self::attachableCategoryOptions())
                         ->searchable()
                         ->required()
                         ->native(false)
@@ -316,14 +316,20 @@ final class ProductResource extends Resource
     }
 
     /**
-     * Leaf categories, indented so the picker reads as a tree (§3.2).
+     * The categories a seller may file a product against, indented so the
+     * picker reads as a tree (§3.2, ADR-047).
+     *
+     * FLAGGED, not leaf. A Category Manager may open *Makyaj* for products
+     * while *Göz Makyajı* still sits under it, and this picker is where that
+     * decision has to show up — offering leaves here would silently keep the
+     * old rule alive in the one place a seller meets it.
      *
      * @return array<int, string>
      */
-    public static function leafCategoryOptions(): array
+    public static function attachableCategoryOptions(): array
     {
         return Category::query()
-            ->leaves()
+            ->acceptsProducts()
             ->active()
             ->orderBy('path')
             ->get()

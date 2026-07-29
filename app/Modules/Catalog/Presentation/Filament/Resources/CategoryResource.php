@@ -90,6 +90,27 @@ final class CategoryResource extends Resource
                 Forms\Components\Toggle::make('is_active')
                     ->label(__('catalog.category.is_active'))
                     ->default(true),
+
+                /*
+                | ADR-047 — THE ATTACH DECISION, made by hand. A flagged
+                | category may still have children, which is the whole point:
+                | products sit at *Makyaj* while *Göz Makyajı* exists under it.
+                |
+                | Default OFF, so a newly created node is a container until the
+                | Category Manager opens it. The opposite default would quietly
+                | re-create the problem this replaced, in reverse.
+                |
+                | Turning it OFF under existing products is refused by
+                | `UpdateCategoryAction`, not by a rule here: the form is one of
+                | several ways that action is reached, and a guard that only
+                | exists on this screen is one a future API call walks straight
+                | past. The Edit page surfaces the refusal on this field.
+                | @see CategoryResource\Pages\EditCategory
+                */
+                Forms\Components\Toggle::make('accepts_products')
+                    ->label(__('catalog.category.accepts_products'))
+                    ->helperText(__('catalog.category.accepts_products_hint'))
+                    ->default(false),
             ])->columns(2),
         ]);
     }
@@ -109,13 +130,14 @@ final class CategoryResource extends Resource
                     ->toggleable()
                     ->searchable(),
 
-                Tables\Columns\IconColumn::make('is_leaf')
-                    ->label(__('catalog.category.is_leaf'))
-                    ->boolean()
-                    // Products attach to leaves only (§3.2), so "can I file a
-                    // product here" is the single most useful thing this table
-                    // can tell a Category Manager at a glance.
-                    ->getStateUsing(fn (Category $record): bool => $record->isLeaf()),
+                // "Can I file a product here" is the single most useful thing
+                // this table tells a Category Manager at a glance — and since
+                // ADR-047 it is the FLAG, not the tree's shape. The leaf column
+                // it replaces would now answer a different question from the
+                // one the reader is asking.
+                Tables\Columns\IconColumn::make('accepts_products')
+                    ->label(__('catalog.category.accepts_products'))
+                    ->boolean(),
 
                 Tables\Columns\TextColumn::make('products_count')
                     ->label(__('catalog.category.products_count'))

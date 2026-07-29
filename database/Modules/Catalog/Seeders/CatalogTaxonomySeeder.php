@@ -175,6 +175,13 @@ final class CatalogTaxonomySeeder extends Seeder
             'name_en' => $en,
             'slug' => $slug,
             'is_active' => true,
+            /*
+            | ADR-047 — the starter taxonomy ships with the flag set the way the
+            | migration set it for existing data: the second level accepts
+            | products, the top-level containers do not. A Category Manager
+            | opening *Kozmetik* itself is a deliberate act, not a default.
+            */
+            'accepts_products' => $parent !== null,
             'position' => $position,
         ]);
 

@@ -46,6 +46,7 @@ final class CreateCategory extends CreateRecord
             parentUuid: $parent?->uuid,
             slug: $data['slug'] ?? null,
             isActive: (bool) ($data['is_active'] ?? true),
+            acceptsProducts: (bool) ($data['accepts_products'] ?? false),
         ));
     }
 }

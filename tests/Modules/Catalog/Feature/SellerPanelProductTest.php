@@ -108,18 +108,19 @@ it('opens a product from the seller panel', function (): void {
     Event::assertDispatched(ProductDrafted::class);
 });
 
-it('offers only leaf categories on the authoring form', function (): void {
-    // §3.2 — a container has no attribute schema, so filing a product against
-    // one would leave nothing to satisfy.
+it('offers only categories flagged to accept products on the authoring form', function (): void {
+    // ADR-047 — the picker is where a seller meets the rule, so offering
+    // leaves here would keep the old one alive in the one place it shows.
     ['seller' => $seller] = panelSeller();
-    ['category' => $leaf] = panelCategory();
-    $root = $leaf->parent;
+    ['category' => $attachable] = panelCategory();
+    $root = $attachable->parent;
+    $root->forceFill(['accepts_products' => false])->save();
 
     $this->actingAsSeller($seller);
 
-    $options = \App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource::leafCategoryOptions();
+    $options = \App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource::attachableCategoryOptions();
 
-    expect($options)->toHaveKey($leaf->getKey())
+    expect($options)->toHaveKey($attachable->getKey())
         ->and($options)->not->toHaveKey($root->getKey());
 });
 

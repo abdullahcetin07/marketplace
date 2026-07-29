@@ -28,6 +28,11 @@ final class UpdateCategoryDTO extends BaseDTO
         public readonly ?string $parentUuid = null,
         public readonly ?string $slug = null,
         public readonly ?bool $isActive = null,
+        /**
+         * ADR-047 — whether products may attach here. The Category Manager's
+         * explicit decision, which replaced "is this a leaf".
+         */
+        public readonly ?bool $acceptsProducts = null,
         public readonly ?int $position = null,
         public readonly array $present = [],
     ) {}

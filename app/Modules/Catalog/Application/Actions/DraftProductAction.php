@@ -53,8 +53,9 @@ final class DraftProductAction extends BaseAction
 
         $category = $this->categories->findOrFailByUuid($data->categoryUuid);
 
-        if (! $category->isLeaf()) {
-            throw CatalogException::categoryIsNotALeaf($category->uuid);
+        // ADR-047: the Category Manager's flag, not the tree's shape.
+        if (! $category->acceptsProducts()) {
+            throw CatalogException::categoryDoesNotAcceptProducts($category->uuid);
         }
 
         $gtin = $this->normaliseGtin($data->gtin);

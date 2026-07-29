@@ -96,15 +96,35 @@ it('drafts a product with no price and no stock', function (): void {
     Event::assertDispatched(ProductDrafted::class);
 });
 
-it('refuses to attach a product to a category that has children', function (): void {
-    // §3.2 — a container has no attribute schema to satisfy.
-    $parent = Category::factory()->create();
-    Category::factory()->childOf($parent)->create();
+it('refuses a category the Category Manager has not opened for products', function (): void {
+    // ADR-047 — the flag, not the tree's shape. A top-level container refuses.
+    $container = Category::factory()->container()->create();
 
     expect(fn () => DraftProductAction::make()->run(new DraftProductDTO(
-        categoryUuid: $parent->uuid,
+        categoryUuid: $container->uuid,
         title: ['tr' => 'Bir Ürün'],
     )))->toThrow(CatalogException::class);
+});
+
+it('accepts a flagged mid-level category that still has children', function (): void {
+    /*
+     * The case ADR-047 exists for, and the one the leaf rule made impossible:
+     * a product sits at *Makyaj* while *Göz Makyajı* lives under it. If this
+     * ever starts failing, the leaf rule has crept back in.
+     */
+    $container = Category::factory()->container()->create(['name_tr' => 'Kozmetik']);
+    $makyaj = Category::factory()->childOf($container)->create(['name_tr' => 'Makyaj']);
+    Category::factory()->childOf($makyaj)->create(['name_tr' => 'Göz Makyajı']);
+
+    $product = DraftProductAction::make()->run(new DraftProductDTO(
+        categoryUuid: $makyaj->uuid,
+        title: ['tr' => 'Ruj'],
+    ));
+
+    expect($product->category_id)->toBe($makyaj->getKey())
+        // Still a container by tree shape — and that no longer decides.
+        ->and($makyaj->isLeaf())->toBeFalse()
+        ->and($makyaj->acceptsProducts())->toBeTrue();
 });
 
 it('tells a seller the product already exists when the GTIN is taken', function (): void {

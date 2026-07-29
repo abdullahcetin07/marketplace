@@ -23,7 +23,12 @@ return [
         'depth' => 'Depth',
         'position' => 'Order',
         'is_active' => 'Active',
-        'is_leaf' => 'Accepts products',
+        'is_leaf' => 'No sub-categories',
+        // ADR-047 — whether products may attach is this flag now, not the
+        // tree's shape. A flagged category may still have children.
+        'accepts_products' => 'Accepts products',
+        'accepts_products_hint' => 'When on, products can be filed directly here — even if this category has sub-categories.',
+        'accepts_products_locked' => 'This category holds products; move them elsewhere before turning it off.',
         'products_count' => 'Products',
         'attributes' => 'Attribute schema',
         'empty' => [

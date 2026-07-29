@@ -30,6 +30,13 @@ final class CreateCategoryDTO extends BaseDTO
         public readonly ?string $parentUuid = null,
         public readonly ?string $slug = null,
         public readonly bool $isActive = true,
+        /**
+         * ADR-047 — products attach only where the Category Manager says so.
+         * Defaults FALSE: a new node is a container until it is opened, because
+         * the opposite default would re-create the leaf rule's problem in
+         * reverse — every new container silently selling.
+         */
+        public readonly bool $acceptsProducts = false,
         public readonly ?int $position = null,
     ) {}
 }

@@ -59,15 +59,36 @@ final class CatalogException extends BaseException
     }
 
     /**
-     * §3.2 — products attach to a leaf only. A category with children is a
-     * container; products sitting at both levels is how a taxonomy stops being
-     * a reliable filter.
+     * ADR-047 — a category cannot be closed to products while it holds some.
+     *
+     * The mirror of the attach rule. Turning the flag off under existing
+     * products would leave them somewhere that refuses attachment: valid on
+     * disk, invalid on their next edit, and invisible until a seller hit it.
+     * Move the products first.
      */
-    public static function categoryIsNotALeaf(string $categoryUuid): self
+    public static function categoryStillHasProducts(string $categoryUuid): self
     {
-        return self::make('A product can only be attached to a leaf category.')
+        return self::make('This category holds products; move them elsewhere before closing it.')
             ->withContext([
-                'reason' => 'category_not_leaf',
+                'reason' => 'category_still_has_products',
+                'category_uuid' => $categoryUuid,
+            ]);
+    }
+
+    /**
+     * §3.2, ADR-047 — the category is not flagged `accepts_products`.
+     *
+     * REPLACES the old "not a leaf" refusal. The distinction matters to whoever
+     * reads the message: a container is not structurally wrong to sell from, it
+     * simply has not been opened for products, and the Category Manager can
+     * open it. "This must be a leaf" told a seller to go deeper; this tells
+     * them to ask for the level they want.
+     */
+    public static function categoryDoesNotAcceptProducts(string $categoryUuid): self
+    {
+        return self::make('This category does not accept products. Choose one that does.')
+            ->withContext([
+                'reason' => 'category_does_not_accept_products',
                 'category_uuid' => $categoryUuid,
             ]);
     }

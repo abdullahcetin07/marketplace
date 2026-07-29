@@ -49,12 +49,22 @@ final class EditCategory extends EditRecord
                 parentUuid: $parent?->uuid,
                 slug: $data['slug'] ?? null,
                 isActive: (bool) ($data['is_active'] ?? true),
-                present: ['parentUuid', 'slug', 'isActive'],
+                acceptsProducts: (bool) ($data['accepts_products'] ?? false),
+                present: ['parentUuid', 'slug', 'isActive', 'acceptsProducts'],
             ));
         } catch (CatalogException $exception) {
-            throw ValidationException::withMessages([
-                'data.parent_id' => $exception->getMessage(),
-            ]);
+            /*
+            | Surface the refusal on the FIELD that caused it. Two rules can
+            | reach here — a move that would make a node its own ancestor, and
+            | closing a category that still holds products — and pinning both to
+            | `parent_id` would tell a Category Manager to look at the wrong
+            | control.
+            */
+            $field = ($exception->getContext()['reason'] ?? null) === 'category_still_has_products'
+                ? 'data.accepts_products'
+                : 'data.parent_id';
+
+            throw ValidationException::withMessages([$field => $exception->getMessage()]);
         }
     }
 }

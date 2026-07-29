@@ -45,8 +45,11 @@ final class UpdateProductAction extends BaseAction
         if ($data->has('categoryUuid') && $data->categoryUuid !== null) {
             $category = $this->categories->findOrFailByUuid($data->categoryUuid);
 
-            if (! $category->isLeaf()) {
-                throw CatalogException::categoryIsNotALeaf($category->uuid);
+            // ADR-047 — re-checked on a category change, not only at draft:
+            // moving a product into a container is the same mistake as
+            // drafting it there.
+            if (! $category->acceptsProducts()) {
+                throw CatalogException::categoryDoesNotAcceptProducts($category->uuid);
             }
 
             $product->category_id = $category->getKey();

@@ -35,6 +35,13 @@ final class CategoryFactory extends Factory
             'name_en' => Str::title($name),
             'slug' => Str::slug($name).'-'.fake()->unique()->numberBetween(1, 99999),
             'is_active' => true,
+            /*
+            | A factory category has no children, so under the old leaf rule it
+            | accepted products — this default keeps that true after ADR-047.
+            | A test that wants a REFUSING container says so with `container()`,
+            | because since ADR-047 having children no longer implies it.
+            */
+            'accepts_products' => true,
             'position' => 0,
         ];
     }
@@ -70,5 +77,17 @@ final class CategoryFactory extends Factory
     public function inactive(): static
     {
         return $this->state(fn (): array => ['is_active' => false]);
+    }
+
+    /**
+     * A category that refuses products — a top-level container (ADR-047).
+     *
+     * Explicit, because having children no longer implies it: a test that wants
+     * *Kozmetik* to refuse while *Makyaj* under it accepts has to say which is
+     * which, and that is the behaviour the flag exists to make sayable.
+     */
+    public function container(): static
+    {
+        return $this->state(fn (): array => ['accepts_products' => false]);
     }
 }
