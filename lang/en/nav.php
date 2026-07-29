@@ -8,6 +8,8 @@ declare(strict_types=1);
 */
 
 return [
+    'users' => 'Users',
+    'team' => 'Team',
     'catalogue' => 'Catalogue',
     'sales' => 'Sales',
     'orders' => 'Orders',

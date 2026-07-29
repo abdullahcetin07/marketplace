@@ -34,6 +34,8 @@ return [
     'cannot_impersonate_self' => 'You cannot impersonate yourself.',
     'cannot_impersonate_admin' => 'Administrator accounts cannot be impersonated.',
     'cannot_modify_super_admin' => 'You cannot act on a super administrator account.',
+    // You may grant and revoke up to your own level, never above it.
+    'cannot_grant_role' => 'You cannot grant the role: :role',
     'session_not_found' => 'That session no longer exists or has already been revoked.',
     // One reason for every failure mode — expired, used, wrong address — so a
     // guessed token cannot confirm an address exists.

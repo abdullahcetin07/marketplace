@@ -35,6 +35,8 @@ return [
     'cannot_impersonate_self' => 'Kendi hesabınıza giriş yapamazsınız.',
     'cannot_impersonate_admin' => 'Bir yönetici hesabına giriş yapılamaz.',
     'cannot_modify_super_admin' => 'Süper yönetici hesabı üzerinde işlem yapamazsınız.',
+    // Kendi seviyenizin üzerinde bir rol veremez veya alamazsınız.
+    'cannot_grant_role' => 'Bu rolü veremezsiniz: :role',
     'session_not_found' => 'Oturum bulunamadı veya zaten sonlandırılmış.',
     // Her hata için tek bir gerekçe — tahmin edilen bir kod, adresin var olup
     // olmadığını doğrulayamasın.

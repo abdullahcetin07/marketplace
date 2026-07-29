@@ -143,6 +143,36 @@ final class UserPolicy extends BasePolicy
         return $this->ability($user, 'user.reset_password');
     }
 
+    /*
+    |--------------------------------------------------------------------------
+    | Area abilities — which account SURFACE an operator may open
+    |--------------------------------------------------------------------------
+    |
+    | The admin panel splits accounts into three areas by actor type, and the
+    | three are not the same job: provisioning colleagues and granting them
+    | staff roles is not the same power as answering a merchant's ticket. One
+    | `user.view_any` grant could not express that difference — it opened all
+    | three at once — so each area carries its own ability.
+    |
+    | These gate the AREA. Every per-record decision still goes through the
+    | abilities above, including the super-admin escalation guard.
+    */
+
+    public function manageStaff(User $user): Response
+    {
+        return $this->ability($user, 'user.manage_staff');
+    }
+
+    public function overseeSellers(User $user): Response
+    {
+        return $this->ability($user, 'user.oversee_sellers');
+    }
+
+    public function overseeCustomers(User $user): Response
+    {
+        return $this->ability($user, 'user.oversee_customers');
+    }
+
     protected function permissionPrefix(): string
     {
         return 'user';

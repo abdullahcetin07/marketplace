@@ -122,6 +122,14 @@ final class RolePermissionSeeder extends Seeder
             'panel.admin.access',
             'user.reset_password',
             'user.view_login_history',
+            /*
+            | The two OVERSIGHT areas of the admin panel, and deliberately not
+            | the staff one: a helpdesk answers merchants' and shoppers'
+            | tickets, it does not provision colleagues or grant staff roles.
+            | @see App\Modules\Identity\Presentation\Policies\UserPolicy
+            */
+            'user.oversee_sellers',
+            'user.oversee_customers',
             // Support are the front line for account-takeover reports, so they
             // receive the platform security alerts (Q6).
             'security.receive_alerts',

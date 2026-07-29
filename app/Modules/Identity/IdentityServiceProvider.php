@@ -128,6 +128,22 @@ final class IdentityServiceProvider extends ServiceProvider
         PermissionRegistry::ability('user.view_login_history', [UserType::Admin]);
         PermissionRegistry::ability('user.assign_roles', [UserType::Admin]);
 
+        /*
+        | The three account AREAS of the admin panel, each its own ability.
+        |
+        | `user.view_any` cannot express the distinction: it is one grant that
+        | opens every account of every type. Provisioning colleagues and
+        | granting them staff roles ("my team") is a different job from
+        | answering a merchant's or a shopper's ticket, and the roles that do
+        | those jobs are different people. Support gets the two oversight
+        | areas and not the staff one — a helpdesk does not hire.
+        |
+        | @see App\Modules\Identity\Presentation\Filament\Resources\AccountResource
+        */
+        PermissionRegistry::ability('user.manage_staff', [UserType::Admin]);
+        PermissionRegistry::ability('user.oversee_sellers', [UserType::Admin]);
+        PermissionRegistry::ability('user.oversee_customers', [UserType::Admin]);
+
         // Who receives platform security alerts (Q6). A first-level
         // authorization gate, deliberately NOT part of an admin's broad grant:
         // it is assigned to the security responders, so alerting scales to

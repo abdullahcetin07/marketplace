@@ -555,6 +555,79 @@ Existing permissions suffice: `user.*` resource verbs plus `user.impersonate`,
 `DevicePolicy`. `UserSessionPolicy` currently doubles for devices; a distinct
 policy is clearer now that devices get their own endpoints.
 
+## 12.1 Panel area abilities (post-freeze, Presentation only)
+
+`user.manage_staff`, `user.oversee_sellers`, `user.oversee_customers` — one per
+admin-panel account **area** (§12.2). They gate the *surface*, never a record:
+every per-record decision still runs through the abilities above, including the
+super-admin escalation guard.
+
+**Why they exist.** `user.view_any` is a single grant that opens every account
+of every type at once, so it cannot express the one distinction the split is
+about: provisioning colleagues and granting them staff roles is not the same job
+as answering a merchant's ticket. Super Admin and Admin hold all three; Support
+holds the two oversight abilities and **not** the staff one — a helpdesk does
+not hire.
+
+**Cost.** Editor and Finance hold `user.view_any` for the API and now see no
+account area in the panel; their API access is unchanged. If either is expected
+to browse accounts in the panel, grant them the oversight abilities explicitly
+in `RolePermissionSeeder`.
+
+## 12.2 The admin panel's account areas
+
+**Change category: "explicitly required by a later module" — an owner-approved
+UX refinement, Presentation only.** No Domain, `app/Models` or Application code
+was touched; every write still routes through `AdminUpdateUserAction`,
+`RequestPasswordResetAction` and `TwoFactorService`, and every decision through
+`UserPolicy`.
+
+The single all-users `UserResource` became three type-scoped resources sharing
+an abstract `AccountResource`, under one **Kullanıcılar** navigation group:
+
+| Area | Model | What it can do |
+|---|---|---|
+| **Personel** (`StaffResource`) | `Admin` | List, view, **create**, edit, grant **staff roles**, suspend/reinstate |
+| **Satıcılar** (`SellerResource`) | `Seller` | List, view, login history, suspend/reinstate, password reset, clear 2FA |
+| **Müşteriler** (`CustomerResource`) | `Customer` | The same oversight set as Satıcılar |
+
+**Why three resources and not one filter.** One list treated an administrator, a
+merchant and a shopper as the same object with a different `type`, so every
+control it offered had to be offered against all three. A staff role means
+nothing on a merchant account, and a merchant's team is the merchant's to manage
+(Organization §Ekip). Splitting by actor type is what makes each area's control
+set honest — the oversight areas carry no role assignment because there is
+nothing there to assign, not because a callback hid it.
+
+**Staff creation and the escalation guard.** Creation mirrors
+`marketplace:create-admin` exactly — same columns, same resolved locale
+defaults, same `email_verified_at` stamp — because `RegisterUserAction` refuses
+admins outright and there is no admin-creation action to reuse. The guard runs
+twice: `UserPolicy` refuses a non-super-admin acting on a super-admin (the
+existing rule, which covers every edit), and `StaffResource::assertRolesGrantable()`
+refuses the **role** — Super Admin is absent from the options unless the actor
+holds it, and the assertion rejects a forged payload. Hiding an option is a
+courtesy; the assertion is the control.
+
+**Cost.** `AccountResource` is an abstract Filament resource, which is one
+indirection more than three flat classes. The alternative was triplicating the
+table, the two security actions and the suspend/reinstate pair, where a fix
+applied to two of three copies is the likely failure.
+
+### Follow-ups (deliberately not built)
+
+1. **Organization memberships on the Satıcılar detail.** Specified, then cut:
+   Identity may not import Organization (`LayeringTest`), and the sanctioned
+   cross-context path — extending `OrganizationAuthorizationContract` — is a
+   Core/Organization change this Presentation-only change was not authorised to
+   make. Owner-approved as a follow-up. When it lands it must be a read method
+   on that contract returning plain arrays, never an import and never a raw read
+   of Organization's tables.
+2. **Set-password invitation for new staff.** Mail is not configured, so the
+   operator sets an initial `StrongPassword::staff()` password, as the CLI does.
+   Core's invitation infrastructure (ADR-031) is org-scoped today; forcing it
+   here would be the wrong shape.
+
 ---
 
 # 13. Testing plan

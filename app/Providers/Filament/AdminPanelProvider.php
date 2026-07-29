@@ -8,7 +8,9 @@ use App\Modules\Catalog\Presentation\Filament\Resources\AttributeResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\BrandResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource;
-use App\Modules\Identity\Presentation\Filament\Resources\UserResource;
+use App\Modules\Identity\Presentation\Filament\Resources\CustomerResource;
+use App\Modules\Identity\Presentation\Filament\Resources\SellerResource;
+use App\Modules\Identity\Presentation\Filament\Resources\StaffResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
 use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequestResource;
 use App\Modules\Store\Presentation\Filament\Resources\StoreResource;
@@ -81,7 +83,17 @@ final class AdminPanelProvider extends PanelProvider
             | it at all. Each new module adds its admin resources to this list.
             */
             ->resources([
-                UserResource::class,
+                /*
+                | Accounts, split by ACTOR TYPE rather than filtered in one
+                | list. Each area offers only the controls that mean something
+                | for its type — staff roles are granted under Personel and
+                | nowhere else, and a seller's team is managed in the seller
+                | panel, not here.
+                */
+                StaffResource::class,
+                SellerResource::class,
+                CustomerResource::class,
+
                 OrganizationResource::class,
                 StoreOpeningRequestResource::class,
                 StoreResource::class,
@@ -108,6 +120,7 @@ final class AdminPanelProvider extends PanelProvider
             | order as they are added, rather than in registration order.
             */
             ->navigationGroups([
+                NavigationGroup::make()->label(__('nav.users')),
                 NavigationGroup::make()->label(__('nav.catalogue')),
                 NavigationGroup::make()->label(__('nav.sales')),
                 NavigationGroup::make()->label(__('nav.sellers')),
