@@ -24,6 +24,7 @@ use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as Admi
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreLifecycleController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreProfileController;
+use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
 use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
 use Illuminate\Support\Facades\Route;
 
@@ -96,6 +97,19 @@ Route::prefix('v1')
                 Route::get($segment.'/{slug}', [PublicStoreController::class, 'show'])
                     ->name('storefront.'.$segment);
             }
+
+            /*
+            | "Who sells this, and for how much" (Offer §5) — the buy box,
+            | computed on every read (ADR-045). Same throttle and same rules as
+            | the storefront above: anonymous, uuid-resolved, live stores only.
+            |
+            | Deliberately `/offers` rather than a bare `/products/{uuid}`: the
+            | product page itself belongs to a future Catalog public surface,
+            | and squatting on that path now would make it a breaking change to
+            | build. This route answers only the question Offer owns.
+            */
+            Route::get('products/{product}/offers', [PublicProductOfferController::class, 'show'])
+                ->name('storefront.product.offers');
         });
 
         /*

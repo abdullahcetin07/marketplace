@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Offer;
 
 use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Core\Support\StorefrontRegistry;
 use App\Modules\Offer\Application\Listeners\PauseOffersOnProductArchived;
 use App\Modules\Offer\Application\Listeners\ResumeOffersOnProductPublished;
 use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
@@ -12,6 +13,7 @@ use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
 use App\Modules\Offer\Infrastructure\Repositories\OfferRepository;
 use App\Modules\Offer\Presentation\Policies\OfferPolicy;
+use App\Modules\Offer\Presentation\Storefront\OfferStorefrontContributor;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
@@ -71,6 +73,15 @@ final class OfferServiceProvider extends ServiceProvider
         Gate::policy(Offer::class, OfferPolicy::class);
 
         $this->subscribeToProductLifecycle();
+
+        /*
+        | The storefront product-listing contributor ADR-041 deferred, now
+        | fulfilled (ADR-046). Registering a CLASS-STRING with the Core registry
+        | is the whole of the coupling: Store composes this section without ever
+        | naming Offer, and Offer never imports Store. The dependency points
+        | from the contributor to the seam, exactly as ADR-036 designed it.
+        */
+        StorefrontRegistry::register(OfferStorefrontContributor::class);
     }
 
     /**

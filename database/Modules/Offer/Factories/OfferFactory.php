@@ -42,7 +42,15 @@ final class OfferFactory extends Factory
             // Between ₺10 and ₺5.000, in kuruş. Never a float.
             'price_minor' => fake()->numberBetween(1_000, 500_000),
             'list_price_minor' => null,
-            'currency_id' => Currency::query()->value('id') ?? Currency::factory(),
+            /*
+            | The PLATFORM DEFAULT, not "whichever currency row is first". An
+            | offer is priced in the platform default this sprint (§13.1), and a
+            | factory that picked an arbitrary currency would make every money
+            | assertion depend on seeding order.
+            */
+            'currency_id' => Currency::query()->where('is_default', true)->value('id')
+                ?? Currency::query()->value('id')
+                ?? Currency::factory(),
             'stock_quantity' => fake()->numberBetween(1, 50),
             'status' => OfferStatus::Active,
             'status_before_suspension' => null,
