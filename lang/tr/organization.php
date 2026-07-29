@@ -179,11 +179,16 @@ return [
 
         'role_changed' => 'Üyenin rolü güncellendi.',
         'removed' => 'Üye ekipten çıkarıldı.',
+        'deactivated' => 'Üye pasife alındı.',
+        'reactivated' => 'Üye yeniden aktif edildi.',
         'invitation_cancelled' => 'Davet geri çekildi.',
 
         'action' => [
             'invite' => 'Ekibe davet et',
             'change_role' => 'Rolü değiştir',
+            'deactivate' => 'Pasife al',
+            'deactivate_confirm' => 'Üye şirketinizde işlem yapamaz. Rolü ve kaydı korunur; istediğinizde tek tıkla geri açarsınız.',
+            'reactivate' => 'Yeniden aktif et',
             'remove' => 'Ekipten çıkar',
             'remove_confirm' => 'Bu kişi şirketinize artık erişemez. Kayıt silinmez, denetim izi korunur.',
             'resend' => 'Daveti yeniden gönder',

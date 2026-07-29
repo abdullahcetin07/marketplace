@@ -179,11 +179,16 @@ return [
 
         'role_changed' => 'The member’s role has been updated.',
         'removed' => 'The member has been removed from the team.',
+        'deactivated' => 'The member has been deactivated.',
+        'reactivated' => 'The member is active again.',
         'invitation_cancelled' => 'The invitation has been withdrawn.',
 
         'action' => [
             'invite' => 'Invite to the team',
             'change_role' => 'Change role',
+            'deactivate' => 'Deactivate',
+            'deactivate_confirm' => 'The member cannot act in your company. Their role and record are kept — reactivating is one click.',
+            'reactivate' => 'Reactivate',
             'remove' => 'Remove from team',
             'remove_confirm' => 'This person loses access to your company. Nothing is deleted — the audit trail is kept.',
             'resend' => 'Resend invitation',

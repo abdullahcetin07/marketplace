@@ -54,6 +54,27 @@ final class OrganizationMemberPolicy
         return $this->decide($user, $target, OrganizationCapability::MemberUpdateRole);
     }
 
+    /**
+     * Freezing or thawing a membership (§2.2).
+     *
+     * Gated on `MemberRemove`, not `MemberUpdateRole`. Deactivation and removal
+     * are the same POWER — both stop the person acting — and differ only in
+     * being reversible; anyone trusted to remove a colleague is trusted to
+     * pause them, and someone trusted only to re-role people is not.
+     *
+     * The Owner is refused before the capability check, exactly as removal is:
+     * an Owner who cannot act, with nobody able to transfer ownership away, is
+     * the deadlock ADR-029 exists to prevent.
+     */
+    public function changeStatus(User $user, OrganizationMember $target): Response
+    {
+        if ($target->isOwner()) {
+            return Response::deny(__('errors.forbidden'));
+        }
+
+        return $this->decide($user, $target, OrganizationCapability::MemberRemove);
+    }
+
     public function remove(User $user, OrganizationMember $target): Response
     {
         // The Owner can never be removed (ADR-029) — deny before the capability

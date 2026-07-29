@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Organization\Presentation\Filament\Seller\Resources;
 
 use App\Modules\Organization\Application\Actions\ChangeMemberRoleAction;
+use App\Modules\Organization\Application\Actions\ChangeMemberStatusAction;
 use App\Modules\Organization\Application\Actions\InviteMemberAction;
 use App\Modules\Organization\Application\Actions\RemoveMemberAction;
 use App\Modules\Organization\Domain\Contracts\OrganizationMemberRepositoryContract;
@@ -164,6 +165,8 @@ final class TeamMemberResource extends Resource
             ])
             ->actions([
                 static::changeRoleAction(),
+                static::deactivateAction(),
+                static::reactivateAction(),
                 static::removeAction(),
             ])
             // Removing a colleague is a per-row decision with a reason. There is
@@ -271,9 +274,76 @@ final class TeamMemberResource extends Resource
     }
 
     /**
+     * Freeze a membership without ending it (§2.2).
+     *
+     * THE MIDDLE GROUND BETWEEN A ROLE CHANGE AND A REMOVAL. Somebody on leave,
+     * a contractor between engagements, an account under internal review — all
+     * of them want "cannot act right now", and removal is the wrong instrument
+     * because undoing it costs a fresh invitation and the person's role.
+     */
+    private static function deactivateAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('deactivate')
+            ->label(__('organization.team.action.deactivate'))
+            ->icon('heroicon-o-pause-circle')
+            ->color('warning')
+            ->requiresConfirmation()
+            ->modalDescription(__('organization.team.action.deactivate_confirm'))
+            ->form([
+                Forms\Components\Textarea::make('reason')
+                    ->label(__('organization.team.reason'))
+                    ->helperText(__('organization.team.reason_help'))
+                    ->maxLength(500),
+            ])
+            ->visible(fn (OrganizationMember $record): bool => ! $record->isOwner()
+                && $record->status === OrganizationMemberStatus::Active
+                && auth()->user()?->can('changeStatus', $record) === true)
+            ->action(function (OrganizationMember $record, array $data): void {
+                app(ChangeMemberStatusAction::class)->run(
+                    $record,
+                    OrganizationMemberStatus::Suspended,
+                    static::reason($data),
+                );
+
+                Notification::make()->title(__('organization.team.deactivated'))->success()->send();
+            });
+    }
+
+    private static function reactivateAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('reactivate')
+            ->label(__('organization.team.action.reactivate'))
+            ->icon('heroicon-o-play-circle')
+            ->color('success')
+            ->requiresConfirmation()
+            ->form([
+                Forms\Components\Textarea::make('reason')
+                    ->label(__('organization.team.reason'))
+                    ->maxLength(500),
+            ])
+            ->visible(fn (OrganizationMember $record): bool => ! $record->isOwner()
+                && $record->status === OrganizationMemberStatus::Suspended
+                && auth()->user()?->can('changeStatus', $record) === true)
+            ->action(function (OrganizationMember $record, array $data): void {
+                // The role survived the freeze, so thawing restores exactly the
+                // access they had — no re-invitation, no re-assignment.
+                app(ChangeMemberStatusAction::class)->run(
+                    $record,
+                    OrganizationMemberStatus::Active,
+                    static::reason($data),
+                );
+
+                Notification::make()->title(__('organization.team.reactivated'))->success()->send();
+            });
+    }
+
+    /**
      * Remove a colleague. A soft delete through the action, so who removed whom
      * — and why — survives in the audit trail. The Owner can never be removed
      * (ADR-029).
+     *
+     * KEPT alongside deactivation: they are different endings. This one is
+     * final and frees the person from the roster; the other is a pause.
      */
     private static function removeAction(): Tables\Actions\Action
     {
