@@ -22,6 +22,7 @@ use App\Shared\Enums\UserType;
 use Filament\Facades\Filament;
 use Illuminate\Auth\Access\AuthorizationException;
 use Livewire\Livewire;
+use Spatie\Permission\Models\Role;
 
 /*
 |--------------------------------------------------------------------------
@@ -320,22 +321,67 @@ it('reinstates a suspended customer from the oversight area', function (): void 
 |--------------------------------------------------------------------------
 */
 
-it('gates the staff area on user.manage_staff and the oversight areas on their own abilities', function (): void {
-    // Support: the helpdesk. Oversees merchants and shoppers; does not hire.
-    $support = $this->actingAsAdmin();
-    $support->syncRoles([config('marketplace.roles.support')]);
-    $support->refresh()->loadMissing('roles.permissions', 'permissions');
+/**
+ * Which areas a role may open. The staff column is the one that matters: it is
+ * the difference between reading an account and provisioning a colleague, and
+ * only the two administrator roles hold it.
+ */
+dataset('area access by role', [
+    'super_admin' => ['super_admin', true, true, true],
+    'admin' => ['admin', true, true, true],
+    // Support answers tickets, Editor maintains content, Finance reconciles.
+    // All three read accounts; none of them hires.
+    'support' => ['support', false, true, true],
+    'editor' => ['editor', false, true, true],
+    'finance' => ['finance', false, true, true],
+    // A taxonomy editor is not an administrator — no account area at all.
+    'category_manager' => ['category_manager', false, false, false],
+]);
 
-    expect(StaffResource::canViewAny())->toBeFalse()
-        ->and(SellerResource::canViewAny())->toBeTrue()
-        ->and(CustomerResource::canViewAny())->toBeTrue();
+it('gates each account area on its own ability', function (
+    string $roleKey,
+    bool $staff,
+    bool $sellers,
+    bool $customers,
+): void {
+    $admin = $this->actingAsAdmin();
+    $admin->syncRoles([config("marketplace.roles.{$roleKey}")]);
+    $admin->refresh()->loadMissing('roles.permissions', 'permissions');
 
-    // Admin holds all three.
-    asPlatformAdmin($support);
+    expect(StaffResource::canViewAny())->toBe($staff)
+        ->and(SellerResource::canViewAny())->toBe($sellers)
+        ->and(CustomerResource::canViewAny())->toBe($customers);
+})->with('area access by role');
 
-    expect(StaffResource::canViewAny())->toBeTrue()
-        ->and(SellerResource::canViewAny())->toBeTrue()
-        ->and(CustomerResource::canViewAny())->toBeTrue();
+it('never grants user.manage_staff outside the two administrator roles', function (): void {
+    /**
+     * The seeder's grant, read straight off the role. Asserted separately from
+     * the resource gates above because the two can drift: a resource could stop
+     * checking the ability and every `canViewAny` case would still pass.
+     */
+    $granted = static function (string $roleKey): bool {
+        $role = Role::findByName(config("marketplace.roles.{$roleKey}"), UserType::Admin->guard());
+
+        return $role->permissions->pluck('name')->contains('user.manage_staff');
+    };
+
+    foreach (['support', 'editor', 'finance', 'category_manager'] as $roleKey) {
+        expect($granted($roleKey))->toBeFalse("{$roleKey} must not be able to provision staff");
+    }
+
+    foreach (['super_admin', 'admin'] as $roleKey) {
+        expect($granted($roleKey))->toBeTrue("{$roleKey} provisions staff");
+    }
+});
+
+it('grants both oversight abilities to every role that reads accounts', function (): void {
+    foreach (['super_admin', 'admin', 'support', 'editor', 'finance'] as $roleKey) {
+        $names = Role::findByName(config("marketplace.roles.{$roleKey}"), UserType::Admin->guard())
+            ->permissions->pluck('name');
+
+        expect($names)->toContain('user.oversee_sellers')
+            ->and($names)->toContain('user.oversee_customers');
+    }
 });
 
 /*

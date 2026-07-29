@@ -565,14 +565,28 @@ super-admin escalation guard.
 **Why they exist.** `user.view_any` is a single grant that opens every account
 of every type at once, so it cannot express the one distinction the split is
 about: provisioning colleagues and granting them staff roles is not the same job
-as answering a merchant's ticket. Super Admin and Admin hold all three; Support
-holds the two oversight abilities and **not** the staff one — a helpdesk does
-not hire.
+as reading an account.
 
-**Cost.** Editor and Finance hold `user.view_any` for the API and now see no
-account area in the panel; their API access is unchanged. If either is expected
-to browse accounts in the panel, grant them the oversight abilities explicitly
-in `RolePermissionSeeder`.
+| Role | manage_staff | oversee_sellers | oversee_customers |
+|---|---|---|---|
+| Super Admin | ✅ | ✅ | ✅ |
+| Admin | ✅ | ✅ | ✅ |
+| Support | — | ✅ | ✅ |
+| Editor | — | ✅ | ✅ |
+| Finance | — | ✅ | ✅ |
+| Category Manager | — | — | — |
+
+`user.manage_staff` stops at Super Admin and Admin. Support, Editor and Finance
+all hold `user.view_any` and keep it meaning something in the panel — the
+oversight areas — but none of them hires: a helpdesk answers tickets, an editor
+maintains content and finance reconciles. Reading an account and provisioning a
+colleague are different powers, and that is the whole line the three abilities
+draw.
+
+**Cost.** Three abilities to keep in sync in `RolePermissionSeeder` where there
+was one. A role granted `user.view_any` and no area ability reads accounts over
+the API and sees nothing in the panel — which is a legitimate combination, but
+it is silent, so it has to be a deliberate choice rather than an oversight.
 
 ## 12.2 The admin panel's account areas
 

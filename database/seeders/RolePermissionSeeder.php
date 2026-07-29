@@ -87,6 +87,15 @@ final class RolePermissionSeeder extends Seeder
             // Reads the catalog to maintain its copy; does not own the taxonomy
             // and does not moderate — those are the Category Manager's.
             'catalog.products.view_any',
+            /*
+            | The two OVERSIGHT areas, so `user.view_any` keeps meaning
+            | something in the panel and not only over the API — the account
+            | split gates each area on its own ability (Identity §12.1).
+            | NOT user.manage_staff: reading an account to maintain content is
+            | not the same power as provisioning a colleague.
+            */
+            'user.oversee_sellers',
+            'user.oversee_customers',
             ...PermissionRegistry::forResource('user', ['view_any', 'view']),
             ...PermissionRegistry::forResource('translation', ['view_any', 'view', 'update']),
             ...PermissionRegistry::forResource('setting', ['view_any', 'view']),
@@ -150,6 +159,14 @@ final class RolePermissionSeeder extends Seeder
             'audit.view_any',
             'audit.view',
             'audit.export',
+            /*
+            | The two OVERSIGHT areas — reconciliation reads accounts, and
+            | `user.view_any` alone no longer opens one in the panel (Identity
+            | §12.1). NOT user.manage_staff: finance reads accounts, it does not
+            | provision colleagues or grant staff roles.
+            */
+            'user.oversee_sellers',
+            'user.oversee_customers',
             ...PermissionRegistry::forResource('currency', ['view_any', 'view', 'update']),
             ...PermissionRegistry::forResource('user', ['view_any', 'view']),
         ]);
