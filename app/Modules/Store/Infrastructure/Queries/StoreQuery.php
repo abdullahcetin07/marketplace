@@ -39,4 +39,28 @@ final class StoreQuery implements StoreQueryContract
 
         return $id === null ? null : (int) $id;
     }
+
+    /**
+     * Added for Offer (§3.4) — see the contract for why the store → org
+     * direction above could not answer it.
+     *
+     * `Active` rather than any other liveness notion, deliberately reusing
+     * `isLive()`'s definition: a downstream module and the public storefront
+     * must agree on what "live" means, or a seller could list under a store no
+     * buyer can reach.
+     *
+     * @return array<int, string>
+     */
+    public function liveStoreUuidsForOrganization(int $organizationId): array
+    {
+        /** @var array<int, string> $uuids */
+        $uuids = Store::query()
+            ->where('organization_id', $organizationId)
+            ->where('status', StoreStatus::Active->value)
+            ->orderBy('id')
+            ->pluck('uuid')
+            ->all();
+
+        return $uuids;
+    }
 }

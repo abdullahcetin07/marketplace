@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog;
 
+use App\Core\Domain\Contracts\CatalogBrowseContract;
 use App\Core\Domain\Contracts\CatalogQueryContract;
 use App\Modules\Catalog\Application\Listeners\SyncProductSearchIndex;
 use App\Modules\Catalog\Domain\Contracts\AttributeRepositoryContract;
@@ -16,6 +17,7 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultCatalogSlugGenerator;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultSkuGenerator;
+use App\Modules\Catalog\Infrastructure\Queries\CatalogBrowse;
 use App\Modules\Catalog\Infrastructure\Queries\CatalogQuery;
 use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
@@ -69,6 +71,15 @@ final class CatalogServiceProvider extends ServiceProvider
         // truth for what is in the catalog; Offer, Inventory and Search ask
         // through this Core contract instead of importing Catalog.
         $this->app->singleton(CatalogQueryContract::class, CatalogQuery::class);
+
+        /*
+        | The seller-facing browse port (ADR-046, Offer.md §8.2) — the one
+        | change the Offer sprint makes to this module, and the reason Phase 1
+        | was left unfrozen. A read contract only: no schema change, no new
+        | model, nothing Catalog now depends on. Offer asks "what may I sell?"
+        | through it and still imports nothing.
+        */
+        $this->app->singleton(CatalogBrowseContract::class, CatalogBrowse::class);
 
         $this->registerPermissions();
     }

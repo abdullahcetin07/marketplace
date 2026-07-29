@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Offer;
 
+use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
+use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
+use App\Modules\Offer\Infrastructure\Repositories\OfferRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -38,7 +42,16 @@ final class OfferServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(OfferRepositoryContract::class, OfferRepository::class);
+
+        /*
+        | The downstream read port (ADR-046). Offer is the single source of
+        | truth for price and stock; Order, Search and the storefront ask
+        | through this Core contract instead of importing Offer. It resolves
+        | StoreQueryContract itself — the buy box's third eligibility condition
+        | ("is the seller's store live") is Store's to answer.
+        */
+        $this->app->singleton(OfferQueryContract::class, OfferQuery::class);
     }
 
     public function boot(): void
