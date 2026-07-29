@@ -139,6 +139,13 @@ final class RolePermissionSeeder extends Seeder
             */
             'user.oversee_sellers',
             'user.oversee_customers',
+            /*
+            | Offers, read-only. A helpdesk answering "why is my listing not
+            | showing?" needs to see the offer and its status; pulling it is a
+            | different power and stays with Admin (ADR-044).
+            */
+            'offer.view_any',
+            'offer.view',
             // Support are the front line for account-takeover reports, so they
             // receive the platform security alerts (Q6).
             'security.receive_alerts',

@@ -5,9 +5,17 @@ declare(strict_types=1);
 namespace App\Modules\Offer;
 
 use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Modules\Offer\Application\Listeners\PauseOffersOnProductArchived;
+use App\Modules\Offer\Application\Listeners\ResumeOffersOnProductPublished;
 use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
+use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
 use App\Modules\Offer\Infrastructure\Repositories\OfferRepository;
+use App\Modules\Offer\Presentation\Policies\OfferPolicy;
+use App\Shared\Enums\UserType;
+use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -52,10 +60,70 @@ final class OfferServiceProvider extends ServiceProvider
         | ("is the seller's store live") is Store's to answer.
         */
         $this->app->singleton(OfferQueryContract::class, OfferQuery::class);
+
+        $this->registerPermissions();
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Offer/migrations'));
+
+        Gate::policy(Offer::class, OfferPolicy::class);
+
+        $this->subscribeToProductLifecycle();
+    }
+
+    /**
+     * The product-lifecycle cascade (§3.5), subscribed BY CLASS-STRING.
+     *
+     * This is the one place the boundary is visible as a compromise rather than
+     * a rule. Offer imports no module and Catalog is on the forbidden list with
+     * no events escape hatch (`LayeringTest`), so it cannot name
+     * `ProductArchived` as a class — it names it as a string and reads
+     * `productUuid` off a plain object.
+     *
+     * WHY NOT GIVE CATALOG AN ESCAPE HATCH like Audit and Activity have? Because
+     * those are consumers by nature — they subscribe to everything and never
+     * act on a producer's data. Offer is a peer: relaxing the rule for one event
+     * class would make the next Catalog import an argument rather than a build
+     * failure, and this module's whole value is that it can be reasoned about
+     * without reading Catalog.
+     *
+     * The cost is that a rename in Catalog breaks this at runtime, not at build
+     * time. It is bounded by a feature test that fires the real events and
+     * asserts the offers moved.
+     */
+    private function subscribeToProductLifecycle(): void
+    {
+        Event::listen(
+            'App\Modules\Catalog\Domain\Events\ProductArchived',
+            [PauseOffersOnProductArchived::class, 'handle'],
+        );
+
+        Event::listen(
+            'App\Modules\Catalog\Domain\Events\ProductPublished',
+            [ResumeOffersOnProductPublished::class, 'handle'],
+        );
+    }
+
+    /**
+     * Permissions are DERIVED from a resource registration, never hand-listed.
+     *
+     * ADMIN ONLY, and that is the substance of it: `offer.*` is a cross-org
+     * platform power. A seller's authority over their own offers is an
+     * ORGANIZATION CAPABILITY resolved through the Core contract (§9), not a
+     * Spatie permission — Spatie `teams` is false, so a seller-guard
+     * `offer.update` could not be scoped to one company and would grant it over
+     * everyone's.
+     */
+    private function registerPermissions(): void
+    {
+        PermissionRegistry::resource('offer', [UserType::Admin]);
+
+        // Reactive oversight (ADR-044) — the counterweight to shipping offers
+        // unmoderated. Separated from the CRUD verbs because pulling a
+        // merchant's listing is a different power from reading one.
+        PermissionRegistry::ability('offer.suspend', [UserType::Admin]);
+        PermissionRegistry::ability('offer.reinstate', [UserType::Admin]);
     }
 }
