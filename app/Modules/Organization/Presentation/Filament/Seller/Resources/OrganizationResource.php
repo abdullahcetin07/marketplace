@@ -12,6 +12,7 @@ use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationPlan;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource\Pages;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource\RelationManagers;
+use App\Modules\Organization\Presentation\Filament\Seller\Support\StoreProposal;
 use App\Shared\Enums\UserType;
 use Filament\Forms;
 use Filament\Infolists;
@@ -162,6 +163,26 @@ final class OrganizationResource extends Resource
                     ->all())
                 ->rule(Rule::exists('organization_plans', 'slug')->where('is_active', true))
                 ->visibleOn('create'),
+
+            /*
+            | ONBOARDING IS ONE STEP (owner-approved reflow). A seller who
+            | registered a company and then had to find a second form had not
+            | finished onboarding — they had finished the paperwork. Registering
+            | is asking to sell, so the store comes with it.
+            |
+            | REQUIRED, not optional: an organization with no store request is a
+            | company that cannot do anything, and every seller who reached this
+            | form wants one. An ADDITIONAL store is asked for later, from
+            | "Mağazalarım".
+            |
+            | ADR-028 IS UNTOUCHED. This produces a REQUEST. The store is
+            | created only when an admin approves it.
+            */
+            Forms\Components\Section::make(__('organization.store_request.section'))
+                ->description(__('organization.store_request.section_hint'))
+                ->schema(StoreProposal::fields())
+                ->visibleOn('create')
+                ->columnSpanFull(),
         ]);
     }
 

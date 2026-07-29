@@ -11,6 +11,7 @@ declare(strict_types=1);
 return [
 
     'registered' => 'Your organization has been registered and is pending review.',
+    'registered_with_store_request' => 'Your company has been registered and your store request created. You can send it for review once your company is approved.',
     'kyc_submitted' => 'Your company details have been submitted for review.',
     'ownership_transferred' => 'Ownership has been transferred.',
     'invitation_sent' => 'The invitation has been sent.',
@@ -129,6 +130,10 @@ return [
         'singular' => 'Store opening request',
         'plural' => 'Store opening requests',
         'name' => 'Store name',
+        'name_hint' => 'Must be unique across the platform. Customers look for your shop by this name.',
+        'name_taken' => 'That store name is already in use or claimed by a pending request. Choose another.',
+        'section' => 'Store details',
+        'section_hint' => 'Your first store request is raised together with your company. The store opens once the review team approves it.',
         'slug' => 'Store address',
         'slug_hint' => 'Letters, digits and dashes only. Your store will be reachable at /store/this-address.',
         'organization_hint' => 'The company the store will trade under.',

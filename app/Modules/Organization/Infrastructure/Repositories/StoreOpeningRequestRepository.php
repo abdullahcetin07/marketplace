@@ -62,4 +62,21 @@ final class StoreOpeningRequestRepository implements StoreOpeningRequestReposito
             ->orderBy('submitted_at')
             ->paginate(min($perPage, (int) config('marketplace.pagination.max_per_page', 100)));
     }
+
+    /**
+     * @see StoreOpeningRequestRepositoryContract::storeNameClaimed()
+     */
+    public function storeNameClaimed(string $storeName, ?int $exceptId = null): bool
+    {
+        return StoreOpeningRequest::query()
+            // LOWER on both sides, the same expression the stores unique index
+            // uses, so "Beko" and "beko" are one name on both surfaces.
+            ->whereRaw('LOWER(store_name) = LOWER(?)', [trim($storeName)])
+            ->whereIn('status', [
+                StoreOpeningRequestStatus::Draft->value,
+                StoreOpeningRequestStatus::Pending->value,
+            ])
+            ->when($exceptId !== null, fn ($query) => $query->whereKeyNot($exceptId))
+            ->exists();
+    }
 }

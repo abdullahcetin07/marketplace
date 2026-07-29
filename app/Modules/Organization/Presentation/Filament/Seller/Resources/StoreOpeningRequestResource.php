@@ -12,6 +12,7 @@ use App\Modules\Organization\Domain\Exceptions\StoreOpeningException;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource\Pages;
+use App\Modules\Organization\Presentation\Filament\Seller\Support\StoreProposal;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -88,6 +89,20 @@ final class StoreOpeningRequestResource extends Resource
         return true;
     }
 
+    /**
+     * THE FORM SURVIVES; ITS ENTRY POINT MOVED (owner-approved reflow).
+     *
+     * A seller's FIRST store is requested with their company, on the onboarding
+     * form. An ADDITIONAL one is requested from "Mağazalarım", where a seller
+     * looking at their stores is already thinking about stores — that page
+     * links here. What this resource no longer advertises is a "new request"
+     * button of its own: it became what it always mostly was, the STATUS view
+     * (pending / approved / rejected) plus submit and withdraw.
+     *
+     * The page is kept rather than duplicated into Store's panel because Store
+     * may not import Organization (ADR-033). The link is a route name; the form
+     * stays owned by the module that owns the request.
+     */
     public static function canCreate(): bool
     {
         return self::organizationsThatMayRequest() !== [];
@@ -129,7 +144,11 @@ final class StoreOpeningRequestResource extends Resource
             Forms\Components\TextInput::make('store_name')
                 ->label(__('organization.store_request.name'))
                 ->required()
-                ->maxLength(255),
+                ->maxLength(255)
+                ->helperText(__('organization.store_request.name_hint'))
+                // The same rule the onboarding form applies — one definition,
+                // so the two entry points cannot disagree about a taken name.
+                ->rule(static fn (): \Closure => StoreProposal::uniqueNameRule()),
 
             Forms\Components\TextInput::make('slug')
                 ->label(__('organization.store_request.slug'))
@@ -325,6 +344,7 @@ final class StoreOpeningRequestResource extends Resource
     {
         return [
             'index' => Pages\ListStoreOpeningRequests::route('/'),
+            // Reachable, not advertised — "Mağazalarım" links here.
             'create' => Pages\CreateStoreOpeningRequest::route('/create'),
         ];
     }

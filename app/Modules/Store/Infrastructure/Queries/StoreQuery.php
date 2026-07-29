@@ -63,4 +63,22 @@ final class StoreQuery implements StoreQueryContract
 
         return $stores;
     }
+
+    /**
+     * Added for the onboarding reflow — see the contract for why the question
+     * has to be answerable before a store exists.
+     *
+     * `LOWER` on BOTH sides rather than lowering in PHP, so the comparison uses
+     * exactly the expression the unique index is built on and the two can never
+     * disagree about what counts as the same name.
+     *
+     * Soft-deleted stores are excluded by the default scope, deliberately: a
+     * closed shop should not reserve its name forever.
+     */
+    public function storeNameExists(string $name): bool
+    {
+        return Store::query()
+            ->whereRaw('LOWER(name) = LOWER(?)', [trim($name)])
+            ->exists();
+    }
 }

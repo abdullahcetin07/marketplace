@@ -4,10 +4,9 @@ declare(strict_types=1);
 
 namespace App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource\Pages;
 
-use App\Modules\Organization\Application\Actions\CreateStoreOpeningRequestAction;
-use App\Modules\Organization\Domain\DTOs\CreateStoreOpeningRequestDTO;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource;
+use App\Modules\Organization\Presentation\Filament\Seller\Support\StoreProposal;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Validation\ValidationException;
@@ -55,15 +54,20 @@ final class CreateStoreOpeningRequest extends CreateRecord
             ]);
         }
 
-        return app(CreateStoreOpeningRequestAction::class)->run(new CreateStoreOpeningRequestDTO(
-            organizationId: (int) $organization->getKey(),
-            requestedBy: (int) auth()->id(),
-            storeName: (string) $data['store_name'],
-            slug: (string) $data['slug'],
-            // Catalog does not exist yet; the DTO keeps the slot for it.
-            categoryId: null,
-            description: $data['description'] ?? null,
-            reason: $data['reason'] ?? null,
-        ));
+        /*
+        | Through the SAME helper the onboarding form uses, so the two entry
+        | points cannot behave differently. It raises a DRAFT: composing a
+        | request is not submitting it, and sending it on stays the deliberate
+        | second step this page was always built around.
+        |
+        | The field names differ only because the onboarding form shares a
+        | payload with the organization's own fields and had to prefix them.
+        */
+        return StoreProposal::request($organization, [
+            'store_name' => $data['store_name'],
+            'store_slug' => $data['slug'],
+            'store_description' => $data['description'] ?? null,
+            'reason' => $data['reason'] ?? null,
+        ]);
     }
 }

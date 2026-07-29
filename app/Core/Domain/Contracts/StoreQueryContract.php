@@ -68,4 +68,28 @@ interface StoreQueryContract
      * @return array<string, string>
      */
     public function liveStoresForOrganization(int $organizationId): array;
+
+    /**
+     * Whether any store already trades under this name, case-insensitively.
+     *
+     * ADDED FOR THE ONBOARDING REFLOW (owner-approved, see the Store freeze
+     * notice): store names are unique platform-wide. A buyer who is told to
+     * "shop at Beko" must land at one shop, and two storefronts sharing a name
+     * makes every support ticket, every invoice and every complaint ambiguous.
+     *
+     * ASKED AT REQUEST TIME, which is the whole reason it is on this contract.
+     * A store is created only when an admin approves a request (ADR-028), so
+     * without this the seller would fill in a name, wait for review, and be told
+     * days later that it was taken. Organization asks Store here, and never
+     * imports it.
+     *
+     * The database's unique index is the real guarantee — this is what turns a
+     * constraint violation into a sentence a seller can act on.
+     *
+     * CASE-INSENSITIVE, matching that index. Postgres folds Turkish correctly;
+     * SQLite's `LOWER` is ASCII-only, so under the test suite "İSTANBUL" and
+     * "istanbul" are two names. Stated rather than hidden: it is the same
+     * driver difference the catalog browse port documents.
+     */
+    public function storeNameExists(string $name): bool;
 }

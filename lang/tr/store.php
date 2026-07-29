@@ -14,6 +14,7 @@ return [
     'activated_at' => 'Etkinleştirildi',
 
     'action' => [
+        'request' => 'Yeni mağaza talep et',
         'activate' => 'Etkinleştir',
         'pause' => 'Duraklat',
         'resume' => 'Devam ettir',

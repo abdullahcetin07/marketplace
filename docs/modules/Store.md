@@ -26,6 +26,15 @@ Version: 1.0 — **COMPLETE & FROZEN (2026-07-24). ADR-032–036 ratified.**
 >   standalone SOR nav item is removed; onboarding's first store comes with the org,
 >   see [Organization.md](Organization.md)). The creation path is unchanged — a store
 >   is still created only by `StoreOpeningApproved` (ADR-028/032).
+>
+> **As built (2026-07-29):** the "Yeni Mağaza Talep Et" header action is a LINK, not
+> a form. The request belongs to Organization and Store may not import it (ADR-033),
+> so the button points at the Organization-owned page by ROUTE NAME — the same
+> name-not-an-import coupling Offer uses to subscribe to Catalog's events. The cost
+> is that a rename on the Organization side breaks the link at runtime rather than at
+> build time; `Route::has()` hides the button instead of 500ing, and a feature test
+> asserts the route exists. `storeNameExists()` compares on `LOWER(name)`, the same
+> expression the unique index is built on.
 
 Sprint: **Store-0 (specification)**. This document is the architecture-review
 artifact `CLAUDE.md` requires *before* any Store code, migration, model,

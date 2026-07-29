@@ -14,6 +14,7 @@ return [
     'activated_at' => 'Activated',
 
     'action' => [
+        'request' => 'Request a store',
         'activate' => 'Activate',
         'pause' => 'Pause',
         'resume' => 'Resume',

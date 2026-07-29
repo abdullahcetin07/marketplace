@@ -11,6 +11,7 @@ declare(strict_types=1);
 return [
 
     'registered' => 'Kuruluşunuz kaydedildi ve inceleme bekliyor.',
+    'registered_with_store_request' => 'Şirketiniz kaydedildi ve mağaza talebiniz oluşturuldu. Şirketiniz onaylandıktan sonra talebi incelemeye gönderebilirsiniz.',
     'kyc_submitted' => 'Şirket bilgileriniz inceleme için gönderildi.',
     'ownership_transferred' => 'Sahiplik devredildi.',
     'invitation_sent' => 'Davet gönderildi.',
@@ -129,6 +130,10 @@ return [
         'singular' => 'Mağaza açma talebi',
         'plural' => 'Mağaza açma talepleri',
         'name' => 'Mağaza adı',
+        'name_hint' => 'Platformda benzersiz olmalıdır. Müşteriler mağazanızı bu adla arar.',
+        'name_taken' => 'Bu mağaza adı kullanımda ya da bekleyen bir talepte yer alıyor. Başka bir ad seçin.',
+        'section' => 'Mağaza bilgileri',
+        'section_hint' => 'Şirketinizle birlikte ilk mağaza talebiniz de oluşturulur. Mağaza, inceleme ekibi onayladığında açılır.',
         'slug' => 'Mağaza adresi',
         'slug_hint' => 'Yalnızca harf, rakam ve tire. Mağazanız /store/bu-adres üzerinden açılacak.',
         'organization_hint' => 'Mağazanın bağlı olacağı şirket.',

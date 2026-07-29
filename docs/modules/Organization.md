@@ -28,6 +28,30 @@ Version: 1.0 — **feature-complete and FROZEN** (Phases 0–8 built)
 >   page leaves the seller nav; a store is still created **only** by
 >   `StoreOpeningApproved` (ADR-028). See [Store.md](Store.md) for the "Yeni Mağaza
 >   Talep Et" entry point on the seller Stores page.
+>
+> **As built (2026-07-29)** — three notes where the shipped surface differs from the
+> description above, each for a rule that outranked it:
+>
+> 1. **Onboarding raises a DRAFT request, not a pending one.**
+>    `SubmitStoreOpeningRequestAction` refuses a company that is not operational
+>    (§3.1) — a business still pending its own KYC cannot queue storefronts — and a
+>    freshly registered organization is exactly that. Relaxing that check so
+>    onboarding could submit would put unverified companies in the store queue,
+>    which is what ADR-028's human gate exists to prevent. The seller sends the
+>    request on from the status list once their company is approved. Submitting
+>    stayed the deliberate second step it already was on the standalone form.
+> 2. **The SOR create page still exists; only its entry point moved.** It is no
+>    longer advertised from the request list (which became the status view) and is
+>    reached from "Mağazalarım". The page was not duplicated into Store's panel
+>    because Store may not import Organization (ADR-033) — the link is a ROUTE NAME,
+>    so a rename there breaks it at runtime rather than at build time, bounded by
+>    `Route::has()` and a test that asserts the route exists.
+> 3. **Store-name uniqueness is checked against BOTH stores and live requests.**
+>    `StoreQueryContract::storeNameExists()` answers for stores that exist;
+>    `StoreOpeningRequestRepositoryContract::storeNameClaimed()` answers for names
+>    somebody is already waiting on (draft + pending only). Without the second, two
+>    sellers could each hold a pending request for one name and the loser would find
+>    out only after the review.
 
 Governed by: `CLAUDE.md` → `Architecture_Decision_Record.md` →
 `001_Architecture.md` → `003_Database_Standards.md` → `002_Coding_Standards.md`

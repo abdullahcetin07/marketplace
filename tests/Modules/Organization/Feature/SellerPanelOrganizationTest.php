@@ -50,6 +50,10 @@ it('registers a company through the action, seating the seller as owner', functi
             'slug' => 'raftabul-ticaret',
             'country_code' => Country::query()->value('iso2'),
             'currency_code' => Currency::query()->value('code'),
+            // The store section is REQUIRED since the onboarding reflow: a
+            // company and its first store request are one seller step.
+            'store_name' => 'Raftabul Mağaza',
+            'store_slug' => 'raftabul-magaza',
         ])
         ->call('create')
         ->assertHasNoFormErrors();
@@ -87,6 +91,8 @@ it('refuses a slug already taken by another company', function (): void {
             'slug' => 'zaten-var',
             'country_code' => Country::query()->value('iso2'),
             'currency_code' => Currency::query()->value('code'),
+            'store_name' => 'İkinci Mağaza',
+            'store_slug' => 'ikinci-magaza',
         ])
         ->call('create')
         ->assertHasFormErrors(['slug']);

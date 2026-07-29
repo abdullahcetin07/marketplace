@@ -36,4 +36,24 @@ interface StoreOpeningRequestRepositoryContract
      * @return LengthAwarePaginator<int, StoreOpeningRequest>
      */
     public function pendingQueue(int $perPage = 25): LengthAwarePaginator;
+
+    /**
+     * Whether a request that is still in play already claims this store name,
+     * case-insensitively.
+     *
+     * THE OTHER HALF OF STORE-NAME UNIQUENESS. `StoreQueryContract::storeNameExists()`
+     * answers for stores that exist; this answers for names somebody is already
+     * waiting on. Without it two sellers could both have a pending request for
+     * "Beko", and the second would only discover the collision when an admin
+     * approved the first — after the review, which is the worst moment to find
+     * out.
+     *
+     * Only DRAFT and PENDING count. A rejected or cancelled request is not
+     * holding anything, and an approved one has become a store, where the other
+     * check takes over.
+     *
+     * @param  int|null  $exceptId  a request to ignore — its own name is not a
+     *                              collision with itself.
+     */
+    public function storeNameClaimed(string $storeName, ?int $exceptId = null): bool;
 }
