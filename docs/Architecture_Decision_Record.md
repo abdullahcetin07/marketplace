@@ -1180,4 +1180,119 @@ Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §0.8.
 
 ---
 
+# ADR-042 An Offer Is a Priced Listing Against a Variant (One Product, Many Offers)
+
+The sellable unit is the **`ProductVariant`** (ADR-039), not the Product. An
+**Offer** is one seller organization's **price (+ optional list price) and stock**
+for exactly one variant, referenced by uuid. Many offers may target the same
+variant — that is the multi-vendor model the shared catalog exists for. A seller
+holds **at most one active offer per variant** (editing re-prices it, never forks
+a second). This reaffirms ADR-037: the seller↔product link is an Offer, never a
+copy.
+
+Rationale: per-variant, per-seller pricing with no duplication of the catalog is
+the defining behaviour of the marketplace; it is why the Catalog was built shared.
+
+Cost: there is no single "product price" — every buyer read that shows a product
+for sale must fan a variant out to its competing offers and pick a winner at read
+time (ADR-045). We accept that read-time fan-out as the price of the model.
+
+Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.3.
+
+---
+
+# ADR-043 Stock Lives on the Offer This Sprint; Inventory Becomes the Authority Later
+
+The Offer carries a single integer `stock_quantity` the seller sets. Out-of-stock
+is **derived** (`= 0`), never a stored status. When the **Inventory** module
+ships it becomes the authority for on-hand quantity and reservations, and the
+Offer's counter is migrated to / derived from Inventory rather than set directly.
+
+Rationale: the buy box must be able to say "tükendi" today, and a naïve counter is
+enough while nothing decrements it — there is no checkout this sprint.
+
+Cost: stock has no reservation semantics for one sprint (two buyers could both see
+"1 in stock"), and a migration to Inventory is owed later. The race is harmless
+now because nothing checks out; we pay the migration deliberately when
+reservations actually matter.
+
+Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.4.
+
+---
+
+# ADR-044 Offers Are Not Moderated — Free, Instant-Live, Admin Reactive Only
+
+Unlike product authoring (a full draft→review→published lifecycle, Catalog §3.1),
+an offer goes **live the moment the seller creates or edits it**. The product was
+already moderated; price and stock are the seller's commercial freedom. Basic
+validation still applies (price > 0, `list_price ≥ price`, published product,
+in-scope org, active store) — that is validation, not moderation. Admin oversight
+is **reactive**: an admin may `Suspend`/reinstate an individual offer, the same
+shape as Store/User suspension.
+
+Rationale: per-offer moderation does not scale (thousands of products × many
+sellers, re-priced daily, would drown the Category Manager) and would kill the
+"list and sell instantly" value that brings sellers to the platform.
+
+Cost: an absurd or abusive price is visible until someone reacts; there is no
+pre-publication gate. Reactive suspension plus later automated price-sanity rules
+are the proportionate control we accept instead.
+
+Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.5.
+
+---
+
+# ADR-045 The Buy Box Is Computed, Never Stored
+
+There is no persisted "winning offer" column and no ranking job. The featured
+offer for a product is computed at read time: **the cheapest offer that is
+`Active` and in stock**, ties broken by earliest `created_at`. Paused,
+out-of-stock and suspended offers are excluded from the buy box; withdrawn offers
+never appear anywhere.
+
+Rationale: a stored winner would need invalidation on every price/stock/status
+change across every competing offer — a cache-coherency problem far more expensive
+than a cheap indexed "min price where active and in stock" query. There is no
+seller-performance data to rank on yet in any case.
+
+Cost: every product-page read recomputes the winner, and a heavier future buy box
+(seller performance, shipping speed) would need real ranking infrastructure we are
+choosing not to build now. The explainable min-price rule is what ships.
+
+Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.6.
+
+---
+
+# ADR-046 Offer Ships the Storefront Product-Listing Contributor (Fulfils ADR-041)
+
+Catalog registered **no** `StorefrontContributorContract` (ADR-041) because "a
+store's products" means its offers, which did not exist. **Offer now ships that
+contributor** (ADR-036): given a store uuid it returns the store's active offers
+(product summary + variant + price + in/out of stock), merged by the
+`PublicStorefrontAssembler` under its `extensions` key. Store still depends on
+Offer for nothing; it composes Offer's contribution through the existing
+`StorefrontRegistry`.
+
+Offer imports no other module: it reads Catalog through the Core
+`CatalogQueryContract` **plus a new `CatalogBrowseContract`** (a read-only search
+over Catalog's existing index for the seller "select a product to sell" flow —
+the one sanctioned Catalog change, Catalog being left unfrozen for exactly this);
+resolves seller tenancy through `OrganizationAuthorizationContract::
+organizationIdsForUser()`; and references the store through `StoreQueryContract`.
+All cross-context references are id (internal, tenancy) + uuid (public), reaffirming
+ADR-040/033. Downstream (Order, Inventory, Search) reads Offer only through the
+Core `OfferQueryContract`.
+
+Rationale: composition (ADR-036) works only if each contributor is registered by
+the module that owns the relationship displayed; Offer owns store↔product, so it
+owns that contributor.
+
+Cost: the storefront's product section only appears once Offer ships, and the
+Catalog gains a second read contract (`CatalogBrowseContract`) it did not need for
+its own Phase 1. We accept both as the deferred cost ADR-041 named explicitly.
+
+Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.7.
+
+---
+
 END OF FILE

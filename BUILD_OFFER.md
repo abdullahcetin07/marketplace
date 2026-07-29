@@ -38,12 +38,12 @@ order, payment, commission, tax, or condition field.** See Offer.md §0.
 
 ## Build phases (one commit each; group the pushes)
 
-**P0 — ratify + scaffold.** Record **ADR-042…046** in
-[docs/Architecture_Decision_Record.md](docs/Architecture_Decision_Record.md) AND mirror them
-in the amendment log at the end of [docs/001_Architecture.md](docs/001_Architecture.md)
-(same as Catalog's ADR-037…041 landing). Scaffold `app/Modules/Offer/{Domain,Application,
-Infrastructure,Presentation}`, service provider, `config/offer.php` if needed, module README,
-register in the modules index. Green.
+**P0 — scaffold.** ADR-042…046 are **already recorded** (owner-side, 2026-07-29) in the ADR
+record + the 001 amendment log, Offer.md is APPROVED, and CLAUDE.md's prohibition is narrowed
+to Inventory/Order/Payment — do **not** re-author them; if any are missing after your pull,
+STOP and report. Scaffold `app/Modules/Offer/{Domain,Application,Infrastructure,Presentation}`,
+service provider, `config/offer.php` if needed, module README, register in the modules index.
+Green.
 
 **P1 — domain.** `Offer` model, `OfferStatus` enum (Active/Paused/Withdrawn/Suspended — no
 `Enum` suffix, no `OutOfStock`), DTOs (`CreateOfferDTO`, `UpdateOfferPriceDTO`,

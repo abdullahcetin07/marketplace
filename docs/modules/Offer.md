@@ -1,11 +1,13 @@
 # Offer Module Specification
 
-**Status: DRAFT — pending owner approval and ADR ratification.** Proposes
-**ADR-042 … ADR-046**. Once approved, those entries are recorded in
-[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) with a mirror
-in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
-(the way Store landed ADR-032…036 and Catalog landed ADR-037…041). This document states
-each decision **and its cost**, per project culture.
+**Status: APPROVED 2026-07-29 — building.** The owner approved the design; the §0
+decisions and the §13 rulings are ratified. **ADR-042 … ADR-046 are recorded** in
+[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
+mirror in the amendment log at the end of
+[docs/001_Architecture.md](../001_Architecture.md) (the way Store landed ADR-032…036 and
+Catalog landed ADR-037…041), and CLAUDE.md narrows the module prohibition to
+Inventory/Order/Payment. This document states each decision **and its cost**, per project
+culture. Build order: [BUILD_OFFER.md](../../BUILD_OFFER.md).
 
 Offer is the next major sprint after **Catalog Phase 1** (complete, not frozen). It is
 what makes the shared catalog *sellable*: it puts a seller's price and stock on a catalog
@@ -373,14 +375,16 @@ listener). Each: one transaction, `handle()`, verb+noun, event in `after()`.
 
 ---
 
-# 13. Open rulings to confirm at approval
+# 13. Rulings (settled at approval, 2026-07-29)
 1. **Currency** — single platform default (₺) stored per offer for future multi-currency;
-   no per-offer currency choice in the seller UI this sprint. (Assumed; confirm.)
+   **no** per-offer currency choice in the seller UI this sprint. **Confirmed by owner.**
 2. **List price** — optional; purely a display/discount field; no campaign engine.
 3. **Product-archived cascade** — auto-`Paused` (recoverable), not withdrawn (§3.5).
 4. **Store requirement** — an offer requires the org to have an **Active** store (§3.4);
    a paused/closed store hides its offers from the buy box.
 5. **Buyer search depth** — index + price/in-stock filter this sprint; richer facets later.
+6. **No condition field** — new-goods only; a condition enum is added later additively if a
+   used/refurbished market is ever needed. **Confirmed by owner.**
 
 ---
 
@@ -389,8 +393,9 @@ Offer (this) → **Inventory** (on-hand + reservations; becomes stock authority,
 **Order** (cart, checkout, order lines, tax; consumes `OfferQueryContract`) → **Payment/
 Finance** (commission, payout, settlement). Each is its own spec + architecture review.
 
-## Ratification checklist (on approval)
-- [ ] Record ADR-042…046 in the ADR record + amendment log.
-- [ ] Confirm the §13 rulings.
+## Ratification checklist
+- [x] Record ADR-042…046 in the ADR record + amendment log (2026-07-29).
+- [x] Confirm the §13 rulings (currency ₺ single, no condition field — owner-confirmed).
+- [x] Narrow the CLAUDE.md module prohibition to Inventory/Order/Payment.
 - [ ] Build in phases (scaffold → domain → infra → application → presentation → contracts/
-      storefront → tests), one commit per phase, suite green, human pushes.
+      storefront → search → tests), one commit per phase, suite green, human pushes.

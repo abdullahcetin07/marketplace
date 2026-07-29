@@ -40,10 +40,19 @@ aggregate with variants first-class (ADR-039), product media, seller authoring
 `CatalogQueryContract`. The catalog is **shared** — one product, many sellers —
 and a seller never gets a copy (ADR-037).
 
-**It is deliberately NOT frozen**: Offer is the next sprint and will need to reach
-into it. See Catalog.md §15 for what shipped, what is deliberately absent, and the
-two open follow-ups (a legal-name label on the seller's org picker; the Activity
-user timeline, shared with Organization's).
+**It is deliberately NOT frozen**: Offer (the next sprint) reaches into it. See
+Catalog.md §15 for what shipped, what is deliberately absent, and the two open
+follow-ups (a legal-name label on the seller's org picker; the Activity user
+timeline, shared with Organization's).
+
+**Offer's architecture review is APPROVED** (2026-07-29; ADR-042–046,
+[docs/modules/Offer.md](docs/modules/Offer.md)) and is the module now being built.
+An Offer is a seller org's price + stock for one variant (one product, many
+offers, ADR-042); stock lives on the offer this sprint (ADR-043); offers are not
+moderated — live on save, admin reactive suspend (ADR-044); the buy box is
+computed, never stored (ADR-045); Offer ships the storefront product-listing
+contributor Catalog deferred (ADR-046). Cart/order/payment/commission stay out of
+scope.
 
 **A Product has no price and no stock.** That is the module's defining boundary:
 price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It
@@ -51,8 +60,9 @@ also registers no storefront contributor in Phase 1 (ADR-041) and imports neithe
 Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
 (ADR-040).
 
-**Do not create Offer, Inventory, Order or Payment modules.** Those are later
-sprints, and only after their architecture review is approved.
+**Do not create Inventory, Order or Payment modules.** Those are later sprints,
+and only after their architecture review is approved. (Offer is approved and in
+progress — see above.)
 
 ---
 
