@@ -14,6 +14,7 @@ use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Laravel\Scout\Searchable;
 
 /**
  * One seller organization's price and stock for one catalog variant (ADR-042).
@@ -73,6 +74,7 @@ final class Offer extends Model
 
     use Auditable;
     use HasUuid;
+    use Searchable;
     use SoftDeletes;
 
     protected $table = 'offers';
@@ -199,6 +201,111 @@ final class Offer extends Model
     public function scopeForVariant(Builder $query, string $variantUuid): Builder
     {
         return $query->where('variant_uuid', $variantUuid);
+    }
+
+    /*
+    |--------------------------------------------------------------------------
+    | Search (§10)
+    |--------------------------------------------------------------------------
+    |
+    | THIS IS THE INDEX THAT MAKES BUYER SEARCH POSSIBLE. Catalog deferred it —
+    | searching to buy something with no price and no seller makes no sense — and
+    | said explicitly that when Offer ships, "price-sorted search reads Offer's
+    | index, not this one" (Product::toSearchableArray()). This is that index.
+    |
+    | IT CARRIES NO CATALOG TEXT. No title, no brand, no description: those live
+    | in Catalog's index, which owns them and keeps them current. Copying them
+    | here would be the ADR-037 stale-copy problem wearing a different hat — a
+    | renamed product would disagree with every offer document until something
+    | happened to touch it. A buyer query matches text against Catalog's index
+    | and price/availability against this one, joined on `product_uuid`.
+    |
+    | So what this index is FOR is the commercial half: which products can
+    | actually be bought right now, from whom, and for how much.
+    */
+
+    /**
+     * Only offers a buyer could actually order (§10).
+     *
+     * DELIBERATELY ONLY THIS MODULE'S OWN FACTS. Buy-box eligibility has a third
+     * condition — the seller's store must be live — and it is NOT asked here:
+     * this method runs once per record during a bulk reindex, so a cross-context
+     * lookup would turn one import into one query per offer. The store's state
+     * reaches the index through its lifecycle events instead
+     * (`SyncOfferSearchIndex`), and `store_uuid` is in the document so a query
+     * can exclude a dark store directly.
+     *
+     * The residual, stated rather than hidden: a full `scout:import` will index
+     * offers belonging to a non-live store until that store next changes state.
+     * The read path is authoritative — `OfferQueryContract` re-checks liveness —
+     * so this can surface a result that then resolves to nothing, never a
+     * purchasable offer from a closed shop.
+     */
+    public function shouldBeSearchable(): bool
+    {
+        return $this->status->isBuyBoxEligible() && $this->isInStock();
+    }
+
+    public function searchableAs(): string
+    {
+        return 'offers';
+    }
+
+    /**
+     * The document.
+     *
+     * `id` is the UUID, never the internal key — the index is read by clients
+     * and an internal id must not leave the application (non-negotiable #7).
+     * `price_minor` IS here, as an integer, because this is where sorting and
+     * range filtering happen; it becomes a decimal string at the resource
+     * boundary and nowhere else (005 §28).
+     *
+     * @return array<string, mixed>
+     */
+    public function toSearchableArray(): array
+    {
+        return [
+            'id' => $this->uuid,
+            // The join keys back to Catalog's index, and the buy-box grouping.
+            'product_uuid' => $this->product_uuid,
+            'variant_uuid' => $this->variant_uuid,
+            // The seller-facing facets a buyer filters on ("bu satıcıdan").
+            'selling_org_uuid' => $this->selling_org_uuid,
+            'store_uuid' => $this->store_uuid,
+            'price_minor' => $this->price_minor,
+            'currency_id' => $this->currency_id,
+            // The in-stock FILTER (§10). A boolean, not the count: the count is
+            // competitive information and a facet nobody asked for.
+            'in_stock' => $this->isInStock(),
+            'status' => $this->status->value,
+            'created_at' => $this->created_at?->toIso8601String(),
+        ];
+    }
+
+    /**
+     * Explicit mapping — the index is created with this on first write.
+     *
+     * Every field is a `keyword` or a number, because not one of them is text:
+     * a uuid, a status and a price are matched exactly, sorted or ranged, and
+     * analysing them would be actively harmful. That is the whole shape of this
+     * index — Catalog's holds the language, this one holds the commerce.
+     *
+     * @return array<string, array<string, mixed>>
+     */
+    public function searchableMapping(): array
+    {
+        return [
+            'id' => ['type' => 'keyword'],
+            'product_uuid' => ['type' => 'keyword'],
+            'variant_uuid' => ['type' => 'keyword'],
+            'selling_org_uuid' => ['type' => 'keyword'],
+            'store_uuid' => ['type' => 'keyword'],
+            'price_minor' => ['type' => 'long'],
+            'currency_id' => ['type' => 'integer'],
+            'in_stock' => ['type' => 'boolean'],
+            'status' => ['type' => 'keyword'],
+            'created_at' => ['type' => 'date'],
+        ];
     }
 
     /**

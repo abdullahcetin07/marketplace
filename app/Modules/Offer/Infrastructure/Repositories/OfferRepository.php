@@ -112,6 +112,17 @@ final class OfferRepository implements OfferRepositoryContract
     /**
      * @return Collection<int, Offer>
      */
+    public function forStore(string $storeUuid): Collection
+    {
+        return Offer::query()
+            ->with($this->with)
+            ->where('store_uuid', $storeUuid)
+            ->get();
+    }
+
+    /**
+     * @return Collection<int, Offer>
+     */
     public function cascadePausedForProduct(string $productUuid): Collection
     {
         return Offer::query()

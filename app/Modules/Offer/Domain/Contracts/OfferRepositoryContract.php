@@ -62,6 +62,18 @@ interface OfferRepositoryContract
     public function activeForProduct(string $productUuid): Collection;
 
     /**
+     * Every live offer attributed to one storefront — what a store going dark
+     * or coming back has to re-evaluate in the search index (§10).
+     *
+     * Not filtered by status: a store's return must be able to re-index a
+     * paused offer's absence as deliberately as an active offer's presence, and
+     * that decision belongs to the caller.
+     *
+     * @return Collection<int, Offer>
+     */
+    public function forStore(string $storeUuid): Collection;
+
+    /**
      * Offers paused BY a cascade — the exact set a re-publish reactivates,
      * leaving alone anything a seller paused for their own reasons.
      *

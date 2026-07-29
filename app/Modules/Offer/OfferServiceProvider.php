@@ -8,6 +8,7 @@ use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Core\Support\StorefrontRegistry;
 use App\Modules\Offer\Application\Listeners\PauseOffersOnProductArchived;
 use App\Modules\Offer\Application\Listeners\ResumeOffersOnProductPublished;
+use App\Modules\Offer\Application\Listeners\SyncOfferSearchIndex;
 use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
 use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
@@ -73,6 +74,11 @@ final class OfferServiceProvider extends ServiceProvider
         Gate::policy(Offer::class, OfferPolicy::class);
 
         $this->subscribeToProductLifecycle();
+        $this->subscribeToStoreLifecycle();
+
+        // The module's own events keep its index current (§10). Imported, not
+        // class-string: these are Offer's own classes.
+        Event::subscribe(SyncOfferSearchIndex::class);
 
         /*
         | The storefront product-listing contributor ADR-041 deferred, now
@@ -115,6 +121,37 @@ final class OfferServiceProvider extends ServiceProvider
             'App\Modules\Catalog\Domain\Events\ProductPublished',
             [ResumeOffersOnProductPublished::class, 'handle'],
         );
+    }
+
+    /**
+     * A storefront going dark or coming back (§10).
+     *
+     * Buy-box eligibility's third condition belongs to Store, and asking for it
+     * per record at index time would turn one bulk reindex into one query per
+     * offer (`Offer::shouldBeSearchable()`). So the state arrives as an event
+     * instead: when a store changes, its offers are re-evaluated in one pass.
+     *
+     * BY CLASS-STRING, for the same reason as the Catalog cascade — Offer
+     * imports no module, and Store is on the forbidden list with no escape
+     * hatch. All six events carry `storeUuid`, which is the whole of what this
+     * reads.
+     *
+     * `StoreCreated` is absent: a brand-new store has no offers to re-evaluate.
+     */
+    private function subscribeToStoreLifecycle(): void
+    {
+        $events = [
+            'App\Modules\Store\Domain\Events\StoreActivated',
+            'App\Modules\Store\Domain\Events\StorePaused',
+            'App\Modules\Store\Domain\Events\StoreClosed',
+            'App\Modules\Store\Domain\Events\StoreSuspended',
+            'App\Modules\Store\Domain\Events\StoreReinstated',
+            'App\Modules\Store\Domain\Events\StoreArchived',
+        ];
+
+        foreach ($events as $event) {
+            Event::listen($event, [SyncOfferSearchIndex::class, 'onStoreLifecycleChanged']);
+        }
     }
 
     /**
