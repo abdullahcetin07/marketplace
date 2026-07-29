@@ -154,6 +154,54 @@ return [
         ],
     ],
 
+    /*
+    | Ekip — satıcının kendi paneli. Buradaki roller Organization modülünün
+    | kendi rolleridir; platform personel rolleri asla burada verilmez.
+    | @see App\Modules\Organization\Presentation\Filament\Seller\Resources\TeamMemberResource
+    */
+    'team' => [
+        'member_singular' => 'Ekip üyesi',
+        'member_plural' => 'Ekip üyeleri',
+        'invitation_singular' => 'Davet',
+        'invitation_plural' => 'Davetler',
+
+        'member_name' => 'Ad',
+        'member_email' => 'E-posta',
+        'role' => 'Rol',
+        'role_help' => 'Yalnızca şirket rolleri. Sahiplik yalnızca devir ile geçer, rol ataması ile değil.',
+        'status' => 'Durum',
+        'joined_at' => 'Katılma tarihi',
+        'expires_at' => 'Son geçerlilik',
+        'invited_at' => 'Davet tarihi',
+
+        'reason' => 'Gerekçe',
+        'reason_help' => 'Denetim kaydına yazılır. Bu değişikliğin neden yapıldığını açıklayın.',
+
+        'role_changed' => 'Üyenin rolü güncellendi.',
+        'removed' => 'Üye ekipten çıkarıldı.',
+        'invitation_cancelled' => 'Davet geri çekildi.',
+
+        'action' => [
+            'invite' => 'Ekibe davet et',
+            'change_role' => 'Rolü değiştir',
+            'remove' => 'Ekipten çıkar',
+            'remove_confirm' => 'Bu kişi şirketinize artık erişemez. Kayıt silinmez, denetim izi korunur.',
+            'resend' => 'Daveti yeniden gönder',
+            'resend_confirm' => 'Yeni bir bağlantı gönderilir ve önceki bağlantı geçersiz olur.',
+            'cancel' => 'Daveti geri çek',
+            'cancel_confirm' => 'Bağlantı artık çalışmaz. Kişiyi daha sonra yeniden davet edebilirsiniz.',
+        ],
+
+        'empty' => [
+            'heading' => 'Ekibinizde henüz başka kimse yok',
+            'description' => 'Bir iş arkadaşınızı e-posta adresiyle davet edin; daveti kabul ettiğinde ekibinize katılır.',
+        ],
+        'invitation_empty' => [
+            'heading' => 'Bekleyen davet yok',
+            'description' => 'Gönderdiğiniz davetler kabul edilene kadar burada görünür.',
+        ],
+    ],
+
     'invitation' => [
         'subject' => ':organization kuruluşuna katılmaya davet edildiniz',
         'intro' => ':organization sizi :role olarak katılmaya davet etti.',

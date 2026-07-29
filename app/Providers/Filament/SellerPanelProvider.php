@@ -77,6 +77,17 @@ final class SellerPanelProvider extends PanelProvider
             ->resources([
                 \App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource::class,
                 \App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource::class,
+
+                /*
+                | Ekip — the seller's OWN team. A merchant's team is theirs to
+                | manage; the admin panel's seller area deliberately offers no
+                | team controls at all. Both resources are membership-scoped
+                | (ADR-030) and grant ORG roles only — never platform staff
+                | roles, which exist solely under Personel in the admin panel.
+                */
+                \App\Modules\Organization\Presentation\Filament\Seller\Resources\TeamMemberResource::class,
+                \App\Modules\Organization\Presentation\Filament\Seller\Resources\TeamInvitationResource::class,
+
                 \App\Modules\Store\Presentation\Filament\Seller\Resources\StoreResource::class,
 
                 // "Ürün aç" (Catalog §5). The seller-panel product resource is
@@ -99,6 +110,7 @@ final class SellerPanelProvider extends PanelProvider
                 NavigationGroup::make()->label(__('nav.catalogue')),
                 NavigationGroup::make()->label(__('nav.orders')),
                 NavigationGroup::make()->label(__('nav.store')),
+                NavigationGroup::make()->label(__('nav.team')),
             ])
 
             ->middleware([

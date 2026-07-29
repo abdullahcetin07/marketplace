@@ -154,6 +154,54 @@ return [
         ],
     ],
 
+    /*
+    | Team — the seller's own panel. The roles here are the Organization
+    | module's own; platform staff roles are never granted from this surface.
+    | @see App\Modules\Organization\Presentation\Filament\Seller\Resources\TeamMemberResource
+    */
+    'team' => [
+        'member_singular' => 'Team member',
+        'member_plural' => 'Team members',
+        'invitation_singular' => 'Invitation',
+        'invitation_plural' => 'Invitations',
+
+        'member_name' => 'Name',
+        'member_email' => 'Email',
+        'role' => 'Role',
+        'role_help' => 'Company roles only. Ownership moves by transfer, never by assigning a role.',
+        'status' => 'Status',
+        'joined_at' => 'Joined',
+        'expires_at' => 'Expires',
+        'invited_at' => 'Invited',
+
+        'reason' => 'Reason',
+        'reason_help' => 'Recorded in the audit trail. Explain why this change was made.',
+
+        'role_changed' => 'The member’s role has been updated.',
+        'removed' => 'The member has been removed from the team.',
+        'invitation_cancelled' => 'The invitation has been withdrawn.',
+
+        'action' => [
+            'invite' => 'Invite to the team',
+            'change_role' => 'Change role',
+            'remove' => 'Remove from team',
+            'remove_confirm' => 'This person loses access to your company. Nothing is deleted — the audit trail is kept.',
+            'resend' => 'Resend invitation',
+            'resend_confirm' => 'A new link is sent and the previous one stops working.',
+            'cancel' => 'Withdraw invitation',
+            'cancel_confirm' => 'The link stops working. You can invite the address again later.',
+        ],
+
+        'empty' => [
+            'heading' => 'Nobody else on your team yet',
+            'description' => 'Invite a colleague by email; they join your team once they accept.',
+        ],
+        'invitation_empty' => [
+            'heading' => 'No invitations in flight',
+            'description' => 'Invitations you send appear here until they are accepted.',
+        ],
+    ],
+
     'invitation' => [
         'subject' => 'You have been invited to join :organization',
         'intro' => ':organization has invited you to join as :role.',

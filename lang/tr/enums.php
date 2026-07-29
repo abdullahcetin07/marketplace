@@ -47,6 +47,35 @@ return [
         'archived' => 'Arşivlendi',
     ],
 
+    /*
+    | Şirket içi roller (ADR-030). Platform (Spatie) rolleriyle karıştırılmasın:
+    | bunlar yalnızca bir kuruluşun içinde anlam taşır. Sahip yalnızca devirle
+    | değişir (ADR-029).
+    */
+    'OrganizationRole' => [
+        'owner' => 'Sahip',
+        'manager' => 'Yönetici',
+        'finance' => 'Finans',
+        'warehouse' => 'Depo',
+        'support' => 'Destek',
+        'marketing' => 'Pazarlama',
+        'editor' => 'Editör',
+        'viewer' => 'Görüntüleyici',
+    ],
+
+    'OrganizationMemberStatus' => [
+        'active' => 'Aktif',
+        'suspended' => 'Askıya Alındı',
+    ],
+
+    'InvitationStatus' => [
+        'pending' => 'Bekliyor',
+        'accepted' => 'Kabul Edildi',
+        'rejected' => 'Reddedildi',
+        'expired' => 'Süresi Doldu',
+        'cancelled' => 'Geri Çekildi',
+    ],
+
     'StoreOpeningRequestStatus' => [
         'draft' => 'Taslak',
         'pending' => 'İnceleme Bekliyor',

@@ -47,6 +47,35 @@ return [
         'archived' => 'Archived',
     ],
 
+    /*
+    | Roles WITHIN one organization (ADR-030) — not to be confused with the
+    | platform's Spatie roles: these mean something only inside a company.
+    | Ownership changes by transfer alone (ADR-029).
+    */
+    'OrganizationRole' => [
+        'owner' => 'Owner',
+        'manager' => 'Manager',
+        'finance' => 'Finance',
+        'warehouse' => 'Warehouse',
+        'support' => 'Support',
+        'marketing' => 'Marketing',
+        'editor' => 'Editor',
+        'viewer' => 'Viewer',
+    ],
+
+    'OrganizationMemberStatus' => [
+        'active' => 'Active',
+        'suspended' => 'Suspended',
+    ],
+
+    'InvitationStatus' => [
+        'pending' => 'Pending',
+        'accepted' => 'Accepted',
+        'rejected' => 'Rejected',
+        'expired' => 'Expired',
+        'cancelled' => 'Withdrawn',
+    ],
+
     'StoreOpeningRequestStatus' => [
         'draft' => 'Draft',
         'pending' => 'Pending Review',

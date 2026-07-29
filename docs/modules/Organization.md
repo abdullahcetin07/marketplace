@@ -845,9 +845,45 @@ routes through the module's Actions/Services; no business logic in Filament.
 
 - `OrganizationResource` — the seller's **own** org (single-record): profile,
   KYC status, settings.
-- `MemberResource` — members + invitations (invite/cancel/resend/role actions).
 - `StoreOpeningRequestResource` — create/track requests; status timeline.
 - `BankAccountResource` / documents — Finance/Owner gated.
+
+### Ekip — as built (post-freeze; Presentation only)
+
+The spec's single `MemberResource` shipped as **two** resources under an **Ekip**
+navigation group, both membership-scoped:
+
+- `TeamMemberResource` — the roster. Invite (a header action, not a create page),
+  change an org role, remove a member.
+- `TeamInvitationResource` — invitations in flight: resend, withdraw.
+
+**Why two and not one.** A membership row only exists once the invited person
+accepts (ADR-031), so an invitation in flight is invisible on the members list.
+Folded into one resource it would have been a second table with its own status
+column, its own filters and its own actions inside a members screen. Split, each
+list answers one question. **Cost:** two navigation entries where the spec
+anticipated one.
+
+**Why no relation manager on `OrganizationResource`.** Filament relation managers
+need a declared Eloquent relation, and `Organization` has neither `members()` nor
+`invitations()`. Adding them is a Domain change to a frozen module, and this was
+a Presentation-only change — so the tenancy wall is the resources'
+`getEloquentQuery()` (`organizationIdsForUser()`, ADR-030), exactly as the other
+seller resources scope themselves, with `OrganizationMemberPolicy` /
+`OrganizationInvitationPolicy` re-checking the capability per row. Two
+independent walls, not one.
+
+**Org roles only.** The assignable set is `OrganizationRole::assignable()` — the
+§5.1 matrix minus Owner, since ownership is reached only by transfer (ADR-029).
+No platform (Spatie) staff role is reachable from the seller panel; staff roles
+are granted under **Personel** in the admin panel and nowhere else
+(Identity §12.2). Conversely, the admin panel's seller area offers **no** team
+controls at all — a merchant's team is the merchant's to manage.
+
+**Change category: "explicitly required by a later module"** — an owner-approved
+UX refinement. No Domain, Application or Infrastructure code was touched; every
+write is `InviteMemberAction`, `ChangeMemberRoleAction`, `RemoveMemberAction`,
+`ResendInvitationAction` or `CancelInvitationAction`.
 
 ## 13.3 Actions / pages
 
