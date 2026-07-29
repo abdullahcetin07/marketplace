@@ -1,13 +1,18 @@
 # Offer Module Specification
 
-**Status: APPROVED 2026-07-29 — building.** The owner approved the design; the §0
+**Status: APPROVED 2026-07-29 — BUILT (P0–P7).** The owner approved the design; the §0
 decisions and the §13 rulings are ratified. **ADR-042 … ADR-046 are recorded** in
 [docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
 mirror in the amendment log at the end of
 [docs/001_Architecture.md](../001_Architecture.md) (the way Store landed ADR-032…036 and
 Catalog landed ADR-037…041), and CLAUDE.md narrows the module prohibition to
 Inventory/Order/Payment. This document states each decision **and its cost**, per project
-culture. Build order: [BUILD_OFFER.md](../../BUILD_OFFER.md).
+culture.
+
+**Deliberately NOT frozen.** Inventory is the next sprint and becomes the authority
+for stock (ADR-043), which means reaching into this module — the same reason Catalog
+was left unfrozen for Offer. **See §15** for what shipped, what is deliberately
+absent, where the build deviated from this document, and the five open follow-ups.
 
 Offer is the next major sprint after **Catalog Phase 1** (complete, not frozen). It is
 what makes the shared catalog *sellable*: it puts a seller's price and stock on a catalog
@@ -397,5 +402,108 @@ Finance** (commission, payout, settlement). Each is its own spec + architecture 
 - [x] Record ADR-042…046 in the ADR record + amendment log (2026-07-29).
 - [x] Confirm the §13 rulings (currency ₺ single, no condition field — owner-confirmed).
 - [x] Narrow the CLAUDE.md module prohibition to Inventory/Order/Payment.
-- [ ] Build in phases (scaffold → domain → infra → application → presentation → contracts/
-      storefront → search → tests), one commit per phase, suite green, human pushes.
+- [x] Build in phases (P0…P7), one commit per phase, suite green, human pushes.
+
+---
+
+# 15. What this sprint shipped
+
+## 15.1 Delivered
+
+| Area | Where |
+|---|---|
+| The `Offer` aggregate (§2.1) | `Domain/Models/Offer` |
+| `OfferStatus` — four cases, no `OutOfStock` (§2.2) | `Domain/Enums/OfferStatus` |
+| Schema: partial unique index + two partial buy-box indexes (§3.2) | `database/Modules/Offer/migrations/` |
+| Ten actions (§12) | `Application/Actions/` |
+| The computed buy box (§5, ADR-045) | `Infrastructure/Queries/OfferQuery` |
+| Product-lifecycle cascade, both halves (§3.5) | `Application/Listeners/`, the two cascade actions |
+| `OfferPolicy` — org capability + admin permissions (§9) | `Presentation/Policies/OfferPolicy` |
+| Seller "Tekliflerim" + catalog-first create (§4) | `Presentation/Filament/Seller/Resources/` |
+| Admin oversight — suspend/reinstate only (ADR-044) | `Presentation/Filament/Resources/` |
+| Public "product + its offers" (§5) | `Presentation/Controllers/Api/Storefront/`, `Presentation/Resources/` |
+| Storefront contributor (ADR-046, fulfils ADR-041) | `Presentation/Storefront/OfferStorefrontContributor` |
+| Search index + the in-stock/price filter fields (§10) | `Offer::toSearchableArray()`, `SyncOfferSearchIndex` |
+| Core read port (§8.1) | `App\Core\Domain\Contracts\OfferQueryContract` |
+| Catalog browse port (§8.2) | `App\Core\Domain\Contracts\CatalogBrowseContract` + `Catalog\Infrastructure\Queries\CatalogBrowse` |
+
+Offer imports **no** module — the strictest boundary on the platform. The rule is
+asserted in `LayeringTest`, and the reverse (no price or stock in the Catalog) is
+asserted over the schema, the search document, both Core contracts and the models'
+methods in `CatalogBoundaryTest` — not merely documented.
+
+## 15.2 Deliberately absent
+
+**No cart, order, payment, commission or tax** (§0.2) — a buyer can SEE offers and
+cannot BUY one; "sepete ekle" arrives with Order. **No condition field** (§13.6):
+new goods only, additive later if a used market is ever needed. **No moderation**
+(ADR-044): offers go live on save, and reactive admin suspension is the whole of the
+oversight. **No stored buy-box winner and no `OutOfStock` status** (ADR-045/043) —
+both are computed, and a test asserts the enum has no such case. **No per-offer
+currency choice** (§13.1): stored per offer, single ₺ in practice.
+
+**No buyer search endpoint.** The index ships (§10) and carries the price and
+in-stock filter fields; the query surface that joins it to Catalog's text index is
+the later refinement §10 anticipates.
+
+## 15.3 Deviations from this document, and why
+
+1. **`CatalogBrowseContract` reads Postgres, not Catalog's search index** (§8.2 says
+   the index). That index is tuned for BUYER relevance — Turkish analysis, boosts,
+   facets — while this is a seller filtering by category and brand for a product they
+   already hold; and index-backed would put a cluster on an internal panel's critical
+   path and make the flow untestable (`SCOUT_DRIVER=null`). Cost: `LIKE` matching, not
+   relevance-ranked, and it will not scale to millions of rows. It sits behind the
+   contract, so swapping is one container binding. Recorded in the `001_Architecture.md`
+   amendment log.
+
+2. **`CascadeResumeOffersOnProductPublishedAction` exists**, though §12's action list
+   names only the pause half. §3.5 states the behaviour, so the action satisfies the
+   spec rather than the summary of it.
+
+3. **The seller capability is `StoreManage`, not a new `OfferManage`.** §9 leaves this
+   open ("if the matrix needs a distinct one") and it does not: the matrix already
+   grants exactly Owner and Manager. Cost: pricing and storefront operations share one
+   capability, so delegating offers *without* handing over store settings would need an
+   additive ADR. Every call site goes through one method in `OfferPolicy`.
+
+## 15.4 Changes this sprint required of other modules
+
+All read-only, all recorded in the `001_Architecture.md` amendment log.
+
+| Module | Change | Why it could not be avoided |
+|---|---|---|
+| Catalog (unfrozen) | `CatalogBrowseContract` — search, variants, and two batch summary lookups | §8.2's sanctioned change. The summaries exist because an offer stores uuids only; the alternative, denormalizing the title onto the offer row, is the stale copy ADR-037 refuses |
+| Store (frozen) | `StoreQueryContract::liveStoresForOrganization()` | Every other method walks store → org; Offer asks from the other end with no store uuid yet to ask about, so "must have an Active store" (§3.4) was unanswerable |
+| Organization (frozen) | `OrganizationAuthorizationContract::organizationUuidFor()` | ADR-040 says a cross-context reference is an id/uuid pair, but every method there speaks ids — Offer had the filtering half and no way to get the public half without trusting a form |
+
+## 15.5 Follow-ups
+
+1. **A full `scout:import` indexes offers of a non-live store** until that store next
+   changes state. `Offer::shouldBeSearchable()` deliberately asks only this module's
+   own facts, because a cross-context lookup there turns one reindex into one query per
+   offer; the store's state reaches the index through its six lifecycle events instead.
+   The read path stays authoritative, so the worst case is a search hit that resolves to
+   nothing — never a purchasable offer from a closed shop.
+
+2. **The Catalog cascade and the Store search sync are subscribed BY CLASS-STRING**,
+   because Offer imports no module and neither Catalog nor Store gets an events escape
+   hatch. A rename in either module breaks the wiring at runtime rather than at build
+   time. Bounded by tests that fire the real events (`OfferCascadeTest`) and assert the
+   listeners are registered (`OfferSearchIndexTest`), which is the only thing that would
+   notice.
+
+3. **The seller's store picker is labelled by store name; a company picker would still
+   be labelled by id.** Offer sidesteps Catalog's open follow-up (Catalog §15.3 #2) by
+   asking for a store rather than a company — `liveStoresForOrganization()` carries the
+   name. If a surface ever genuinely needs the COMPANY's legal name, that follow-up is
+   still open and still needs a deliberate Core addition.
+
+4. **The Activity user timeline is not wired** — the same follow-up already open for
+   Organization and Catalog, and still one Activity change covering all three. Audit
+   needs nothing: `Offer` carries the `Auditable` trait, so every price change,
+   suspension and withdrawal is already forensic.
+
+5. **Stock is a naïve counter with no reservation semantics** (ADR-043, accepted). It is
+   harmless while nothing decrements it; Inventory becomes the authority and
+   `UpdateOfferStockAction` is what gets migrated.

@@ -8,7 +8,9 @@ ADR-032–036).** Custom domains are cut from v1 (ADR-035: path-addressed
 `/store/{slug}`) and return only via a future dedicated ADR. The public storefront
 is composed (ADR-036): future modules enrich it via the Core
 `StorefrontContributorContract` + `StorefrontRegistry`, never by Store depending
-on them. **Catalog Phase 1 is complete** (ADR-037–041) and is the newest module.
+on them — **Offer is the first module to actually use that seam** (ADR-046).
+**Catalog Phase 1 is complete** (ADR-037–041); **Offer is complete**
+(ADR-042–046) and is the newest module. Neither is frozen.
 
 Foundation is a **module group, not a module** (ADR-002). Seven modules exist:
 Identity, Localization, Settings, Audit, Activity, Media, Notification.
@@ -40,19 +42,29 @@ aggregate with variants first-class (ADR-039), product media, seller authoring
 `CatalogQueryContract`. The catalog is **shared** — one product, many sellers —
 and a seller never gets a copy (ADR-037).
 
-**It is deliberately NOT frozen**: Offer (the next sprint) reaches into it. See
-Catalog.md §15 for what shipped, what is deliberately absent, and the two open
-follow-ups (a legal-name label on the seller's org picker; the Activity user
-timeline, shared with Organization's).
+**It is deliberately NOT frozen**: Offer reaches into it. See Catalog.md §15 for
+what shipped, what is deliberately absent, and the two open follow-ups (a
+legal-name label on the seller's org picker; the Activity user timeline, shared
+with Organization's).
 
-**Offer's architecture review is APPROVED** (2026-07-29; ADR-042–046,
-[docs/modules/Offer.md](docs/modules/Offer.md)) and is the module now being built.
-An Offer is a seller org's price + stock for one variant (one product, many
-offers, ADR-042); stock lives on the offer this sprint (ADR-043); offers are not
-moderated — live on save, admin reactive suspend (ADR-044); the buy box is
-computed, never stored (ADR-045); Offer ships the storefront product-listing
-contributor Catalog deferred (ADR-046). Cart/order/payment/commission stay out of
-scope.
+**Offer is COMPLETE** (2026-07-29; ADR-042–046,
+[docs/modules/Offer.md](docs/modules/Offer.md)) — the newest module. An Offer is a
+seller org's price + stock for one variant (one product, many offers, ADR-042);
+stock lives on the offer this sprint (ADR-043); offers are not moderated — live on
+save, admin reactive suspend (ADR-044); the buy box is computed, never stored
+(ADR-045); Offer ships the storefront product-listing contributor Catalog deferred
+(ADR-046). Cart/order/payment/commission stay out of scope.
+
+**It is NOT frozen either**: Inventory is next and becomes the stock authority
+(ADR-043), which means reaching into it. See Offer.md §15 for what shipped, three
+recorded deviations, the read-only additions it required of Catalog/Store/
+Organization, and five open follow-ups.
+
+**Offer imports NO module** — the strictest boundary on the platform. It reads
+Catalog, Organization and Store through Core contracts only, and subscribes to
+their events BY CLASS-STRING. `LayeringTest` fails the build on any import;
+`CatalogBoundaryTest` asserts the reverse — that no price or stock has leaked into
+the Catalog.
 
 **A Product has no price and no stock.** That is the module's defining boundary:
 price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It
@@ -61,8 +73,7 @@ Organization nor Store — the proposing company is a bare `proposed_by_org_uuid
 (ADR-040).
 
 **Do not create Inventory, Order or Payment modules.** Those are later sprints,
-and only after their architecture review is approved. (Offer is approved and in
-progress — see above.)
+and only after their architecture review is approved.
 
 ---
 
