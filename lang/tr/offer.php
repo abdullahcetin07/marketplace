@@ -29,11 +29,22 @@ return [
         'stock_hint' => 'Elinizdeki adet. 0 girerseniz teklif "tükendi" olur; fiyatınız ve sıranız korunur.',
         'status' => 'Durum',
         'listed_at' => 'Yayına alındı',
+        'buy_box_rank' => 'Buy-box sırası',
+        'buy_box_price' => 'Buy-box fiyatı',
         'suspended_at' => 'Askıya alınma',
         'status_before' => 'Önceki durum',
         'reason' => 'Gerekçe',
         'reason_hint' => 'Denetim kaydına yazılır.',
         'suspend_reason_hint' => 'Zorunlu. Satıcıya ve denetim kaydına gerekçe olarak geçer.',
+    ],
+
+    /*
+    | Buy box her okumada hesaplanır, saklanmaz (ADR-045). Satıcının bu sayfada
+    | aradığı iki bilgi: kaçıncıyım ve neyi geçmem gerekiyor.
+    */
+    'buy_box' => [
+        'rank_of' => ':rank / :total',
+        'you_are_winning' => 'Buy-box sizde',
     ],
 
     'section' => [

@@ -214,6 +214,49 @@ it('never offers a seller the admin’s suspension lever', function (): void {
         ->assertTableActionDoesNotExist('reinstate');
 });
 
+it('shows the seller where they stand and what to beat', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $mine = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->priced(15_990)
+        ->create();
+
+    // A competitor on the same variant, cheaper, from a live store of their own.
+    Offer::factory()
+        ->forOrganization(999, 'rakip-org')
+        ->forStore(Store::factory()->create(['status' => StoreStatus::Active])->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->priced(12_990)
+        ->create();
+
+    // The seller sees only their own row (the tenancy wall) but is told the
+    // truth about the competition on it — second of two, and the price to beat.
+    Livewire::test(ListOffers::class)
+        ->assertCanSeeTableRecords([$mine])
+        ->assertTableColumnStateSet('buy_box_rank', '2 / 2', $mine)
+        ->assertTableColumnStateSet('buy_box_price', money(12_990, $mine->currency), $mine);
+});
+
+it('shows no rank for an offer that is not competing', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $soldOut = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->outOfStock()
+        ->create();
+
+    // "—", not a number: what this seller needs is to restock, not to re-price.
+    Livewire::test(ListOffers::class)
+        ->assertTableColumnStateSet('buy_box_rank', '—', $soldOut);
+});
+
 it('never lets a seller delete an offer', function (): void {
     $offer = Offer::factory()->create();
 

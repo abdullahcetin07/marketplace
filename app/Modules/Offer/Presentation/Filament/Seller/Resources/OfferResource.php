@@ -14,6 +14,7 @@ use App\Modules\Offer\Application\Actions\WithdrawOfferAction;
 use App\Modules\Offer\Domain\Enums\OfferStatus;
 use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource\Pages;
+use App\Modules\Offer\Presentation\Support\BuyBoxStanding;
 use App\Modules\Offer\Presentation\Support\CatalogLabels;
 use Filament\Forms;
 use Filament\Forms\Form;
@@ -198,6 +199,53 @@ final class OfferResource extends Resource
                     ->color(fn (OfferStatus $state): string => $state->color())
                     ->formatStateUsing(fn (OfferStatus $state): string => __("enums.OfferStatus.{$state->value}")),
 
+                /*
+                | THE TWO NUMBERS A SELLER OPENS THIS PAGE FOR: am I winning,
+                | and what do I have to beat? Both COMPUTED on every read
+                | (ADR-045) — storing a rank would be the cache-coherency
+                | problem that decision exists to avoid, and it would go stale
+                | the moment any competitor re-priced.
+                |
+                | Not sortable, deliberately. Sorting by rank would mean
+                | computing it for every row in the result set and ordering in
+                | PHP, which is a different and much more expensive query than
+                | the one this page runs.
+                */
+                Tables\Columns\TextColumn::make('buy_box_rank')
+                    ->label(__('offer.field.buy_box_rank'))
+                    ->badge()
+                    ->color(fn (Offer $record): string => static::standing()->rank($record) === 1 ? 'success' : 'gray')
+                    ->state(function (Offer $record): string {
+                        $rank = static::standing()->rank($record);
+
+                        // "—" for an offer that is not competing at all.
+                        // "You are 7th" and "you are not in the running" are
+                        // different facts; showing the first for the second
+                        // tells a seller to cut their price when what they
+                        // actually need is to restock.
+                        if ($rank === null) {
+                            return '—';
+                        }
+
+                        return trans_choice('offer.buy_box.rank_of', 1, [
+                            'rank' => $rank,
+                            'total' => static::standing()->competitorCount($record->variant_uuid),
+                        ]);
+                    }),
+
+                Tables\Columns\TextColumn::make('buy_box_price')
+                    ->label(__('offer.field.buy_box_price'))
+                    ->state(function (Offer $record): string {
+                        $winning = static::standing()->winningPriceMinor($record->variant_uuid);
+
+                        return $winning === null
+                            ? '—'
+                            : money($winning, $record->currency);
+                    })
+                    ->description(fn (Offer $record): ?string => static::standing()->rank($record) === 1
+                        ? __('offer.buy_box.you_are_winning')
+                        : null),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('offer.field.listed_at'))
                     ->dateTime()
@@ -329,6 +377,19 @@ final class OfferResource extends Resource
         }
 
         return $options;
+    }
+
+    /**
+     * The buy-box reader, resolved once so its per-variant memo is shared by
+     * every column and every row of one render.
+     *
+     * Resolved from the container rather than held in a static: a static would
+     * outlive the request in a long-running worker and start answering with
+     * yesterday's prices.
+     */
+    private static function standing(): BuyBoxStanding
+    {
+        return app(BuyBoxStanding::class);
     }
 
     /**

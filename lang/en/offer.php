@@ -29,11 +29,23 @@ return [
         'stock_hint' => 'How many you have. Enter 0 to mark it sold out — your price and your place are kept.',
         'status' => 'Status',
         'listed_at' => 'Listed',
+        'buy_box_rank' => 'Buy-box rank',
+        'buy_box_price' => 'Buy-box price',
         'suspended_at' => 'Suspended',
         'status_before' => 'Previous status',
         'reason' => 'Reason',
         'reason_hint' => 'Recorded in the audit trail.',
         'suspend_reason_hint' => 'Required. Recorded in the audit trail and shown as the reason.',
+    ],
+
+    /*
+    | The buy box is computed on every read, never stored (ADR-045). These are
+    | the two things a seller opens this page for: where am I, and what do I
+    | have to beat.
+    */
+    'buy_box' => [
+        'rank_of' => ':rank of :total',
+        'you_are_winning' => 'You have the buy box',
     ],
 
     'section' => [
