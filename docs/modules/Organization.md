@@ -15,6 +15,19 @@ Version: 1.0 — **feature-complete and FROZEN** (Phases 0–8 built)
 > - The Activity user-timeline listener for Organization events is deferred: the
 >   forensic **Audit** trail (every aggregate is `Auditable`) is complete and is
 >   the compliance record; Activity is additive narrative.
+>
+> **Owner-approved refinements after freeze (2026-07-29)** — Presentation, plus one
+> action; the Domain is otherwise untouched, `StoreOpeningApproved`/ADR-028 preserved:
+> - **Team member management** gains an **edit role** action (the existing
+>   `ChangeMemberRoleAction`) and **deactivate/reactivate** (a new
+>   `ChangeMemberStatusAction` over the member's existing `status`), alongside the
+>   existing **remove**.
+> - **Seller onboarding reflow**: the "Yeni Organizasyon" form collects **required
+>   store info** and, on submit, creates the org **and** its Store Opening Request in
+>   one step (reusing `CreateStoreOpeningRequestAction`). The standalone SOR create
+>   page leaves the seller nav; a store is still created **only** by
+>   `StoreOpeningApproved` (ADR-028). See [Store.md](Store.md) for the "Yeni Mağaza
+>   Talep Et" entry point on the seller Stores page.
 
 Governed by: `CLAUDE.md` → `Architecture_Decision_Record.md` →
 `001_Architecture.md` → `003_Database_Standards.md` → `002_Coding_Standards.md`

@@ -16,6 +16,16 @@ Version: 1.0 — **COMPLETE & FROZEN (2026-07-24). ADR-032–036 ratified.**
 > first real consumer (Product). The composition seam (ADR-036) is the standing
 > extension point: Product/Category/Campaign/Review/Statistics enrich the
 > storefront via `StorefrontContributorContract`, never by Store depending on them.
+>
+> **Owner-approved refinements after freeze (2026-07-29):**
+> - **Store name is unique platform-wide** — no two stores may share a name.
+>   Validated at request time through a new `StoreQueryContract` read
+>   (`storeNameExists`) and enforced by a DB unique index for integrity.
+> - Sellers request an **additional** store from the seller **"Mağazalarım"** page
+>   ("Yeni Mağaza Talep Et"), the relocated Store Opening Request entry point (the
+>   standalone SOR nav item is removed; onboarding's first store comes with the org,
+>   see [Organization.md](Organization.md)). The creation path is unchanged — a store
+>   is still created only by `StoreOpeningApproved` (ADR-028/032).
 
 Sprint: **Store-0 (specification)**. This document is the architecture-review
 artifact `CLAUDE.md` requires *before* any Store code, migration, model,

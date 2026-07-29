@@ -1295,4 +1295,37 @@ Full specification: [docs/modules/Offer.md](modules/Offer.md) §0.7.
 
 ---
 
+# ADR-047 Product Attachment Is Governed by an Explicit `accepts_products` Flag (Amends ADR-038)
+
+**Amends ADR-038.** A product no longer attaches to a category because it is a
+tree **leaf**; it attaches because the category is explicitly flagged
+**`accepts_products`**, a per-category boolean the **Category Manager** owns. A
+category may carry `accepts_products = true` *and* have children — so a product
+can sit at an intermediate level (e.g. *Makyaj*) while that level still has
+sub-categories (*Göz Makyajı*). Only categories the Category Manager has NOT
+flagged — typically the top-level containers (*Kozmetik ve Kişisel Bakım*) —
+refuse products.
+
+Existing data migrates as: every current leaf becomes `accepts_products = true`
+(preserving today's behaviour), every current non-leaf `false`. The
+attach-validation swaps `category is a leaf` for `category.accepts_products`.
+
+Rationale: the owner needs products at more than one depth without being forced
+to the deepest node every time, which the leaf rule made impossible. ADR-038's
+real intent — a **central taxonomy the Category Manager controls** — is
+preserved: the flag is that control, made explicit, rather than an automatic
+consequence of tree shape.
+
+Cost: the automatic guarantee "a category with children never holds products"
+is gone; the same product type can now be placed at different depths by
+different sellers unless the Category Manager curates the flags. We accept it
+because the flag is a *sharper* instrument than the leaf rule — it can forbid a
+mid-level container while allowing its sibling — and central curation was always
+the model (ADR-038); we trade an automatic invariant for a manual, more
+expressive one.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §3.2.
+
+---
+
 END OF FILE

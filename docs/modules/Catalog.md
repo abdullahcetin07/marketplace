@@ -246,11 +246,20 @@ proposing seller may submit, only a Category Manager/Admin may publish/reject.
 workload; a marketplace that publishes seller products instantly (no review) is faster
 but ships duplicates and mis-categorised items. We chose curation (ADR-038).
 
-## 3.2 Leaf-category attach & schema conformance
-A product attaches to a **leaf** category and must provide every attribute the category
-marks **required**; values must be valid for the attribute type (a `select` value must
-be one of its `AttributeValue`s). Rejecting on publish, not on draft, so authoring can be
-incremental.
+## 3.2 Category attach (`accepts_products`) & schema conformance
+**Amended by ADR-047 (2026-07-29).** A product attaches to any category the Category
+Manager has flagged **`accepts_products`** — no longer "a leaf" — and must provide every
+attribute that category marks **required**; values must be valid for the attribute type
+(a `select` value must be one of its `AttributeValue`s). Rejecting on publish, not on
+draft, so authoring can be incremental.
+
+`accepts_products` is a per-category boolean the Category Manager owns. A flagged category
+**may still have children** (a product sits at *Makyaj* while *Göz Makyajı* exists under
+it); an unflagged one (typically a top-level container) refuses products. Migration set
+every existing leaf `true` and every non-leaf `false`, preserving prior behaviour. The
+old leaf rule (`categoryIsNotALeaf`) is replaced by the flag check; the "cannot delete /
+deactivate a branch with children" guards are unchanged. **Empty categories** (no
+products **and** no children) are deletable, so a mis-created category can be removed.
 
 ## 3.3 Variant integrity
 The set of a product's variant-defining attributes is fixed by its category's schema.
