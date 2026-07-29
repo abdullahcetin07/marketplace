@@ -41,6 +41,12 @@ return [
     // company by uuid only and subscribes to nothing (ADR-040).
     App\Modules\Catalog\CatalogServiceProvider::class,
 
+    // Business modules (Sprint: Offer)
+    // After Catalog: Offer subscribes to Catalog's product-lifecycle events
+    // (ADR-046 §3.5 cascade) and resolves the Core contracts Catalog, Store and
+    // Organization bind. It imports none of them.
+    App\Modules\Offer\OfferServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

@@ -2,10 +2,11 @@
 
 The seven Foundation modules delivered in Sprint 1.
 
-**Business modules — Offer, Inventory, Order, Payment — do not exist yet.** They
-are later sprints. **Organization** and **Store** are frozen v1.0 (ADR-028–036);
-**Catalog** Phase 1 is complete (ADR-037–041) and deliberately unfrozen, because
-Offer will need to extend it.
+**Inventory, Order and Payment do not exist yet** — later sprints, each after its
+own architecture review. **Organization** and **Store** are frozen v1.0
+(ADR-028–036); **Catalog** Phase 1 is complete (ADR-037–041) and deliberately
+unfrozen, because **Offer** reaches into it. Offer's architecture review is
+approved (ADR-042–046) and it is the module currently being built.
 
 ---
 
@@ -23,6 +24,7 @@ Offer will need to extend it.
 | **Organization** | Legal seller company: KYC, members, invitations, documents, bank account, store-opening requests (ADR-028–031) — *frozen v1.0* | [modules/Organization.md](../../docs/modules/Organization.md) |
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
 | **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *Phase 1 complete* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
+| **Offer** | What makes the catalog sellable: a seller org's price + stock for one variant, its lifecycle, the computed buy box, the public "product + its offers" surface and the storefront product-listing contributor (ADR-042–046). **No cart, order, payment or commission** — those are later sprints — *in progress* | [modules/Offer.md](../../docs/modules/Offer.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is
 exercised; no product media is attached and no SMS/push provider is bound.

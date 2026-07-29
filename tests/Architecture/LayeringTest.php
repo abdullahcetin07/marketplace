@@ -240,6 +240,58 @@ arch('Catalog depends only on Audit and Localization, and subscribes to nothing'
     ]);
 
 /*
+| Offer is what makes the shared catalog sellable (ADR-042), and it is the
+| strictest boundary on the platform: it imports NOTHING. Unlike Store it is not
+| created by another module's event, and unlike Catalog it genuinely needs to
+| read three other contexts — so the temptation to import is real and the rule is
+| stated wholesale, with no events escape hatch.
+|
+| Everything it needs arrives through Core contracts: CatalogQueryContract +
+| CatalogBrowseContract (is this variant real, is its product published, what can
+| the seller pick), OrganizationAuthorizationContract (tenancy),
+| StoreQueryContract (the storefront it is attributed to). Catalog's product
+| lifecycle reaches it as domain events resolved by name through the container,
+| never by importing Catalog's event classes — which is why Catalog is absent
+| from the permitted list rather than scoped to Domain\Events the way Audit and
+| Activity scope theirs.
+|
+| Its two permitted dependencies are the platform-wide ones every module has:
+| Localization (money renders against the Currency model) and the Audit trait on
+| the Offer aggregate (ADR-027 — a price change is dispute evidence).
+*/
+arch('Offer imports no other module at all')
+    ->expect('App\Modules\Offer')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Catalog',
+    ]);
+
+/*
+| The mirror: nothing may reach INTO Offer either. Order, Inventory and Search
+| will read it through the Core `OfferQueryContract` and its events when they
+| exist; until then the only correct number of importers is zero, and stating it
+| here means the first accidental import fails the build rather than quietly
+| establishing a precedent. Same shape as Catalog's rule below.
+*/
+arch('no module depends on Offer')
+    ->expect('App\Modules\Offer')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Offer',
+        // The panel providers register each module's Filament resources
+        // explicitly, per panel — the composition root, not a module reaching
+        // into another module.
+        'App\Providers\Filament',
+        'Database\Modules\Offer',
+        'Tests\Modules\Offer',
+    ]);
+
+/*
 | The mirror of the rule above: nothing built so far may reach INTO Catalog.
 | Offer, Inventory and Search will read it through the Core contract when they
 | exist; until then the only correct number of importers is zero, and stating it
@@ -300,6 +352,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Settings\Domain',
         'App\Modules\Store\Domain',
         'App\Modules\Catalog\Domain',
+        'App\Modules\Offer\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -384,6 +437,17 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Catalog\Infrastructure',
         'App\Modules\Catalog\Presentation',
         'App\Modules\Catalog\CatalogServiceProvider',
+        // Offer — non-DTO namespaces ignored so its Domain\DTOs stay covered
+        // (they must carry the suffix), like the modules above.
+        'App\Modules\Offer\Application',
+        'App\Modules\Offer\Domain\Models',
+        'App\Modules\Offer\Domain\Enums',
+        'App\Modules\Offer\Domain\Events',
+        'App\Modules\Offer\Domain\Contracts',
+        'App\Modules\Offer\Domain\Exceptions',
+        'App\Modules\Offer\Infrastructure',
+        'App\Modules\Offer\Presentation',
+        'App\Modules\Offer\OfferServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')
