@@ -58,6 +58,17 @@ parameters:
 		  path: tests/*
 		  message: '#Call to an undefined method PHPUnit\\Framework\\TestCase::#'
 
+		# Pest's architecture DSL chains `->expect()` and `->preset()` off a
+		# TestCall through a runtime mixin PHPStan cannot see, so every arch rule
+		# reads as a call to an undefined method. Scoped to tests/Architecture
+		# and to those two names, so a genuinely missing method on a real class
+		# still fails. A rule rather than N counted baseline rows — the same
+		# treatment the Pest test-case blind spot above got, and it means adding
+		# an arch rule no longer means editing a number in the baseline.
+		- identifier: method.notFound
+		  path: tests/Architecture/*
+		  message: '#Call to an undefined method Pest\\PendingCalls\\TestCall\:\:(expect|preset)\(\)#'
+
 		# The same blind spot for state: Pest's `beforeEach` sets properties on
 		# the bound test case (`$this->settings = ...`), which no static model
 		# can see. Scoped identically.
