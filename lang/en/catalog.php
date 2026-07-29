@@ -79,6 +79,7 @@ return [
         'slug' => 'Slug',
         'is_active' => 'Active',
         'logo' => 'Logo',
+        'logo_hint' => 'Optional. A square logo on a transparent background works best. 2 MB maximum.',
         'empty' => [
             'heading' => 'No brands yet',
             'description' => 'Sellers pick a brand, never invent one — two spellings split every brand filter.',

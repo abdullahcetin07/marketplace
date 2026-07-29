@@ -81,6 +81,7 @@ return [
         'slug' => 'Kısa ad',
         'is_active' => 'Aktif',
         'logo' => 'Logo',
+        'logo_hint' => 'İsteğe bağlı. Kare, saydam arka planlı bir logo en iyi sonucu verir. En fazla 2 MB.',
         'empty' => [
             'heading' => 'Henüz marka yok',
             'description' => 'Satıcılar marka seçer, marka oluşturamaz — iki farklı yazım her marka filtresini ikiye böler.',
