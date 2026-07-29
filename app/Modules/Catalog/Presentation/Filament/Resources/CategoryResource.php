@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Presentation\Filament\Resources;
 
 use App\Modules\Catalog\Application\Actions\ArchiveCategoryAction;
+use App\Modules\Catalog\Application\Actions\DeleteCategoryAction;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource\Pages;
@@ -155,6 +156,7 @@ final class CategoryResource extends Resource
             ->actions([
                 Tables\Actions\EditAction::make(),
                 self::archiveAction(),
+                self::deleteAction(),
             ])
             ->bulkActions([])
             ->emptyStateIcon('heroicon-o-rectangle-stack')
@@ -200,6 +202,46 @@ final class CategoryResource extends Resource
      * active children — an expected refusal, so it surfaces as a warning
      * notification rather than an error page.
      */
+    /**
+     * Removing a mis-created node, as opposed to withdrawing a real one.
+     *
+     * OFFERED ONLY WHEN IT WOULD SUCCEED. The action refuses a category with
+     * products or children anyway, but showing a delete button on a populated
+     * branch invites the Category Manager to try — and a refusal they could
+     * have been spared reads as the tool being obstructive rather than careful.
+     * The action is still the control; this is the courtesy.
+     */
+    private static function deleteAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('delete')
+            ->label(__('catalog.category.action.delete'))
+            ->icon('heroicon-o-trash')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalDescription(__('catalog.category.action.delete_confirm'))
+            ->visible(fn (Category $record): bool => ! $record->children()->exists()
+                && ! $record->products()->exists()
+                && auth()->user()?->can('delete', $record) === true)
+            ->action(function (Category $record): void {
+                try {
+                    app(DeleteCategoryAction::class)->run($record);
+                } catch (CatalogException $exception) {
+                    // Reachable despite the visibility check: rows are rendered
+                    // from a snapshot, and a product can be filed against this
+                    // category between the page load and the click.
+                    Notification::make()
+                        ->title(__('catalog.product.notify.failed'))
+                        ->body($exception->getMessage())
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                Notification::make()->title(__('catalog.category.notify.deleted'))->success()->send();
+            });
+    }
+
     private static function archiveAction(): Tables\Actions\Action
     {
         return Tables\Actions\Action::make('archive')

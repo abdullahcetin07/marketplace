@@ -38,9 +38,12 @@ return [
         'action' => [
             'archive' => 'Archive',
             'archive_confirm' => 'The category is deactivated, not deleted. Existing products are unaffected.',
+            'delete' => 'Delete',
+            'delete_confirm' => 'This category is removed for good. Only a category with no products and no sub-categories can be deleted.',
         ],
         'notify' => [
             'archived' => 'Category archived.',
+            'deleted' => 'Category deleted.',
         ],
     ],
 

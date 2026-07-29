@@ -40,9 +40,12 @@ return [
         'action' => [
             'archive' => 'Arşivle',
             'archive_confirm' => 'Kategori pasife alınır, silinmez. Bağlı ürünler etkilenmez.',
+            'delete' => 'Sil',
+            'delete_confirm' => 'Bu kategori kalıcı olarak silinir. Yalnızca ürünü ve alt kategorisi olmayan bir kategori silinebilir.',
         ],
         'notify' => [
             'archived' => 'Kategori arşivlendi.',
+            'deleted' => 'Kategori silindi.',
         ],
     ],
 

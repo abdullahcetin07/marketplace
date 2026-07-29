@@ -59,6 +59,23 @@ final class CatalogException extends BaseException
     }
 
     /**
+     * §3.2 — a category with a subtree beneath it cannot be deleted.
+     *
+     * Distinct from `categoryHasActiveChildren`, which guards ARCHIVING and
+     * therefore only cares about active ones: deactivating a parent leaves its
+     * inactive children exactly as unreachable as they already were, but
+     * DELETING it would strand them under a parent that no longer exists.
+     */
+    public static function categoryHasChildren(string $categoryUuid): self
+    {
+        return self::make('This category has sub-categories; remove them first.')
+            ->withContext([
+                'reason' => 'category_has_children',
+                'category_uuid' => $categoryUuid,
+            ]);
+    }
+
+    /**
      * ADR-047 — a category cannot be closed to products while it holds some.
      *
      * The mirror of the attach rule. Turning the flag off under existing

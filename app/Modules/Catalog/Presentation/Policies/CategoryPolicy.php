@@ -59,7 +59,12 @@ final class CategoryPolicy extends BasePolicy
     }
 
     /**
-     * Deactivation (ADR-015) — the only removal the taxonomy has.
+     * Deactivation (ADR-015) — the removal a category that MEANT something
+     * gets, because products point at it and its slug is a public URL segment.
+     *
+     * A genuinely empty node can be deleted outright (`delete`); the guards
+     * that make the two different live in their actions, not here — both are
+     * the Category Manager's to perform.
      */
     public function archive(User $user, Category $category): Response
     {
