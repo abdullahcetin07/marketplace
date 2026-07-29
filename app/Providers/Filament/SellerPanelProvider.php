@@ -95,6 +95,14 @@ final class SellerPanelProvider extends PanelProvider
                 // one would put a cross-org admin surface a registration
                 // mistake away from a seller.
                 \App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource::class,
+
+                /*
+                | "Tekliflerim" — what the seller actually sells. A DIFFERENT
+                | class from the admin oversight resource for the same reason
+                | the product ones are split: sharing one would put a cross-org
+                | surface a registration mistake away from a seller.
+                */
+                \App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')
@@ -108,6 +116,7 @@ final class SellerPanelProvider extends PanelProvider
 
             ->navigationGroups([
                 NavigationGroup::make()->label(__('nav.catalogue')),
+                NavigationGroup::make()->label(__('nav.offers')),
                 NavigationGroup::make()->label(__('nav.orders')),
                 NavigationGroup::make()->label(__('nav.store')),
                 NavigationGroup::make()->label(__('nav.team')),

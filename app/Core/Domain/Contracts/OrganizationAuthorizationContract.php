@@ -47,4 +47,28 @@ interface OrganizationAuthorizationContract
      * @return array<int, int>
      */
     public function organizationIdsForUser(int $userId): array;
+
+    /**
+     * The organization's PUBLIC identifier for an internal id; null when no
+     * such organization exists.
+     *
+     * ADDED FOR OFFER — a change frozen Organization explicitly permits, being
+     * one "a later module explicitly requires", alongside the `StoreManage`
+     * capability Store required. Recorded in the `001_Architecture.md`
+     * amendment log.
+     *
+     * WHY A DOWNSTREAM MODULE NEEDS IT. ADR-040 says a cross-context reference
+     * is an id/uuid PAIR: the internal id for tenancy filters, the uuid for
+     * every payload and event. Every other method here speaks internal ids —
+     * which is right, they answer isolation questions — so a module that
+     * resolves a company through them has the filtering half and no way to get
+     * the public half. Offer persists `selling_org_uuid` and puts it on every
+     * event; without this it would have to accept that uuid from a form, where
+     * a forged value would attribute a listing to the wrong company.
+     *
+     * Deliberately one-way: id → uuid. The reverse would let a caller turn a
+     * public identifier into an internal one, which is the direction ADR-040
+     * exists to prevent.
+     */
+    public function organizationUuidFor(int $organizationId): ?string;
 }

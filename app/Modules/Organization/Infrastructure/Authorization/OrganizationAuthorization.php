@@ -7,6 +7,7 @@ namespace App\Modules\Organization\Infrastructure\Authorization;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Modules\Organization\Domain\Contracts\OrganizationMemberRepositoryContract;
 use App\Modules\Organization\Domain\Enums\OrganizationCapability;
+use App\Modules\Organization\Domain\Models\Organization;
 
 /**
  * Organization's answer to the cross-context authorization port (ADR-033 §9.1).
@@ -43,6 +44,17 @@ final class OrganizationAuthorization implements OrganizationAuthorizationContra
     public function organizationIdsForUser(int $userId): array
     {
         return $this->members->organizationIdsForUser($userId);
+    }
+
+    /**
+     * Added for Offer — see the contract for why the id-speaking methods above
+     * could not answer it. One indexed column read; no model leaves.
+     */
+    public function organizationUuidFor(int $organizationId): ?string
+    {
+        $uuid = Organization::query()->whereKey($organizationId)->value('uuid');
+
+        return $uuid === null ? null : (string) $uuid;
     }
 
     private function holds(int $userId, int $organizationId, OrganizationCapability $capability): bool

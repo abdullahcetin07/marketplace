@@ -10,6 +10,7 @@ declare(strict_types=1);
 return [
     'users' => 'Kullanıcılar',
     'team' => 'Ekip',
+    'offers' => 'Teklifler',
     'catalogue' => 'Katalog',
     'sales' => 'Satışlar',
     'orders' => 'Siparişler',

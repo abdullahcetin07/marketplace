@@ -99,11 +99,23 @@ return [
         'other' => 'Diğer',
     ],
 
+    /*
+    | App\Modules\Offer\Domain\Enums\OfferStatus ve Sprint-0 yer tutucusu
+    | App\Shared\Enums\OfferStatus burada birlikte çözümlenir. İki küme
+    | birleşimi: `suspended` modül enum'una (§2.2) aittir; `draft`, `pending`,
+    | `rejected`, `expired` yalnızca yer tutucununkilerdir.
+    |
+    | `out_of_stock` DA yalnızca yer tutucunundur. Modül enum'unda böyle bir
+    | durum YOKTUR ve olmayacaktır — stokta olmama `stock_quantity = 0`'dan
+    | türetilir (ADR-043/045). Etiket yer tutucu için burada durur; teklif
+    | durumu olarak okunmamalıdır.
+    */
     'OfferStatus' => [
         'draft' => 'Taslak',
         'pending' => 'Onay Bekliyor',
         'active' => 'Yayında',
         'paused' => 'Duraklatıldı',
+        'suspended' => 'Askıya Alındı',
         'out_of_stock' => 'Stokta Yok',
         'rejected' => 'Reddedildi',
         'expired' => 'Süresi Doldu',

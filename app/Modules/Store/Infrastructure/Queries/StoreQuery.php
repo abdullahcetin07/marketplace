@@ -49,18 +49,18 @@ final class StoreQuery implements StoreQueryContract
      * must agree on what "live" means, or a seller could list under a store no
      * buyer can reach.
      *
-     * @return array<int, string>
+     * @return array<string, string>
      */
-    public function liveStoreUuidsForOrganization(int $organizationId): array
+    public function liveStoresForOrganization(int $organizationId): array
     {
-        /** @var array<int, string> $uuids */
-        $uuids = Store::query()
+        /** @var array<string, string> $stores */
+        $stores = Store::query()
             ->where('organization_id', $organizationId)
             ->where('status', StoreStatus::Active->value)
             ->orderBy('id')
-            ->pluck('uuid')
+            ->pluck('name', 'uuid')
             ->all();
 
-        return $uuids;
+        return $stores;
     }
 }

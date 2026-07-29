@@ -9,6 +9,7 @@ use App\Modules\Catalog\Presentation\Filament\Resources\BrandResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource;
 use App\Modules\Identity\Presentation\Filament\Resources\CustomerResource;
+use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
 use App\Modules\Identity\Presentation\Filament\Resources\SellerResource;
 use App\Modules\Identity\Presentation\Filament\Resources\StaffResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
@@ -104,6 +105,10 @@ final class AdminPanelProvider extends PanelProvider
                 CategoryResource::class,
                 AttributeResource::class,
                 BrandResource::class,
+
+                // Offer oversight (ADR-044). Not a queue: offers go live
+                // unmoderated, and this is the reactive lever that pulls one.
+                OfferResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

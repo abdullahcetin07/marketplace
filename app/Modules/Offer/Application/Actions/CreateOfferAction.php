@@ -122,7 +122,7 @@ final class CreateOfferAction extends BaseAction
      */
     private function assertStoreUsable(string $storeUuid, int $sellingOrgId): void
     {
-        if ($this->stores->liveStoreUuidsForOrganization($sellingOrgId) === []) {
+        if ($this->stores->liveStoresForOrganization($sellingOrgId) === []) {
             throw OfferException::noActiveStore();
         }
 

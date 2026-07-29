@@ -40,28 +40,32 @@ interface StoreQueryContract
     public function organizationIdFor(string $storeUuid): ?int;
 
     /**
-     * The UUIDs of an organization's LIVE stores, or an empty array when it has
-     * none.
+     * An organization's LIVE stores as `uuid => display name`, empty when it
+     * has none.
      *
      * ADDED FOR OFFER (Offer.md §3.4) — a change frozen Store explicitly
      * permits, being one "a later module explicitly requires", and the same
      * shape as the `StoreManage` capability frozen Organization gained for
      * Store. Recorded in the `001_Architecture.md` amendment log.
      *
-     * WHY IT WAS MISSING. Every method above walks store → org, which is all
-     * an isolation check needs: you hold a store uuid and ask who owns it.
-     * Offer asks the question from the other end — "may this company sell at
-     * all, and under which storefront?" — and no store uuid exists yet to ask
-     * about. Without it, Offer's precondition ("the selling org must have an
-     * Active store") is unanswerable, and the seller's offer form has nothing
-     * to attribute the listing to.
+     * WHY IT WAS MISSING. Every method above walks store → org, which is all an
+     * isolation check needs: you hold a store uuid and ask who owns it. Offer
+     * asks from the other end — "may this company sell at all, and under which
+     * storefront?" — with no store uuid yet to ask about. Without it the
+     * precondition ("the selling org must have an Active store") is
+     * unanswerable, and the seller's offer form has nothing to attribute a
+     * listing to.
      *
-     * Returns uuids, never models or internal store ids, so the boundary this
-     * contract exists to draw is unchanged. Plural because an organization may
-     * hold several stores (ADR-028's store limit is a number, not a flag) — the
-     * caller picks.
+     * WHY IT CARRIES THE NAME. A downstream module holds uuids and nothing
+     * else, so a store picker built from uuids alone would ask a seller to
+     * choose between two identifiers. One method answering both the
+     * precondition (`=== []`) and the picker is better than two that overlap.
      *
-     * @return array<int, string>
+     * Still no models and no internal store ids, so the boundary is unchanged.
+     * Plural because an organization may hold several stores (ADR-028's store
+     * limit is a number, not a flag) — the caller picks.
+     *
+     * @return array<string, string>
      */
-    public function liveStoreUuidsForOrganization(int $organizationId): array;
+    public function liveStoresForOrganization(int $organizationId): array;
 }

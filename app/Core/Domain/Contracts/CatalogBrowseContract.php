@@ -80,4 +80,34 @@ interface CatalogBrowseContract
      * }>
      */
     public function variantsForProduct(string $productUuid): array;
+
+    /**
+     * Display data for products already referenced by uuid, keyed by uuid.
+     *
+     * WHY A BATCH LOOKUP EXISTS AT ALL. A downstream module holds only uuids
+     * (ADR-040) — an offer knows it prices `product_uuid`, not what that product
+     * is called. Rendering a list of offers therefore needs a title per row, and
+     * the two honest ways to get one are this or denormalizing the title onto
+     * the offer. The copy is what ADR-037 exists to refuse: a title edited in
+     * the catalog would silently disagree with every seller's stale copy.
+     *
+     * Batched rather than one-at-a-time so a page of rows is one query, not one
+     * per row. Unknown or unpublished uuids are simply absent from the result —
+     * a caller renders a fallback rather than getting a null-shaped entry.
+     *
+     * @param  array<int, string>  $productUuids
+     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
+     */
+    public function productSummaries(array $productUuids): array;
+
+    /**
+     * The same, for variants: the SKU and the combination label a human reads.
+     *
+     * `product_uuid` is included so a caller holding only a variant can group by
+     * product without a second round trip.
+     *
+     * @param  array<int, string>  $variantUuids
+     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
+     */
+    public function variantSummaries(array $variantUuids): array;
 }

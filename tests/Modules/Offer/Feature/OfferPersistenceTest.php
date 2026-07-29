@@ -106,11 +106,12 @@ it('tells Offer which live stores an organization has — the Store-required add
     Store::factory()->create(['organization_id' => $mine->getKey(), 'status' => StoreStatus::Suspended]);
     Store::factory()->create(['organization_id' => $other->getKey(), 'status' => StoreStatus::Active]);
 
-    $uuids = app(StoreQueryContract::class)->liveStoreUuidsForOrganization($mine->getKey());
+    $stores = app(StoreQueryContract::class)->liveStoresForOrganization($mine->getKey());
 
     // Only live, only theirs — the precondition "no store, no offer" (§3.4)
-    // rests entirely on this answer.
-    expect($uuids)->toBe([$active->uuid]);
+    // rests entirely on this answer, and the name is what a store picker
+    // renders instead of a uuid.
+    expect($stores)->toBe([$active->uuid => $active->name]);
 });
 
 it('gives an organization with no live store an empty list, not everyone’s', function (): void {
@@ -121,5 +122,5 @@ it('gives an organization with no live store an empty list, not everyone’s', f
 
     // "No store, no offer" must be answerable as an empty list, never as a
     // fall-through that hands back somebody else's storefront.
-    expect(app(StoreQueryContract::class)->liveStoreUuidsForOrganization($without->getKey()))->toBe([]);
+    expect(app(StoreQueryContract::class)->liveStoresForOrganization($without->getKey()))->toBe([]);
 });

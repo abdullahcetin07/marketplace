@@ -13,6 +13,66 @@ return [
     'singular' => 'Teklif',
     'plural' => 'Teklifler',
 
+    'field' => [
+        'product' => 'Ürün',
+        'product_hint' => 'Yayındaki katalogda arayın. Ürün yoksa önce "ürün aç" akışını kullanın.',
+        'variant' => 'Varyant',
+        'variant_hint' => 'Sattığınız tam varyant (renk, beden…). Fiyat ve stok bu varyanta aittir.',
+        'store' => 'Mağaza',
+        'store_hint' => 'Teklifin görüneceği mağaza. Yalnızca aktif mağazalarınız listelenir.',
+        'seller' => 'Satıcı',
+        'price' => 'Fiyat',
+        'price_hint' => 'KDV dâhil, alıcının ödediği tutar.',
+        'list_price' => 'Piyasa fiyatı',
+        'list_price_hint' => 'İsteğe bağlı. Üstü çizili gösterilir; satış fiyatından düşük olamaz.',
+        'stock' => 'Stok',
+        'stock_hint' => 'Elinizdeki adet. 0 girerseniz teklif "tükendi" olur; fiyatınız ve sıranız korunur.',
+        'status' => 'Durum',
+        'listed_at' => 'Yayına alındı',
+        'suspended_at' => 'Askıya alınma',
+        'status_before' => 'Önceki durum',
+        'reason' => 'Gerekçe',
+        'reason_hint' => 'Denetim kaydına yazılır.',
+        'suspend_reason_hint' => 'Zorunlu. Satıcıya ve denetim kaydına gerekçe olarak geçer.',
+    ],
+
+    'section' => [
+        'listing' => 'Teklif',
+        'suspension' => 'Askıya alma kaydı',
+    ],
+
+    'create' => [
+        'what' => 'Ne satıyorsunuz?',
+        'what_hint' => 'Ürün paylaşılan katalogdan seçilir — kendi kopyanızı oluşturmazsınız.',
+        'terms' => 'Fiyat ve stok',
+    ],
+
+    'action' => [
+        'create' => 'Katalogdan seç & sat',
+        'pause' => 'Duraklat',
+        'pause_confirm' => 'Teklif satıştan kalkar ama silinmez; fiyatınız ve sıranız korunur.',
+        'resume' => 'Yeniden yayınla',
+        'withdraw' => 'Yayından kaldır',
+        'withdraw_confirm' => 'Teklif kalıcı olarak kaldırılır. Aynı varyantı daha sonra yeniden listeleyebilirsiniz.',
+        'suspend' => 'Askıya al',
+        'suspend_confirm' => 'Teklif her yerden kaldırılır. Satıcı kendi kaldıramaz; yalnızca yönetici geri alabilir.',
+        'reinstate' => 'Askıyı kaldır',
+        'reinstate_confirm' => 'Teklif askıdan önceki durumuna döner — otomatik olarak yayına alınmaz.',
+    ],
+
+    'notice' => [
+        'paused' => 'Teklif duraklatıldı.',
+        'resumed' => 'Teklif yeniden yayında.',
+        'withdrawn' => 'Teklif yayından kaldırıldı.',
+        'suspended' => 'Teklif askıya alındı.',
+        'reinstated' => 'Teklifin askısı kaldırıldı.',
+    ],
+
+    'empty' => [
+        'heading' => 'Henüz teklifiniz yok',
+        'description' => 'Katalogdan bir ürün seçip fiyat ve stok girin; teklifiniz anında yayına girer.',
+    ],
+
     /*
     | Ürün yaşam döngüsü kaynaklı otomatik geçişlerin denetim gerekçesi (§3.5).
     | Satıcı "listem neden durdu?" diye sorduğunda izde bunu görür.

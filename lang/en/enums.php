@@ -99,11 +99,22 @@ return [
         'other' => 'Other',
     ],
 
+    /*
+    | App\Modules\Offer\Domain\Enums\OfferStatus and the Sprint-0 placeholder
+    | App\Shared\Enums\OfferStatus resolve here together. The union of both
+    | case sets: `suspended` is the module enum's (§2.2); `draft`, `pending`,
+    | `rejected` and `expired` are the placeholder's alone.
+    |
+    | So is `out_of_stock`. The module enum has no such case and never will —
+    | out-of-stock is derived from `stock_quantity = 0` (ADR-043/045). The label
+    | stays for the placeholder; it must not be read as an offer status.
+    */
     'OfferStatus' => [
         'draft' => 'Draft',
         'pending' => 'Pending Approval',
         'active' => 'Live',
         'paused' => 'Paused',
+        'suspended' => 'Suspended',
         'out_of_stock' => 'Out of Stock',
         'rejected' => 'Rejected',
         'expired' => 'Expired',

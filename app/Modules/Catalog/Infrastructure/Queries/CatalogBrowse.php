@@ -148,6 +148,69 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
+     * @param  array<int, string>  $productUuids
+     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
+     */
+    public function productSummaries(array $productUuids): array
+    {
+        $uuids = array_values(array_unique(array_filter($productUuids)));
+
+        if ($uuids === []) {
+            return [];
+        }
+
+        $summaries = [];
+
+        // PUBLISHED ONLY here as well. A downstream module holding the uuid of a
+        // product that has since been archived renders its fallback rather than
+        // a title the catalog no longer stands behind.
+        foreach (Product::query()
+            ->whereIn('uuid', $uuids)
+            ->where('status', ProductStatus::Published->value)
+            ->with(['brand', 'category'])
+            ->get() as $product) {
+            $summaries[$product->uuid] = [
+                'uuid' => $product->uuid,
+                'title' => $product->localized('title'),
+                'brand' => $product->brand?->name,
+                'category' => $product->category->localized('name'),
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
+     * @param  array<int, string>  $variantUuids
+     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
+     */
+    public function variantSummaries(array $variantUuids): array
+    {
+        $uuids = array_values(array_unique(array_filter($variantUuids)));
+
+        if ($uuids === []) {
+            return [];
+        }
+
+        $summaries = [];
+
+        foreach (ProductVariant::query()
+            ->whereIn('uuid', $uuids)
+            // Both are read below; strict mode makes a lazy load throw.
+            ->with(['attributeValues', 'product'])
+            ->get() as $variant) {
+            $summaries[$variant->uuid] = [
+                'uuid' => $variant->uuid,
+                'product_uuid' => $variant->product->uuid,
+                'sku' => $variant->sku,
+                'label' => self::labelFor($variant),
+            ];
+        }
+
+        return $summaries;
+    }
+
+    /**
      * "Kırmızı / M" — the combination a human recognises.
      *
      * A one-variant product (ADR-039: a "simple" product is a one-variant
