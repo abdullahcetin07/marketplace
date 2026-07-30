@@ -6,6 +6,7 @@ namespace Database\Modules\Offer\Factories;
 
 use App\Modules\Localization\Domain\Models\Currency;
 use App\Modules\Offer\Domain\Enums\OfferStatus;
+use App\Modules\Offer\Domain\Events\OfferCreated;
 use App\Modules\Offer\Domain\Models\Offer;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
@@ -126,5 +127,42 @@ final class OfferFactory extends Factory
     public function forStore(string $storeUuid): static
     {
         return $this->state(fn (): array => ['store_uuid' => $storeUuid]);
+    }
+
+    /**
+     * A FACTORY-MADE OFFER ANNOUNCES ITSELF, exactly as a real one does.
+     *
+     * Since ADR-048 an offer is only sellable if Inventory has a stock pool for
+     * its (org, variant), and Inventory builds that pool by consuming
+     * `OfferCreated`. In production every offer comes from `CreateOfferAction`,
+     * which dispatches it; a factory that skipped the event would produce offers
+     * that exist and can never be bought — so every buy-box test would have to
+     * remember to seed Inventory by hand, and the ones that forgot would fail
+     * for a reason unrelated to what they were testing.
+     *
+     * DISPATCHING THE EVENT RATHER THAN WRITING THE POOL, deliberately: this
+     * factory may not import Inventory (`LayeringTest`), and going through the
+     * real event means the suite exercises the real mirror rather than a
+     * test-only shortcut that could drift from it.
+     *
+     * A test that fakes events therefore gets no pool — which is correct, since
+     * faking events is asking for the listeners not to run. Those tests assert on
+     * the event itself, not on availability.
+     */
+    public function configure(): static
+    {
+        return $this->afterCreating(function (Offer $offer): void {
+            OfferCreated::dispatch(
+                $offer->getKey(),
+                $offer->uuid,
+                $offer->variant_uuid,
+                $offer->product_uuid,
+                $offer->selling_org_id,
+                $offer->selling_org_uuid,
+                $offer->store_uuid,
+                $offer->price_minor,
+                $offer->stock_quantity,
+            );
+        });
     }
 }

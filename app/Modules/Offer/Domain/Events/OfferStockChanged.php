@@ -23,6 +23,16 @@ final class OfferStockChanged extends BaseEvent
         public readonly string $offerUuid,
         public readonly string $variantUuid,
         public readonly string $productUuid,
+        /*
+        | ADDED FOR INVENTORY (Inventory.md §3.1/§10.4, anticipated at approval).
+        | Inventory consumes this event BLIND — it may not import Offer — so
+        | everything it needs to find or create the right stock pool has to be on
+        | the payload. The internal id travels alongside the uuid because the
+        | seller panel's tenancy filter speaks internal ids (ADR-040) and the
+        | reverse lookup is deliberately not available.
+        */
+        public readonly int $sellingOrgId,
+        public readonly string $sellingOrgUuid,
         public readonly int $previousStockQuantity,
         public readonly int $stockQuantity,
     ) {

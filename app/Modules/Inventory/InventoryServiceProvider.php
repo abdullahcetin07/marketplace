@@ -6,10 +6,12 @@ namespace App\Modules\Inventory;
 
 use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Core\Domain\Contracts\InventoryReservationContract;
+use App\Modules\Inventory\Application\Listeners\MirrorOfferStock;
 use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
 use App\Modules\Inventory\Infrastructure\Commands\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
 use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -66,5 +68,43 @@ final class InventoryServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Inventory/migrations'));
+
+        $this->subscribeToOfferStock();
+    }
+
+    /**
+     * The on-hand mirror (§3.1, ADR-048), subscribed BY CLASS-STRING.
+     *
+     * This is where the boundary is visible as a compromise rather than a rule.
+     * Inventory imports no module and Offer is on the forbidden list with no
+     * events escape hatch (`LayeringTest`), so it cannot name `OfferStockChanged`
+     * as a class — it names it as a string and reads public properties off a
+     * plain object.
+     *
+     * WHY NOT GIVE OFFER AN ESCAPE HATCH like Audit and Activity have? Because
+     * those are consumers by nature: they subscribe to everything and never act
+     * on a producer's data. Inventory is a peer — it holds the authority Offer
+     * now READS BACK through `InventoryQueryContract` — and relaxing the rule for
+     * one event class would make the next Offer import an argument rather than a
+     * build failure.
+     *
+     * The cost is that a rename in Offer breaks the mirror at runtime rather than
+     * at build time. It is bounded by a feature test that fires the real Offer
+     * actions and asserts the stock pool moved.
+     */
+    private function subscribeToOfferStock(): void
+    {
+        // Both mean "the seller says they have N", so both land in one handler.
+        foreach ([
+            'App\Modules\Offer\Domain\Events\OfferCreated',
+            'App\Modules\Offer\Domain\Events\OfferStockChanged',
+        ] as $event) {
+            Event::listen($event, [MirrorOfferStock::class, 'onStockDeclared']);
+        }
+
+        Event::listen(
+            'App\Modules\Offer\Domain\Events\OfferWithdrawn',
+            [MirrorOfferStock::class, 'onWithdrawn'],
+        );
     }
 }

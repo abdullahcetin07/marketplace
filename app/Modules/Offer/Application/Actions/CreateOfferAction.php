@@ -90,6 +90,7 @@ final class CreateOfferAction extends BaseAction
             $result->uuid,
             $result->variant_uuid,
             $result->product_uuid,
+            $result->selling_org_id,
             $result->selling_org_uuid,
             $result->store_uuid,
             $result->price_minor,

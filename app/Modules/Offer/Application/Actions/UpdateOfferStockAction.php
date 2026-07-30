@@ -66,6 +66,8 @@ final class UpdateOfferStockAction extends BaseAction
             $result->uuid,
             $result->variant_uuid,
             $result->product_uuid,
+            $result->selling_org_id,
+            $result->selling_org_uuid,
             $this->previousStock,
             $result->stock_quantity,
         );

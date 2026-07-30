@@ -22,6 +22,9 @@ final class OfferWithdrawn extends BaseEvent
         public readonly string $offerUuid,
         public readonly string $variantUuid,
         public readonly string $productUuid,
+        // Added for Inventory: the ADR-040 pair, because a consumer that may
+        // not import Offer cannot resolve one from the other.
+        public readonly int $sellingOrgId,
         public readonly string $sellingOrgUuid,
     ) {
         parent::__construct();
