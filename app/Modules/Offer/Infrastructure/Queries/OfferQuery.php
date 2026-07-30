@@ -116,6 +116,25 @@ final class OfferQuery implements OfferQueryContract
     }
 
     /**
+     * ONE offer, if it is sellable right now (added for Order — Order.md §1.4).
+     *
+     * GOES THROUGH `eligible()` LIKE EVERY OTHER READ, which is the point rather
+     * than an implementation convenience: "can this go in a basket" and "is this
+     * what a product page would feature" are then the same rule, and a shopper can
+     * never add something the platform would not show them. A separate
+     * `where('uuid')->first()` here would drift from the buy box the first time
+     * either changed.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function activeOfferByUuid(string $offerUuid): ?array
+    {
+        return $this->eligible(
+            Offer::query()->where('uuid', $offerUuid),
+        )[0] ?? null;
+    }
+
+    /**
      * The buy-box ordering and the eligibility rule, in one place so the
      * featured offer and the seller list can never disagree about who wins.
      *

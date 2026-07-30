@@ -94,4 +94,31 @@ interface OfferQueryContract
      * @return array<int, array<string, mixed>>
      */
     public function offersForStore(string $storeUuid): array;
+
+    /**
+     * ONE offer by uuid, in the row shape above, or null when it is not sellable
+     * right now.
+     *
+     * ADDED FOR ORDER (Order.md §1.4 — "validate an offer is active, read its
+     * live price for the cart, snapshot it at checkout. By uuid"). Every other
+     * method here answers a LIST question — what can I buy for this product,
+     * what does this store sell — because until Order existed, every caller
+     * arrived holding a product or a store. A cart line arrives holding an offer,
+     * and there was no way to ask about one.
+     *
+     * IT APPLIES THE SAME ELIGIBILITY AS THE BUY BOX, deliberately: Active, on a
+     * live store, and available per Inventory. So "can this go in a basket" and
+     * "is this what a product page would feature" cannot drift apart — a shopper
+     * must never be able to add something the platform would not show them.
+     *
+     * NULL RATHER THAN A REASON. A paused offer, a suspended one, a closed shop
+     * and a sold-out shelf are the same fact from a buyer's side ("you cannot buy
+     * this"), and enumerating a seller's internal state to a shopper leaks how the
+     * platform works without helping them. `offerExists()` remains the separate,
+     * weaker question — does the row exist at all — which is what a HISTORICAL
+     * order line needs, since it may reference an offer nobody may buy from today.
+     *
+     * @return array<string, mixed>|null
+     */
+    public function activeOfferByUuid(string $offerUuid): ?array;
 }
