@@ -123,6 +123,25 @@ return [
     ],
 
     /*
+    | Stok hareketinin GEREKÇESİ (ADR-050). Satıcının "stoğum neden değişti?"
+    | sorusunu yanıtlayan sütun budur: üç adet düşmüş olması satıldığı anlamına
+    | da, birinin sepetinde beklediği anlamına da gelebilir — hangisi olduğunu
+    | yalnızca tür söyler.
+    */
+    'StockMovementType' => [
+        'seller_adjustment' => 'Satıcı stok girişi',
+        'reserved' => 'Ayrıldı',
+        'released' => 'Serbest bırakıldı',
+        'committed' => 'Satıldı',
+    ],
+
+    'ReservationStatus' => [
+        'active' => 'Ayrılmış',
+        'released' => 'Serbest bırakıldı',
+        'committed' => 'Satışa dönüştü',
+    ],
+
+    /*
     | Keyed by the enum's SHORT class name, so the module-owned
     | App\Modules\Catalog\Domain\Enums\ProductStatus and the Sprint-0
     | placeholder App\Shared\Enums\ProductStatus resolve here together. The

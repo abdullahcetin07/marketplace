@@ -146,6 +146,14 @@ final class RolePermissionSeeder extends Seeder
             */
             'offer.view_any',
             'offer.view',
+            /*
+            | Stock, read-only. "Why does the site say sold out when I have ten?"
+            | is a support question, and answering it needs to see on-hand,
+            | reserved and the movement history. There is no write permission to
+            | withhold — nobody edits a merchant's stock (§7).
+            */
+            'inventory.view_any',
+            'inventory.view',
             // Support are the front line for account-takeover reports, so they
             // receive the platform security alerts (Q6).
             'security.receive_alerts',

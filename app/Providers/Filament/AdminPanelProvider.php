@@ -9,6 +9,7 @@ use App\Modules\Catalog\Presentation\Filament\Resources\BrandResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource;
 use App\Modules\Identity\Presentation\Filament\Resources\CustomerResource;
+use App\Modules\Inventory\Presentation\Filament\Resources\StockResource;
 use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
 use App\Modules\Identity\Presentation\Filament\Resources\SellerResource;
 use App\Modules\Identity\Presentation\Filament\Resources\StaffResource;
@@ -109,6 +110,15 @@ final class AdminPanelProvider extends PanelProvider
                 // Offer oversight (ADR-044). Not a queue: offers go live
                 // unmoderated, and this is the reactive lever that pulls one.
                 OfferResource::class,
+
+                /*
+                | Stock oversight (ADR-048). READ ONLY, and the only oversight
+                | resource with no lever at all — an operator answers "the site
+                | says sold out and I have ten" here and changes nothing, because
+                | editing a merchant's count is trading on their behalf
+                | (Inventory §7).
+                */
+                StockResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

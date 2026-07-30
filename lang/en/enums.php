@@ -122,6 +122,24 @@ return [
     ],
 
     /*
+    | WHY a stock movement happened (ADR-050) — the column that answers "why did
+    | my stock change?". Three fewer could be three sold or three sitting in
+    | somebody's basket, and only the type says which.
+    */
+    'StockMovementType' => [
+        'seller_adjustment' => 'Seller entry',
+        'reserved' => 'Reserved',
+        'released' => 'Released',
+        'committed' => 'Sold',
+    ],
+
+    'ReservationStatus' => [
+        'active' => 'Held',
+        'released' => 'Released',
+        'committed' => 'Became a sale',
+    ],
+
+    /*
     | Keyed by the enum's SHORT class name, so the module-owned
     | App\Modules\Catalog\Domain\Enums\ProductStatus and the Sprint-0
     | placeholder App\Shared\Enums\ProductStatus resolve here together. The

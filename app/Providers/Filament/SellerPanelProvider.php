@@ -103,6 +103,14 @@ final class SellerPanelProvider extends PanelProvider
                 | surface a registration mistake away from a seller.
                 */
                 \App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource::class,
+
+                /*
+                | "Stoğum" (ADR-048). Sits beside the offers because that is where
+                | the seller types the quantity — this is the page that tells them
+                | what happened to it afterwards, and the one number the offer
+                | form cannot show: available = on hand − reserved.
+                */
+                \App\Modules\Inventory\Presentation\Filament\Seller\Resources\StockResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')

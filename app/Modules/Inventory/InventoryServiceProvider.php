@@ -10,8 +10,13 @@ use App\Modules\Inventory\Application\Listeners\MirrorOfferStock;
 use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
 use App\Modules\Inventory\Infrastructure\Commands\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
+use App\Modules\Inventory\Domain\Models\StockItem;
 use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
+use App\Modules\Inventory\Presentation\Policies\InventoryPolicy;
+use App\Shared\Enums\UserType;
+use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -63,11 +68,35 @@ final class InventoryServiceProvider extends ServiceProvider
         | deliberately.
         */
         $this->app->singleton(InventoryReservationContract::class, InventoryReservation::class);
+
+        $this->registerPermissions();
+    }
+
+    /**
+     * Permissions are DERIVED from a resource registration, never hand-listed.
+     *
+     * READ VERBS ONLY, and only for admins. There is no `inventory.update`
+     * anywhere, for anybody: a seller changes stock on the Offer form (ADR-048)
+     * and an admin does not touch a merchant's stock at all — the same boundary
+     * that stops an admin re-pricing a merchant's offer. A write permission that
+     * existed would eventually be granted to somebody.
+     *
+     * A seller's authority over their own stock is an ORGANIZATION CAPABILITY
+     * resolved through the Core contract (§7), not a Spatie permission: Spatie
+     * `teams` is false, so a seller-guard `inventory.view` could not be scoped to
+     * one company and would grant sight of everyone's.
+     */
+    private function registerPermissions(): void
+    {
+        PermissionRegistry::ability('inventory.view_any', [UserType::Admin]);
+        PermissionRegistry::ability('inventory.view', [UserType::Admin]);
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Inventory/migrations'));
+
+        Gate::policy(StockItem::class, InventoryPolicy::class);
 
         $this->subscribeToOfferStock();
     }
