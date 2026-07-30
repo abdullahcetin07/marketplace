@@ -122,6 +122,17 @@ return [
     ],
 
     /*
+    | Order lifecycle (ADR-054). Three states, because payment and shipping belong
+    | to later sprints: `pending` means stock is HELD, `awaiting_payment` means it
+    | has been COMMITTED and the customer owes for it.
+    */
+    'OrderStatus' => [
+        'pending' => 'In checkout',
+        'awaiting_payment' => 'Awaiting payment',
+        'cancelled' => 'Cancelled',
+    ],
+
+    /*
     | WHY a stock movement happened (ADR-050) — the column that answers "why did
     | my stock change?". Three fewer could be three sold or three sitting in
     | somebody's basket, and only the type says which.

@@ -123,6 +123,17 @@ return [
     ],
 
     /*
+    | Sipariş durumları (ADR-054). Üç durum, çünkü ödeme ve kargo başka
+    | sprintlerin işi: `pending` stok AYRILMIŞ demek, `awaiting_payment` stok
+    | DÜŞÜLMÜŞ ve ödeme bekleniyor demek.
+    */
+    'OrderStatus' => [
+        'pending' => 'Ödeme adımında',
+        'awaiting_payment' => 'Ödeme bekliyor',
+        'cancelled' => 'İptal edildi',
+    ],
+
+    /*
     | Stok hareketinin GEREKÇESİ (ADR-050). Satıcının "stoğum neden değişti?"
     | sorusunu yanıtlayan sütun budur: üç adet düşmüş olması satıldığı anlamına
     | da, birinin sepetinde beklediği anlamına da gelebilir — hangisi olduğunu
