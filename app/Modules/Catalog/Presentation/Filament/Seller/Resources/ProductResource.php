@@ -11,6 +11,7 @@ use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource\Pages;
 use App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource\RelationManagers;
 use Filament\Forms;
@@ -166,6 +167,34 @@ final class ProductResource extends Resource
                         ->placeholder(__('catalog.product.brand_none'))
                         ->options(fn (): array => Brand::query()->active()->orderBy('name')->pluck('name', 'id')->all())
                         ->searchable()
+                        ->native(false),
+
+                    /*
+                    | THE KDV BRACKET (ADR-056) — required, and the one field on
+                    | this form the seller is not free to choose commercially.
+                    |
+                    | It is a CLASSIFICATION: a book is %1 whoever sells it, so
+                    | this asks what the thing IS, not what the seller wants. That
+                    | is why it sits here beside the category and the brand rather
+                    | than anywhere near an Offer, and why it does not breach
+                    | ADR-037's "a product has no price".
+                    |
+                    | REQUIRED because a product without one cannot produce a
+                    | lawful order line — checkout has nothing to extract KDV
+                    | with. Defaulted to the general bracket so the common case is
+                    | one fewer decision, and the seller is told the moderator
+                    | checks it: getting this wrong is a tax error, not a typo.
+                    |
+                    | Only ACTIVE brackets are offered. A repealed one still
+                    | answers for products already on it (see `CatalogQuery`), but
+                    | nothing new should be filed under it.
+                    */
+                    Forms\Components\Select::make('tax_rate_id')
+                        ->label(__('catalog.product.tax_rate'))
+                        ->helperText(__('catalog.product.tax_rate_hint'))
+                        ->options(fn (): array => self::taxRateOptions())
+                        ->default(fn (): ?int => array_key_first(self::taxRateOptions()))
+                        ->required()
                         ->native(false),
 
                     Forms\Components\TextInput::make('gtin')
@@ -336,6 +365,26 @@ final class ProductResource extends Resource
             ->mapWithKeys(fn (Category $category): array => [
                 $category->getKey() => str_repeat('— ', max(0, $category->depth - 1)).$category->localized('name'),
             ])
+            ->all();
+    }
+
+    /**
+     * The KDV brackets a product may be filed under (ADR-056).
+     *
+     * ACTIVE ONLY, ordered by rate descending so the general %20 — what most
+     * goods are — is first and becomes the default. Labelled with the percentage
+     * beside the name, because "%20" is what a seller recognises and the name is
+     * what tells them whether their goods are the exception.
+     *
+     * @return array<int, string>
+     */
+    public static function taxRateOptions(): array
+    {
+        return TaxRate::query()
+            ->active()
+            ->orderByDesc('rate')
+            ->get()
+            ->mapWithKeys(fn (TaxRate $rate): array => [$rate->getKey() => $rate->name])
             ->all();
     }
 

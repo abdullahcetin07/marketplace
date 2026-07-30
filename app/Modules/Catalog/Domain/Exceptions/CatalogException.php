@@ -234,6 +234,22 @@ final class CatalogException extends BaseException
     }
 
     /**
+     * §2.4 (ADR-056) — a product needs a KDV bracket before it can be reviewed.
+     *
+     * Checked at SUBMISSION, alongside the one-variant rule and for the same
+     * reason: without a rate, checkout has nothing to extract KDV with, so the
+     * product could be approved into a catalog it can never be lawfully sold
+     * from. The authoring form requires the field; this is the backstop for
+     * anything that reached `Draft` without one — a pre-ADR-056 product whose
+     * backfill never ran, or an import.
+     */
+    public static function productNeedsTaxRate(): self
+    {
+        return self::make('A product must have a KDV bracket before it can be submitted.')
+            ->withContext(['reason' => 'missing_tax_rate']);
+    }
+
+    /**
      * §3.4 — the GTIN is the primary dedup key of a shared catalog. A collision
      * means the product is already here; the seller should offer it, not
      * re-create it.

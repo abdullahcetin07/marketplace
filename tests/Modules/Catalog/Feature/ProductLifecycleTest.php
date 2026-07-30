@@ -29,6 +29,7 @@ use App\Modules\Catalog\Domain\Models\Attribute;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Organization\Domain\Models\Organization;
 use Illuminate\Support\Facades\Event;
 
@@ -67,6 +68,10 @@ function draftedProduct(?Category $category = null, ?Organization $organization 
     $product = DraftProductAction::make()->run(new DraftProductDTO(
         categoryUuid: $category->uuid,
         title: ['tr' => 'Pamuklu Tişört', 'en' => 'Cotton T-Shirt'],
+        // A KDV bracket, because a real seller's form always supplies one
+        // (ADR-056) and `SubmitProductForReviewAction` refuses a product without
+        // it. A fixture that skipped it would test a draft no form can produce.
+        taxRateUuid: TaxRate::factory()->create()->uuid,
         proposedByOrgId: $organization?->getKey(),
         proposedByOrgUuid: $organization?->uuid,
     ));

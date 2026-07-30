@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Database\Seeders;
 
+use Database\Modules\Catalog\Seeders\TaxRateSeeder;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Modules\Organization\Seeders\OrganizationPlanSeeder;
 use Database\Modules\Settings\Seeders\SettingsSeeder;
@@ -35,6 +36,14 @@ final class DatabaseSeeder extends Seeder
 
             // Subscription tiers that set store allowances (ADR-028).
             OrganizationPlanSeeder::class,
+
+            /*
+            | KDV brackets (ADR-056). Structural, not editorial: the product
+            | authoring form REQUIRES a bracket, so a platform without them blocks
+            | every seller — the LocalizationSeeder reasoning. It also backfills
+            | `products.tax_rate_id`, which is the other half of that migration.
+            */
+            TaxRateSeeder::class,
 
             // Roles and permissions, derived from PermissionRegistry.
             RolePermissionSeeder::class,

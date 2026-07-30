@@ -8,6 +8,7 @@ use App\Modules\Catalog\Presentation\Filament\Resources\AttributeResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\BrandResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\CategoryResource;
 use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource;
+use App\Modules\Catalog\Presentation\Filament\Resources\TaxRateResource;
 use App\Modules\Identity\Presentation\Filament\Resources\CustomerResource;
 use App\Modules\Inventory\Presentation\Filament\Resources\StockResource;
 use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
@@ -106,6 +107,14 @@ final class AdminPanelProvider extends PanelProvider
                 CategoryResource::class,
                 AttributeResource::class,
                 BrandResource::class,
+
+                /*
+                | KDV brackets (ADR-056). Beside the brands because it is the same
+                | curation job — a bracket classifies goods, which is what the
+                | Category Manager does — and a lookup table rather than an enum
+                | because brackets change by government decision, not by release.
+                */
+                TaxRateResource::class,
 
                 // Offer oversight (ADR-044). Not a queue: offers go live
                 // unmoderated, and this is the reactive lever that pulls one.

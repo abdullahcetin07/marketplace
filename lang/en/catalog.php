@@ -86,6 +86,29 @@ return [
         ],
     ],
 
+    /*
+    | KDV brackets (ADR-056). A table and not an enum: brackets change by
+    | government decision, not by release — Turkey moved %8 → %10 and %18 → %20
+    | in July 2023 with days of notice.
+    */
+    'tax_rate' => [
+        'singular' => 'KDV bracket',
+        'plural' => 'KDV brackets',
+        'code' => 'Code',
+        'code_hint' => 'System key, fixed once written. e.g. kdv-20.',
+        'name' => 'Name',
+        'name_hint' => 'The label a seller reads on the product form. e.g. "KDV %10 (reduced)".',
+        'rate' => 'Rate',
+        'rate_hint' => 'Enter a percentage: 20 for %20. Prices are KDV-included; this rate is what extracts the tax from a line.',
+        'is_active' => 'Active',
+        'is_active_hint' => 'A repealed bracket is deactivated, never deleted: it cannot be chosen for new products but keeps answering for products already on it.',
+        'products_count' => 'Products',
+        'empty' => [
+            'heading' => 'No KDV brackets yet',
+            'description' => 'The product form requires a bracket — without one, no seller can open a product.',
+        ],
+    ],
+
     'product' => [
         'singular' => 'Product',
         'plural' => 'Products',
@@ -96,6 +119,9 @@ return [
         'category_hint' => 'Leaf categories only — the attribute schema comes from there.',
         'brand' => 'Brand',
         'brand_none' => 'Unbranded',
+        'tax_rate' => 'KDV bracket',
+        'tax_rate_hint' => 'The KDV rate this product falls under — a classification of the goods, not a commercial choice. The moderator checks it.',
+        'tax_rate_missing' => 'No bracket set',
         'gtin' => 'Barcode (GTIN)',
         'gtin_hint' => 'Enter it if there is one: it stops the same product being opened twice.',
         'slug' => 'Slug',

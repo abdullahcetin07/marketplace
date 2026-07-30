@@ -88,6 +88,29 @@ return [
         ],
     ],
 
+    /*
+    | KDV dilimleri (ADR-056). Enum değil tablo: dilimler kararnameyle değişir,
+    | sürümle değişmez — Türkiye Temmuz 2023'te %8 → %10 ve %18 → %20 geçişini
+    | günler içinde yaptı.
+    */
+    'tax_rate' => [
+        'singular' => 'KDV dilimi',
+        'plural' => 'KDV dilimleri',
+        'code' => 'Kod',
+        'code_hint' => 'Sistem anahtarı; sonradan değiştirilemez. Örn. kdv-20.',
+        'name' => 'Ad',
+        'name_hint' => 'Satıcının ürün formunda göreceği etiket. Örn. "KDV %10 (İndirimli)".',
+        'rate' => 'Oran',
+        'rate_hint' => 'Yüzde olarak girin: %20 için 20. Fiyatlar KDV dahildir; bu oran satırdaki KDV\'yi ayırmak için kullanılır.',
+        'is_active' => 'Aktif',
+        'is_active_hint' => 'Yürürlükten kalkan dilim silinmez, pasife alınır: yeni ürünlerde seçilemez ama mevcut ürünler için geçerliliğini korur.',
+        'products_count' => 'Ürün sayısı',
+        'empty' => [
+            'heading' => 'Henüz KDV dilimi yok',
+            'description' => 'Ürün formu bir dilim ister — dilim tanımlanmadan satıcı ürün açamaz.',
+        ],
+    ],
+
     'product' => [
         'singular' => 'Ürün',
         'plural' => 'Ürünler',
@@ -98,6 +121,9 @@ return [
         'category_hint' => 'Yalnızca alt kategoriler seçilebilir — özellik şeması oradan gelir.',
         'brand' => 'Marka',
         'brand_none' => 'Markasız',
+        'tax_rate' => 'KDV dilimi',
+        'tax_rate_hint' => 'Ürünün tabi olduğu KDV oranı — ticari bir seçim değil, malın sınıfı. Moderatör kontrol eder.',
+        'tax_rate_missing' => 'Dilim seçilmemiş',
         'gtin' => 'Barkod (GTIN)',
         'gtin_hint' => 'Varsa girin: aynı ürünün katalogda ikinci kez açılmasını engeller.',
         'slug' => 'Kısa ad',

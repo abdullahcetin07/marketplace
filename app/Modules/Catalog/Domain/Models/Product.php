@@ -58,6 +58,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property string $uuid
  * @property int $category_id
  * @property int|null $brand_id
+ * @property int|null $tax_rate_id
  * @property string $title_tr
  * @property string|null $title_en
  * @property string $slug
@@ -75,6 +76,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property Carbon|null $published_at
  * @property-read Category $category
  * @property-read Brand|null $brand
+ * @property-read TaxRate|null $taxRate
  * @property-read Collection<int, ProductVariant> $variants
  *
  * @see docs/modules/Catalog.md §2.4
@@ -101,6 +103,7 @@ final class Product extends Model implements HasMediaContract
     protected $fillable = [
         'category_id',
         'brand_id',
+        'tax_rate_id',
         'title_tr',
         'title_en',
         'slug',
@@ -140,6 +143,37 @@ final class Product extends Model implements HasMediaContract
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * The product's KDV bracket (ADR-056, §2.4).
+     *
+     * A CLASSIFICATION, NOT A PRICE. A book is %1 whoever sells it and whatever
+     * they charge — which is the test that keeps this relation on the right side
+     * of ADR-037's "a product has no price and no stock". Order reads the rate
+     * through `CatalogQueryContract` and freezes it onto the line (ADR-053).
+     *
+     * Nullable in the schema for a deploy reason, not because a product without a
+     * bracket is acceptable: the authoring form requires one and `isTaxable()` is
+     * what the submission check asks.
+     *
+     * @return BelongsTo<TaxRate, $this>
+     */
+    public function taxRate(): BelongsTo
+    {
+        return $this->belongsTo(TaxRate::class);
+    }
+
+    /**
+     * Whether this product can produce a lawful order line.
+     *
+     * Asked at SUBMISSION rather than trusted from the form: the form is one way
+     * in, and a product that reached `PendingReview` without a bracket would be
+     * approved into a catalog where checkout cannot compute its KDV.
+     */
+    public function isTaxable(): bool
+    {
+        return $this->tax_rate_id !== null;
     }
 
     /**

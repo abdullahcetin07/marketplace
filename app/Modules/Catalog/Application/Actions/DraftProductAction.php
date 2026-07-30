@@ -14,6 +14,7 @@ use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Events\ProductDrafted;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 
 /**
  * Opens a product proposal — the seller's "ürün aç" (§5, entry point 2).
@@ -35,7 +36,11 @@ use App\Modules\Catalog\Domain\Models\Product;
  * a form nobody can leave and come back to. That check is PublishProductAction's.
  *
  * NO PRICE AND NO STOCK (ADR-037). The DTO has no such fields; if a form is
- * sending them, it is an Offer form.
+ * sending them, it is an Offer form. The KDV bracket it DOES carry is a
+ * classification of the goods rather than a commercial term (ADR-056) — a book is
+ * %1 whoever sells it — and it is not required until submission, because a draft
+ * a seller cannot save until every field is right is a form nobody can leave and
+ * come back to.
  */
 final class DraftProductAction extends BaseAction
 {
@@ -74,6 +79,7 @@ final class DraftProductAction extends BaseAction
         $product->fill([
             'category_id' => $category->getKey(),
             'brand_id' => $this->brandId($data),
+            'tax_rate_id' => $this->taxRateId($data),
             'slug' => $this->slugs->forProduct((string) $requested),
             'gtin' => $gtin,
             'status' => ProductStatus::Draft,
@@ -118,5 +124,28 @@ final class DraftProductAction extends BaseAction
         }
 
         return (int) $this->brands->findOrFailByUuid($data->brandUuid)->getKey();
+    }
+
+    /**
+     * The KDV bracket, resolved from its uuid (ADR-056).
+     *
+     * ACCEPTS A WITHDRAWN BRACKET, matching the read side: a bracket may be
+     * repealed while goods classified under it are still being authored, and the
+     * picker is what steers a seller to a current one. Refusing here would block
+     * an edit to an existing product for a reason the seller cannot fix.
+     *
+     * A bracket that does not exist AT ALL is a different matter and is treated as
+     * absent rather than guessed at — the submission check then refuses the
+     * product, which is a message a human can act on.
+     */
+    private function taxRateId(DraftProductDTO $data): ?int
+    {
+        if ($data->taxRateUuid === null) {
+            return null;
+        }
+
+        $id = TaxRate::query()->where('uuid', $data->taxRateUuid)->value('id');
+
+        return $id === null ? null : (int) $id;
     }
 }

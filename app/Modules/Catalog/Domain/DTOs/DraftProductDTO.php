@@ -18,6 +18,12 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
  * NO PRICE AND NO STOCK FIELDS, here or anywhere in this module (ADR-037). If a
  * form needs them it is an Offer form, not this one.
  *
+ * `taxRateUuid` is the product's KDV bracket (ADR-056) — a CLASSIFICATION of the
+ * goods, not a price, which is what keeps it on the right side of the rule above.
+ * Nullable on the DTO because staff and imports can open a draft before the
+ * bracket is known; `SubmitProductForReviewAction` is where it becomes required,
+ * because that is the last point before a moderator can publish it.
+ *
  * `gtin` is the shared catalog's dedup key (§3.4) — supplying it is what lets
  * the platform tell a seller "this product already exists, offer it instead of
  * re-creating it".
@@ -33,6 +39,7 @@ final class DraftProductDTO extends BaseDTO
         public readonly array $title,
         public readonly array $description = [],
         public readonly ?string $brandUuid = null,
+        public readonly ?string $taxRateUuid = null,
         public readonly ?string $gtin = null,
         public readonly ?string $slug = null,
         public readonly ?int $proposedByOrgId = null,

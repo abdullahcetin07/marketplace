@@ -10,6 +10,7 @@ use App\Modules\Catalog\Domain\DTOs\UpdateProductDTO;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource;
 use Filament\Actions;
@@ -93,6 +94,9 @@ final class EditProduct extends EditRecord
         $brand = isset($data['brand_id'])
             ? Brand::query()->find($data['brand_id'])
             : null;
+        $taxRate = isset($data['tax_rate_id'])
+            ? TaxRate::query()->find($data['tax_rate_id'])
+            : null;
 
         try {
             return app(UpdateProductAction::class)->run($record, new UpdateProductDTO(
@@ -106,10 +110,11 @@ final class EditProduct extends EditRecord
                 ],
                 categoryUuid: $category->uuid,
                 brandUuid: $brand?->uuid,
+                taxRateUuid: $taxRate?->uuid,
                 gtin: $data['gtin'] ?? null,
                 // Every field the form actually renders is present; `slug` is
                 // not on this form, so it is absent and stays untouched (§3.5).
-                present: ['categoryUuid', 'brandUuid', 'gtin'],
+                present: ['categoryUuid', 'brandUuid', 'taxRateUuid', 'gtin'],
             ));
         } catch (CatalogException $exception) {
             throw ValidationException::withMessages([

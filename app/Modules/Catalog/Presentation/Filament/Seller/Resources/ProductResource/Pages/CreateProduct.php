@@ -9,6 +9,7 @@ use App\Modules\Catalog\Domain\DTOs\DraftProductDTO;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource;
 use Filament\Resources\Pages\CreateRecord;
 use Illuminate\Database\Eloquent\Model;
@@ -73,6 +74,13 @@ final class CreateProduct extends CreateRecord
         $brand = isset($data['brand_id'])
             ? Brand::query()->find($data['brand_id'])
             : null;
+        // The form speaks ids (it is a select over rows); the DTO speaks uuids,
+        // because that is what crosses a boundary (non-negotiable #7). The
+        // translation belongs here, at the edge, as it already does for the
+        // category and the brand.
+        $taxRate = isset($data['tax_rate_id'])
+            ? TaxRate::query()->find($data['tax_rate_id'])
+            : null;
 
         try {
             return app(DraftProductAction::class)->run(new DraftProductDTO(
@@ -86,6 +94,7 @@ final class CreateProduct extends CreateRecord
                     'en' => $data['description_en'] ?? null,
                 ],
                 brandUuid: $brand?->uuid,
+                taxRateUuid: $taxRate?->uuid,
                 gtin: $data['gtin'] ?? null,
                 proposedByOrgId: $organizationId,
                 proposedByOrgUuid: $this->organizationUuidFor($organizationId),
@@ -122,6 +131,7 @@ final class CreateProduct extends CreateRecord
         return match ($exception->getContext()['reason'] ?? null) {
             'gtin_taken' => 'data.gtin',
             'category_not_leaf' => 'data.category_id',
+            'missing_tax_rate' => 'data.tax_rate_id',
             default => 'data.title_tr',
         };
     }

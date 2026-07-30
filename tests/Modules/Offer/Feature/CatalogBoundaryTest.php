@@ -25,6 +25,11 @@ use Illuminate\Support\Facades\Schema;
 | list, or to sort search by price, is always to put a price column next to the
 | product. Each assertion below is one place that shortcut would first appear.
 |
+| ONE COLUMN IS EXEMPT, by name and by ADR: `products.tax_rate_id` (ADR-056). A
+| tax bracket classifies the goods rather than pricing them, so it belongs to the
+| Catalog — see `classificationColumns()` for why the exemption is an exact name
+| and not a relaxed fragment.
+|
 | The other half of the boundary — that Offer imports no module — is an
 | architecture rule, asserted in tests/Architecture/LayeringTest.php where it
 | fails the build without needing a database.
@@ -49,10 +54,35 @@ function commerceColumnFragments(): array
     return ['price', 'stock', 'quantity', 'commission', 'discount', 'currency', 'vat', 'tax'];
 }
 
+/**
+ * The ONE column the fragment list is deliberately wrong about.
+ *
+ * `products.tax_rate_id` was added by ADR-056 and is not a commerce column: a KDV
+ * bracket is a CLASSIFICATION of the goods — a book is %1 whoever sells it, at
+ * whatever price — decided by law rather than by the seller. That is precisely the
+ * test ADR-037 draws, and the column passes it: nothing about it says what
+ * anything costs, and Order still reads the price from the Offer.
+ *
+ * AN EXACT NAME, not a relaxed fragment, and the fragment `tax` stays: `tax_total`,
+ * `tax_amount` or `unit_tax_minor` on a product WOULD be commerce — money computed
+ * per product — and must still fail this test. Allowing the bracket by name is the
+ * narrowest possible hole, and widening it takes an ADR, which is the point.
+ *
+ * @return array<int, string>
+ */
+function classificationColumns(): array
+{
+    return ['tax_rate_id'];
+}
+
 it('keeps every commerce concern out of the catalog schema', function (string $table): void {
     $offending = [];
 
     foreach (Schema::getColumnListing($table) as $column) {
+        if (in_array($column, classificationColumns(), true)) {
+            continue;
+        }
+
         foreach (commerceColumnFragments() as $fragment) {
             if (str_contains($column, $fragment)) {
                 $offending[] = $column;

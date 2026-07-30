@@ -70,4 +70,27 @@ interface CatalogQueryContract
      * (ADR-040 — a bare uuid, never an Organization model).
      */
     public function proposingOrganizationUuidFor(string $productUuid): ?string;
+
+    /**
+     * The product's KDV rate as a DECIMAL STRING RATIO — `"0.2000"` for %20; null
+     * when the product does not exist or carries no bracket yet.
+     *
+     * ADDED FOR ORDER (ADR-055/056). A tax bracket is a classification of the
+     * product — a book is %1 whoever sells it — so it belongs to the Catalog, and
+     * this method is how a checkout learns it without importing the module.
+     * Order snapshots the answer onto the immutable line (ADR-053), so a later
+     * bracket change never rewrites a placed order.
+     *
+     * A STRING, NOT A FLOAT, and that is the whole reason it is not typed
+     * `float`: the column is DECIMAL precisely because a rate multiplied against
+     * a large total loses real money to binary rounding (ADR-005), and handing a
+     * float across the boundary would give back what the column type bought. The
+     * caller scales it to an integer and does the extraction in integer
+     * arithmetic.
+     *
+     * THIS IS NOT A PRICE. It answers "what class of goods is this", never "what
+     * does it cost" — `CatalogBoundaryTest` asserts no method on this contract
+     * can be read as the latter.
+     */
+    public function taxRateForProduct(string $productUuid): ?string;
 }

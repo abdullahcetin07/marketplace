@@ -12,6 +12,7 @@ use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
 use App\Modules\Catalog\Domain\DTOs\UpdateProductDTO;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 
 /**
  * Edits a product's own fields.
@@ -59,6 +60,23 @@ final class UpdateProductAction extends BaseAction
             $product->brand_id = $data->brandUuid === null
                 ? null
                 : (int) $this->brands->findOrFailByUuid($data->brandUuid)->getKey();
+        }
+
+        /*
+        | The KDV bracket (ADR-056), under the same PATCH semantics as the brand: a
+        | form that does not render the field leaves the classification alone
+        | rather than clearing it.
+        |
+        | An unknown uuid is ignored rather than raising: the picker only offers
+        | real brackets, so this can only be reached by a tampered payload, and the
+        | submission check refuses a product with no bracket anyway.
+        */
+        if ($data->has('taxRateUuid') && $data->taxRateUuid !== null) {
+            $taxRateId = TaxRate::query()->where('uuid', $data->taxRateUuid)->value('id');
+
+            if ($taxRateId !== null) {
+                $product->tax_rate_id = (int) $taxRateId;
+            }
         }
 
         if ($data->has('gtin')) {

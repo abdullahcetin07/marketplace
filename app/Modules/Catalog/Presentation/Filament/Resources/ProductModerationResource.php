@@ -139,6 +139,25 @@ final class ProductModerationResource extends Resource
                     ->label(__('catalog.product.brand'))
                     ->placeholder(__('catalog.product.brand_none')),
 
+                /*
+                | THE KDV BRACKET, on the review screen because it is moderated
+                | with the rest of the product (ADR-056). It is the one field here
+                | a moderator can get wrong in a way that costs money rather than
+                | credibility: a seller filing general goods under %1 under-collects
+                | tax on every sale, and the order line freezes whatever was
+                | approved (ADR-053).
+                |
+                | Danger-coloured when absent, which should be impossible after
+                | submission (`SubmitProductForReviewAction` refuses it) — shown
+                | rather than assumed, because "impossible" states are exactly the
+                | ones a moderator should be able to see instead of infer.
+                */
+                Infolists\Components\TextEntry::make('taxRate.name')
+                    ->label(__('catalog.product.tax_rate'))
+                    ->badge()
+                    ->color(fn (Product $record): string => $record->isTaxable() ? 'gray' : 'danger')
+                    ->placeholder(__('catalog.product.tax_rate_missing')),
+
                 Infolists\Components\TextEntry::make('gtin')
                     ->label(__('catalog.product.gtin'))
                     ->placeholder('—'),
@@ -276,7 +295,7 @@ final class ProductModerationResource extends Resource
     {
         // No tenancy scope: moderation reads across every seller, which is what
         // makes it a platform power rather than a membership one.
-        return parent::getEloquentQuery()->with(['category', 'brand'])->withCount('variants');
+        return parent::getEloquentQuery()->with(['category', 'brand', 'taxRate'])->withCount('variants');
     }
 
     /**

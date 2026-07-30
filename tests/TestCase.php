@@ -9,6 +9,7 @@ use App\Models\Admin;
 use App\Models\Customer;
 use App\Models\Seller;
 use App\Models\User;
+use Database\Modules\Catalog\Seeders\TaxRateSeeder;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Contracts\Auth\Authenticatable;
@@ -52,6 +53,14 @@ abstract class TestCase extends BaseTestCase
     protected function seedPlatform(): void
     {
         $this->seed(LocalizationSeeder::class);
+
+        /*
+        | KDV brackets (ADR-056). Structural, exactly like the locale data above
+        | and registered beside it in `DatabaseSeeder`: the product authoring form
+        | REQUIRES a bracket, so a platform without them blocks every seller — and
+        | a test suite without them would exercise a state production never has.
+        */
+        $this->seed(TaxRateSeeder::class);
     }
 
     /**

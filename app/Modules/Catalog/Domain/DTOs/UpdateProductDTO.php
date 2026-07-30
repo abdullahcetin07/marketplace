@@ -29,6 +29,7 @@ final class UpdateProductDTO extends BaseDTO
         public readonly array $description = [],
         public readonly ?string $categoryUuid = null,
         public readonly ?string $brandUuid = null,
+        public readonly ?string $taxRateUuid = null,
         public readonly ?string $gtin = null,
         public readonly ?string $slug = null,
         public readonly array $present = [],

@@ -6,6 +6,7 @@ namespace Database\Modules\Catalog\Factories;
 
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Support\Str;
 
@@ -27,6 +28,19 @@ final class ProductFactory extends Factory
             'uuid' => (string) Str::uuid(),
             'category_id' => CategoryFactory::new(),
             'brand_id' => null,
+            /*
+            | A REAL BRACKET, always (ADR-056). Every product a checkout can reach
+            | needs one, so a factory that left this null would make the Order
+            | tests set it by hand and the ones that forgot fail for a reason
+            | unrelated to what they test.
+            |
+            | REUSES an existing bracket when the platform is seeded, and creates
+            | one otherwise — the `OfferFactory` currency pattern. Creating a fresh
+            | row per product would litter the lookup table and make "how many
+            | brackets exist" untestable.
+            */
+            'tax_rate_id' => TaxRate::query()->where('is_active', true)->value('id')
+                ?? TaxRateFactory::new(),
             'title_tr' => Str::title($title),
             'title_en' => Str::title($title),
             'slug' => Str::slug($title).'-'.fake()->unique()->numberBetween(1, 999999),
