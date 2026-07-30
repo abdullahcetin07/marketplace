@@ -77,10 +77,22 @@ the admin one is the only oversight resource on the platform with no lever at al
 Cart, order, payment and money stay out of scope entirely — **Inventory counts units**,
 so the minor-units rule does not apply here.
 
-**It is NOT frozen**: Order is the next sprint and is the first real caller of the
-reservation contract. See Inventory.md §12 for what shipped, what is deliberately
-absent, four recorded deviations, the two changes it required of Offer, and five open
-follow-ups.
+**It is NOT frozen**: Order reaches into it (the first real caller of the reservation
+contract). See Inventory.md §12 for what shipped, what is deliberately absent, four
+recorded deviations, the two changes it required of Offer, and five open follow-ups.
+
+**Order's architecture review is APPROVED** (2026-07-30; ADR-052–056,
+[docs/modules/Order.md](docs/modules/Order.md)) and is the module now being built — the
+buyer's purchase pipeline and the platform's largest module. One customer, one
+multi-seller cart; checkout **splits into one Order per seller** under a checkout group
+(ADR-052); order lines are **immutable price/tax/title snapshots** (ADR-053); checkout
+**reserves** stock and placement **commits** it via Inventory's reservation contract —
+Order is its **first real caller** (ADR-054); tax is the **KDV from the product's bracket**
+(a managed `tax_rates` lookup + `Product.tax_rate_id` added to Catalog, moderated at
+authoring) but **not commission** (ADR-055); a **customer address book** with separate,
+snapshotted shipping + billing, authenticated customers only (ADR-056). Orders stop at
+**awaiting payment**; the customer side is API-only (Next.js storefront later).
+Payment/Shipping/commission/payout stay out of scope.
 
 **Offer and Inventory import NO module** — the strictest boundary on the platform.
 They read Catalog, Organization and Store through Core contracts only, and
@@ -96,9 +108,9 @@ also registers no storefront contributor in Phase 1 (ADR-041) and imports neithe
 Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
 (ADR-040).
 
-**Do not create Order or Payment modules.** Those are later sprints, and only
-after their architecture review is approved. (Offer and Inventory are approved —
-see above.)
+**Do not create a Payment module.** That is a later sprint, and only after its
+architecture review is approved. (Offer, Inventory and Order are approved — see
+above.)
 
 ---
 

@@ -1,11 +1,15 @@
 # Order Module Specification
 
-**Status: DRAFT — pending owner approval and ADR ratification.** Proposes
-**ADR-052 … ADR-056**. Once approved, those entries are recorded in
-[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) with a mirror
-in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
+**Status: APPROVED 2026-07-30 — building.** The owner approved the design; the §0
+decisions and the §10 rulings are ratified (reservation-expiry default: **30 minutes**).
+**ADR-052 … ADR-056 are recorded** in
+[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
+mirror in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
 (the way Store landed ADR-032…036, Catalog ADR-037…041, Offer ADR-042…046, Inventory
-ADR-048…051). This document states each decision **and its cost**, per project culture.
+ADR-048…051), the Catalog `tax_rates` + `Product.tax_rate_id` addition is recorded in
+Catalog.md §2.4, and CLAUDE.md narrows the module prohibition to Payment. This document
+states each decision **and its cost**, per project culture. Build order:
+[BUILD_ORDER.md](../../BUILD_ORDER.md).
 
 Order is the next major sprint after **Inventory** (complete, not frozen). It is the
 **buyer's purchase pipeline** and the platform's largest module: a multi-seller cart, a
@@ -300,9 +304,10 @@ Order (this) → **Payment/Finance** (money capture, the payment gate before com
 commission, payout, refunds; reads `OrderQueryContract`) → **Shipping** (fulfilment,
 carriers, tracking) → returns/RMA. Each is its own spec + architecture review.
 
-## Ratification checklist (on approval)
-- [ ] Record ADR-052…056 in the ADR record + amendment log.
-- [ ] Confirm the §10 rulings (incl. the reservation-expiry default).
-- [ ] Author the Catalog `tax_rates` + `Product.tax_rate_id` change owner-side (Catalog not
-      frozen) so the build executor never manufactures the architecture change.
+## Ratification checklist
+- [x] Record ADR-052…056 in the ADR record + amendment log (2026-07-30).
+- [x] Confirm the §10 rulings — reservation-expiry default **30 minutes** (owner-confirmed).
+- [x] Author the Catalog `tax_rates` + `Product.tax_rate_id` change owner-side (Catalog.md
+      §2.4) so the build executor never manufactures the architecture change.
+- [x] Narrow the CLAUDE.md module prohibition to Payment.
 - [ ] Build in phases, one commit per phase, suite green, human pushes.

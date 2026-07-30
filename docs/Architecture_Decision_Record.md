@@ -1411,4 +1411,104 @@ Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.6.
 
 ---
 
+# ADR-052 The Cart Is Multi-Seller; Checkout Splits into One Order per Seller
+
+One customer, **one cart**, items from any number of sellers. At checkout the cart is
+partitioned by selling org and **each partition becomes its own `Order`** — its own number,
+status, totals and seller — all tied by a `checkout_group_uuid` the customer sees as one
+purchase. Each seller sees and manages only their own order.
+
+Rationale: each seller fulfils, ships and is paid independently; a single cross-seller order
+would entangle fulfilment and payout across parties who share nothing. This is the
+Trendyol/Amazon model.
+
+Cost: there is no single "order total the customer paid" — a purchase is N orders that must
+be grouped for the customer and reconciled by a future Payment against one charge. Accepted
+as the marketplace's nature.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.3.
+
+---
+
+# ADR-053 Order Lines Are Immutable Snapshots
+
+An `OrderLine` snapshots the offer's unit price, the product title, the variant label and
+the tax rate at placement. The catalog, the offer and its price may change afterward; the
+order records what was bought, at what price, at what tax — permanently. Address snapshots
+(ADR-056) follow the same rule.
+
+Rationale: an order is a financial/legal record; it must not mutate when an upstream price
+or name changes, or every historical total and invoice becomes unreproducible.
+
+Cost: Order duplicates data that lives authoritatively in Catalog/Offer, and a later
+correction upstream will not reflect on past orders. Accepted — that immutability is the
+point.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.4.
+
+---
+
+# ADR-054 Checkout Reserves Stock; Placement Commits (Two-Step, via Inventory)
+
+Order is the **first real caller of `InventoryReservationContract`** (ADR-049). Checkout
+**reserves** each line's stock (keyed on the order uuid); placing the order **commits** it;
+a cancelled/expired checkout **releases** it. Until **Payment** exists, placement commits
+directly; when Payment ships, the commit moves to "payment succeeded" and placement only
+holds — the reservation window Inventory was built for.
+
+Rationale: the two-step shape is exactly what lets Payment slot in without reshaping the
+flow, and it exercises the reservation machinery Inventory shipped for this caller.
+
+Cost: stock leaves on placement with no money taken (no Payment yet), so a placed-but-unpaid
+order consumes stock until cancelled/expired; mitigated by a reservation-expiry sweep
+(30-minute default). Accepted over leaving every order's stock in limbo awaiting a module
+that does not exist.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.5.
+
+---
+
+# ADR-055 Order Computes Tax from the Product's Bracket, Never Commission
+
+Each order line carries the **KDV** extracted from its (tax-included, ADR-042) price using
+the **product's tax rate** (ADR-056's Catalog addition). Order produces the tax breakdown
+for the eventual invoice. It does **not** compute commission or payout — those are
+Payment/Finance, applied to the order later.
+
+Rationale: a total with no tax breakdown is not a real order line; commission has no source
+of truth yet (ADR-042 §0.2).
+
+Cost: tax logic (inclusive-KDV extraction, rounding) lives in Order before an invoicing
+module consumes it, and "price is KDV-included" (Offer's decision) is committed
+platform-wide. Accepted.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.6.
+
+---
+
+# ADR-056 Customer Address Book; Separate Shipping & Billing; Product Gains a Tax Bracket
+
+Order owns a **`CustomerAddress`** book — a customer keeps many addresses (shipping/billing
+defaults). At checkout the customer picks a **shipping** and a **billing** address, which
+**may differ**, and the order **snapshots both** (ADR-053). Authenticated customers only; no
+guest checkout in v1.
+
+**Catalog addition (Catalog not frozen, driven by Order):** a managed **`tax_rates`** lookup
+(admin-configured KDV brackets — the lookup-table the docs always intended, `is_active`) is
+added to Catalog, and the **Product gains a `tax_rate_id`** chosen at authoring and moderated
+with the rest. A tax bracket is a **classification of the product**, not a commercial term,
+so it does not breach ADR-037's "a product has no price or stock." Order reads the rate via
+`CatalogQueryContract` and freezes it onto the line.
+
+Rationale: real invoices need a real billing address and a real KDV rate; faking either
+makes the order legally useless. Tax belongs to the product (intrinsic: a book is %1,
+electronics %20), set once on the shared product, not per seller.
+
+Cost: the address book and the tax lookup widen the Order sprint beyond the order aggregate,
+and Catalog gains a field + a table for Order's sake. Accepted.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.7.
+
+---
+
 END OF FILE

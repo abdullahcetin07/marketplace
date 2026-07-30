@@ -212,6 +212,16 @@ images.
 
 **A Product has no price and no stock.** (ADR-037.)
 
+> **Post-P1 addition — `tax_rate_id` (ADR-056, 2026-07-30, driven by Order).** The Product
+> gains a **`tax_rate_id`** → a new managed **`tax_rates`** lookup (admin/Category-Manager-
+> configured KDV brackets: name + `rate` DECIMAL + `is_active` — the lookup-table the
+> "enum or table?" rule always intended). It is chosen at authoring ("ürün aç") and
+> moderated with the rest of the product. A tax bracket is a **classification of the
+> product**, not a commercial term — so this does **not** breach the "no price, no stock"
+> boundary above; price/stock remain the Offer's/Inventory's. Order reads the rate via
+> `CatalogQueryContract` (a `taxRateForProduct` read) and snapshots it onto the order line.
+> Catalog is not frozen; this is a normal addition, recorded here and in ADR-056.
+
 ## 2.5 `ProductVariant` (the SKU)
 `uuid`, `product_id`, `sku` (unique), `barcode?`, the combination of **variant-defining**
 attribute values that distinguishes it (`variant_attribute_value` pivot), `is_default`
