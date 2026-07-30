@@ -5,7 +5,9 @@ declare(strict_types=1);
 namespace App\Modules\Inventory;
 
 use App\Core\Domain\Contracts\InventoryQueryContract;
+use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
+use App\Modules\Inventory\Infrastructure\Commands\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
 use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
 use Illuminate\Support\ServiceProvider;
@@ -51,6 +53,14 @@ final class InventoryServiceProvider extends ServiceProvider
         | Core contract instead of importing Inventory.
         */
         $this->app->singleton(InventoryQueryContract::class, InventoryQuery::class);
+
+        /*
+        | The platform's first COMMAND port (ADR-049) — the only sanctioned way
+        | another module mutates stock. Order will be its first real caller;
+        | this sprint the tests are, which is the state that decision chose
+        | deliberately.
+        */
+        $this->app->singleton(InventoryReservationContract::class, InventoryReservation::class);
     }
 
     public function boot(): void
