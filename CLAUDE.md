@@ -55,10 +55,20 @@ save, admin reactive suspend (ADR-044); the buy box is computed, never stored
 (ADR-045); Offer ships the storefront product-listing contributor Catalog deferred
 (ADR-046). Cart/order/payment/commission stay out of scope.
 
-**It is NOT frozen either**: Inventory is next and becomes the stock authority
-(ADR-043), which means reaching into it. See Offer.md §15 for what shipped, three
-recorded deviations, the read-only additions it required of Catalog/Store/
-Organization, and five open follow-ups.
+**It is NOT frozen either**: Inventory reaches into it (buy box reads availability
+from Inventory; Inventory mirrors on-hand from Offer stock events). See Offer.md §15
+for what shipped, three recorded deviations, the read-only additions it required of
+Catalog/Store/Organization, and five open follow-ups.
+
+**Inventory's architecture review is APPROVED** (2026-07-29; ADR-048–051,
+[docs/modules/Inventory.md](docs/modules/Inventory.md)) and is the module now being
+built. Inventory is the **availability authority**: on-hand + reserved per (seller
+org, variant), `available = on_hand − reserved` (ADR-048); on-hand mirrored from the
+Offer by class-string event (the seller still enters stock on the Offer form);
+reservation primitives (reserve/release/commit) ship as a Core command contract before
+Order (ADR-049); the append-only movement ledger is the source of truth (ADR-050);
+single pool per (org, variant), multi-warehouse deferred (ADR-051). Low-stock in v1.
+Cart/order/payment/money stay out of scope.
 
 **Offer imports NO module** — the strictest boundary on the platform. It reads
 Catalog, Organization and Store through Core contracts only, and subscribes to
@@ -72,8 +82,9 @@ also registers no storefront contributor in Phase 1 (ADR-041) and imports neithe
 Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
 (ADR-040).
 
-**Do not create Inventory, Order or Payment modules.** Those are later sprints,
-and only after their architecture review is approved.
+**Do not create Order or Payment modules.** Those are later sprints, and only
+after their architecture review is approved. (Offer and Inventory are approved —
+see above.)
 
 ---
 

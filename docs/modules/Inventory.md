@@ -1,11 +1,12 @@
 # Inventory Module Specification
 
-**Status: DRAFT — pending owner approval and ADR ratification.** Proposes
-**ADR-048 … ADR-051**. Once approved, those entries are recorded in
-[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) with a mirror
-in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
-(the way Store landed ADR-032…036, Catalog ADR-037…041, Offer ADR-042…046). This
-document states each decision **and its cost**, per project culture.
+**Status: APPROVED 2026-07-29 — building.** The owner approved the design; the §0
+decisions and the §10 rulings are ratified. **ADR-048 … ADR-051 are recorded** in
+[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
+mirror in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
+(the way Store landed ADR-032…036, Catalog ADR-037…041, Offer ADR-042…046), and CLAUDE.md
+narrows the module prohibition to Order/Payment. This document states each decision **and
+its cost**, per project culture. Build order: [BUILD_INVENTORY.md](../../BUILD_INVENTORY.md).
 
 Inventory is the next major sprint after **Offer** (complete, not frozen). It makes stock
 **real**: it becomes the platform's authority for how much of a variant a seller can
@@ -292,9 +293,11 @@ Inventory (this) → **Order** (cart, checkout, order lines; the first real call
 `InventoryReservationContract`; tax) → **Payment/Finance** (commission, payout,
 settlement). Each is its own spec + architecture review.
 
-## Ratification checklist (on approval)
-- [ ] Record ADR-048…051 in the ADR record + amendment log.
-- [ ] Confirm the §10 rulings.
+## Ratification checklist
+- [x] Record ADR-048…051 in the ADR record + amendment log (2026-07-29).
+- [x] Confirm the §10 rulings (owner-approved: on-hand on the Offer form, low-stock in v1,
+      single pool).
+- [x] Narrow the CLAUDE.md module prohibition to Order/Payment.
 - [ ] Build in phases (scaffold → domain → infra → application/contracts → Offer wiring
       (mirror + buy-box read) → presentation → tests), one commit per phase, suite green,
       human pushes.

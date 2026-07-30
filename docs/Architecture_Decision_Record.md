@@ -1328,4 +1328,87 @@ Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §3.2.
 
 ---
 
+# ADR-048 Inventory Is the Availability Authority; On-Hand Is Mirrored from the Offer
+
+Inventory becomes the source of truth for **availability** (refines ADR-043). For each
+**(seller org, variant)** it holds **on-hand** and **reserved**, and `available =
+on_hand − reserved` is what the buy box reads through the Core `InventoryQueryContract` —
+no longer `Offer.stock_quantity`.
+
+The **seller still enters stock on the Offer form** (owner decision, 2026-07-29); that
+field stays. Inventory keeps on-hand in sync by **subscribing to the Offer's stock events
+by class-string** (`OfferCreated / OfferStockChanged / OfferWithdrawn`) — the same
+name-not-an-import coupling Offer uses for Catalog — recording each as a seller-adjustment
+movement, then layers `reserved` on top.
+
+Rationale: reservations need one authority, and availability (not raw on-hand) is the
+question a buyer read actually asks; only Inventory can subtract in-flight holds.
+
+Cost: on-hand exists in two places (the Offer column the seller types, Inventory's mirror),
+kept consistent by a synchronous event rather than a shared row — a desync risk we accept
+because the mirror is rebuildable from the Offer and the alternatives (Offer importing
+Inventory, or moving the seller's entry UI off the Offer against the owner's decision) are
+worse couplings. Until Order exists `reserved` is 0, so nothing visibly changes yet.
+
+Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.3.
+
+---
+
+# ADR-049 Reservation Primitives Ship as a Core Command Contract, Before Order
+
+Inventory exposes **reserve / release / commit** as a Core **`InventoryReservationContract`**
+— a command port, the write-side sibling of the read-only query contracts. Order will be
+its first caller; this sprint it is exercised by tests. `reserve` succeeds only when
+`available ≥ qty` and raises `reserved`; `release` returns a cancelled hold; `commit`
+lowers **both** on-hand and reserved (the units truly leave). All are idempotent on the
+caller's `referenceUuid`.
+
+Rationale: Inventory precedes Order precisely to give Order a stock authority to call;
+shipping the counter without the primitives would make the sprint little more than copying
+a number into a new table.
+
+Cost: machinery built and tested with no live caller for a sprint, and a reservation API
+committed before Order can exercise it in anger. Accepted as the deliberate cost of
+phasing the authority ahead of its consumer.
+
+Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.4.
+
+---
+
+# ADR-050 The Append-Only Movement Ledger Is the Source of Truth
+
+Every stock change — seller adjustment, reservation, release, commit — is an **append-only
+`StockMovement`** (signed `on_hand_delta` / `reserved_delta`, a type, a reference). The
+stock record's `on_hand` and `reserved` are **projections**, written in the same
+transaction and rebuildable from the ledger. Movements are never updated or deleted — the
+Audit/Activity append-only rule (non-negotiable #9) applied to stock.
+
+Rationale: stock disputes are answerable only with a history, and reservations make a bare
+counter ambiguous (a drop could be a sale or a hold) — the ledger records which.
+
+Cost: two writes per change and an unbounded ledger, against a single mutable counter.
+Accepted for auditability and reservation clarity.
+
+Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.5.
+
+---
+
+# ADR-051 Single Stock Pool per (Org, Variant) in v1
+
+Stock is **one pool per (seller org, variant)** — no warehouse/location dimension.
+Multi-warehouse returns later, additively, by adding a location to the stock record and the
+movement without reshaping the reservation contract.
+
+Rationale: there is no Order or Shipping module for a location to feed, so multi-warehouse
+now would be untestable structure with no consumer — the reasoning that kept Offer
+single-currency.
+
+Cost: a seller with real multiple warehouses cannot model them yet, and "which location
+ships this" has no answer this sprint. Accepted; it returns additively when a consumer
+exists.
+
+Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.6.
+
+---
+
 END OF FILE
