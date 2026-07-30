@@ -10,7 +10,8 @@ is composed (ADR-036): future modules enrich it via the Core
 `StorefrontContributorContract` + `StorefrontRegistry`, never by Store depending
 on them — **Offer is the first module to actually use that seam** (ADR-046).
 **Catalog Phase 1 is complete** (ADR-037–041); **Offer is complete**
-(ADR-042–046) and is the newest module. Neither is frozen.
+(ADR-042–046); **Inventory is complete** (ADR-048–051) and is the newest module.
+None of the three is frozen — each reaches into the one before it.
 
 Foundation is a **module group, not a module** (ADR-002). Seven modules exist:
 Identity, Localization, Settings, Audit, Activity, Media, Notification.
@@ -60,21 +61,34 @@ from Inventory; Inventory mirrors on-hand from Offer stock events). See Offer.md
 for what shipped, three recorded deviations, the read-only additions it required of
 Catalog/Store/Organization, and five open follow-ups.
 
-**Inventory's architecture review is APPROVED** (2026-07-29; ADR-048–051,
-[docs/modules/Inventory.md](docs/modules/Inventory.md)) and is the module now being
-built. Inventory is the **availability authority**: on-hand + reserved per (seller
-org, variant), `available = on_hand − reserved` (ADR-048); on-hand mirrored from the
-Offer by class-string event (the seller still enters stock on the Offer form);
-reservation primitives (reserve/release/commit) ship as a Core command contract before
-Order (ADR-049); the append-only movement ledger is the source of truth (ADR-050);
+**Inventory is COMPLETE** (2026-07-30; ADR-048–051,
+[docs/modules/Inventory.md](docs/modules/Inventory.md)) — the newest module.
+Inventory is the **availability authority**: on-hand + reserved per (seller org,
+variant), `available = on_hand − reserved`, computed on read and never stored
+(ADR-048); on-hand mirrored from the Offer by class-string event (the seller still
+enters stock on the Offer form); reservation primitives (reserve/release/commit) ship
+as a Core **command** contract — the platform's first — before Order exists to call
+them (ADR-049); the append-only movement ledger is the source of truth (ADR-050);
 single pool per (org, variant), multi-warehouse deferred (ADR-051). Low-stock in v1.
-Cart/order/payment/money stay out of scope.
 
-**Offer imports NO module** — the strictest boundary on the platform. It reads
-Catalog, Organization and Store through Core contracts only, and subscribes to
-their events BY CLASS-STRING. `LayeringTest` fails the build on any import;
-`CatalogBoundaryTest` asserts the reverse — that no price or stock has leaked into
-the Catalog.
+**Nobody edits stock in the Inventory surfaces** — not a seller, not an admin. The
+count is entered on the Offer form and mirrored; both stock pages are read-only, and
+the admin one is the only oversight resource on the platform with no lever at all.
+Cart, order, payment and money stay out of scope entirely — **Inventory counts units**,
+so the minor-units rule does not apply here.
+
+**It is NOT frozen**: Order is the next sprint and is the first real caller of the
+reservation contract. See Inventory.md §12 for what shipped, what is deliberately
+absent, four recorded deviations, the two changes it required of Offer, and five open
+follow-ups.
+
+**Offer and Inventory import NO module** — the strictest boundary on the platform.
+They read Catalog, Organization and Store through Core contracts only, and
+subscribe to other modules' events BY CLASS-STRING (Inventory reaches Offer's stock
+events that way, and Offer never names Inventory — the buy box goes through
+`InventoryQueryContract` in Core). `LayeringTest` fails the build on any import, in
+both directions; `CatalogBoundaryTest` asserts the reverse — that no price or stock
+has leaked into the Catalog.
 
 **A Product has no price and no stock.** That is the module's defining boundary:
 price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It

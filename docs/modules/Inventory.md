@@ -1,6 +1,9 @@
 # Inventory Module Specification
 
-**Status: APPROVED 2026-07-29 — building.** The owner approved the design; the §0
+**Status: COMPLETE (v1.0), NOT frozen — 2026-07-30.** Built in phases P1–P7; what
+shipped, what is deliberately absent, the deviations and the follow-ups are in **§12**.
+Deliberately **not frozen**: **Order** is the next sprint and is the first real caller of
+the reservation contract (§5.2, ADR-049), so it will need to reach in here. The §0
 decisions and the §10 rulings are ratified. **ADR-048 … ADR-051 are recorded** in
 [docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
 mirror in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md)
@@ -298,6 +301,117 @@ settlement). Each is its own spec + architecture review.
 - [x] Confirm the §10 rulings (owner-approved: on-hand on the Offer form, low-stock in v1,
       single pool).
 - [x] Narrow the CLAUDE.md module prohibition to Order/Payment.
-- [ ] Build in phases (scaffold → domain → infra → application/contracts → Offer wiring
+- [x] Build in phases (scaffold → domain → infra → application/contracts → Offer wiring
       (mirror + buy-box read) → presentation → tests), one commit per phase, suite green,
       human pushes.
+
+---
+
+# 12. What this sprint shipped
+
+## 12.1 Delivered
+
+| Area | Where |
+|---|---|
+| `StockItem` — the pool, with `available()` computed on read (§2.1, ADR-048) | `Domain/Models/StockItem` |
+| `StockMovement` — the append-only ledger, signed deltas (§2.2, ADR-050) | `Domain/Models/StockMovement` |
+| `StockReservation` — one row per caller reference (§2.3) | `Domain/Models/StockReservation` |
+| Two module enums, no `Enum` suffix (§2.4, ADR-007) | `Domain/Enums/{StockMovementType,ReservationStatus}` |
+| Schema: one pool per (org, variant); unsigned counts; `reserved <= on_hand` CHECK | `database/Modules/Inventory/migrations/` |
+| Five actions, each one transaction under a row lock (§9) | `Application/Actions/` |
+| The on-hand mirror, subscribed to Offer BY CLASS-STRING (§3.1) | `Application/Listeners/MirrorOfferStock` |
+| Six events (§6) | `Domain/Events/` |
+| Core read port — the buy box's in-stock test (§5.1) | `App\Core\Domain\Contracts\InventoryQueryContract` |
+| Core **command** port — the platform's first, for Order (§5.2, ADR-049) | `App\Core\Domain\Contracts\InventoryReservationContract` |
+| Low-stock signal, edge-triggered and re-armable (§3.3) | `Application/Actions/Concerns/RecordsMovements` |
+| `InventoryPolicy` — read for both audiences, one seller write (§7) | `Presentation/Policies/InventoryPolicy` |
+| Seller "Stoğum" + the per-pool movement history (§4) | `Presentation/Filament/Seller/Resources/`, `Presentation/Filament/RelationManagers/` |
+| Admin oversight — read only, no lever at all (§4, §7) | `Presentation/Filament/Resources/` |
+
+Inventory imports **no** module — asserted in `LayeringTest`, in both directions.
+Everything crossing a boundary is a Core contract or an event resolved by name.
+
+## 12.2 Deliberately absent
+
+**No warehouses and no locations** (ADR-051): one pool per (org, variant), so a seller
+with two real depots cannot model them and their availability is the sum. **No cart,
+order or checkout** — the reservation primitives ship with no caller but the tests
+(ADR-049), which is the point: Order finds them ready instead of inventing them under
+deadline. **No expiry sweep for stale holds.** Nothing releases an abandoned
+reservation on a timer, because nothing creates one yet; Order brings the lifetime it
+needs and the release primitive is already there. **No supplier restocking, no
+purchase orders, no stock-take.** **No money anywhere** — this module counts units.
+
+**No seller-facing stock ENTRY** (ADR-048): the count is typed on the Offer form and
+mirrored here. **No admin write of any kind** (§7) — see the deviation below for what
+enforces that.
+
+## 12.3 Deviations from this document, and why
+
+1. **The `reserved <= on_hand` CHECK constraint is applied on PostgreSQL only.**
+   SQLite cannot `ALTER TABLE … ADD CONSTRAINT`, and the test suite runs on SQLite
+   `:memory:`. The invariant is enforced where it is actually decided — inside the
+   reservation actions, under a row lock — and the constraint is the production
+   backstop against a future writer that forgets. Cost: the suite cannot prove the
+   database refuses a bad row, so one test is `->skip()` on non-pgsql with the reason
+   stated, alongside a driver-independent test that the READ clamps a nonsensical
+   projection. `StockItem::available()` never returns a negative on any driver.
+
+2. **The Super Admin bypass reaches `InventoryPolicy::update()`, which otherwise always
+   denies.** "Super Admin bypasses every policy" is a platform rule (CLAUDE.md) applied
+   by a global `Gate::before`, and carving one ability out of it here would make
+   Inventory the single module where the bypass is not what it claims. So the refusal
+   is **structural instead**: there is no edit page, no form, no action and no route
+   that writes a count, on either panel. An operation that does not exist is a stronger
+   guarantee than a permission nobody is meant to spend. Both halves are pinned by
+   tests. `update()` stays on the policy so a future edit screen meets a documented
+   refusal rather than a missing method.
+
+3. **`available` is not sortable in either panel.** It is computed on read (ADR-048), so
+   ordering by it would mean computing it for the whole result set and sorting in PHP.
+   The two filters that matter — low stock and out of stock — do the subtraction in SQL
+   over the two stored columns instead.
+
+4. **`Presentation/Support/CatalogLabels` is a near-duplicate of Offer's.** Sharing it
+   would mean either Core carrying a presentation helper shaped by one module's need, or
+   Inventory importing Offer. Two small readers over one Core contract is the cheaper of
+   the two wrongs, and the duplication is stated in both docblocks.
+
+## 12.4 Changes this sprint required of other modules
+
+Offer is complete but **not frozen** (its spec §14 anticipated exactly this), so both
+changes are inside sanctioned territory. Recorded in the `001_Architecture.md`
+amendment log.
+
+| Module | Change | Why it could not be avoided |
+|---|---|---|
+| Offer | `OfferCreated`, `OfferStockChanged` and `OfferWithdrawn` carry `sellingOrgId` + `sellingOrgUuid` | §10.4's confirmed ruling. Inventory consumes these BLIND, by class-string, and a pool is keyed on the ADR-040 id/uuid pair — without both halves on the payload the mirror would have to look the company up in a module it may not import |
+| Offer | `OfferQuery::eligible()` asks `InventoryQueryContract::isAvailable()` instead of filtering `stock_quantity > 0` in SQL | §10.5's confirmed ruling, and the whole point of ADR-048. Functionally identical this sprint (`reserved` is always 0 with no Order), which is why a parity test pins it — plus the case that was previously inexpressible: a variant whose every unit is held for someone's checkout |
+| Offer (test support) | `OfferFactory::configure()` dispatches `OfferCreated` | An offer with no stock pool cannot be bought, so every buy-box test would otherwise have had to seed Inventory by hand. Dispatching the real event rather than writing the pool keeps the factory free of an Inventory import and exercises the real mirror |
+
+## 12.5 Follow-ups
+
+1. **The buy-box partial index no longer matches.** `offers_buy_box` is predicated on
+   `stock_quantity > 0`, and dropping that filter (§12.4) stops the planner using it. A
+   plain index on the same columns would serve the query. Left out deliberately: it is
+   a performance change and that phase was a correctness one. Do it before the first
+   product page with many sellers.
+
+2. **`StockLowStockReached` has no consumer.** §6 anticipates Notification carrying it;
+   the event fires correctly, edge-triggered on the crossing and re-armed when
+   availability recovers, and nothing listens. A seller therefore sees the warning in
+   the panel (the low-stock filter and the amber badge) and receives no message. The
+   listener is Notification's to add and needs no change here.
+
+3. **Availability is read per offer, not batched.** `OfferQuery::eligible()` asks
+   Inventory once per candidate row, deliberately un-memoised — a value cached even for
+   one request could tell two callers the same unit is free. A product page with many
+   sellers therefore issues one query per seller. A batch method on
+   `InventoryQueryContract` is the fix when it starts to hurt; correctness first.
+
+4. **No stale-hold expiry.** Nothing sweeps a reservation that was never released. Not a
+   defect today (nothing creates one), but it is the first thing Order must bring, and
+   until it does a hypothetical caller could strand a seller's stock indefinitely.
+
+5. **The Activity user timeline** — shared with Organization's and Catalog's open
+   follow-up, not made worse here.
