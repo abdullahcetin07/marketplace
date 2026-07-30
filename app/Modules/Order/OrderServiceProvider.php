@@ -4,6 +4,16 @@ declare(strict_types=1);
 
 namespace App\Modules\Order;
 
+use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
+use App\Modules\Order\Domain\Contracts\CustomerAddressRepositoryContract;
+use App\Modules\Order\Domain\Contracts\OrderNumberGeneratorContract;
+use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
+use App\Modules\Order\Infrastructure\Generators\DefaultOrderNumberGenerator;
+use App\Modules\Order\Infrastructure\Queries\OrderQuery;
+use App\Modules\Order\Infrastructure\Repositories\CartRepository;
+use App\Modules\Order\Infrastructure\Repositories\CustomerAddressRepository;
+use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -43,6 +53,26 @@ final class OrderServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->mergeConfigFrom(config_path('order.php'), 'order');
+
+        $this->app->singleton(CartRepositoryContract::class, CartRepository::class);
+        $this->app->singleton(CustomerAddressRepositoryContract::class, CustomerAddressRepository::class);
+        $this->app->singleton(OrderRepositoryContract::class, OrderRepository::class);
+
+        /*
+        | The order number scheme, behind a contract so the aggregate does not
+        | encode it — the Catalog SKU and Store slug precedent. A business that
+        | later wants per-year sequences or a branch prefix swaps this binding
+        | rather than editing the action that places orders.
+        */
+        $this->app->singleton(OrderNumberGeneratorContract::class, DefaultOrderNumberGenerator::class);
+
+        /*
+        | The downstream read port (§5). Published with the module and with no
+        | caller yet, exactly as Inventory's contracts were: when Payment arrives,
+        | "how do I read an order" is already answered and the answer is not
+        | "import the model".
+        */
+        $this->app->singleton(OrderQueryContract::class, OrderQuery::class);
     }
 
     public function boot(): void
