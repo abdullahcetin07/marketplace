@@ -320,14 +320,18 @@ arch('Inventory imports no other module at all')
     ]);
 
 /*
-| The mirror. Order will read Inventory through the Core contracts when it
-| exists; until then the only correct number of importers is zero, and stating
-| it means the first accidental import fails the build rather than quietly
-| establishing a precedent. Same shape as Offer's and Catalog's rules.
+| The mirror, and ORDER NOW EXISTS WITHOUT CHANGING IT — which is the whole point.
+| Order reserves, commits and releases stock on every checkout, and still appears
+| nowhere on this list: it drives `InventoryReservationContract` and reads
+| `InventoryQueryContract`, both of which live in Core. The module that uses
+| Inventory hardest is the proof the seam works.
 |
-| OFFER IS NOT ON THE PERMITTED LIST, deliberately: the buy box reads
-| availability through `InventoryQueryContract`, which lives in Core — Offer
-| never names Inventory itself.
+| OFFER IS NOT ON THE LIST EITHER, for the same reason: the buy box reads
+| availability through the Core contract and never names Inventory.
+|
+| So the only correct number of importers remains zero, and stating it means the
+| first accidental import fails the build rather than quietly establishing a
+| precedent. Same shape as Offer's and Catalog's rules.
 */
 arch('no module depends on Inventory')
     ->expect('App\Modules\Inventory')
@@ -337,6 +341,56 @@ arch('no module depends on Inventory')
         'App\Providers\Filament',
         'Database\Modules\Inventory',
         'Tests\Modules\Inventory',
+    ]);
+
+/*
+| ORDER is the buyer's pipeline and imports NOTHING either (ADR-052…056) — the
+| same wall Offer and Inventory keep, now on the module with the most reasons to
+| breach it. It touches five other contexts: Offer for the price, Inventory for
+| the stock, Catalog for the title and the KDV bracket, Store for "is the shop
+| live", Organization for the seller panel's tenancy. Every one of them is a Core
+| contract read by uuid.
+|
+| ITS DEFINING DIFFERENCE is that one of those contracts is a COMMAND, not a read:
+| Order is the first module to DRIVE `InventoryReservationContract` (ADR-054), so
+| it changes another context's state without naming it. That is the seam ADR-049
+| shipped a sprint early, and this rule is what keeps it a seam rather than a
+| shortcut.
+|
+| Inventory and Offer are on the forbidden list WHOLESALE, with no events escape
+| hatch, for the reason Offer is on Inventory's: peers, not consumers. Relaxing it
+| for one event class would make the next import an argument rather than a build
+| failure.
+*/
+arch('Order imports no other module at all')
+    ->expect('App\Modules\Order')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+    ]);
+
+/*
+| The mirror. Payment and Shipping will read `OrderQueryContract` when they exist;
+| until then the only correct number of importers is zero, and stating it means the
+| first accidental import fails the build rather than quietly establishing a
+| precedent.
+*/
+arch('no module depends on Order')
+    ->expect('App\Modules\Order')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Order',
+        // The composition root, not a module reaching into another module.
+        'App\Providers\Filament',
+        'Database\Modules\Order',
+        'Tests\Modules\Order',
     ]);
 
 /*
@@ -402,6 +456,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Catalog\Domain',
         'App\Modules\Offer\Domain',
         'App\Modules\Inventory\Domain',
+        'App\Modules\Order\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -508,6 +563,17 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Inventory\Infrastructure',
         'App\Modules\Inventory\Presentation',
         'App\Modules\Inventory\InventoryServiceProvider',
+        // Order — non-DTO namespaces ignored so its Domain\DTOs stay covered
+        // (they must carry the suffix), like the modules above.
+        'App\Modules\Order\Application',
+        'App\Modules\Order\Domain\Models',
+        'App\Modules\Order\Domain\Enums',
+        'App\Modules\Order\Domain\Events',
+        'App\Modules\Order\Domain\Contracts',
+        'App\Modules\Order\Domain\Exceptions',
+        'App\Modules\Order\Infrastructure',
+        'App\Modules\Order\Presentation',
+        'App\Modules\Order\OrderServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')

@@ -52,6 +52,13 @@ return [
     // on-hand (ADR-048). It imports neither Offer nor anything else.
     App\Modules\Inventory\InventoryServiceProvider::class,
 
+    // Business modules (Sprint: Order)
+    // After Inventory: Order CALLS Inventory's reservation contract (ADR-054) and
+    // reads Offer, Catalog, Store and Organization through their Core contracts.
+    // It imports none of them, and nothing imports it — Payment and Shipping will
+    // read `OrderQueryContract`.
+    App\Modules\Order\OrderServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,
