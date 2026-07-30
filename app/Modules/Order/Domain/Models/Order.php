@@ -136,17 +136,31 @@ final class Order extends Model
     }
 
     /**
-     * THE RESERVATION REFERENCE (ADR-054) — this order's uuid.
+     * THE RESERVATION REFERENCE (ADR-054) — one PER LINE, derived from this
+     * order's uuid and the line's variant.
      *
-     * A named method rather than `$order->uuid` at four call sites, because it is
-     * a CONTRACT with another module: Inventory stores this string and every
-     * later `commit`/`release` must produce the identical one. Reserve with one
-     * value and release with another and the hold silently survives forever,
-     * which is the single worst bug this integration can have.
+     * WHY NOT SIMPLY THE ORDER UUID, which is how Order.md §3.1 writes it: an
+     * Inventory reservation is one row keyed on a UNIQUE reference, and reserving
+     * is idempotent on it. An order with two lines reserving under one reference
+     * would silently no-op on the second — the first line held, the second not,
+     * and nothing anywhere saying so. That is the worst failure this integration
+     * can have, so the reference has to be per line.
+     *
+     * `{order_uuid}:{variant_uuid}` rather than the line's own uuid, deliberately:
+     * it is DERIVABLE. Release and commit rebuild it from the order and its lines
+     * without storing an Inventory identifier anywhere, which is the property the
+     * contract's "the caller passes its own key" design is asking for. It is
+     * unique because a seller may hold at most one active offer per variant
+     * (ADR-042 §3.2), so one order cannot contain two lines for one variant.
+     *
+     * A NAMED METHOD rather than string concatenation at four call sites, because
+     * it is a CONTRACT with another module: Inventory stores this string and every
+     * later commit or release must produce the identical one. Reserve with one
+     * value and release with another and the hold survives forever.
      */
-    public function reservationReference(): string
+    public function reservationReferenceFor(string $variantUuid): string
     {
-        return $this->uuid;
+        return $this->uuid.':'.$variantUuid;
     }
 
     /**

@@ -571,6 +571,9 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Order\Domain\Events',
         'App\Modules\Order\Domain\Contracts',
         'App\Modules\Order\Domain\Exceptions',
+        // The KDV extraction helper — a pure Domain function that happens to
+        // need a namespace, not a data-transfer object.
+        'App\Modules\Order\Domain\Support',
         'App\Modules\Order\Infrastructure',
         'App\Modules\Order\Presentation',
         'App\Modules\Order\OrderServiceProvider',
