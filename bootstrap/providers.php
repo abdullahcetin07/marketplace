@@ -47,6 +47,11 @@ return [
     // Organization bind. It imports none of them.
     App\Modules\Offer\OfferServiceProvider::class,
 
+    // Business modules (Sprint: Inventory)
+    // After Offer: Inventory subscribes to Offer's stock events to mirror
+    // on-hand (ADR-048). It imports neither Offer nor anything else.
+    App\Modules\Inventory\InventoryServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

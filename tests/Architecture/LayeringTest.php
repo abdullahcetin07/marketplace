@@ -292,6 +292,54 @@ arch('no module depends on Offer')
     ]);
 
 /*
+| Inventory is the availability authority (ADR-048) and, like Offer, imports
+| NOTHING. It reads three other contexts and is read by a fourth that does not
+| exist yet, so every direction is a contract or an event resolved by name:
+| Offer's stock events by class-string (ADR-048), org tenancy through
+| OrganizationAuthorizationContract, the catalog through CatalogQueryContract,
+| and it publishes InventoryQueryContract + InventoryReservationContract for the
+| buy box today and Order tomorrow.
+|
+| Offer is on the forbidden list WHOLESALE, with no events escape hatch, for the
+| same reason Catalog is on Offer's: Audit and Activity are consumers by nature,
+| but these two are peers. Relaxing it for one event class would make the next
+| Offer import an argument rather than a build failure.
+*/
+arch('Inventory imports no other module at all')
+    ->expect('App\Modules\Inventory')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+    ]);
+
+/*
+| The mirror. Order will read Inventory through the Core contracts when it
+| exists; until then the only correct number of importers is zero, and stating
+| it means the first accidental import fails the build rather than quietly
+| establishing a precedent. Same shape as Offer's and Catalog's rules.
+|
+| OFFER IS NOT ON THE PERMITTED LIST, deliberately: the buy box reads
+| availability through `InventoryQueryContract`, which lives in Core — Offer
+| never names Inventory itself.
+*/
+arch('no module depends on Inventory')
+    ->expect('App\Modules\Inventory')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Inventory',
+        // The composition root, not a module reaching into another module.
+        'App\Providers\Filament',
+        'Database\Modules\Inventory',
+        'Tests\Modules\Inventory',
+    ]);
+
+/*
 | The mirror of the rule above: nothing built so far may reach INTO Catalog.
 | Offer, Inventory and Search will read it through the Core contract when they
 | exist; until then the only correct number of importers is zero, and stating it
@@ -353,6 +401,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Store\Domain',
         'App\Modules\Catalog\Domain',
         'App\Modules\Offer\Domain',
+        'App\Modules\Inventory\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -448,6 +497,17 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Offer\Infrastructure',
         'App\Modules\Offer\Presentation',
         'App\Modules\Offer\OfferServiceProvider',
+        // Inventory — non-DTO namespaces ignored so its Domain\DTOs stay covered
+        // (they must carry the suffix), like the modules above.
+        'App\Modules\Inventory\Application',
+        'App\Modules\Inventory\Domain\Models',
+        'App\Modules\Inventory\Domain\Enums',
+        'App\Modules\Inventory\Domain\Events',
+        'App\Modules\Inventory\Domain\Contracts',
+        'App\Modules\Inventory\Domain\Exceptions',
+        'App\Modules\Inventory\Infrastructure',
+        'App\Modules\Inventory\Presentation',
+        'App\Modules\Inventory\InventoryServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')

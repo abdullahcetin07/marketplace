@@ -2,12 +2,12 @@
 
 The seven Foundation modules delivered in Sprint 1.
 
-**Inventory, Order and Payment do not exist yet** — later sprints, each after its
-own architecture review. **Organization** and **Store** are frozen v1.0
-(ADR-028–036); **Catalog** Phase 1 is complete (ADR-037–041) and **Offer** is
-complete (ADR-042–046). Neither of the last two is frozen: Offer reaches into
-Catalog, and Inventory will reach into Offer to become the stock authority
-(ADR-043).
+**Order and Payment do not exist yet** — later sprints, each after their own
+architecture review. **Organization** and **Store** are frozen v1.0
+(ADR-028–036); **Catalog** Phase 1 is complete (ADR-037–041), **Offer** is
+complete (ADR-042–046) and **Inventory** is complete (ADR-048–051). None of the
+last three is frozen: each reaches into the one before it — Offer into Catalog,
+Inventory into Offer — and Order will reach into Inventory.
 
 ---
 
@@ -25,6 +25,7 @@ Catalog, and Inventory will reach into Offer to become the stock authority
 | **Organization** | Legal seller company: KYC, members, invitations, documents, bank account, store-opening requests (ADR-028–031) — *frozen v1.0* | [modules/Organization.md](../../docs/modules/Organization.md) |
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
 | **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *Phase 1 complete* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
+| **Inventory** | The availability authority: on-hand + reserved per (seller org, variant), `available = on_hand − reserved` read by the buy box, the append-only movement ledger, and the reserve/release/commit primitives Order will call (ADR-048–051). **No cart, order, money or multi-warehouse** — *complete, not frozen* | [modules/Inventory.md](../../docs/modules/Inventory.md) |
 | **Offer** | What makes the catalog sellable: a seller org's price + stock for one variant, its lifecycle, the computed buy box, the public "product + its offers" surface and the storefront product-listing contributor (ADR-042–046). **No cart, order, payment or commission** — those are later sprints — *complete, not frozen* | [modules/Offer.md](../../docs/modules/Offer.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is
