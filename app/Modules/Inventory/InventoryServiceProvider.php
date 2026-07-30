@@ -4,6 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory;
 
+use App\Core\Domain\Contracts\InventoryQueryContract;
+use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
+use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
+use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -39,7 +43,14 @@ final class InventoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
-        //
+        $this->app->singleton(StockItemRepositoryContract::class, StockItemRepository::class);
+
+        /*
+        | The downstream read port (ADR-048). Inventory is the single source of
+        | truth for availability; the buy box and, later, Order ask through this
+        | Core contract instead of importing Inventory.
+        */
+        $this->app->singleton(InventoryQueryContract::class, InventoryQuery::class);
     }
 
     public function boot(): void
