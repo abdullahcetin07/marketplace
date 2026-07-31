@@ -126,9 +126,23 @@ every request). State: server components + a light cart/session context.
 - **Auth** — login / register (Customer).
 - **Store page** — `/magaza/{slug}` composed store storefront (already an API).
 
-## 2.3 Design
-Reuse the approved **"Enerjik + Kurumsal"** direction and the real product imagery from the
-earlier mockups. Responsive, tr-first. Theme-aware where sensible.
+## 2.3 Design — LOCKED (owner-approved 2026-07-31)
+The **modern marketplace** direction (Trendyol-style), approved after comparing three
+mockups. Not the editorial/apothecary variant.
+- **Palette:** clean white surfaces on a light grey ground (`#F4F5F7`), vivid **orange**
+  brand/CTA (`#FA5A00`, deep `#E24E00`, tint `#FFF0E7`); semantic green (free shipping /
+  in-stock `#129D5E`), red discount badges (`#E11D48`), violet accent for promo tiles.
+  Full dark theme via tokens.
+- **Type:** **Manrope** (400–800) — modern geometric sans, Turkish (latin-ext) covered.
+- **Components:** rounded cards (16px), category **circle** icons, orange campaign hero +
+  promo tiles, **coupon strip** (dashed), dense product grid (heart, discount %, rating
+  pill, seller count, free-shipping/fast badges, struck-through + big orange price,
+  "Sepete Ekle"), product page with the multi-seller **buy box** (featured + other
+  sellers). **Mobile:** sticky search header, scrollable category chips, 2-col grid,
+  **bottom tab bar**, product page with a **sticky bottom "Sepete Ekle / Hemen Al" bar**.
+- SVG icons only (no emoji), visible focus rings, `prefers-reduced-motion`, 4.5:1 contrast.
+- Reference mockups (built with the ui-ux-pro-max + frontend-design skills): desktop +
+  mobile, using the owner's real product imagery. tr-first.
 
 ---
 
