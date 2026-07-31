@@ -75,6 +75,7 @@ use Illuminate\Support\Carbon;
  * @property array<string, string|null> $billing_address
  * @property Carbon|null $placed_at
  * @property Carbon|null $cancelled_at
+ * @property string|null $cancelled_by
  * @property string|null $cancellation_reason
  * @property Carbon $created_at
  * @property Carbon $updated_at
@@ -114,6 +115,7 @@ final class Order extends Model
         'billing_address',
         'placed_at',
         'cancelled_at',
+        'cancelled_by',
         'cancellation_reason',
     ];
 

@@ -35,6 +35,7 @@ return [
         'grand_total' => 'Grand total',
         'billing_address' => 'Billing address',
         'cancelled_at' => 'Cancelled at',
+        'cancelled_by' => 'Cancelled by',
         'reason' => 'Reason',
         'customer' => 'Customer',
         'seller' => 'Seller',
@@ -54,11 +55,34 @@ return [
     'action' => [
         'cancel' => 'Cancel order',
         'cancel_confirm' => 'The order will be cancelled and the reserved stock released. This cannot be undone.',
+        /*
+        | THE SELLER'S WARNING (ADR-057). Cancelling does not only stop the order:
+        | because the seller is saying they cannot fulfil, their stock for that
+        | variant is ZEROED. The confirmation says so, rather than leaving it to be
+        | discovered afterwards.
+        */
+        'cancel_confirm_seller' => 'The order will be cancelled and YOUR STOCK for this product will be set to zero — it stays off sale until you enter stock again. This cannot be undone.',
+        'cancel_confirm_button' => 'Cancel and zero my stock',
         'cancel_reason_hint' => 'Shown to the customer. Write something short and clear, like "out of stock".',
+        'zero_seller_stock' => 'Seller fault: zero their stock too',
+        'zero_seller_stock_hint' => 'Tick this when the seller genuinely has none of this product. By default only the reservation is released and the product stays on sale.',
+    ],
+
+    /*
+    | Who cancelled (ADR-057). Four different business events end the same way, and
+    | the seller's notification, the fraud signal and the abandonment metric all
+    | have to tell them apart.
+    */
+    'cancelled_by' => [
+        'customer' => 'Customer',
+        'seller' => 'Seller',
+        'admin' => 'Admin',
+        'expiry' => 'Timed out',
     ],
 
     'notice' => [
         'cancelled' => 'Order cancelled.',
+        'stock_zeroed' => 'Your stock for this product has been set to zero. Enter a new quantity on the offer form to sell it again.',
     ],
 
     'empty' => [

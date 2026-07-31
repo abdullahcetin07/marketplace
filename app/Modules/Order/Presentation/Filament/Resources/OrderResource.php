@@ -162,8 +162,15 @@ final class OrderResource extends Resource
                     Infolists\Components\TextEntry::make('cancelled_at')
                         ->label(__('order.field.cancelled_at'))
                         ->dateTime(),
+                    Infolists\Components\TextEntry::make('cancelled_by')
+                        ->label(__('order.field.cancelled_by'))
+                        ->badge()
+                        ->formatStateUsing(fn (?string $state): string => $state === null
+                            ? '—'
+                            : __("order.cancelled_by.{$state}")),
                     Infolists\Components\TextEntry::make('cancellation_reason')
                         ->label(__('order.field.reason'))
+                        ->columnSpanFull()
                         ->placeholder('—'),
                 ]),
         ]);
@@ -229,6 +236,20 @@ final class OrderResource extends Resource
             ->defaultSort('id', 'desc');
     }
 
+    /**
+     * The admin's lever — release by default, zero only when told (ADR-057).
+     *
+     * THE DEFAULT IS THE CONSERVATIVE ONE, deliberately. An oversight or dispute
+     * cancellation is not a claim about anybody's stock: the units go back on sale
+     * and the seller carries on. Zeroing every admin cancellation would take a
+     * merchant's whole variant off the platform because somebody upstream was
+     * arbitrating a payment dispute.
+     *
+     * THE TOGGLE IS THE SELLER-FAULT CASE — "they never had it" — and it does
+     * exactly what the seller's own cancellation does, through the same event. It
+     * is opt-in and it says what it will do, because an operator taking a
+     * merchant's listing down should have to mean it.
+     */
     private static function cancelAction(): Tables\Actions\Action
     {
         return Tables\Actions\Action::make('cancel')
@@ -242,12 +263,18 @@ final class OrderResource extends Resource
                     ->label(__('order.field.reason'))
                     ->required()
                     ->maxLength(500),
+
+                Forms\Components\Toggle::make('zero_seller_stock')
+                    ->label(__('order.action.zero_seller_stock'))
+                    ->helperText(__('order.action.zero_seller_stock_hint'))
+                    ->default(false),
             ])
             ->visible(fn (Order $record): bool => auth()->user()?->can('cancel', $record) === true)
             ->action(function (Order $record, array $data): void {
                 app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
                     cancelledBy: CancelOrderDTO::BY_ADMIN,
                     reason: (string) $data['reason'],
+                    zeroSellerStock: (bool) ($data['zero_seller_stock'] ?? false),
                 ));
 
                 Notification::make()->title(__('order.notice.cancelled'))->success()->send();

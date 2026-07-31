@@ -227,11 +227,16 @@ final class OrderResource extends Resource
     }
 
     /**
-     * The seller's one lever (§3.3).
+     * The seller's one lever (§3.3, ADR-057).
      *
      * A REASON IS REQUIRED, unlike on the customer's own cancellation: "changed my
      * mind" needs no explanation, but a merchant refusing an order somebody placed
      * does — and the customer will be shown it.
+     *
+     * AND THE SELLER IS TOLD WHAT ELSE THIS DOES. Cancelling because they cannot
+     * fulfil zeroes their declared stock for that variant (anti-oversell, ADR-057)
+     * — a real consequence that would be a nasty surprise discovered afterwards, so
+     * the confirmation says it in as many words before they commit.
      */
     private static function cancelAction(): Tables\Actions\Action
     {
@@ -240,7 +245,10 @@ final class OrderResource extends Resource
             ->icon('heroicon-o-x-circle')
             ->color('danger')
             ->requiresConfirmation()
-            ->modalDescription(__('order.action.cancel_confirm'))
+            ->modalHeading(__('order.action.cancel'))
+            // The warning, not a generic "are you sure": their stock goes to zero.
+            ->modalDescription(__('order.action.cancel_confirm_seller'))
+            ->modalSubmitActionLabel(__('order.action.cancel_confirm_button'))
             ->form([
                 Forms\Components\Textarea::make('reason')
                     ->label(__('order.field.reason'))
@@ -251,11 +259,18 @@ final class OrderResource extends Resource
             ->visible(fn (Order $record): bool => auth()->user()?->can('cancel', $record) === true)
             ->action(function (Order $record, array $data): void {
                 app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
+                    // The DTO forces the zero for this actor whatever a surface
+                    // passes — a screen that forgot the flag must not silently
+                    // re-list goods the seller has just said they do not have.
                     cancelledBy: CancelOrderDTO::BY_SELLER,
                     reason: (string) $data['reason'],
                 ));
 
-                Notification::make()->title(__('order.notice.cancelled'))->success()->send();
+                Notification::make()
+                    ->title(__('order.notice.cancelled'))
+                    ->body(__('order.notice.stock_zeroed'))
+                    ->success()
+                    ->send();
             });
     }
 

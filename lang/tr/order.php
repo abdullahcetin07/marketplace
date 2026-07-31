@@ -35,6 +35,7 @@ return [
         'grand_total' => 'Genel toplam',
         'billing_address' => 'Fatura adresi',
         'cancelled_at' => 'İptal tarihi',
+        'cancelled_by' => 'İptal eden',
         'reason' => 'Gerekçe',
         'customer' => 'Müşteri',
         'seller' => 'Satıcı',
@@ -54,11 +55,33 @@ return [
     'action' => [
         'cancel' => 'Siparişi iptal et',
         'cancel_confirm' => 'Sipariş iptal edilecek ve ayrılan stok serbest bırakılacak. Bu işlem geri alınamaz.',
+        /*
+        | SATICIYA UYARI (ADR-057). İptal yalnızca siparişi durdurmuyor: satıcı
+        | "karşılayamıyorum" dediği için o varyantın stoğu SIFIRLANIYOR. Sonradan
+        | keşfedilecek bir sürpriz olmasın diye onay ekranı bunu açıkça söylüyor.
+        */
+        'cancel_confirm_seller' => 'Sipariş iptal edilecek ve bu ürün için STOĞUNUZ SIFIRLANACAK — yeniden stok girene kadar satışa çıkmaz. Bu işlem geri alınamaz.',
+        'cancel_confirm_button' => 'İptal et ve stoğu sıfırla',
         'cancel_reason_hint' => 'Müşteriye gösterilir. "Stokta kalmadı" gibi kısa ve açık bir gerekçe yazın.',
+        'zero_seller_stock' => 'Satıcı kaynaklı: stoğu da sıfırla',
+        'zero_seller_stock_hint' => 'Satıcının o üründe gerçekten stoğu yoksa işaretleyin. Varsayılan olarak yalnızca ayrılan stok serbest bırakılır ve ürün satışta kalır.',
+    ],
+
+    /*
+    | Kim iptal etti (ADR-057). Dört farklı iş olayı aynı satırla bitiyor; satıcı
+    | bildirimi, dolandırıcılık sinyali ve terk edilme metriği bunları ayırt
+    | etmek zorunda.
+    */
+    'cancelled_by' => [
+        'customer' => 'Müşteri',
+        'seller' => 'Satıcı',
+        'admin' => 'Yönetici',
+        'expiry' => 'Süre doldu',
     ],
 
     'notice' => [
         'cancelled' => 'Sipariş iptal edildi.',
+        'stock_zeroed' => 'Bu ürün için stoğunuz sıfırlandı. Satışa devam etmek için teklif formundan yeni adet girin.',
     ],
 
     'empty' => [
