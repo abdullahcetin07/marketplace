@@ -1,0 +1,18 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/*
+| Theme-aware where it is cheap to be (Storefront.md §2.3): the neutral ground
+| follows the reader's preference, while the brand accent stays put — an accent
+| that changes with the theme stops being a brand.
+*/
+:root {
+  color-scheme: light dark;
+}
+
+@layer base {
+  body {
+    @apply bg-white text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100;
+  }
+}
