@@ -1,5 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
+import { HeaderActions } from '@/components/HeaderActions';
+import { SessionProvider } from '@/components/SessionProvider';
 import './globals.css';
 
 export const metadata: Metadata = {
@@ -16,25 +18,32 @@ export const metadata: Metadata = {
  * TURKISH-FIRST (§2.3): `lang="tr"` is not decoration — it drives hyphenation,
  * the browser's translation offer and how a screen reader pronounces the page.
  *
- * The header is deliberately thin at this stage: search and the cart badge land
- * with their own slices, and a nav full of links to pages that do not exist yet
- * is worse than a nav that grows.
+ * THE PROVIDER WRAPS EVERYTHING, and only the pieces that need it are client
+ * components. `SessionProvider` is a client boundary, but the pages it contains
+ * stay server-rendered — passing them as `children` means React composes them on
+ * the server and the provider merely hydrates around them. That is what keeps the
+ * listing and product pages indexable while the header knows who you are.
  */
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
     <html lang="tr">
       <body className="flex min-h-screen flex-col">
+        <SessionProvider>
         <header className="border-b border-ink-200 dark:border-ink-800">
           <div className="mx-auto flex w-full max-w-7xl items-center gap-6 px-4 py-4">
             <Link href="/" className="text-xl font-bold tracking-tight">
               <span className="text-brand-500">raf</span>tabul
             </Link>
 
-            <nav className="ml-auto text-sm">
+            <nav className="text-sm">
               <Link href="/urunler" className="hover:text-brand-600">
                 Tüm ürünler
               </Link>
             </nav>
+
+            <div className="ml-auto">
+              <HeaderActions />
+            </div>
           </div>
         </header>
 
@@ -43,6 +52,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <footer className="border-t border-ink-200 py-8 text-center text-sm text-ink-500 dark:border-ink-800">
           © {new Date().getFullYear()} Raftabul
         </footer>
+        </SessionProvider>
       </body>
     </html>
   );

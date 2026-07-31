@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { AddToCartButton } from '@/components/AddToCartButton';
 import { getProduct, getProductOffers } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 
@@ -33,9 +34,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
  * makes the same distinction — the detail route is published-only, not
  * sellable-only).
  *
- * ADD-TO-CART IS DELIBERATELY ABSENT FROM THIS SLICE. The cart is a
- * session-carrying write and lands with its own work; a button that looked live
- * and did nothing would be worse than no button.
+ * ADD-TO-CART TAKES THE FEATURED OFFER'S ID, not the product's. A shopper buys
+ * one seller's listing (ADR-042) and the buy box already chose which — so the
+ * button carries that decision rather than re-making it, which is what stops the
+ * price on this page and the price in the basket coming apart.
  */
 export default async function ProductPage({ params }: Props) {
   const { id } = await params;
@@ -139,6 +141,8 @@ export default async function ProductPage({ params }: Props) {
                     Bu ürünü satan {offers.offer_count} mağaza var.
                   </span>
                 )}
+
+                <AddToCartButton offerId={featured.id} />
               </div>
             )}
           </div>
