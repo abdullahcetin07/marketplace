@@ -22,7 +22,7 @@
  * makes it possible — the whole reason ADR-058 chose one origin.
  */
 
-import type { CartView, User } from './types';
+import type { Address, AddressInput, CartView, Country, Order, User } from './types';
 
 /** Laravel's envelope, again — see `api.ts`. */
 type Envelope<T> = { success: boolean; data: T; message?: string | null };
@@ -215,5 +215,158 @@ export function updateCartItem(itemId: string, quantity: number): Promise<CartVi
 export function removeCartItem(itemId: string): Promise<CartView | null> {
   return request<CartView>(`/api/v1/cart/items/${encodeURIComponent(itemId)}`, {
     method: 'DELETE',
+  });
+}
+
+/*
+|------------------------------------------------------------------------------
+| The address book (ADR-056)
+|------------------------------------------------------------------------------
+|
+| EVERY CALL IS SCOPED BY THE SESSION, never by an id the client supplies. The API
+| looks an address up by uuid AND owner, so "not yours" and "does not exist" are
+| the same 404 — this client never has to think about it, which is the point of
+| the server making them indistinguishable.
+*/
+
+export async function fetchAddresses(): Promise<Address[]> {
+  return (await request<Address[]>('/api/v1/addresses')) ?? [];
+}
+
+function addressBody(input: AddressInput): Record<string, unknown> {
+  return {
+    label: input.label,
+    recipient_name: input.recipientName,
+    phone: input.phone,
+    line1: input.line1,
+    // Empty strings become null: an optional field left blank is ABSENT, not a
+    // blank line printed on a parcel label.
+    line2: input.line2 === '' ? null : input.line2,
+    district: input.district === '' ? null : input.district,
+    city: input.city,
+    postal_code: input.postalCode === '' ? null : input.postalCode,
+    country: input.country,
+  };
+}
+
+export function createAddress(input: AddressInput): Promise<Address | null> {
+  return request<Address>('/api/v1/addresses', { method: 'POST', body: addressBody(input) });
+}
+
+export function updateAddress(id: string, input: AddressInput): Promise<Address | null> {
+  return request<Address>(`/api/v1/addresses/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: addressBody(input),
+  });
+}
+
+export function deleteAddress(id: string): Promise<null> {
+  return request<null>(`/api/v1/addresses/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function setDefaultAddress(
+  id: string,
+  { shipping, billing }: { shipping: boolean; billing: boolean },
+): Promise<Address | null> {
+  return request<Address>(`/api/v1/addresses/${encodeURIComponent(id)}/default`, {
+    method: 'POST',
+    body: { shipping, billing },
+  });
+}
+
+/** The country list for the address form — public, but fetched here for one client. */
+export async function fetchCountries(): Promise<Country[]> {
+  const response = await fetch('/api/v1/localization/countries', {
+    headers: { Accept: 'application/json' },
+  });
+
+  if (!response.ok) return [];
+
+  const envelope = (await response.json()) as Envelope<{ code: string; name: string }[]>;
+
+  return envelope.data.map((country) => ({ code: country.code, name: country.name }));
+}
+
+/*
+|------------------------------------------------------------------------------
+| Checkout and orders (ADR-052/054/057)
+|------------------------------------------------------------------------------
+|
+| TWO CALLS, NOT ONE, and the shape is the reservation window: `checkout` splits
+| the basket by seller and HOLDS the stock; `place` confirms it. Payment will one
+| day sit between them without either endpoint changing, which is the whole reason
+| the two-step exists before there is a payment step to put in it.
+*/
+
+export type CheckoutResult = { orders: Order[]; checkoutGroupId: string };
+
+export async function checkout(
+  shippingAddressId: string,
+  billingAddressId: string,
+): Promise<CheckoutResult> {
+  await ensureCsrfCookie();
+
+  const token = readCookie('XSRF-TOKEN');
+
+  const response = await fetch('/api/v1/checkout', {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      'Content-Type': 'application/json',
+      ...(token === undefined ? {} : { 'X-XSRF-TOKEN': decodeURIComponent(token) }),
+    },
+    body: JSON.stringify({
+      shipping_address_id: shippingAddressId,
+      // Sent explicitly even when it is the same address: inferring "billing =
+      // shipping when omitted" would silently put a home address on a company's
+      // invoice, and nobody notices until an accountant does.
+      billing_address_id: billingAddressId,
+    }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as
+    | (Envelope<Order[]> & { errors?: Record<string, string[]>; meta?: { checkout_group_id?: string } })
+    | null;
+
+  if (!response.ok) {
+    throw new SessionApiError(
+      payload?.message ?? 'Siparişiniz oluşturulamadı.',
+      response.status,
+      payload?.errors ?? {},
+    );
+  }
+
+  const orders = payload?.data ?? [];
+
+  return {
+    orders,
+    // The group id rides in the envelope's meta; the first order carries it too,
+    // and either is the handle the very next call needs.
+    checkoutGroupId: payload?.meta?.checkout_group_id ?? orders[0]?.checkout_group_id ?? '',
+  };
+}
+
+export async function placeCheckoutGroup(groupId: string): Promise<Order[]> {
+  return (
+    (await request<Order[]>(`/api/v1/checkout/${encodeURIComponent(groupId)}/place`, {
+      method: 'POST',
+    })) ?? []
+  );
+}
+
+export async function fetchOrders(): Promise<Order[]> {
+  return (await request<Order[]>('/api/v1/orders')) ?? [];
+}
+
+export function fetchOrder(id: string): Promise<Order | null> {
+  return request<Order>(`/api/v1/orders/${encodeURIComponent(id)}`);
+}
+
+export function cancelOrder(id: string, reason: string): Promise<Order | null> {
+  return request<Order>(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, {
+    method: 'POST',
+    body: { reason: reason === '' ? null : reason },
   });
 }

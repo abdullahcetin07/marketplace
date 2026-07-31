@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { useSession } from '@/components/SessionProvider';
+import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
 import type { CartLine } from '@/lib/types';
 
@@ -23,8 +24,10 @@ import type { CartLine } from '@/lib/types';
  * would leave a customer wondering where the thing they chose went; the checkout
  * is where it becomes a refusal they can act on.
  *
- * CHECKOUT IS NOT WIRED IN THIS SLICE. The button says so plainly rather than
- * being hidden — a shopper should be able to see where the flow goes next.
+ * CHECKOUT IS ONE LINK AWAY, and it is disabled when the basket holds something
+ * that can no longer be sold: the API would refuse the whole checkout anyway
+ * (all-or-nothing, Order §3.1), and letting a shopper press it only to be told no
+ * is a worse way to learn the same thing.
  */
 export default function CartPage() {
   const { status, cart, updateItem, removeItem } = useSession();
@@ -34,21 +37,14 @@ export default function CartPage() {
   }
 
   if (status === 'anonymous') {
+    // No guest basket on this platform (ADR-056) — said plainly rather than
+    // discovered at checkout.
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Sepetinizi görmek için giriş yapın</h1>
-        {/* No guest basket on this platform (ADR-056) — said plainly rather than
-            discovered at checkout. */}
-        <p className="text-ink-500">
-          Alışverişe devam edebilmek için bir hesabınızın olması gerekiyor.
-        </p>
-        <Link
-          href="/giris?next=%2Fsepet"
-          className="rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-600"
-        >
-          Giriş yap
-        </Link>
-      </div>
+      <SignInPrompt
+        next="/sepet"
+        title="Sepetinizi görmek için giriş yapın"
+        description="Alışverişe devam edebilmek için bir hesabınızın olması gerekiyor."
+      />
     );
   }
 
@@ -111,15 +107,25 @@ export default function CartPage() {
             KDV dahildir. Kargo ücreti bu aşamada hesaplanmaz.
           </p>
 
-          <button
-            type="button"
-            disabled
-            title="Ödeme adımı yakında"
-            className="rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white opacity-60"
-          >
-            Siparişi tamamla
-          </button>
-          <span className="text-center text-xs text-ink-500">Ödeme adımı yakında</span>
+          {cart.has_unavailable_items ? (
+            <button
+              type="button"
+              disabled
+              className="rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white opacity-60"
+            >
+              Siparişi tamamla
+            </button>
+          ) : (
+            <Link
+              href="/odeme"
+              className="rounded-lg bg-brand-500 px-4 py-2.5 text-center font-semibold text-white transition hover:bg-brand-600"
+            >
+              Siparişi tamamla
+            </Link>
+          )}
+          <span className="text-center text-xs text-ink-500">
+            Ödeme adımı yakında; siparişiniz “ödeme bekliyor” olarak oluşturulur.
+          </span>
         </aside>
       </div>
     </div>

@@ -39,6 +39,9 @@ export function HeaderActions() {
 
       {status === 'authenticated' && user !== null && (
         <div className="flex items-center gap-3">
+          <Link href="/hesap/siparislerim" className="hover:text-brand-600">
+            Siparişlerim
+          </Link>
           <span className="text-ink-500">{user.first_name}</span>
           <button
             type="button"
