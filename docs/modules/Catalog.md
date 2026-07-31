@@ -212,6 +212,28 @@ images.
 
 **A Product has no price and no stock.** (ADR-037.)
 
+> **Public buyer surface — ADR-058 (2026-07-31).** Catalog now has one:
+> `GET /api/v1/products` (browse/search) and `GET /api/v1/products/{uuid}`
+> (product page), anonymous and on the storefront throttle. They return what a
+> product IS and **no price** — the storefront overlays that from Offer
+> (`POST /offers/prices` for a listing, the existing buy-box route for a page).
+>
+> The browse shows only **SELLABLE** products: it asks
+> `OfferQueryContract::sellableProductUuids()` and narrows its own query, so a
+> published product nobody stocks never appears as a card that leads to
+> "unavailable". Catalog imports no Offer and gains no price column — the
+> composition is a Core contract, and `CatalogBoundaryTest` still holds.
+>
+> **The listing is sellable-only; the PAGE is published-only**, deliberately: a
+> buyer arrives from a bookmark or a search engine long after the last seller ran
+> out, and 404ing that page would break every link the platform ever emitted.
+>
+> Cost: the sellable set is resolved before pagination (otherwise pages are of
+> variable size and the total is wrong), so it is a `whereIn` that grows with the
+> catalogue. The scaling path — a denormalized `sellable` flag kept current by
+> Offer's events — is documented in `PublicProductBrowse` and deliberately not
+> built yet.
+
 > **Post-P1 addition — `tax_rate_id` (ADR-056, 2026-07-30, driven by Order).** The Product
 > gains a **`tax_rate_id`** → a new managed **`tax_rates`** lookup (admin/Category-Manager-
 > configured KDV brackets: name + `rate` DECIMAL + `is_active` — the lookup-table the
