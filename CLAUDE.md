@@ -103,10 +103,13 @@ Orders stop at **awaiting payment**; the customer side is API-only (Next.js stor
 later). Payment/Shipping/commission/payout stay out of scope.
 
 **It is NOT frozen**: Payment is next and moves the stock COMMIT to payment-success
-(ADR-054), which changes this module's placement path. See Order.md §12 for what
-shipped, what is deliberately absent, four recorded deviations, the three changes it
-required of Catalog/Offer/Core, and six open follow-ups — the first of which
-(**cancelling a placed order does not restock**) needs its own ruling before Payment.
+(ADR-054/057), which changes this module's placement path. **ADR-057 (2026-07-31)**
+already amended ADR-054: **placement holds the reservation, it no longer commits**
+(commit is Payment's), and cancellation is **actor-typed** — buyer/admin/system release,
+**seller-cancel zeroes the seller's on-hand** (warned) via an `OrderCancelledBySeller`
+event the Offer consumes by class-string. See Order.md §12 for what shipped, four recorded
+deviations, the three changes it required of Catalog/Offer/Core, and the remaining open
+follow-ups.
 
 **Offer, Inventory and Order import NO module** — the strictest boundary on the
 platform, and Order is the hardest case: it touches five other contexts and names

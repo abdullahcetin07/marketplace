@@ -14,6 +14,17 @@ Catalog.md §2.4, and CLAUDE.md narrows the module prohibition to Payment. This 
 states each decision **and its cost**, per project culture. Build order:
 [BUILD_ORDER.md](../../BUILD_ORDER.md).
 
+> **Amendment — ADR-057 (2026-07-31, owner-approved), closes §12 follow-up #1.** The first
+> build committed stock **at placement**, so a cancelled *placed* order could not return its
+> stock (Inventory has no un-commit; `release()` on a committed reference is a no-op).
+> ADR-057 amends ADR-054: **placement no longer commits — it holds the reservation**
+> (`AwaitingPayment`), and **commit is deferred to Payment**. Cancellation is now **typed by
+> actor** (§3.3): **buyer** → release (return); **seller** (cannot fulfil) → release **+ zero
+> the seller's on-hand** for that variant (after a warning) via an `OrderCancelledBySeller`
+> event the **Offer** consumes by class-string, flowing through the Offer→Inventory mirror;
+> **admin** → release by default (zero optional); **system/expiry** → release, and expiry
+> sweeps only un-placed `Pending` checkouts. Built by [BUILD_ORDER_CANCEL.md](../../BUILD_ORDER_CANCEL.md).
+
 Order is the next major sprint after **Inventory** (complete, not frozen). It is the
 **buyer's purchase pipeline** and the platform's largest module: a multi-seller cart, a
 checkout that splits into one order per seller, the **first real caller of Inventory's

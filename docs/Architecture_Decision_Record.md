@@ -1511,4 +1511,46 @@ Full specification: [docs/modules/Order.md](modules/Order.md) §0.7.
 
 ---
 
+# ADR-057 Placement Holds the Reservation; Cancellation Is Actor-Typed (Amends ADR-054)
+
+**Amends ADR-054.** Order's first build committed stock **at placement**, which left a real
+gap: a placed order that is then cancelled cannot return its stock — Inventory has no
+un-commit, and `release()` on a committed reference is a no-op. This ADR resolves it.
+
+**Placement no longer commits.** Checkout **reserves**; placement moves the order to
+`AwaitingPayment` and **keeps the reservation held** (`available` stays reduced). **Commit
+is deferred to Payment** — when Payment ships, a successful charge commits (the units
+truly leave); until then nothing commits, and a placed-but-unpaid order simply holds its
+reservation. The 30-minute expiry sweep releases only **un-placed** (`Pending`) checkouts;
+a placed order is held until it is paid or cancelled.
+
+**Cancellation is typed by who cancels and why:**
+
+| Cancelled by | Meaning | Stock |
+|---|---|---|
+| **Buyer** | changed their mind | **release** — returns to available |
+| **Seller** | cannot fulfil (has none) | **release** + **zero the seller's on-hand** for that variant, after warning the seller. Anti-oversell: a seller who cannot fulfil clearly has no stock, so sales stop until they re-declare |
+| **Admin** | oversight / dispute | **release** by default; may additionally zero for a seller-fault case |
+| **System / expiry** | abandoned unpaid checkout | **release** |
+
+The seller-zero happens at the **source of truth**: Order emits `OrderCancelledBySeller`,
+which the **Offer** (not frozen) consumes **by class-string** and sets that offer's stock to
+0 — flowing through the existing Offer→Inventory mirror (ADR-048), so the seller's form and
+Inventory's on-hand agree. Order still imports nothing.
+
+Rationale: deferring commit to Payment is the model the two-step reservation was built for
+(ADR-049/054), and it makes "return the stock" a plain `release` in every case; the only
+special case (seller-zero) is an intent about the seller's real stock, expressed at the
+Offer where that stock is declared.
+
+Cost: on-hand does not decrement until Payment exists, so a placed-unpaid order holds its
+reservation indefinitely (until cancelled) — accepted, because a unit is not sold until it
+is paid, and reserved stock already shows as unavailable. Post-payment cancellation
+(returns/RMA, which *does* need an Inventory restock primitive) is out of scope until the
+Returns sprint.
+
+Full specification: [docs/modules/Order.md](modules/Order.md) §0.5, §3.3.
+
+---
+
 END OF FILE
