@@ -418,6 +418,7 @@ Finance** (commission, payout, settlement). Each is its own spec + architecture 
 | Ten actions (§12) | `Application/Actions/` |
 | The computed buy box (§5, ADR-045) | `Infrastructure/Queries/OfferQuery` |
 | Product-lifecycle cascade, both halves (§3.5) | `Application/Listeners/`, the two cascade actions |
+| **Seller-cancellation stock zero (ADR-057, added 2026-07-31)** — Order emits `OrderCancelledBySeller`, consumed **by class-string** and written through `UpdateOfferStockAction` so the zero is indistinguishable from the seller typing 0: same audit entry, same `OfferStockChanged`, same Inventory mirror. The offer stays **Active** with zero stock, because out-of-stock is derived and not a status (ADR-043/045), so the seller restocks from their normal form | `Application/Listeners/ZeroStockOnSellerCancellation` |
 | `OfferPolicy` — org capability + admin permissions (§9) | `Presentation/Policies/OfferPolicy` |
 | Seller "Tekliflerim" + catalog-first create (§4) | `Presentation/Filament/Seller/Resources/` |
 | Admin oversight — suspend/reinstate only (ADR-044) | `Presentation/Filament/Resources/` |

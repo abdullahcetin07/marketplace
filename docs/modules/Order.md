@@ -232,16 +232,39 @@ product/variant labels, and the chosen shipping + billing addresses. **Reserve**
 stock via `InventoryReservationContract::reserve(org, variant, qty, orderUuid)`. Any line
 that cannot reserve fails the whole checkout (all-or-nothing) and releases what was held.
 
-## 3.2 Placement
-Placing a checkout group **commits** every reservation (`commit(orderUuid)`) and moves each
-order to `AwaitingPayment`. (When Payment ships, commit moves to payment-success; placement
-then only holds.)
+## 3.2 Placement (amended by ADR-057)
+Placing a checkout group moves each order to `AwaitingPayment` and **keeps its reservation
+held**. Nothing commits: a successful charge will, when Payment ships. Placement therefore
+touches no other context at all.
 
-## 3.3 Cancel / expiry
-A `Pending` or `AwaitingPayment` order cancelled (by the customer before fulfilment, the
-seller, an admin, or a reservation-expiry sweep) **releases** its reservation and moves to
-`Cancelled`. Idempotent — a double cancel does not double-release (Inventory's primitives
-are idempotent on the reference).
+> **Superseded (first build, ADR-054 as shipped):** placement used to `commit(orderUuid)`.
+> That made the units leave before anyone had paid and left a cancelled placed order with
+> nothing to give back — Inventory has no un-commit and `release()` on a committed reference
+> is a no-op. ADR-057 moved the commit to Payment.
+
+## 3.3 Cancel / expiry (ADR-057 — actor-typed)
+Any live order — `Pending` or `AwaitingPayment` — **releases** its reservation and moves to
+`Cancelled`. Idempotent: a double cancel does not double-release (Inventory's primitives are
+idempotent on the reference), and the first actor and reason stand.
+
+The **actor is recorded on the order** (`cancelled_by`), not only on the event, and decides
+what the cancellation says about the seller's shelf:
+
+| Cancelled by | Stock |
+|---|---|
+| **Buyer** | `release` — they changed their mind; the seller has the goods |
+| **Seller** | `release` **+ zero their on-hand** for that variant. A merchant who cannot fulfil has told the platform they have none; releasing alone would send the next buyer into the same wall. The confirm dialog warns them first |
+| **Admin** | `release` by default — oversight is not a claim about anybody's stock. An explicit "seller fault" toggle also zeroes |
+| **System / expiry** | `release`. **Unplaced `Pending` checkouts only** — a placed order is not an abandoned tab and holds until paid or cancelled |
+
+The seller-zero happens at the **Offer**, where the seller declares stock: Order emits
+`OrderCancelledBySeller` **per line** (it is a claim about a variant, not an order), the
+Offer consumes it **by class-string** and writes 0 through its own `UpdateOfferStockAction`,
+and the existing Offer→Inventory mirror (ADR-048) carries it to `on_hand`. Three modules,
+no imports. Another seller's offer for the same variant is untouched.
+
+**Post-payment restock (returns/RMA) is still out of scope** — that needs an Inventory
+restock primitive and is the Returns sprint.
 
 ## 3.4 Tax (KDV)
 Prices are **KDV-included** (ADR-042). Per line the included KDV is extracted with the
@@ -388,14 +411,11 @@ capability the platform has.
    storing an Inventory identifier, and unique because a seller may hold at most one
    active offer per variant (ADR-042 §3.2). The decision is unchanged; only its key is.
 
-2. **Cancelling a PLACED order does not restock.** §3.3 says a `Pending` or
-   `AwaitingPayment` order "releases its reservation" — and for a committed one,
-   Inventory's `release()` is a documented no-op, so the status moves and the units do
-   not come back. Inventory has no un-commit primitive and should not grow one by side
-   effect: reversing a sale is a different business event from abandoning a hold, and
-   conflating them makes "why did my stock go up" unanswerable in the ledger.
-   Implemented as written, documented in `CancelOrderAction`, and raised as
-   follow-up #1.
+2. ~~**Cancelling a PLACED order does not restock.**~~ **Fixed by ADR-057**, which amends
+   the decision rather than the implementation: placement stopped committing, so the case
+   that could not return stock no longer exists. Recorded here because the deviation was
+   real for the length of one sprint, and because the fix is the reason `holdsReservation()`
+   now answers true for both live states.
 
 3. **A missing hold does not block a cancellation.** Inventory's `release()` throws
    when nothing was ever reserved under a reference — correct for Inventory, wrong
@@ -424,10 +444,11 @@ Recorded in the `001_Architecture.md` amendment log.
 
 ## 12.5 Follow-ups
 
-1. **Cancelling a placed order leaves its stock committed** (§12.3 #2). The fix is an
-   Inventory decision, not an Order one: a `restock`/reversal primitive with its own
-   movement type, so the ledger can say a sale was reversed rather than implying units
-   appeared. Needs its own ruling before Payment ships, because a refund will want it.
+1. ~~**Cancelling a placed order leaves its stock committed**~~ — **RESOLVED by ADR-057**
+   (2026-07-31). Placement no longer commits, so every live order is still holding its units
+   and cancelling returns them. Inventory needed no new primitive. What remains out of scope
+   is **post-payment** restock (returns/RMA), which genuinely does need an Inventory reversal
+   primitive with its own movement type — the Returns sprint.
 
 2. **The seller has no "confirm"** (§12.2). It becomes real when Payment does — a
    seller accepting a PAID order is a meaningful transition; accepting an unpaid one is

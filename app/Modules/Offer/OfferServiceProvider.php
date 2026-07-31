@@ -9,6 +9,7 @@ use App\Core\Support\StorefrontRegistry;
 use App\Modules\Offer\Application\Listeners\PauseOffersOnProductArchived;
 use App\Modules\Offer\Application\Listeners\ResumeOffersOnProductPublished;
 use App\Modules\Offer\Application\Listeners\SyncOfferSearchIndex;
+use App\Modules\Offer\Application\Listeners\ZeroStockOnSellerCancellation;
 use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
 use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
@@ -120,6 +121,23 @@ final class OfferServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Catalog\Domain\Events\ProductPublished',
             [ResumeOffersOnProductPublished::class, 'handle'],
+        );
+
+        /*
+        | ORDER'S SELLER-CANCELLATION (ADR-057), and the second module Offer now
+        | listens to by name. A merchant who cancels an order because they cannot
+        | fulfil it is telling the platform they have none — so their declared stock
+        | for that variant goes to zero, at the Offer, where they declared it. From
+        | there the existing Offer→Inventory mirror carries it to `on_hand` and the
+        | buy box drops the listing.
+        |
+        | BY CLASS-STRING for the same reason as the Catalog pair above: Offer
+        | imports no module, and Order is a peer rather than a consumer. Three
+        | modules take part in this and none of them names another's class.
+        */
+        Event::listen(
+            'App\Modules\Order\Domain\Events\OrderCancelledBySeller',
+            [ZeroStockOnSellerCancellation::class, 'handle'],
         );
     }
 

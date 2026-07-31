@@ -39,6 +39,15 @@ return [
     ],
 
     /*
+    | ADR-057 — satıcı karşılayamadığı bir siparişi iptal ettiğinde stoğu
+    | sıfırlanır ve denetim kaydına bu gerekçe yazılır. Olmasaydı satıcının kendi
+    | kaydında kimsenin yapmadığı bir düzenleme görünürdü.
+    */
+    'stock' => [
+        'zeroed_by_seller_cancellation' => ':order numaralı sipariş karşılanamadığı için iptal edildi; bu ürün için stok sıfırlandı.',
+    ],
+
+    /*
     | Buy box her okumada hesaplanır, saklanmaz (ADR-045). Satıcının bu sayfada
     | aradığı iki bilgi: kaçıncıyım ve neyi geçmem gerekiyor.
     */

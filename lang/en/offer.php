@@ -39,6 +39,15 @@ return [
     ],
 
     /*
+    | ADR-057 — the audit reason written when a seller cancels an order they
+    | cannot fulfil and their stock is zeroed. Without it the seller's own record
+    | shows an edit nobody made.
+    */
+    'stock' => [
+        'zeroed_by_seller_cancellation' => 'Order :order was cancelled as unfulfillable; stock for this product was set to zero.',
+    ],
+
+    /*
     | The buy box is computed on every read, never stored (ADR-045). These are
     | the two things a seller opens this page for: where am I, and what do I
     | have to beat.
