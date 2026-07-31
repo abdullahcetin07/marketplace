@@ -1553,4 +1553,32 @@ Full specification: [docs/modules/Order.md](modules/Order.md) §0.5, §3.3.
 
 ---
 
+# ADR-058 The Customer Storefront Is a Separate Next.js App on the Same Origin; the Buyer Read Is Composed
+
+**The customer storefront is a separate Next.js application** (owner decision, 2026-07-31),
+not a Blade/Livewire surface in the monolith. It lives in a **`storefront/` folder in this
+repo** (monorepo — one git flow for the build loop) and is served on the **same origin** as
+the API: the storefront at the root, the Laravel API under `/api`, nginx routing between
+them. Same origin means **Sanctum SPA cookie auth** works with no CORS and no token storage.
+
+**The buyer-facing read is composed, owned by no single module** (the ADR-036 principle
+applied to the marketplace-wide surface): **Catalog owns product CONTENT** (public detail +
+browse/search over its index, no price/stock — ADR-037 holds); **Offer owns price +
+sellability** (the buy box + a batch price/availability read); and the marketplace listing
+shows **only sellable products** (≥1 active in-stock offer), Catalog's browse filtering
+through `OfferQueryContract`. Customer auth/cart/address/order APIs already exist (Order).
+
+Rationale: the owner chose the decoupled frontend; letting Catalog carry price to make the
+listing a single read would breach ADR-037, so the composition is the correct cost.
+
+Cost: a second runtime (a Node process under systemd + `next build` on deploy) on a
+bare-metal box that does not yet run a queue worker; and every listing item is a
+content+price composition (two reads). Accepted as the price of a decoupled, SEO-capable
+storefront. Checkout stops at **awaiting payment** (ADR-054/057) — no payment UI until the
+Payment sprint.
+
+Full specification: [docs/modules/Storefront.md](modules/Storefront.md).
+
+---
+
 END OF FILE

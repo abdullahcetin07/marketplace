@@ -1,10 +1,11 @@
 # Customer Storefront Specification
 
-**Status: DRAFT — pending owner approval and ADR ratification.** Proposes **ADR-058**.
-Once approved it is recorded in
-[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) with a mirror in
-the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md). States
-each decision **and its cost**, per project culture.
+**Status: APPROVED 2026-07-31 — Phase A building.** The owner approved the design; the §4
+rulings are ratified. **ADR-058 is recorded** in
+[docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md) with its mirror
+in the amendment log at the end of [docs/001_Architecture.md](../001_Architecture.md).
+States each decision **and its cost**, per project culture. Phase A build order:
+[BUILD_STOREFRONT_API.md](../../BUILD_STOREFRONT_API.md).
 
 The storefront is the **buyer-facing web application** — the shopper's marketplace (home,
 search, product pages, cart, checkout, account/orders). Every backend module so far
@@ -151,8 +152,8 @@ earlier mockups. Responsive, tr-first. Theme-aware where sensible.
 3. **Checkout stops at awaiting-payment** with a clear "ödeme yakında" state (no payment UI).
 4. **Design** reuses the Enerjik+Kurumsal direction + real product images (confirm).
 
-## Ratification checklist (on approval)
-- [ ] Record ADR-058 in the ADR record + amendment log.
-- [ ] Confirm the §4 rulings.
-- [ ] Build Phase A (backend public surfaces) first — one work order; server-side.
+## Ratification checklist
+- [x] Record ADR-058 in the ADR record + amendment log (2026-07-31).
+- [x] Confirm the §4 rulings (owner-approved: separate Next.js, same origin, composed read).
+- [ ] Build Phase A (backend public surfaces) first — [BUILD_STOREFRONT_API.md](../../BUILD_STOREFRONT_API.md).
 - [ ] Then Phase B (Next.js app) and Phase C (deploy).
