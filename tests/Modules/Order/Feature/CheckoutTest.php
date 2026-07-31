@@ -37,7 +37,7 @@ use Illuminate\Support\Facades\Event;
 
 /*
 |--------------------------------------------------------------------------
-| Checkout, placement, cancellation — the core (ADR-052/053/054/055)
+| Checkout, placement, cancellation — the core (ADR-052/053/054/055/057)
 |--------------------------------------------------------------------------
 |
 | Four decisions meet in one transaction, and this file exercises each of them
@@ -48,7 +48,7 @@ use Illuminate\Support\Facades\Event;
 |
 |  THE SPLIT      one basket, N sellers, N orders, one checkout group
 |  THE SNAPSHOT   price/title/tax frozen; upstream changes never reach a placed line
-|  THE RESERVE    checkout HOLDS, placement COMMITS, cancel RELEASES
+|  THE RESERVE    checkout HOLDS, placement KEEPS HOLDING (ADR-057), cancel RELEASES
 |  THE TAX        extracted per line from a KDV-included price, in integers
 |
 | ALL-OR-NOTHING is the property most worth pinning: a failure anywhere must leave
@@ -227,7 +227,7 @@ it('HOLDS the stock at checkout without selling it', function (): void {
         ->and($inventory->availableFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(7);
 });
 
-it('COMMITS the stock at placement — the units finally leave', function (): void {
+it('KEEPS the hold at placement — nothing is sold until it is paid (ADR-057)', function (): void {
     $fixture = checkoutFixture(stock: 10);
     app(AddCartItemAction::class)->run(1, 'musteri', new AddCartItemDTO($fixture['offer']->uuid, 3));
 
@@ -236,12 +236,43 @@ it('COMMITS the stock at placement — the units finally leave', function (): vo
 
     $inventory = app(InventoryQueryContract::class);
 
-    // Both numbers fall together: the units truly went, and the hold that was
-    // covering them ends with them.
-    expect($inventory->onHandFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(7)
+    /*
+     * PLACEMENT USED TO COMMIT, and this assertion is where the amendment bites.
+     * On-hand stays at 10 because nothing has left the seller's shelf — the
+     * customer has said they mean it, not paid for it. Availability stays reduced,
+     * so nobody else can take the units.
+     *
+     * The old behaviour left a cancelled placed order with nothing to give back
+     * (Inventory has no un-commit), which is the gap ADR-057 closes by moving the
+     * commit to Payment.
+     */
+    expect($inventory->onHandFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(10)
         ->and($inventory->availableFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(7)
         ->and($orders[0]->fresh()->status)->toBe(OrderStatus::AwaitingPayment)
         ->and($orders[0]->fresh()->placed_at)->not->toBeNull();
+});
+
+it('RETURNS the stock when a PLACED order is cancelled — the gap ADR-057 closes', function (): void {
+    $fixture = checkoutFixture(stock: 10);
+    app(AddCartItemAction::class)->run(1, 'musteri', new AddCartItemDTO($fixture['offer']->uuid, 3));
+
+    $orders = checkOut();
+    app(PlaceOrderAction::class)->run($orders[0]->checkout_group_uuid);
+
+    app(CancelOrderAction::class)->run(
+        $orders[0]->fresh(),
+        new CancelOrderDTO(CancelOrderDTO::BY_CUSTOMER, 'Vazgeçtim'),
+    );
+
+    /*
+     * THE TEST THAT COULD NOT HAVE PASSED BEFORE. Under commit-at-placement the
+     * units were gone and `release()` on a committed reference was a no-op, so a
+     * customer cancelling a placed order silently cost the seller three units. Now
+     * the order was still HOLDING them, and cancelling is a plain release.
+     */
+    expect(app(InventoryQueryContract::class)
+        ->availableFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(10)
+        ->and($orders[0]->fresh()->status)->toBe(OrderStatus::Cancelled);
 });
 
 it('RELEASES the hold when a pending order is cancelled', function (): void {
@@ -526,10 +557,17 @@ it('refuses to place the same purchase twice', function (): void {
 
     expect(fn () => app(PlaceOrderAction::class)->run($group))->toThrow(OrderException::class);
 
-    // AND THE STOCK ONLY MOVED ONCE. Inventory's commit is idempotent on the
-    // reference underneath, which is the belt to the group lock's braces.
-    expect(app(InventoryQueryContract::class)
-        ->onHandFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(8);
+    /*
+     * AND THE STOCK DID NOT MOVE AT ALL. Since ADR-057 placement touches Inventory
+     * not once — the hold checkout took is simply left standing — so a double
+     * submit cannot double-anything. The group lock is now protecting the order
+     * rows and the `OrderPlaced` events, which a future Payment will open charges
+     * from.
+     */
+    $inventory = app(InventoryQueryContract::class);
+
+    expect($inventory->onHandFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(10)
+        ->and($inventory->availableFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(8);
 });
 
 it('does not double-release on a double cancel', function (): void {
@@ -629,8 +667,11 @@ it('leaves a fresh checkout and a placed order alone', function (): void {
     );
 
     /*
-     * A placed order's stock has COMMITTED and has no hold to expire — sweeping it
-     * would cancel a sale the customer owes for. Only `Pending` expires.
+     * A PLACED ORDER IS NEVER SWEPT (ADR-057), and the reason changed with the
+     * amendment: it is not that its stock has committed — it holds a reservation
+     * just like the fresh one — but that it is not an abandoned tab. The customer
+     * believes they have made this purchase, and it holds until paid or cancelled,
+     * however long that takes. Only an UNPLACED checkout expires.
      */
     expect($freshOrders[0]->fresh()->status)->toBe(OrderStatus::Pending)
         ->and($placedOrders[0]->fresh()->status)->toBe(OrderStatus::AwaitingPayment);

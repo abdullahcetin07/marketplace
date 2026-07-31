@@ -53,9 +53,10 @@ use Illuminate\Support\Carbon;
  * platform-wide Localization exception.
  *
  * WHAT STOCK THIS ORDER IS HOLDING IS NOT A COLUMN. It is a reservation in
- * Inventory keyed on this row's uuid (ADR-054) — `Pending` means held,
- * `AwaitingPayment` means committed, and the authority for the count is the module
- * that owns counting.
+ * Inventory keyed per line off this row's uuid (ADR-054/057) — and since ADR-057
+ * BOTH live states hold it: placement no longer commits, so `Pending` and
+ * `AwaitingPayment` alike are holding units that a cancellation gives straight
+ * back. The authority for the count is the module that owns counting.
  *
  * @property int $id
  * @property string $uuid
@@ -164,7 +165,8 @@ final class Order extends Model
     }
 
     /**
-     * Whether this order still holds a reservation rather than committed stock.
+     * Whether this order is holding stock a cancellation must give back
+     * (ADR-057 — both live states do).
      */
     public function holdsReservation(): bool
     {
@@ -172,16 +174,20 @@ final class Order extends Model
     }
 
     /**
-     * Whether the reservation window has run out (§3.3, ADR-054).
+     * Whether the CHECKOUT window has run out (§3.3, ADR-057).
      *
-     * ONLY MEANINGFUL WHILE `Pending`: a placed order's stock has committed and
-     * has no expiry, and a cancelled one has already been released. Asked of the
-     * order rather than computed in the sweep job so the rule and the surfaces
-     * that display "expires in…" agree.
+     * ONLY MEANINGFUL WHILE `Pending` — and since ADR-057 that is no longer the
+     * same question as "is it holding stock". A placed order holds its reservation
+     * too, and holds it until it is paid or cancelled, however long that takes:
+     * expiring one would cancel a purchase the customer believes they have made.
+     * So this asks `isAwaitingPlacement()`, not `holdsReservation()`.
+     *
+     * Asked of the order rather than computed in the sweep job, so the rule and
+     * the surfaces that display "expires in…" agree.
      */
     public function reservationHasExpired(): bool
     {
-        if (! $this->holdsReservation()) {
+        if (! $this->status->isAwaitingPlacement()) {
             return false;
         }
 

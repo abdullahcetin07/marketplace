@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace App\Modules\Order\Application\Actions;
 
 use App\Core\Application\Actions\BaseAction;
-use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Events\OrderPlaced;
@@ -14,32 +13,39 @@ use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Collection;
 
 /**
- * Place a whole purchase: COMMIT every reservation (ADR-054, §3.2).
+ * Place a whole purchase — and KEEP the reservation held (ADR-057, §3.2).
  *
- * THE SECOND HALF OF THE TWO-STEP. Checkout held the units; this is where they
- * leave the seller's shelf. After it, each order is `AwaitingPayment` and the
- * customer owes for what they took.
+ * THIS ACTION USED TO COMMIT, and the change is the whole of ADR-057. Committing
+ * at placement made the units leave the seller's shelf before anybody had paid,
+ * and — worse — left a cancelled order with nothing to give back: Inventory has no
+ * un-commit, and `release()` on a committed reference is a documented no-op. A
+ * customer could cancel a placed order and the stock would simply be gone.
+ *
+ * SO PLACEMENT NOW ONLY CONFIRMS INTENT. The order moves to `AwaitingPayment`, the
+ * hold stays exactly as checkout left it, and cancelling — by anyone, at any point
+ * — is a plain `release` that returns the units. That is the two-step working as
+ * ADR-049 designed it rather than being short-circuited by the absence of Payment.
+ *
+ * NOTHING COMMITS THIS SPRINT, ANYWHERE. Commit becomes Payment's: a successful
+ * charge is what makes units truly leave. There is deliberately no payment gate
+ * here and no money of any kind — adding one would be building Payment inside
+ * Order, in the file that most invites it.
+ *
+ * THE COST, STATED (ADR-057): `on_hand` does not decrement until Payment exists,
+ * so a placed-but-unpaid order holds its reservation indefinitely — there is no
+ * sweep for it, because expiring a purchase the customer believes they have made
+ * is worse than holding stock. Accepted: a unit is not sold until it is paid, and
+ * a reserved unit already shows as unavailable everywhere that matters.
  *
  * IT ACTS ON THE CHECKOUT GROUP, NOT ON ONE ORDER (ADR-052). The customer made
  * one purchase; placing half of it is not a state anybody asked for. So the group
- * is LOCKED, every order in it is committed, and a double-submitted "place"
+ * is LOCKED, every order in it is placed together, and a double-submitted "place"
  * button waits and then finds the work already done.
  *
- * WHY THE LOCK, given that Inventory's primitives are idempotent: they protect the
- * STOCK, and nothing else protects the order rows or the events. Without it, two
- * concurrent placements would both flip the status and both dispatch
- * `OrderPlaced` — and a future Payment subscribing to that would open two charges
- * for one purchase.
- *
- * PLACEMENT COMMITS ONLY UNTIL PAYMENT EXISTS (ADR-054). When Payment ships, the
- * commit moves to payment-success and placement merely holds — the reservation
- * window Inventory was built for. That is an additive change here, not a
- * reshaping, which is the whole reason the two-step exists now.
- *
- * THE COST IS ACCEPTED AND STATED (ADR-054): stock leaves with no money taken, so
- * a placed-but-never-paid order consumes it until somebody cancels. The
- * alternative — no commit until a module that does not exist — leaves every
- * order's stock in limbo.
+ * WHY THE LOCK, given that this no longer touches Inventory at all: it protects
+ * the ORDER ROWS and the events. Without it, two concurrent placements would both
+ * flip the status and both dispatch `OrderPlaced` — and a future Payment
+ * subscribing to that would open two charges for one purchase.
  *
  * @see docs/modules/Order.md §3.2
  */
@@ -50,9 +56,14 @@ final class PlaceOrderAction extends BaseAction
      */
     private array $placed = [];
 
+    /**
+     * NO `InventoryReservationContract` DEPENDENCY ANY MORE, and its absence is
+     * worth noticing: since ADR-057 placing an order touches no other context at
+     * all. The stock was already held at checkout and stays held; this action only
+     * moves a status and announces it.
+     */
     public function __construct(
         private readonly OrderRepositoryContract $orders,
-        private readonly InventoryReservationContract $reservations,
     ) {}
 
     /**
@@ -88,8 +99,11 @@ final class PlaceOrderAction extends BaseAction
         $this->placed = [];
 
         foreach ($placeable as $order) {
-            $this->commit($order);
-
+            /*
+            | NO `commit()` CALL, AND THAT IS THE POINT (ADR-057). The reservation
+            | checkout took stays exactly as it is; placing only records that the
+            | customer means it. Payment will be the thing that commits.
+            */
             $order->forceFill([
                 'status' => OrderStatus::AwaitingPayment,
                 'placed_at' => now(),
@@ -99,24 +113,6 @@ final class PlaceOrderAction extends BaseAction
         }
 
         return $this->placed;
-    }
-
-    /**
-     * Turn every one of this order's holds into a sale.
-     *
-     * PER LINE, with the reference rebuilt from the order and the line's variant —
-     * the same string checkout reserved with, derived rather than stored
-     * (@see Order::reservationReferenceFor()). Committing with a different string
-     * would leave the hold standing forever and take the stock anyway.
-     *
-     * `commit()` is idempotent on the reference, so a retry that got half way
-     * through finishes the rest without double-decrementing.
-     */
-    private function commit(Order $order): void
-    {
-        foreach ($order->lines as $line) {
-            $this->reservations->commit($order->reservationReferenceFor($line->variant_uuid));
-        }
     }
 
     protected function after(mixed $result, mixed ...$arguments): void

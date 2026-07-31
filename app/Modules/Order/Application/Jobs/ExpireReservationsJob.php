@@ -19,6 +19,13 @@ use Illuminate\Support\Facades\Log;
  * release them — nobody abandons a basket on purpose and then tidies up. Without
  * this job, one abandoned checkout removes a seller's last unit permanently.
  *
+ * IT SWEEPS UNPLACED CHECKOUTS ONLY (ADR-057), and that boundary matters more since
+ * placement stopped committing. A placed order holds a reservation too — but it is
+ * not an abandoned tab, it is a purchase the customer believes they have made, and
+ * it holds until it is paid or cancelled however long that takes. Expiring one
+ * would cancel somebody's order out from under them to free stock they are about
+ * to pay for. `expiredPending()` filters on `Pending` for exactly this reason.
+ *
  * INVENTORY SHIPPED THE RELEASE PRIMITIVE FOR EXACTLY THIS (ADR-049), and Order
  * is the module with the clock. The window is config
  * (`order.reservation.expires_after_minutes`, 30 by default) because the right

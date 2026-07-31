@@ -139,20 +139,24 @@ it('writes a Reserved movement that moves reserved and not on-hand', function ()
         ));
 });
 
-it('turns the hold into a Committed movement at placement', function (): void {
+it('writes NO movement at placement and leaves the hold Active (ADR-057)', function (): void {
     ['order' => $order] = hardenedOrder(stock: 10, quantity: 3);
+
+    $before = StockMovement::query()->count();
 
     app(PlaceOrderAction::class)->run($order->checkout_group_uuid);
 
-    $committed = StockMovement::query()
-        ->where('type', StockMovementType::Committed->value)
-        ->sole();
-
-    // BOTH numbers fall together: the units truly left, and the hold covering them
-    // ends with them.
-    expect($committed->on_hand_delta)->toBe(-3)
-        ->and($committed->reserved_delta)->toBe(-3)
-        ->and(StockReservation::query()->sole()->status)->toBe(ReservationStatus::Committed);
+    /*
+     * READ FROM INVENTORY'S SIDE, which is the only place the amendment is fully
+     * visible: placement writes nothing to the ledger at all, and the reservation
+     * is still `Active`. Under the old behaviour there would be a `Committed`
+     * movement here moving both counters, and the hold would be spent.
+     *
+     * Commit becomes Payment's — a successful charge is what makes units leave.
+     */
+    expect(StockMovement::query()->count())->toBe($before)
+        ->and(StockMovement::query()->where('type', StockMovementType::Committed->value)->count())->toBe(0)
+        ->and(StockReservation::query()->sole()->status)->toBe(ReservationStatus::Active);
 });
 
 it('turns the hold into a Released movement on cancellation', function (): void {
@@ -183,13 +187,17 @@ it('leaves the ledger summing to the projection through a whole purchase', funct
      * own fixtures: the append-only ledger is the source of truth and the two
      * counters are projections of it. If Order drove the contract in a way
      * Inventory did not expect, this is where the arithmetic stops adding up.
+     *
+     * After a PLACED purchase (ADR-057) the seller still has all ten units and
+     * three of them are spoken for — nothing has been sold, because nothing has
+     * been paid.
      */
     $movements = StockMovement::query()->where('stock_item_id', $item->getKey())->get();
 
     expect((int) $movements->sum('on_hand_delta'))->toBe($item->on_hand)
         ->and((int) $movements->sum('reserved_delta'))->toBe($item->reserved)
-        ->and($item->on_hand)->toBe(7)
-        ->and($item->reserved)->toBe(0);
+        ->and($item->on_hand)->toBe(10)
+        ->and($item->reserved)->toBe(3);
 });
 
 it('does not double-release when a cancellation is retried', function (): void {

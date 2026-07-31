@@ -22,21 +22,22 @@ use Illuminate\Support\Facades\Log;
  * notification, the fraud signal and the abandonment metric all need to tell them
  * apart, so `cancelledBy` travels on the DTO and on the event.
  *
- * WHAT GOES BACK DEPENDS ON WHAT WAS HELD, and this is the subtlety worth reading
- * twice:
+ * EVERY LIVE ORDER RETURNS ITS STOCK, SINCE ADR-057, and that is the amendment
+ * this file exists to carry. Placement no longer commits, so a placed order is
+ * still HOLDING its units — cancelling it is the same plain `release` as
+ * cancelling an un-placed one, and the stock comes back either way.
  *
- *   `Pending`          → the units were HELD. `release()` hands the hold back.
- *   `AwaitingPayment`  → the units had COMMITTED and are gone from `on_hand`.
- *                        Releasing would lower `reserved` — which is already
- *                        zero for this reference — and the stock would never
- *                        return.
+ * BEFORE ADR-057 IT DID NOT. Placement committed, the units were gone from
+ * `on_hand`, and `release()` on a committed reference is a documented no-op — so a
+ * cancelled placed order silently kept the stock out of circulation, with no
+ * primitive able to bring it back. That was Order §12.5 follow-up #1, and moving
+ * the commit to Payment resolves it without Inventory needing an un-commit.
  *
- * SO A PLACED ORDER IS RESTOCKED, NOT RELEASED. Inventory has no "un-commit"
- * primitive and should not: reversing a sale is a different business event from
- * abandoning a hold, and conflating them in the ledger would make "why did my
- * stock go up" unanswerable. Until Inventory grows one, this action records the
- * cancellation and the stock stays out — a documented gap, surfaced as a
- * follow-up rather than papered over with a release that silently does nothing.
+ * POST-PAYMENT RETURNS ARE STILL OUT OF SCOPE. Once Payment commits a sale,
+ * bringing units back needs an Inventory RESTOCK primitive with its own movement
+ * type — reversing a sale is a different business event from abandoning a hold,
+ * and conflating them in an append-only ledger makes "why did my stock go up"
+ * unanswerable. That is the Returns sprint.
  *
  * IDEMPOTENT. Cancelling twice is a no-op, not an error: a double-clicked button
  * and a retried webhook are both ordinary, and Inventory's release is idempotent

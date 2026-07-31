@@ -6,17 +6,17 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 
 /*
 |--------------------------------------------------------------------------
-| The order lifecycle, as far as this sprint takes it (§2.5, ADR-054)
+| The order lifecycle, as far as this sprint takes it (§2.5, ADR-054/057)
 |--------------------------------------------------------------------------
 |
 | A state machine with three states, and the interesting assertions are about
 | the two it deliberately does NOT have and the one distinction it must never
 | lose:
 |
-|  - `Pending` HOLDS stock; `AwaitingPayment` has COMMITTED it. Every
-|    reserve/release/commit call downstream turns on that difference, and getting
-|    it backwards either strands a seller's units forever or gives away stock
-|    that was never taken back.
+|  - BOTH LIVE STATES HOLD STOCK since ADR-057 — placement no longer commits — so
+|    cancelling either returns the units. What distinguishes them is whether the
+|    checkout is still UNPLACED, because that alone is what the expiry sweep may
+|    touch.
 |  - `Cancelled` is terminal in both directions. "Un-cancelling" would have to
 |    re-reserve units somebody else may already have bought.
 |  - There is no `Paid`, `Shipped` or `Delivered` case, because there is no
@@ -26,13 +26,29 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 |
 */
 
-it('holds stock while pending and has committed it once placed', function (): void {
-    // THE DISTINCTION THE WHOLE TWO-STEP TURNS ON (ADR-054).
+it('holds stock in BOTH live states, so either can give it back', function (): void {
+    /*
+     * ADR-057 IN ONE ASSERTION. Placement used to commit, which meant a cancelled
+     * placed order had nothing to release and its stock was simply gone — Inventory
+     * has no un-commit. Now both live states hold, and cancelling either is a plain
+     * release.
+     */
     expect(OrderStatus::Pending->holdsReservation())->toBeTrue()
-        ->and(OrderStatus::AwaitingPayment->holdsReservation())->toBeFalse()
-        // A cancelled order holds nothing either way — it already gave back
-        // whichever of the two it had.
+        ->and(OrderStatus::AwaitingPayment->holdsReservation())->toBeTrue()
+        // A cancelled order holds nothing — it already gave its units back.
         ->and(OrderStatus::Cancelled->holdsReservation())->toBeFalse();
+});
+
+it('treats only an UNPLACED checkout as sweepable', function (): void {
+    /*
+     * The distinction that replaces the old one (ADR-057). Both live states hold
+     * stock, but only one is an abandoned tab: a placed order holds until it is
+     * paid or cancelled, however long that takes, because expiring it would cancel
+     * a purchase the customer believes they have made.
+     */
+    expect(OrderStatus::Pending->isAwaitingPlacement())->toBeTrue()
+        ->and(OrderStatus::AwaitingPayment->isAwaitingPlacement())->toBeFalse()
+        ->and(OrderStatus::Cancelled->isAwaitingPlacement())->toBeFalse();
 });
 
 it('lets a pending order be placed or cancelled', function (): void {
@@ -43,9 +59,10 @@ it('lets a pending order be placed or cancelled', function (): void {
 it('lets a placed order be cancelled but never returned to pending', function (): void {
     expect(OrderStatus::AwaitingPayment->canTransitionTo(OrderStatus::Cancelled))->toBeTrue()
         /*
-         * There is nothing to un-commit INTO: the reservation is gone, the units
-         * have left, and cancelling puts them back on the shelf rather than back
-         * into a hold.
+         * Cancelling releases the hold the order was still carrying (ADR-057).
+         * Rewinding to `Pending` is a different thing entirely — the customer has
+         * placed the order, and "still choosing" is not a state anybody asked to
+         * return to.
          */
         ->and(OrderStatus::AwaitingPayment->canTransitionTo(OrderStatus::Pending))->toBeFalse();
 });
