@@ -21,6 +21,7 @@ use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
+use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Order\Presentation\Controllers\Api\CartController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
@@ -134,6 +135,20 @@ Route::prefix('v1')
                 ->name('storefront.products.index');
             Route::get('products/{product}', [PublicProductController::class, 'show'])
                 ->name('storefront.products.show');
+
+            /*
+            | THE PRICE HALF OF THE COMPOSED READ (ADR-058, Storefront.md §1.2).
+            | Catalog's cards carry no price; this returns the buy box for a whole
+            | page in one call, so a listing renders "₺X'den başlayan fiyatlarla"
+            | without one request per card.
+            |
+            | A POST THAT READS, deliberately: 24 uuids in a query string is past
+            | what some proxies will forward and impossible to grow, so a
+            | variable-length list belongs in the body. Capped, because uncapped it
+            | would be a denial-of-service written as a feature.
+            */
+            Route::post('offers/prices', [PublicBuyBoxPriceController::class, 'index'])
+                ->name('storefront.offers.prices');
         });
 
         /*
