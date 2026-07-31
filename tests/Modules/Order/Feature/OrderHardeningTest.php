@@ -118,7 +118,7 @@ it('records the hold in Inventory under the reference Order derives', function (
      * rebuilds it from the order uuid and the line's variant — never from a
      * column, so there is nothing to migrate and nothing to get out of step.
      */
-    expect($reservation->reference_uuid)->toBe($order->reservationReferenceFor($variant->uuid))
+    expect($reservation->reference)->toBe($order->reservationReferenceFor($variant->uuid))
         ->and($reservation->quantity)->toBe(3)
         ->and($reservation->status)->toBe(ReservationStatus::Active);
 });

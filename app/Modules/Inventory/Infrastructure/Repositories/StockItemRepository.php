@@ -85,9 +85,9 @@ final class StockItemRepository implements StockItemRepositoryContract
             ->get();
     }
 
-    public function findReservation(string $referenceUuid): ?StockReservation
+    public function findReservation(string $reference): ?StockReservation
     {
-        return StockReservation::query()->where('reference_uuid', $referenceUuid)->first();
+        return StockReservation::query()->where('reference', $reference)->first();
     }
 
     /**

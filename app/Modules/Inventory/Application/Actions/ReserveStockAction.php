@@ -64,7 +64,7 @@ final class ReserveStockAction extends BaseAction
         | checking after would mean the second call had already changed the
         | numbers by the time it noticed.
         */
-        $existing = $this->items->findReservation($data->referenceUuid);
+        $existing = $this->items->findReservation($data->reference);
 
         if ($existing !== null) {
             $this->alreadyHeld = true;
@@ -73,7 +73,7 @@ final class ReserveStockAction extends BaseAction
             $item = $this->items->lockForReservation($existing);
 
             if ($item === null) {
-                throw InventoryException::reservationNotFound($data->referenceUuid);
+                throw InventoryException::reservationNotFound($data->reference);
             }
 
             return $item;
@@ -97,7 +97,7 @@ final class ReserveStockAction extends BaseAction
         }
 
         $this->reservation = StockReservation::query()->create([
-            'reference_uuid' => $data->referenceUuid,
+            'reference' => $data->reference,
             'stock_item_id' => $item->getKey(),
             'quantity' => $data->quantity,
             'status' => ReservationStatus::Active,
@@ -108,7 +108,7 @@ final class ReserveStockAction extends BaseAction
             StockMovementType::Reserved,
             onHandDelta: 0,
             reservedDelta: $data->quantity,
-            reference: $data->referenceUuid,
+            reference: $data->reference,
         );
 
         return $item;
@@ -129,7 +129,7 @@ final class ReserveStockAction extends BaseAction
             $result->variant_uuid,
             $result->selling_org_uuid,
             $this->reservation->quantity,
-            $this->reservation->reference_uuid,
+            $this->reservation->reference,
             $result->available(),
         );
     }

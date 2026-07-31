@@ -22,6 +22,21 @@
         <testsuite name="Modules">
             <directory>tests/Modules</directory>
         </testsuite>
+        <!--
+        | Integration — the few tests that must run on the REAL database engine.
+        |
+        | Everything else runs on SQLite `:memory:`, which is fast and hermetic and,
+        | for column types, permissive to the point of dishonesty: a `uuid` column
+        | there accepts anything. That blind spot let a composite reservation key
+        | into a native `uuid` column and 500'd every checkout in production while
+        | the whole suite stayed green (ADR-049 amendment).
+        |
+        | These tests wrap themselves in a transaction and skip when PostgreSQL is
+        | unreachable, so a laptop without a database stays green.
+        -->
+        <testsuite name="Integration">
+            <directory>tests/Integration</directory>
+        </testsuite>
     </testsuites>
 
     <source>

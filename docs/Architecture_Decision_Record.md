@@ -1361,7 +1361,7 @@ Inventory exposes **reserve / release / commit** as a Core **`InventoryReservati
 its first caller; this sprint it is exercised by tests. `reserve` succeeds only when
 `available ≥ qty` and raises `reserved`; `release` returns a cancelled hold; `commit`
 lowers **both** on-hand and reserved (the units truly leave). All are idempotent on the
-caller's `referenceUuid`.
+caller's `reference`.
 
 Rationale: Inventory precedes Order precisely to give Order a stock authority to call;
 shipping the counter without the primitives would make the sprint little more than copying
@@ -1370,6 +1370,26 @@ a number into a new table.
 Cost: machinery built and tested with no live caller for a sprint, and a reservation API
 committed before Order can exercise it in anger. Accepted as the deliberate cost of
 phasing the authority ahead of its consumer.
+
+**Amendment (2026-07-31, owner-approved): the reference is the CALLER'S OWN STRING KEY,
+not a uuid.** This ADR shipped `reserve/release/commit` taking a `$referenceUuid`, stored in
+a native `uuid` column — on the assumption that a caller would key a hold on something it
+already had. ADR-057 then made Order's reference per LINE
+(`{order_uuid}:{variant_uuid}`), because a reservation is unique per reference and an order
+with two lines sharing one silently leaves the second unheld. Both decisions were right;
+together they were a crash — that composite is not a uuid, so **every checkout 500'd on
+PostgreSQL** while the suite stayed green on SQLite, where `uuid` degrades to text.
+
+The parameter is now `$reference: string` and the column is `stock_reservations.reference`
+(string, still UNIQUE — that index is what makes the three verbs idempotent). Inventory
+stores the key and does not interpret it. Callers are asked, but not forced, to keep it
+readable: the movement ledger is where a stock dispute is settled, and `{order}:{variant}`
+answers "which order, which variant" where a hashed uuid would answer nothing.
+
+Cost: the column name no longer advertises a format, so nothing stops two callers choosing
+colliding key schemes — accepted, because the UNIQUE index turns a collision into a loud
+failure rather than a silent double-hold. A **pgsql-backed checkout test** now guards the
+driver blind spot that hid this.
 
 Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.4.
 

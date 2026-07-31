@@ -23,7 +23,7 @@ final class StockReleased extends BaseEvent
         public readonly string $variantUuid,
         public readonly string $sellingOrgUuid,
         public readonly int $quantity,
-        public readonly string $referenceUuid,
+        public readonly string $reference,
         public readonly int $available,
     ) {
         parent::__construct();

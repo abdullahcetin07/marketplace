@@ -49,25 +49,25 @@ final class InventoryReservation implements InventoryReservationContract
         string $sellingOrgUuid,
         string $variantUuid,
         int $quantity,
-        string $referenceUuid,
+        string $reference,
     ): bool {
         $this->reserve->run(new ReserveStockDTO(
             sellingOrgUuid: $sellingOrgUuid,
             variantUuid: $variantUuid,
             quantity: $quantity,
-            referenceUuid: $referenceUuid,
+            reference: $reference,
         ));
 
         return true;
     }
 
-    public function release(string $referenceUuid): void
+    public function release(string $reference): void
     {
-        $this->release->run($referenceUuid);
+        $this->release->run($reference);
     }
 
-    public function commit(string $referenceUuid): void
+    public function commit(string $reference): void
     {
-        $this->commit->run($referenceUuid);
+        $this->commit->run($reference);
     }
 }

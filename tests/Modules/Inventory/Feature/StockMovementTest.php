@@ -231,7 +231,7 @@ it('gives a hold back, raising availability and nothing else', function (): void
         ->and($item->fresh()->reserved)->toBe(0)
         ->and($item->fresh()->available())->toBe(10);
 
-    expect(StockReservation::query()->where('reference_uuid', 'ref-1')->sole()->status)
+    expect(StockReservation::query()->where('reference', 'ref-1')->sole()->status)
         ->toBe(ReservationStatus::Released);
 
     Event::assertDispatched(StockReleased::class);
@@ -314,7 +314,7 @@ it('will not commit a hold that was already released', function (): void {
     // Terminal is terminal in both directions. A cancelled checkout that later
     // "confirms" must not take units.
     expect($item->fresh()->on_hand)->toBe(10)
-        ->and(StockReservation::query()->where('reference_uuid', 'ref-1')->sole()->status)
+        ->and(StockReservation::query()->where('reference', 'ref-1')->sole()->status)
         ->toBe(ReservationStatus::Released);
 });
 

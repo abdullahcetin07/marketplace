@@ -19,10 +19,28 @@ namespace App\Core\Domain\Contracts;
  * find a tested contract rather than designing reservation semantics in a hurry
  * next to a payment integration.
  *
- * IDEMPOTENT ON `$referenceUuid`, WHICH IS THE CALLER'S OWN KEY. A retried
+ * IDEMPOTENT ON `$reference`, WHICH IS THE CALLER'S OWN STRING KEY. A retried
  * checkout must not take a second hold; a webhook that fires twice must not
- * commit twice. The caller passes its own uuid so it never has to store an
+ * commit twice. The caller passes its own key so it never has to store an
  * Inventory identifier to release what it reserved.
+ *
+ * A STRING, AND EXPLICITLY NOT REQUIRED TO BE A UUID (ADR-049 amendment,
+ * 2026-07-31). It first shipped as `$referenceUuid` against a `uuid` column, on
+ * the assumption that a caller would key a hold on something it already had.
+ * Order — the first real caller — needed one hold PER LINE, because a reservation
+ * is unique per reference and an order with two lines sharing one silently leaves
+ * the second unheld (ADR-057). Its key is `{order_uuid}:{variant_uuid}`, which is
+ * not a uuid, and PostgreSQL rejected every one of them while a SQLite test suite
+ * stayed green.
+ *
+ * So the type now matches what this sentence always claimed: the key is the
+ * CALLER'S, in the caller's own format. Inventory stores it, guarantees
+ * uniqueness on it, and does not interpret it.
+ *
+ * MAKE IT READABLE. Nothing enforces that, but the movement ledger is where a
+ * stock dispute is settled, and `{order}:{variant}` tells a support agent which
+ * order and which variant a hold belongs to. A hash would satisfy every rule here
+ * and answer nothing.
  *
  * THE THREE VERBS AND WHAT EACH MOVES:
  *
@@ -60,7 +78,7 @@ interface InventoryReservationContract
         string $sellingOrgUuid,
         string $variantUuid,
         int $quantity,
-        string $referenceUuid,
+        string $reference,
     ): bool;
 
     /**
@@ -72,7 +90,7 @@ interface InventoryReservationContract
      * Throws when no reservation was ever made under this reference — a caller
      * bug worth surfacing, as distinct from acting twice on a real one.
      */
-    public function release(string $referenceUuid): void;
+    public function release(string $reference): void;
 
     /**
      * Turn a hold into a sale. Lowers `on_hand` AND `reserved` together.
@@ -82,5 +100,5 @@ interface InventoryReservationContract
      *
      * Throws when no reservation exists under this reference.
      */
-    public function commit(string $referenceUuid): void;
+    public function commit(string $reference): void;
 }

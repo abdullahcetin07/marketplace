@@ -48,12 +48,12 @@ final class CommitStockAction extends BaseAction
 
     public function handle(mixed ...$arguments): ?StockItem
     {
-        $referenceUuid = (string) $arguments[0];
+        $reference = (string) $arguments[0];
 
-        $reservation = $this->items->findReservation($referenceUuid);
+        $reservation = $this->items->findReservation($reference);
 
         if ($reservation === null) {
-            throw InventoryException::reservationNotFound($referenceUuid);
+            throw InventoryException::reservationNotFound($reference);
         }
 
         $this->reservation = $reservation;
@@ -65,7 +65,7 @@ final class CommitStockAction extends BaseAction
         $item = $this->items->lockForReservation($reservation);
 
         if ($item === null) {
-            throw InventoryException::reservationNotFound($referenceUuid);
+            throw InventoryException::reservationNotFound($reference);
         }
 
         $this->wasActive = true;
@@ -80,7 +80,7 @@ final class CommitStockAction extends BaseAction
             StockMovementType::Committed,
             onHandDelta: -$reservation->quantity,
             reservedDelta: -$reservation->quantity,
-            reference: $referenceUuid,
+            reference: $reference,
         );
 
         return $item;
@@ -98,7 +98,7 @@ final class CommitStockAction extends BaseAction
             $result->variant_uuid,
             $result->selling_org_uuid,
             $this->reservation->quantity,
-            $this->reservation->reference_uuid,
+            $this->reservation->reference,
             $result->on_hand,
             $result->available(),
         );

@@ -26,16 +26,16 @@ final class StockReservationFactory extends Factory
             'uuid' => (string) Str::uuid(),
             // The CALLER's key — Order's uuid in production. Invented here,
             // because Inventory never generates it.
-            'reference_uuid' => (string) Str::uuid(),
+            'reference' => (string) Str::uuid(),
             'stock_item_id' => StockItem::factory(),
             'quantity' => fake()->numberBetween(1, 5),
             'status' => ReservationStatus::Active,
         ];
     }
 
-    public function forReference(string $referenceUuid): static
+    public function forReference(string $reference): static
     {
-        return $this->state(fn (): array => ['reference_uuid' => $referenceUuid]);
+        return $this->state(fn (): array => ['reference' => $reference]);
     }
 
     public function released(): static

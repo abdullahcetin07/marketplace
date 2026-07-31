@@ -69,12 +69,12 @@ final class InventoryException extends BaseException
      * This is a reference that never existed, which is a caller bug worth
      * surfacing.
      */
-    public static function reservationNotFound(string $referenceUuid): self
+    public static function reservationNotFound(string $reference): self
     {
         return self::make('No reservation exists under that reference.')
             ->withContext([
                 'reason' => 'reservation_not_found',
-                'reference_uuid' => $referenceUuid,
+                'reference' => $reference,
             ]);
     }
 

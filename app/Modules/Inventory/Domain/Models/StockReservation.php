@@ -21,7 +21,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * find that, and summing deltas to work out what is still outstanding would be
  * both slower and ambiguous.
  *
- * `reference_uuid` IS UNIQUE, and that is the idempotency guarantee rather than
+ * `reference` IS UNIQUE, and that is the idempotency guarantee rather than
  * a convenience. A checkout that retries must not reserve twice; a webhook that
  * fires twice must not commit twice. The unique index makes the second attempt
  * findable instead of duplicable, and the terminal statuses make acting on it a
@@ -33,7 +33,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  *
  * @property int $id
  * @property string $uuid
- * @property string $reference_uuid
+ * @property string $reference
  * @property int $stock_item_id
  * @property int $quantity
  * @property ReservationStatus $status
@@ -58,7 +58,7 @@ final class StockReservation extends Model
     }
 
     protected $fillable = [
-        'reference_uuid',
+        'reference',
         'stock_item_id',
         'quantity',
         'status',

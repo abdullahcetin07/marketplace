@@ -27,6 +27,16 @@ pest()->extend(TestCase::class)
     ->in('Unit');
 
 /*
+| Integration tests run against the REAL database (see phpunit.xml), so they get
+| the test case but NOT `RefreshDatabase`: that trait drops and re-migrates, which
+| is exactly what must never happen to a database somebody else is using. Each
+| file wraps itself in a transaction instead, and skips when the engine is not
+| reachable.
+*/
+pest()->extend(TestCase::class)
+    ->in('Integration');
+
+/*
 |--------------------------------------------------------------------------
 | Custom Expectations
 |--------------------------------------------------------------------------

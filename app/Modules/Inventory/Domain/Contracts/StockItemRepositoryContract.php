@@ -66,7 +66,7 @@ interface StockItemRepositoryContract
      * A reservation by the CALLER's key — how release and commit find what to
      * act on, and how a retry finds that it has already acted.
      */
-    public function findReservation(string $referenceUuid): ?StockReservation;
+    public function findReservation(string $reference): ?StockReservation;
 
     /**
      * A pool's ledger, newest first — the seller's movement history.
