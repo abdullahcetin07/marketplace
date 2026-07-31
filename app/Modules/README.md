@@ -5,9 +5,10 @@ The seven Foundation modules delivered in Sprint 1.
 **Payment does not exist yet** — a later sprint, after its own architecture
 review. **Organization** and **Store** are frozen v1.0 (ADR-028–036);
 **Catalog** Phase 1 is complete (ADR-037–041), **Offer** is complete
-(ADR-042–046), **Inventory** is complete (ADR-048–051) and **Order** is being
-built now (ADR-052–056). None of the last four is frozen: each reaches into the
-one before it — Offer into Catalog, Inventory into Offer, Order into all of them.
+(ADR-042–046), **Inventory** is complete (ADR-048–051) and **Order** is complete
+(ADR-052–056). None of the last four is frozen: each reaches into the one before
+it — Offer into Catalog, Inventory into Offer, Order into all of them, and
+Payment will reach into Order.
 
 ---
 
@@ -26,7 +27,7 @@ one before it — Offer into Catalog, Inventory into Offer, Order into all of th
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
 | **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *Phase 1 complete* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
 | **Inventory** | The availability authority: on-hand + reserved per (seller org, variant), `available = on_hand − reserved` read by the buy box, the append-only movement ledger, and the reserve/release/commit primitives Order will call (ADR-048–051). **No cart, order, money or multi-warehouse** — *complete, not frozen* | [modules/Inventory.md](../../docs/modules/Inventory.md) |
-| **Order** | The buyer's pipeline: one multi-seller cart, the customer address book, a checkout that splits into one order per seller under a checkout group, immutable price/tax/address snapshots, the KDV breakdown, and the reserve→commit→release calls that make it Inventory's first real caller (ADR-052–056). **Stops at awaiting payment** — no money, no shipping, no commission — *being built* | [modules/Order.md](../../docs/modules/Order.md) |
+| **Order** | The buyer's pipeline: one multi-seller cart, the customer address book, a checkout that splits into one order per seller under a checkout group, immutable price/tax/address snapshots, the KDV breakdown, and the reserve→commit→release calls that make it Inventory's first real caller (ADR-052–056). **Stops at awaiting payment** — no money, no shipping, no commission — *complete, not frozen* | [modules/Order.md](../../docs/modules/Order.md) |
 | **Offer** | What makes the catalog sellable: a seller org's price + stock for one variant, its lifecycle, the computed buy box, the public "product + its offers" surface and the storefront product-listing contributor (ADR-042–046). **No cart, order, payment or commission** — those are later sprints — *complete, not frozen* | [modules/Offer.md](../../docs/modules/Offer.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is

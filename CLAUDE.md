@@ -10,8 +10,9 @@ is composed (ADR-036): future modules enrich it via the Core
 `StorefrontContributorContract` + `StorefrontRegistry`, never by Store depending
 on them — **Offer is the first module to actually use that seam** (ADR-046).
 **Catalog Phase 1 is complete** (ADR-037–041); **Offer is complete**
-(ADR-042–046); **Inventory is complete** (ADR-048–051) and is the newest module.
-None of the three is frozen — each reaches into the one before it.
+(ADR-042–046); **Inventory is complete** (ADR-048–051); **Order is complete**
+(ADR-052–056) and is the newest module. None of the four is frozen — each reaches
+into the one before it.
 
 Foundation is a **module group, not a module** (ADR-002). Seven modules exist:
 Identity, Localization, Settings, Audit, Activity, Media, Notification.
@@ -81,26 +82,46 @@ so the minor-units rule does not apply here.
 contract). See Inventory.md §12 for what shipped, what is deliberately absent, four
 recorded deviations, the two changes it required of Offer, and five open follow-ups.
 
-**Order's architecture review is APPROVED** (2026-07-30; ADR-052–056,
-[docs/modules/Order.md](docs/modules/Order.md)) and is the module now being built — the
-buyer's purchase pipeline and the platform's largest module. One customer, one
-multi-seller cart; checkout **splits into one Order per seller** under a checkout group
-(ADR-052); order lines are **immutable price/tax/title snapshots** (ADR-053); checkout
-**reserves** stock and placement **commits** it via Inventory's reservation contract —
-Order is its **first real caller** (ADR-054); tax is the **KDV from the product's bracket**
-(a managed `tax_rates` lookup + `Product.tax_rate_id` added to Catalog, moderated at
-authoring) but **not commission** (ADR-055); a **customer address book** with separate,
-snapshotted shipping + billing, authenticated customers only (ADR-056). Orders stop at
-**awaiting payment**; the customer side is API-only (Next.js storefront later).
-Payment/Shipping/commission/payout stay out of scope.
+**Order is COMPLETE** (2026-07-31; ADR-052–056,
+[docs/modules/Order.md](docs/modules/Order.md)) — the newest module and the platform's
+largest. One customer, one multi-seller cart; checkout **splits into one Order per
+seller** under a checkout group (ADR-052); order lines are **immutable price/tax/title
+snapshots** (ADR-053); checkout **reserves** stock and placement **commits** it via
+Inventory's reservation contract — Order is its **first real caller**, and the first
+module to drive a Core **command** port (ADR-054); tax is the **KDV from the product's
+bracket** (a managed `tax_rates` lookup + `Product.tax_rate_id` added to Catalog,
+moderated at authoring) but **not commission** (ADR-055); a **customer address book**
+with separate, snapshotted shipping + billing, authenticated customers only (ADR-056).
 
-**Offer and Inventory import NO module** — the strictest boundary on the platform.
-They read Catalog, Organization and Store through Core contracts only, and
-subscribe to other modules' events BY CLASS-STRING (Inventory reaches Offer's stock
-events that way, and Offer never names Inventory — the buy box goes through
+**A cart stores no prices and an order stores nothing else.** A basket reads every
+amount live from the Offer so it follows a seller's re-pricing; an order freezes price,
+title, KDV rate and both addresses and never moves again. Those two rules living in
+different classes IS the boundary — if you are adding a price column to `cart_items`,
+you want `order_lines`.
+
+Orders stop at **awaiting payment**; the customer side is API-only (Next.js storefront
+later). Payment/Shipping/commission/payout stay out of scope.
+
+**It is NOT frozen**: Payment is next and moves the stock COMMIT to payment-success
+(ADR-054), which changes this module's placement path. See Order.md §12 for what
+shipped, what is deliberately absent, four recorded deviations, the three changes it
+required of Catalog/Offer/Core, and six open follow-ups — the first of which
+(**cancelling a placed order does not restock**) needs its own ruling before Payment.
+
+**Offer, Inventory and Order import NO module** — the strictest boundary on the
+platform, and Order is the hardest case: it touches five other contexts and names
+none of them. They read Catalog, Organization and Store through Core contracts only,
+and subscribe to other modules' events BY CLASS-STRING (Inventory reaches Offer's
+stock events that way, and Offer never names Inventory — the buy box goes through
 `InventoryQueryContract` in Core). `LayeringTest` fails the build on any import, in
 both directions; `CatalogBoundaryTest` asserts the reverse — that no price or stock
 has leaked into the Catalog.
+
+**A KDV bracket is the one thing that looks like commerce and is not** (ADR-056). It
+classifies the goods — a book is %1 whoever sells it — so `Product.tax_rate_id` lives
+in the Catalog and is exempted from `CatalogBoundaryTest` **by exact name**, while the
+`tax` fragment stays: `tax_total` or `unit_tax_minor` on a product would still fail
+the build.
 
 **A Product has no price and no stock.** That is the module's defining boundary:
 price/stock/condition are an **Offer**, on-hand quantity is **Inventory**. It
@@ -109,8 +130,8 @@ Organization nor Store — the proposing company is a bare `proposed_by_org_uuid
 (ADR-040).
 
 **Do not create a Payment module.** That is a later sprint, and only after its
-architecture review is approved. (Offer, Inventory and Order are approved — see
-above.)
+architecture review is approved. (Offer, Inventory and Order are approved and built —
+see above.)
 
 ---
 

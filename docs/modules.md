@@ -8,16 +8,18 @@ Audit, Activity, Media, Notification (ADR-002). This document describes the
 pattern for adding an eighth, business-facing module; treat the `Store`
 examples as the shape to follow, not as code to copy verbatim.
 
-Organization, Store, Catalog, Offer and Inventory are built (ADR-028–051) and are
-the worked examples to copy. **Offer and Inventory are the two to read for the
-boundary rules** — they import no module at all, so every cross-context read is a
-Core contract and every cross-context reaction is an event subscribed by
-class-string. Inventory also carries the platform's first Core **command** contract
+Organization, Store, Catalog, Offer, Inventory and Order are built (ADR-028–056) and
+are the worked examples to copy. **Offer, Inventory and Order are the three to read
+for the boundary rules** — they import no module at all, so every cross-context read
+is a Core contract and every cross-context reaction is an event subscribed by
+class-string. Inventory carries the platform's first Core **command** contract
 (ADR-049), which is the shape to follow when a module must let another module
-*change* something rather than merely read it.
+*change* something rather than merely read it; **Order is the worked example of
+DRIVING one** (ADR-054), and of doing so across five contexts without naming any of
+them.
 
-The remaining business modules — Order, Payment — do not exist yet and must not be
-created without an approved specification.
+**Payment** does not exist yet and must not be created without an approved
+specification.
 
 ---
 

@@ -1,6 +1,9 @@
 # Order Module Specification
 
-**Status: APPROVED 2026-07-30 — building.** The owner approved the design; the §0
+**Status: COMPLETE (v1.0), NOT frozen — 2026-07-31.** Built in phases P0–P7; what
+shipped, what is deliberately absent, the deviations and the follow-ups are in **§12**.
+Deliberately **not frozen**: **Payment** is the next sprint and moves the stock COMMIT
+to payment-success (ADR-054), which is a change to this module's placement path. The §0
 decisions and the §10 rulings are ratified (reservation-expiry default: **30 minutes**).
 **ADR-052 … ADR-056 are recorded** in
 [docs/Architecture_Decision_Record.md](../Architecture_Decision_Record.md), with their
@@ -310,4 +313,126 @@ carriers, tracking) → returns/RMA. Each is its own spec + architecture review.
 - [x] Author the Catalog `tax_rates` + `Product.tax_rate_id` change owner-side (Catalog.md
       §2.4) so the build executor never manufactures the architecture change.
 - [x] Narrow the CLAUDE.md module prohibition to Payment.
-- [ ] Build in phases, one commit per phase, suite green, human pushes.
+- [x] Build in phases, one commit per phase, suite green, human pushes.
+
+---
+
+# 12. What this sprint shipped
+
+## 12.1 Delivered
+
+| Area | Where |
+|---|---|
+| `tax_rates` lookup + `Product.tax_rate_id` + `taxRateForProduct` (§0.7, ADR-056) | Catalog — `Domain/Models/TaxRate`, `Presentation/Filament/Resources/TaxRateResource` |
+| `Cart` + `CartItem` — multi-seller, **no prices** (§2.1) | `Domain/Models/` |
+| `CustomerAddress` — the book, with separate defaults (§2.2) | `Domain/Models/CustomerAddress` |
+| `Order` + `OrderLine` — immutable snapshots, address JSON (§2.3/2.4) | `Domain/Models/` |
+| `OrderStatus` — three cases, no `Enum` suffix (§2.5) | `Domain/Enums/OrderStatus` |
+| Schema: five tables, **no cross-module FK**, pgsql partial default-address indexes | `database/Modules/Order/migrations/` |
+| Cart + address-book actions (§9) | `Application/Actions/` |
+| `CheckoutAction` — validate, split, snapshot, tax, **reserve** (§3.1) | `Application/Actions/CheckoutAction` |
+| `PlaceOrderAction` — **commit** the group (§3.2) | `Application/Actions/PlaceOrderAction` |
+| `CancelOrderAction` — **release**, idempotent, attributed (§3.3) | `Application/Actions/CancelOrderAction` |
+| `ExpireReservationsJob` — the 30-minute sweep (§3.3) | `Application/Jobs/` |
+| KDV extraction, float-free (§3.4) | `Domain/Support/IncludedTax` |
+| Live cart pricing (§2.1) | `Application/Services/CartPricingService` |
+| Customer API — cart, addresses, checkout, place, orders, cancel (§4) | `Presentation/Controllers/Api/`, `routes/api.php` |
+| Seller "Siparişlerim" + admin oversight (§4) | `Presentation/Filament/` |
+| `OrderPolicy` — three audiences (§7) | `Presentation/Policies/OrderPolicy` |
+| Three events (§6) | `Domain/Events/` |
+| Core read port (§5) | `App\Core\Domain\Contracts\OrderQueryContract` |
+
+Order imports **no** module and nothing imports Order — asserted in `LayeringTest`
+in both directions. It is the first module to DRIVE a Core **command** contract
+(`InventoryReservationContract`), and Inventory's own permitted-importer list needed
+no change to accommodate it.
+
+## 12.2 Deliberately absent
+
+**No payment, and that is where the sprint stops.** An order reaches
+`AwaitingPayment` and waits (§0.8). **No commission, no payout, no settlement**
+(ADR-055) — Order records what the customer agreed to pay; taking the platform's cut
+is Payment/Finance. **No shipping, no carriers, no tracking.** **No customer UI** —
+the API ships and waits for the Next.js storefront. **No guest checkout** (ADR-056):
+authenticated customers only, so a basket belongs to an account from the first item
+and is never migrated from a session at login. **No discounts, coupons, returns or
+RMA.**
+
+**No "confirm" on the seller surface**, though §4 mentions it: an order is
+`AwaitingPayment` and the next real transition belongs to Payment, so a button that
+only moved a status nothing reads would be a lie about what the platform can do.
+
+**No `Paid`, `Shipped` or `Delivered` status**, for the same reason: every one of them
+belongs to a module that does not exist, and an enum case nothing can set reads as a
+capability the platform has.
+
+## 12.3 Deviations from this document, and why
+
+1. **The reservation reference is PER LINE, not per order.** §3.1 writes
+   `reserve(org, variant, qty, orderUuid)` and §3.2 `commit(orderUuid)`. An Inventory
+   reservation is one row on a UNIQUE reference and reserving is idempotent on it, so
+   an order with two lines sharing one reference would silently leave the second
+   unheld — the first line held, the second not, and nothing anywhere saying so. The
+   reference is `{order_uuid}:{variant_uuid}`, derivable at commit and release without
+   storing an Inventory identifier, and unique because a seller may hold at most one
+   active offer per variant (ADR-042 §3.2). The decision is unchanged; only its key is.
+
+2. **Cancelling a PLACED order does not restock.** §3.3 says a `Pending` or
+   `AwaitingPayment` order "releases its reservation" — and for a committed one,
+   Inventory's `release()` is a documented no-op, so the status moves and the units do
+   not come back. Inventory has no un-commit primitive and should not grow one by side
+   effect: reversing a sale is a different business event from abandoning a hold, and
+   conflating them makes "why did my stock go up" unanswerable in the ledger.
+   Implemented as written, documented in `CancelOrderAction`, and raised as
+   follow-up #1.
+
+3. **A missing hold does not block a cancellation.** Inventory's `release()` throws
+   when nothing was ever reserved under a reference — correct for Inventory, wrong
+   from here: an order can legitimately reach cancellation with no live hold (an
+   import, a restore, a hold already returned), and refusing would leave a customer
+   with an order nobody can stop. Each line is released on its own and a failure is
+   logged. `PlaceOrderAction` deliberately does NOT swallow the same failure —
+   releasing twice is harmless, committing a hold that does not exist sells stock
+   nobody reserved.
+
+4. **`OrderQueryContract` has no command half**, unlike Inventory's pair. Nothing
+   outside Order may place, cancel or re-price an order: stock is a resource other
+   contexts legitimately borrow, an order's state machine is not something anyone else
+   may drive. When Payment needs the status to move it raises its own event and Order
+   reacts.
+
+## 12.4 Changes this sprint required of other modules
+
+Recorded in the `001_Architecture.md` amendment log.
+
+| Module | Change | Why it could not be avoided |
+|---|---|---|
+| Catalog (not frozen) | `tax_rates` lookup + `Product.tax_rate_id` + `CatalogQueryContract::taxRateForProduct()` | §0.7/ADR-056's sanctioned change. A line cannot be priced for tax without a rate, and a bracket is a classification of the goods rather than a commercial term — so it belongs to the Catalog and not to the Offer |
+| Offer (not frozen) | `OfferQueryContract::activeOfferByUuid()` | §1.4 asks for it in those words. Every other method answers a LIST question, because until Order existed every caller arrived holding a product or a store; a cart line arrives holding an offer. It reuses the buy box's own eligibility, so "can this go in a basket" and "is this what a product page would feature" cannot drift |
+| Core (Offer→Core move) | `MoneyString` promoted from `Offer\Presentation\Support` to `Core\Presentation\Support` | Its own docblock named this condition: the second module to need it. Order renders money and may not import Offer, so the choice was Core or a copy — and a second money formatter ends with two endpoints disagreeing about a kuruş |
+
+## 12.5 Follow-ups
+
+1. **Cancelling a placed order leaves its stock committed** (§12.3 #2). The fix is an
+   Inventory decision, not an Order one: a `restock`/reversal primitive with its own
+   movement type, so the ledger can say a sale was reversed rather than implying units
+   appeared. Needs its own ruling before Payment ships, because a refund will want it.
+
+2. **The seller has no "confirm"** (§12.2). It becomes real when Payment does — a
+   seller accepting a PAID order is a meaningful transition; accepting an unpaid one is
+   not.
+
+3. **`ExpireReservationsJob` is not scheduled.** The job exists, is idempotent and is
+   tested; nothing calls it on a timer yet. One line in the scheduler, deliberately
+   left to whoever configures the deploy's queue topology.
+
+4. **`OrderQueryContract` has no caller** — by design (§5), exactly as Inventory's
+   contracts shipped a sprint early. Payment is the first.
+
+5. **Order totals are single-currency.** Every offer is priced in the platform default
+   (Offer §13.1), so `CheckoutAction` reads that one currency. Multi-currency is one
+   place in that action plus a decision about which currency a mixed basket settles in.
+
+6. **No `orders` search index and no seller-facing reporting.** "What did I sell last
+   month" is answerable from `order_lines` today only by SQL. Deliberate: reporting
+   shapes follow from Payment's data, and building them now would guess.
