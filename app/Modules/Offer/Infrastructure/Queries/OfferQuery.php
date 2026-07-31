@@ -135,6 +135,71 @@ final class OfferQuery implements OfferQueryContract
     }
 
     /**
+     * The sellable subset (ADR-058) — which of these products a buyer could
+     * actually buy this instant.
+     *
+     * ONE PASS OVER THE CANDIDATE OFFERS, not one buy-box computation per product:
+     * a listing asks about a whole page, and `featuredOfferForProduct()` in a loop
+     * would be N queries plus N store-liveness lookups. `eligible()` already
+     * memoises store liveness per instance, so the batch shares it.
+     *
+     * @param  array<int, string>  $productUuids
+     * @return array<int, string>
+     */
+    public function sellableProductUuids(array $productUuids = []): array
+    {
+        $rows = $this->eligible(
+            Offer::query()->when(
+                $productUuids !== [],
+                fn (Builder $query): Builder => $query->whereIn('product_uuid', $productUuids),
+            ),
+        );
+
+        return array_values(array_unique(array_map(
+            static fn (array $offer): string => (string) $offer['product_uuid'],
+            $rows,
+        )));
+    }
+
+    /**
+     * The cheapest eligible price per product (ADR-058).
+     *
+     * `eligible()` RETURNS ROWS ALREADY ORDERED BY PRICE, so the first row seen
+     * for a product IS its buy box — the same winner `featuredOfferForProduct()`
+     * would compute, arrived at without asking the question again. That is the
+     * property worth preserving: two surfaces quoting different prices for one
+     * product is the worst outcome available here.
+     *
+     * @param  array<int, string>  $productUuids
+     * @return array<string, array{price_minor: int, currency_code: string, in_stock: bool}>
+     */
+    public function buyBoxPricesFor(array $productUuids): array
+    {
+        if ($productUuids === []) {
+            return [];
+        }
+
+        $prices = [];
+
+        foreach ($this->eligible(Offer::query()->whereIn('product_uuid', $productUuids)) as $offer) {
+            $productUuid = (string) $offer['product_uuid'];
+
+            // First one wins: the rows arrive cheapest-first, ties broken by
+            // earliest created_at, which is the buy-box rule itself (ADR-045).
+            $prices[$productUuid] ??= [
+                'price_minor' => (int) $offer['price_minor'],
+                'currency_code' => (string) $offer['currency_code'],
+                // True by construction — a row is here because it is available.
+                // Carried anyway so the shape stays honest if eligibility ever
+                // admits something out of stock (pre-orders, backorders).
+                'in_stock' => true,
+            ];
+        }
+
+        return $prices;
+    }
+
+    /**
      * The buy-box ordering and the eligibility rule, in one place so the
      * featured offer and the seller list can never disagree about who wins.
      *

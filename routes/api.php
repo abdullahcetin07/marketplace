@@ -20,6 +20,7 @@ use App\Modules\Organization\Presentation\Controllers\Api\InvitationController a
 use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
 use App\Modules\Order\Presentation\Controllers\Api\CartController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
@@ -113,6 +114,26 @@ Route::prefix('v1')
             */
             Route::get('products/{product}/offers', [PublicProductOfferController::class, 'show'])
                 ->name('storefront.product.offers');
+
+            /*
+            | THE MARKETPLACE-WIDE BUYER READ (ADR-058, Storefront.md §1.1) — the
+            | first surface that answers "what can I buy here" rather than "what
+            | does this one store sell".
+            |
+            | COMPOSED, NOT MERGED. Catalog owns the content and returns NO PRICE;
+            | Offer owns price and availability. The listing filters to SELLABLE
+            | through `OfferQueryContract`, so a card never leads to a page that
+            | says unavailable — and the storefront overlays prices for the whole
+            | page in one `POST /offers/prices` call.
+            |
+            | THE DETAIL ROUTE IS DECLARED AFTER `/products/{product}/offers`
+            | deliberately: `{product}` would otherwise swallow the more specific
+            | path and the buy box would 404.
+            */
+            Route::get('products', [PublicProductController::class, 'index'])
+                ->name('storefront.products.index');
+            Route::get('products/{product}', [PublicProductController::class, 'show'])
+                ->name('storefront.products.show');
         });
 
         /*

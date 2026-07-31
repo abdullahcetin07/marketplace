@@ -121,4 +121,51 @@ interface OfferQueryContract
      * @return array<string, mixed>|null
      */
     public function activeOfferByUuid(string $offerUuid): ?array;
+
+    /**
+     * Which of these products can actually be bought right now — the SELLABLE
+     * filter the public catalogue browse composes with (ADR-058).
+     *
+     * ADDED FOR THE STOREFRONT. A buyer's listing must not show a product nobody
+     * is selling: the catalogue is shared and holds entries no merchant has
+     * offered, or has offered and run out of. Catalog cannot answer that — it has
+     * no price and no stock (ADR-037) — so it asks here and narrows its own query.
+     *
+     * SAME ELIGIBILITY AS THE BUY BOX: Active, on a live store, available per
+     * Inventory. So "does this appear in the listing" and "does this have a buy
+     * box" cannot drift, which is what stops a shopper clicking a card into a
+     * page that says unavailable.
+     *
+     * AN EMPTY ARGUMENT MEANS "ALL", deliberately: the browse needs the whole
+     * sellable set before it can paginate correctly — filtering after pagination
+     * would give pages of variable size and a wrong total. That set is bounded by
+     * the catalogue, and the cost of it growing is documented where the browse
+     * uses it.
+     *
+     * @param  array<int, string>  $productUuids  empty = every sellable product
+     * @return array<int, string>  product uuids, in no guaranteed order
+     */
+    public function sellableProductUuids(array $productUuids = []): array;
+
+    /**
+     * The buy-box price of each product, in one round trip (ADR-058).
+     *
+     * WHAT A LISTING NEEDS TO SAY "₺X'den başlayan fiyatlarla". Asking per card
+     * would be one query per row on the platform's busiest page; asking here is
+     * one call for the page.
+     *
+     * Products with no eligible offer are ABSENT from the result rather than
+     * present with a null price — a caller iterating the result gets only things
+     * it can render a price for, and an unknown uuid leaks nothing by looking the
+     * same as an unsold one.
+     *
+     * `in_stock` is always true for a returned row, by construction: an entry
+     * exists precisely because something is available. It is on the shape anyway
+     * so the payload stays honest when a future eligibility rule (pre-orders,
+     * backorders) makes the two come apart.
+     *
+     * @param  array<int, string>  $productUuids
+     * @return array<string, array{price_minor: int, currency_code: string, in_stock: bool}>
+     */
+    public function buyBoxPricesFor(array $productUuids): array;
 }
