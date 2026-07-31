@@ -20,6 +20,9 @@ use App\Modules\Organization\Presentation\Controllers\Api\InvitationController a
 use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
+use App\Modules\Order\Presentation\Controllers\Api\CartController;
+use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
+use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreLifecycleController;
@@ -279,6 +282,52 @@ Route::prefix('v1')
                 Route::post('/{store}/resume', [StoreLifecycleController::class, 'resume'])->name('resume');
                 Route::post('/{store}/close', [StoreLifecycleController::class, 'close'])->name('close');
             });
+
+            /*
+            |------------------------------------------------------------------
+            | Order — the CUSTOMER surface (ADR-052…056)
+            |------------------------------------------------------------------
+            |
+            | API-ONLY BY DESIGN. The storefront is a separate Next.js app that
+            | does not exist yet (Order.md §0.8), so this ships and waits — the
+            | same discipline that had Inventory's reservation contract ship
+            | before its caller.
+            |
+            | AUTHENTICATED CUSTOMERS ONLY (ADR-056, owner decision): no guest
+            | checkout in v1, so a basket belongs to an account from the first
+            | item and is never migrated from a session at login.
+            |
+            | NO IDENTIFIER FOR THE BASKET. `/cart` is singular because a customer
+            | has exactly one, and exposing an id would create a way to ask for
+            | one that is not yours. Lines are addressed by uuid and resolved
+            | THROUGH the acting customer's own cart.
+            |
+            | CHECKOUT AND PLACE ARE TWO CALLS (ADR-054). The first reserves and
+            | splits; the second commits. Between them is the reservation window a
+            | payment step will occupy, and this shape does not change when it
+            | arrives.
+            */
+            Route::get('/cart', [CartController::class, 'show'])->name('cart.show');
+            Route::post('/cart/items', [CartController::class, 'store'])->name('cart.items.store');
+            Route::patch('/cart/items/{item}', [CartController::class, 'update'])->name('cart.items.update');
+            Route::delete('/cart/items/{item}', [CartController::class, 'destroy'])->name('cart.items.destroy');
+
+            Route::prefix('addresses')->name('addresses.')->group(function (): void {
+                Route::get('/', [CustomerAddressController::class, 'index'])->name('index');
+                Route::post('/', [CustomerAddressController::class, 'store'])->name('store');
+                Route::patch('/{address}', [CustomerAddressController::class, 'update'])->name('update');
+                Route::delete('/{address}', [CustomerAddressController::class, 'destroy'])->name('destroy');
+                Route::post('/{address}/default', [CustomerAddressController::class, 'setDefault'])->name('default');
+            });
+
+            Route::post('/checkout', [CustomerOrderController::class, 'checkout'])->name('checkout');
+            Route::post('/checkout/{group}/place', [CustomerOrderController::class, 'place'])->name('checkout.place');
+
+            Route::get('/orders', [CustomerOrderController::class, 'index'])->name('orders.index');
+            Route::get('/orders/{order}', [CustomerOrderController::class, 'show'])->name('orders.show');
+            // PER ORDER, not per group: each seller's half of a purchase is
+            // independently fulfilled, so each is independently cancellable.
+            Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
         });
 
         /*

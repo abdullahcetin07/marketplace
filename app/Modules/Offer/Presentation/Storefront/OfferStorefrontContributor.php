@@ -9,7 +9,7 @@ use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Core\Domain\Storefront\StorefrontContext;
 use App\Core\Domain\Storefront\StorefrontContributorContract;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
-use App\Modules\Offer\Presentation\Support\MoneyString;
+use App\Core\Presentation\Support\MoneyString;
 
 /**
  * What a store SELLS, on its public storefront page (ADR-046 — the contributor

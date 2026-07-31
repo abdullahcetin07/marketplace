@@ -14,6 +14,11 @@ use App\Modules\Order\Infrastructure\Queries\OrderQuery;
 use App\Modules\Order\Infrastructure\Repositories\CartRepository;
 use App\Modules\Order\Infrastructure\Repositories\CustomerAddressRepository;
 use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
+use App\Modules\Order\Domain\Models\Order;
+use App\Modules\Order\Presentation\Policies\OrderPolicy;
+use App\Shared\Enums\UserType;
+use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -73,10 +78,34 @@ final class OrderServiceProvider extends ServiceProvider
         | "import the model".
         */
         $this->app->singleton(OrderQueryContract::class, OrderQuery::class);
+
+        $this->registerPermissions();
+    }
+
+    /**
+     * Permissions are DERIVED from a registration, never hand-listed.
+     *
+     * ADMIN ONLY, and only three verbs. A customer's authority over their own
+     * order is OWNERSHIP and a seller's is MEMBERSHIP of the selling company —
+     * neither is a Spatie permission, because Spatie `teams` is false and a
+     * seller-guard `order.view` could not be scoped to one company. It would grant
+     * sight of every merchant's orders on the platform.
+     *
+     * THERE IS NO `order.update` FOR ANYBODY. The lines are immutable (ADR-053)
+     * and the totals are written once; a wrong order is cancelled and re-placed.
+     * `order.cancel` is the reactive lever — the Offer-suspension shape (ADR-044).
+     */
+    private function registerPermissions(): void
+    {
+        PermissionRegistry::ability('order.view_any', [UserType::Admin]);
+        PermissionRegistry::ability('order.view', [UserType::Admin]);
+        PermissionRegistry::ability('order.cancel', [UserType::Admin]);
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Order/migrations'));
+
+        Gate::policy(Order::class, OrderPolicy::class);
     }
 }

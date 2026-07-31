@@ -6,7 +6,7 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Offer\Domain\Models\Offer;
-use App\Modules\Offer\Presentation\Support\MoneyString;
+use App\Core\Presentation\Support\MoneyString;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
 

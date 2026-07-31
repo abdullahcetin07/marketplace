@@ -11,6 +11,7 @@ use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResourc
 use App\Modules\Catalog\Presentation\Filament\Resources\TaxRateResource;
 use App\Modules\Identity\Presentation\Filament\Resources\CustomerResource;
 use App\Modules\Inventory\Presentation\Filament\Resources\StockResource;
+use App\Modules\Order\Presentation\Filament\Resources\OrderResource;
 use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
 use App\Modules\Identity\Presentation\Filament\Resources\SellerResource;
 use App\Modules\Identity\Presentation\Filament\Resources\StaffResource;
@@ -128,6 +129,15 @@ final class AdminPanelProvider extends PanelProvider
                 | (Inventory §7).
                 */
                 StockResource::class,
+
+                /*
+                | Order oversight (ADR-052). The ONE surface where a purchase is
+                | visible as a purchase: everywhere else the per-seller split is a
+                | feature, and somebody still has to be able to pull up all N
+                | orders of one checkout group when a customer asks where the rest
+                | of their parcel is.
+                */
+                OrderResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

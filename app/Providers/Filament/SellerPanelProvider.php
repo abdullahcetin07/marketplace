@@ -111,6 +111,15 @@ final class SellerPanelProvider extends PanelProvider
                 | form cannot show: available = on hand − reserved.
                 */
                 \App\Modules\Inventory\Presentation\Filament\Seller\Resources\StockResource::class,
+
+                /*
+                | "Siparişlerim" (ADR-052) — one seller's half of each purchase,
+                | and no part of what the customer bought from anybody else. A
+                | DIFFERENT class from the admin resource for the reason the offer
+                | and product ones are split: sharing one would put a cross-seller
+                | surface a registration mistake away from a merchant.
+                */
+                \App\Modules\Order\Presentation\Filament\Seller\Resources\OrderResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')

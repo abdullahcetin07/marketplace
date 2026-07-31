@@ -154,6 +154,15 @@ final class RolePermissionSeeder extends Seeder
             */
             'inventory.view_any',
             'inventory.view',
+            /*
+            | Orders, read-only. "Where is my order?" is the single most common
+            | ticket a marketplace takes, and answering it needs the order, its
+            | lines and its status. NOT `order.cancel`: cancelling releases or
+            | strands somebody's stock and creates a refund obligation once
+            | Payment exists — that is an Admin decision, not a helpdesk one.
+            */
+            'order.view_any',
+            'order.view',
             // Support are the front line for account-takeover reports, so they
             // receive the platform security alerts (Q6).
             'security.receive_alerts',
@@ -171,6 +180,15 @@ final class RolePermissionSeeder extends Seeder
         $this->role('finance', $guard)->syncPermissions([
             'panel.admin.access',
             'currency.update_rates',
+            /*
+            | Orders, read-only (ADR-055). Reconciliation reads what was charged
+            | and what of it was KDV — the breakdown lives on the order lines and
+            | nowhere else. Finance does not cancel: undoing a sale is an
+            | operational decision with a stock consequence, and it belongs to
+            | whoever is answering the customer.
+            */
+            'order.view_any',
+            'order.view',
             'audit.view_any',
             'audit.view',
             'audit.export',

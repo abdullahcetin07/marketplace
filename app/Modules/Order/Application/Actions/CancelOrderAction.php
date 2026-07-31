@@ -11,6 +11,7 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Events\OrderCancelled;
 use App\Modules\Order\Domain\Exceptions\OrderException;
 use App\Modules\Order\Domain\Models\Order;
+use Illuminate\Support\Facades\Log;
 
 /**
  * Stop an order and give the stock back (§3.3).
@@ -89,11 +90,46 @@ final class CancelOrderAction extends BaseAction
 
     /**
      * Hand every hold back, per line, under the reference checkout reserved with.
+     *
+     * A MISSING HOLD MUST NOT BLOCK THE CANCELLATION, and that asymmetry is the
+     * point of this method. Inventory's `release()` throws when nothing was ever
+     * reserved under a reference — correct for it, since a caller releasing a
+     * reference it never took is a bug worth surfacing. But from here the caller
+     * is not buggy: an order can legitimately reach this point with no live hold
+     * (an imported record, a reservation lost to a restore, a hold already given
+     * back by another path), and refusing to cancel it would leave a customer with
+     * an order nobody can stop.
+     *
+     * So each line is released on its own and a failure is LOGGED, not
+     * propagated. The cost is that a genuine Inventory fault becomes a log line
+     * rather than a refusal — accepted, because the alternative is an order that
+     * cannot be cancelled at all, and the expiry sweep exists precisely to catch
+     * holds that survive.
+     *
+     * `\Throwable` rather than `InventoryException`, and not by choice: Order
+     * imports no module (`LayeringTest`), so it cannot name the exception type it
+     * is expecting. The Core contract documents the failure in prose instead —
+     * the one place that boundary costs something real.
+     *
+     * COMPARE `PlaceOrderAction`, which does NOT swallow: committing a hold that
+     * does not exist would sell stock nobody reserved, so there the throw is the
+     * right outcome. Releasing something twice is harmless; committing something
+     * once too often is not.
      */
     private function releaseHolds(Order $order): void
     {
         foreach ($order->lines as $line) {
-            $this->reservations->release($order->reservationReferenceFor($line->variant_uuid));
+            $reference = $order->reservationReferenceFor($line->variant_uuid);
+
+            try {
+                $this->reservations->release($reference);
+            } catch (\Throwable $exception) {
+                Log::channel('errors')->warning('Could not release a hold while cancelling an order', [
+                    'order_uuid' => $order->uuid,
+                    'reference' => $reference,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
         }
     }
 

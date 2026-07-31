@@ -4,7 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Offer\Presentation\Resources;
 
-use App\Modules\Offer\Presentation\Support\MoneyString;
+use App\Core\Presentation\Support\MoneyString;
 use Illuminate\Http\Request;
 use Illuminate\Http\Resources\Json\JsonResource;
 

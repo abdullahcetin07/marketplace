@@ -2,7 +2,7 @@
 
 declare(strict_types=1);
 
-namespace App\Modules\Offer\Presentation\Support;
+namespace App\Core\Presentation\Support;
 
 /**
  * Integer minor units → the decimal string an API returns (005 §28, ADR-005).
@@ -18,10 +18,19 @@ namespace App\Modules\Offer\Presentation\Support;
  * slicing the digits cannot drift, at any magnitude, for any number of decimal
  * places.
  *
- * Presentation-only, and deliberately in the Offer module rather than Core: it
- * is the first money on the platform. If a second module needs it, that is the
- * moment it becomes a Core concern — promoting it now would be guessing at a
- * shared shape from one caller.
+ * IN CORE BECAUSE A SECOND MODULE NEEDED IT, which is exactly the condition its
+ * previous home in `Offer\Presentation\Support` said would move it. Order renders
+ * order lines and totals as decimal strings and may not import Offer
+ * (`LayeringTest`), so the choice was Core or a copy — and a second copy of money
+ * formatting is the kind of duplication that ends with two endpoints disagreeing
+ * about a kuruş.
+ *
+ * It waited for that second caller rather than being promoted on principle:
+ * guessing at a shared shape from one caller is how Core fills up with
+ * almost-right abstractions.
+ *
+ * Presentation-only. Storage stays integer minor units (non-negotiable #6); this
+ * is the last thing that happens to an amount before it leaves the application.
  */
 final class MoneyString
 {
