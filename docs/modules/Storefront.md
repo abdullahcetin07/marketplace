@@ -83,7 +83,16 @@ tr+en, PWA/native.
   in-stock offer and returns only those. **No price on the Catalog item** — the storefront
   overlays it from Offer (§1.2).
 - `GET /api/v1/products/{uuid}` — **product detail** (published): title, description,
-  gallery, attributes, variants (uuid + attribute labels), category path, brand. No price.
+  gallery, attributes, variants (uuid + attribute labels), category path, brand,
+  **`gtin`** (nullable). No price.
+  - **The GTIN is on the detail surface only** (owner-approved, 2026-08-01). It is
+    printed on the box the shopper is holding, so withholding it protects nothing and
+    showing it lets them confirm the item — the design's "Barkod" row. The **listing**
+    still excludes it: one product's barcode is a fact about that product, and every
+    product's barcode, paginated, is a catalogue export keyed for matching.
+  - **`attributes` was already returned** and needs no code. It is empty unless the
+    **category defines** attributes and the **seller filled them in** at authoring — an
+    empty spec table is a content gap, not a bug.
 - Extends `CatalogQueryContract` if a read it lacks is needed (e.g. a card projection).
 
 ## 1.2 Offer — price & availability for the buyer (Offer not frozen)

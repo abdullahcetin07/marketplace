@@ -365,10 +365,15 @@ it('does not leak seller-facing fields onto the page', function (): void {
 
     $payload = $this->getJson('/api/v1/products/'.$fixture['product']->uuid)->assertOk()->json('data');
 
-    // Moderation state, provenance and the dedup key are all seller/staff
-    // concerns; a public payload that carried them would tell a competitor who
-    // proposed what.
-    foreach (['status', 'gtin', 'proposed_by_org_uuid', 'moderation_reason', 'tax_rate_id'] as $forbidden) {
+    // Moderation state, provenance and the tax bracket are seller/staff concerns;
+    // a public payload that carried them would tell a competitor who proposed
+    // what, and tell everyone how the platform is wired.
+    //
+    // `gtin` is NOT on this list any more (owner-approved, 2026-08-01): the
+    // barcode is printed on the physical product, so the page shows it. The
+    // listing still does not — asserted in StorefrontPublicSurfaceTest, where the
+    // two surfaces can be compared side by side.
+    foreach (['status', 'proposed_by_org_uuid', 'moderation_reason', 'tax_rate_id'] as $forbidden) {
         expect($payload)->not->toHaveKey($forbidden);
     }
 });

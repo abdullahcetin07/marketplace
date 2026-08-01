@@ -26,6 +26,18 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * proposing company, no seller-facing provenance — a draft's existence must not
  * leak through a public payload any more than through a 404.
  *
+ * THE GTIN IS ON THE LIST, and it is the one field this surface deliberately
+ * shows that the card surface does not (owner-approved, 2026-08-01). The barcode
+ * is PRINTED ON THE BOX a shopper is holding, so withholding it protects nothing
+ * — anyone who wants a competitor's GTIN reads it off the product. What it does
+ * do is let a buyer confirm they are looking at the right item, which is the
+ * whole reason "Barkod" appears on the design's spec table.
+ *
+ * DETAIL ONLY, and the asymmetry is the point: the card surface is the LISTING,
+ * where the GTIN would be a machine-readable index of the whole catalogue handed
+ * out a page at a time. One product's barcode is a fact about that product;
+ * every product's barcode is a catalogue export.
+ *
  * THE CATEGORY IS A PATH, not a single name: a shopper needs the breadcrumb, and
  * building it client-side would mean exposing the tree.
  *
@@ -53,6 +65,9 @@ final class PublicProductResource extends JsonResource
             'slug' => $this->slug,
             'title' => $this->localized('title'),
             'description' => $this->localized('description'),
+            // Null for most of the catalogue: it is optional at authoring, and a
+            // hand-made or unbranded product legitimately has none.
+            'gtin' => $this->gtin,
 
             'images' => $this->gallery(),
 

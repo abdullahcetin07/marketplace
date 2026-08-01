@@ -211,13 +211,40 @@ it('never leaks a seller-facing or moderation field to a buyer', function (): vo
     $page = json_encode($this->getJson('/api/v1/products/'.$fixture['product']->uuid)->json());
 
     /*
-     * The GTIN is the catalogue's dedup key and a competitor's shortcut to
-     * matching inventory; the moderation fields say who proposed what and what a
-     * moderator thought of it. Neither is a buyer's business.
+     * The moderation fields say who proposed a product and what a moderator
+     * thought of it — a conversation between a seller and the platform, not
+     * something a shopper is party to.
      */
-    foreach (['8691234567895', 'gtin', 'moderation', 'proposed_by', 'status'] as $leak) {
+    foreach (['moderation', 'proposed_by', 'status'] as $leak) {
         expect($page)->not->toContain($leak);
     }
+});
+
+it('shows the barcode on the product page but never in the listing', function (): void {
+    $fixture = publicSurfaceProduct();
+
+    /*
+     * THE ONE FIELD THE TWO CATALOG SURFACES DISAGREE ABOUT (owner-approved,
+     * 2026-08-01). This test used to assert the opposite for both, so it is worth
+     * writing down why it changed rather than letting the diff be the reason.
+     *
+     * A barcode is printed on the box the shopper is holding: withholding it from
+     * the page protects nothing, and showing it lets them confirm they are buying
+     * the right item — which is why "Barkod" is on the design's spec table.
+     *
+     * The LISTING is different in kind, not in degree. One product's GTIN is a
+     * fact about that product; every product's GTIN, paginated and anonymous, is a
+     * catalogue export keyed for matching against somebody else's. So the split is
+     * asserted here, in one place, rather than inferred from two resources.
+     */
+    $page = $this->getJson('/api/v1/products/'.$fixture['product']->uuid)->json('data');
+
+    expect($page['gtin'])->toBe('8691234567895');
+
+    $card = $this->getJson('/api/v1/products')->json('data.0');
+
+    expect($card)->not->toHaveKey('gtin')
+        ->and(json_encode($card))->not->toContain('8691234567895');
 });
 
 it('answers unpublished and non-existent identically, on every surface', function (): void {

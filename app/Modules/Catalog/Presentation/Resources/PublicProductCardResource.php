@@ -15,6 +15,12 @@ use Illuminate\Http\Resources\Json\JsonResource;
  * every seller-facing field are absent by construction — the rows this formats
  * came from a query that never selected them.
  *
+ * THE GTIN STAYS OUT HERE EVEN THOUGH THE DETAIL PAGE NOW SHOWS IT
+ * (owner-approved, 2026-08-01). Not an oversight and not a contradiction: one
+ * product's barcode is a fact about the thing in the buyer's hand, and every
+ * product's barcode, paginated, is a catalogue export with a stable key to match
+ * against. The listing is the surface that would hand out the second.
+ *
  * THERE IS NO PRICE HERE, and that absence is the architecture rather than an
  * omission (ADR-037). The Catalog has no price to render; the storefront overlays
  * it from `POST /offers/prices` in one round trip for the whole page. A price
