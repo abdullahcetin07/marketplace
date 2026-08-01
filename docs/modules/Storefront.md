@@ -101,6 +101,11 @@ tr+en, PWA/native.
 - `POST /api/v1/offers/prices` (batch) — given a list of product uuids, return each one's
   **buy-box price** (cheapest active in-stock) + in/out of stock, so a listing renders
   "from ₺X" in one round trip. Reads its own data + `InventoryQueryContract`.
+  - **Also `seller_count` and `list_price`** (added 2026-08-01) for "N satıcı" and the
+    struck-through price. `seller_count` counts **distinct merchants**, not offers — an
+    offer is per variant, so one seller listing three sizes is one choice. `list_price`
+    is the **winner's** (a shared catalogue has no product-level "was" price) and is
+    null when they declared none. **No discount %**: the client has both numbers.
 
 ## 1.3 Shared rules
 Anonymous, `throttle:storefront`, money as **decimal strings**, UUID/slug only (never an

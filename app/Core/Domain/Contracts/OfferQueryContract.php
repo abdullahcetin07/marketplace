@@ -164,8 +164,24 @@ interface OfferQueryContract
      * so the payload stays honest when a future eligibility rule (pre-orders,
      * backorders) makes the two come apart.
      *
+     * `seller_count` AND `list_price_minor` WERE ADDED FOR THE LISTING CARD
+     * (2026-08-01), and both are here rather than in a second call for the same
+     * reason the price is: a card that needs three round trips is a card that
+     * renders three times.
+     *
+     * `seller_count` is how many merchants a buyer could pick between — the
+     * ELIGIBLE ones, the same set the buy box ranks, so "3 satıcı" and the three
+     * rows on the product page cannot disagree. Sellers who are paused, suspended,
+     * closed or sold out are not a choice and are not counted.
+     *
+     * `list_price_minor` belongs to the WINNING offer, not to the product: there
+     * is no such thing as the product's list price on a shared catalogue, only
+     * this seller's claim about what they discounted from. Null when the winner
+     * declared none, which is most of them — a card renders a struck-through price
+     * only when a seller actually made that claim.
+     *
      * @param  array<int, string>  $productUuids
-     * @return array<string, array{price_minor: int, currency_code: string, in_stock: bool}>
+     * @return array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}>
      */
     public function buyBoxPricesFor(array $productUuids): array;
 }

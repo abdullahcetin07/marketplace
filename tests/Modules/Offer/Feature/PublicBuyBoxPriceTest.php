@@ -214,6 +214,78 @@ it('never returns an internal id or a seller', function (): void {
      * would tell a competitor who is cheapest on every product in one request —
      * and the product page already names them, one product at a time, which is
      * the pace at which that information is a feature rather than a scrape.
+     *
+     * `seller_count` DOES NOT BREAK THAT and is the reason to say so here: how
+     * MANY merchants compete is a shopper's decision input ("N satıcı"), while
+     * WHICH ONE wins is the thing worth scraping. A count identifies nobody.
      */
-    expect(array_keys($entry))->toBe(['from_price', 'currency', 'in_stock']);
+    expect(array_keys($entry))->toBe(['from_price', 'list_price', 'currency', 'in_stock', 'seller_count']);
+});
+
+it('counts merchants rather than offers, and quotes the winner’s struck price', function (): void {
+    $fixture = pricedProduct(priceMinor: 30_000);
+
+    // A SECOND VARIANT FROM THE SAME SELLER. Offers are per variant (ADR-042), so
+    // this is a second eligible row and NOT a second choice for the buyer — the
+    // case a naive count gets wrong.
+    $sibling = ProductVariant::factory()->for($fixture['product'])->create();
+
+    app(CreateOfferAction::class)->run(new CreateOfferDTO(
+        variantUuid: $sibling->uuid,
+        sellingOrgId: $fixture['org']->getKey(),
+        sellingOrgUuid: $fixture['org']->uuid,
+        storeUuid: $fixture['offer']->store_uuid,
+        priceMinor: 32_000,
+        stockQuantity: 4,
+    ));
+
+    $entry = $this->postJson('/api/v1/offers/prices', [
+        'product_ids' => [$fixture['product']->uuid],
+    ])->assertOk()->json('data.'.$fixture['product']->uuid);
+
+    expect($entry['seller_count'])->toBe(1);
+
+    // Now a genuine rival, cheaper, and declaring a "was" price.
+    $rival = Organization::factory()->create();
+    $rivalStore = Store::factory()->create([
+        'organization_id' => $rival->getKey(),
+        'status' => StoreStatus::Active,
+    ]);
+
+    app(CreateOfferAction::class)->run(new CreateOfferDTO(
+        variantUuid: $fixture['variant']->uuid,
+        sellingOrgId: $rival->getKey(),
+        sellingOrgUuid: $rival->uuid,
+        storeUuid: $rivalStore->uuid,
+        priceMinor: 19_900,
+        stockQuantity: 5,
+        listPriceMinor: 34_900,
+    ));
+
+    $entry = $this->postJson('/api/v1/offers/prices', [
+        'product_ids' => [$fixture['product']->uuid],
+    ])->assertOk()->json('data.'.$fixture['product']->uuid);
+
+    /*
+     * THE LIST PRICE BELONGS TO THE WINNER, not to the product. The first seller
+     * declared none; the cheapest one declared ₺349, so that is what a card strikes
+     * through — one merchant's claim about their own discount, next to their own
+     * price, rather than two merchants' numbers put side by side.
+     */
+    expect($entry['seller_count'])->toBe(2)
+        ->and($entry['from_price'])->toBe('199.00')
+        ->and($entry['list_price'])->toBe('349.00');
+});
+
+it('leaves list_price null when the winning seller declared none', function (): void {
+    $fixture = pricedProduct(priceMinor: 12_000);
+
+    $entry = $this->postJson('/api/v1/offers/prices', [
+        'product_ids' => [$fixture['product']->uuid],
+    ])->assertOk()->json('data.'.$fixture['product']->uuid);
+
+    // Null rather than the price repeated: a card must strike a price through only
+    // when a seller actually claimed a discount, and "₺120 ~~₺120~~" is worse than
+    // no badge at all.
+    expect($entry['list_price'])->toBeNull();
 });

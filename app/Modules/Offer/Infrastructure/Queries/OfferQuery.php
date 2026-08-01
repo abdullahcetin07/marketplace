@@ -170,8 +170,18 @@ final class OfferQuery implements OfferQueryContract
      * property worth preserving: two surfaces quoting different prices for one
      * product is the worst outcome available here.
      *
+     * `seller_count` COUNTS THE SAME ROWS THE WINNER WAS PICKED FROM, which is the
+     * only reason it can be trusted next to the price: both come out of one pass
+     * over `eligible()`. Counting offers in SQL instead would count paused stores
+     * and sold-out shelves, because neither condition is a column here (ADR-048).
+     *
+     * IT COUNTS MERCHANTS, NOT OFFERS, and the two genuinely differ: an offer is
+     * per VARIANT (ADR-042/039), so one seller listing a shirt in three sizes is
+     * three eligible rows and one choice. "3 satıcı" on a card with a single seller
+     * behind it is a lie a shopper discovers on the next page.
+     *
      * @param  array<int, string>  $productUuids
-     * @return array<string, array{price_minor: int, currency_code: string, in_stock: bool}>
+     * @return array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}>
      */
     public function buyBoxPricesFor(array $productUuids): array
     {
@@ -181,6 +191,9 @@ final class OfferQuery implements OfferQueryContract
 
         $prices = [];
 
+        /** @var array<string, array<string, true>> $sellers */
+        $sellers = [];
+
         foreach ($this->eligible(Offer::query()->whereIn('product_uuid', $productUuids)) as $offer) {
             $productUuid = (string) $offer['product_uuid'];
 
@@ -188,12 +201,32 @@ final class OfferQuery implements OfferQueryContract
             // earliest created_at, which is the buy-box rule itself (ADR-045).
             $prices[$productUuid] ??= [
                 'price_minor' => (int) $offer['price_minor'],
+                /*
+                | THE WINNER'S list price, not the product's — there is no such
+                | thing on a shared catalogue (ADR-037/042). It is the same offer
+                | the price came from, so a card's struck-through price and the
+                | price beneath it are one seller's claim rather than two
+                | merchants' numbers put side by side.
+                */
+                'list_price_minor' => $offer['list_price_minor'] === null
+                    ? null
+                    : (int) $offer['list_price_minor'],
                 'currency_code' => (string) $offer['currency_code'],
                 // True by construction — a row is here because it is available.
                 // Carried anyway so the shape stays honest if eligibility ever
                 // admits something out of stock (pre-orders, backorders).
                 'in_stock' => true,
+                // Filled in below, once every row has been seen.
+                'seller_count' => 0,
             ];
+
+            // A set keyed by org uuid, so a seller listing several variants of
+            // one product still counts once.
+            $sellers[$productUuid][(string) $offer['selling_org_uuid']] = true;
+        }
+
+        foreach ($sellers as $productUuid => $orgs) {
+            $prices[$productUuid]['seller_count'] = count($orgs);
         }
 
         return $prices;
