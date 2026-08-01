@@ -98,6 +98,13 @@ tr+en, PWA/native.
 ## 1.2 Offer — price & availability for the buyer (Offer not frozen)
 - `GET /api/v1/products/{uuid}/offers` — the buy box (**exists**): featured offer + seller
   list + per-offer availability (from Inventory).
+  - **The seller is named** (added 2026-08-01): each offer's `store_id` became
+    `store: {id, name, city}`, read through a new `StoreQueryContract::publicProfilesFor()`
+    (frozen Store's second granted addition — see [Store.md](Store.md)). Offer holds
+    store uuids and may not import Store, so a buy box could only say
+    "Satıcı: a1086566-10aa-…". **`city` is null on every store today** — no seller form
+    writes a contact address yet. **Seller rating is out of scope**: it needs a Review
+    system, and a faked one is worse than none.
 - `POST /api/v1/offers/prices` (batch) — given a list of product uuids, return each one's
   **buy-box price** (cheapest active in-stock) + in/out of stock, so a listing renders
   "from ₺X" in one round trip. Reads its own data + `InventoryQueryContract`.

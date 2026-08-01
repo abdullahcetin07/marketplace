@@ -65,6 +65,54 @@ final class StoreQuery implements StoreQueryContract
     }
 
     /**
+     * Added for Offer's buy box — see the contract for why a name was the one
+     * public fact a downstream module could not get.
+     *
+     * ONE QUERY WITH THE CONTACT EAGER-LOADED. Strict mode makes lazy loading
+     * throw, and this runs once per product page with every seller on it, so the
+     * N+1 this avoids is the whole reason the method is batched.
+     *
+     * THE CITY COMES OUT OF A JSON BLOB and is defensive about it on purpose:
+     * `store_contacts.address` is a free-form `jsonb` column with no enforced
+     * shape (§2.6), so anything that is not a non-empty string reads as "not
+     * held". A cast or an undefined-index notice reaching a public product page
+     * would be a 500 caused by one seller's malformed profile.
+     *
+     * @param  array<int, string>  $storeUuids
+     * @return array<string, array{name: string, city: string|null}>
+     */
+    public function publicProfilesFor(array $storeUuids): array
+    {
+        if ($storeUuids === []) {
+            return [];
+        }
+
+        $profiles = [];
+
+        $stores = Store::query()
+            ->whereIn('uuid', $storeUuids)
+            // Live only — a suspended shop's name must not reach a public payload
+            // through a caller that forgot to check (see the contract).
+            ->where('status', StoreStatus::Active->value)
+            ->with('contact')
+            ->get();
+
+        foreach ($stores as $store) {
+            // A store may have no contact row at all, and the row's `address` is
+            // free-form: neither the array nor the key is guaranteed.
+            $address = $store->contact?->address;
+            $city = is_array($address) ? ($address['city'] ?? null) : null;
+
+            $profiles[$store->uuid] = [
+                'name' => $store->name,
+                'city' => is_string($city) && trim($city) !== '' ? trim($city) : null,
+            ];
+        }
+
+        return $profiles;
+    }
+
+    /**
      * Added for the onboarding reflow — see the contract for why the question
      * has to be answerable before a store exists.
      *

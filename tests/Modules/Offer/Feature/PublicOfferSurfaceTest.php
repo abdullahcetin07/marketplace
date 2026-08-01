@@ -147,6 +147,72 @@ it('hides an offer whose store is not live from the public page', function (): v
         ->assertJsonPath('data.offer_count', 1);
 });
 
+it('names the shop a buyer is buying from, through the Store contract', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    $named = Store::factory()->create([
+        'status' => StoreStatus::Active,
+        'name' => 'Deniz Kozmetik',
+    ]);
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($named->uuid)->create();
+
+    $featured = $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
+        ->json('data.featured');
+
+    /*
+     * THE ONE JOB OF A SELLER ROW. Before this the payload carried a bare
+     * `store_id`, so a buy box could render "Satıcı: a1086566-10aa-…" and nothing
+     * else — Offer holds store uuids and may not import Store (ADR-033), so the
+     * name arrives through `StoreQueryContract` or not at all.
+     *
+     * The uuid did not go anywhere; it moved under `store.id` and gained a name to
+     * stand next to.
+     */
+    expect($featured['store'])->toBe([
+        'id' => $named->uuid,
+        'name' => 'Deniz Kozmetik',
+        // No seller-facing form writes a contact address yet, so this is null on
+        // every store today. Asserted rather than skipped, so the day one does the
+        // failure points at this line instead of at a frontend that shows nothing.
+        'city' => null,
+    ]);
+});
+
+it('shows the seller’s city once the store holds one', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    $store = Store::factory()->create(['status' => StoreStatus::Active, 'name' => 'Ege Ticaret']);
+    // Written straight to the contact block: `store_contacts.address` is free-form
+    // `jsonb` (Store §2.6) and this is the key the buy box reads.
+    $store->contact()->create(['address' => ['city' => 'İzmir', 'line1' => 'Alsancak']]);
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($store->uuid)->create();
+
+    $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
+        ->assertJsonPath('data.featured.store.city', 'İzmir')
+        // ONLY the city. The rest of the address is a shipping origin, not a
+        // shopfront label, and a public payload gets the label.
+        ->assertJsonMissing(['line1' => 'Alsancak']);
+});
+
+it('survives a malformed store address rather than 500ing a product page', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    $store = Store::factory()->create(['status' => StoreStatus::Active]);
+    // The column has no enforced shape, so this is reachable data, not a
+    // hypothetical — and one seller's bad profile must not take a public page down.
+    $store->contact()->create(['address' => ['city' => ['nested', 'nonsense']]]);
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($store->uuid)->create();
+
+    $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
+        ->assertJsonPath('data.featured.store.city', null);
+});
+
 it('needs no authentication', function (): void {
     $fixture = publiclyOfferedProduct();
     Offer::factory()->forVariant('v-1', $fixture['product']->uuid)

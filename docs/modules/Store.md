@@ -35,6 +35,20 @@ Version: 1.0 — **COMPLETE & FROZEN (2026-07-24). ADR-032–036 ratified.**
 > build time; `Route::has()` hides the button instead of 500ing, and a feature test
 > asserts the route exists. `storeNameExists()` compares on `LOWER(name)`, the same
 > expression the unique index is built on.
+>
+> **Second contract addition — `publicProfilesFor()` (owner-approved, 2026-08-01):**
+> Offer's buy box may not import Store (ADR-033) but has to put a merchant's NAME in
+> front of a shopper; every earlier method on `StoreQueryContract` answers a question
+> about a store's *state*, so the seller row rendered a bare uuid. One additive,
+> batched read returning `uuid => {name, city}`. **Live stores only** — it is the one
+> method on that contract whose output reaches a public payload verbatim, so a
+> suspended shop cannot be named by a caller that forgot to filter. No models, no
+> internal ids, no dependency; the boundary is unchanged.
+> **`city` is null on every store today.** It reads `store_contacts.address['city']`
+> (§2.6), a free-form `jsonb` column no seller-facing form writes yet — so the read
+> is defensive about the shape, and the field ships now so the public payload does
+> not change shape again the day that form does. **Giving sellers a way to fill the
+> contact block in is the open follow-up this created.**
 
 Sprint: **Store-0 (specification)**. This document is the architecture-review
 artifact `CLAUDE.md` requires *before* any Store code, migration, model,

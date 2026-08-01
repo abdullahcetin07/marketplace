@@ -6,6 +6,7 @@ namespace App\Modules\Offer\Presentation\Controllers\Api\Storefront;
 
 use App\Core\Domain\Contracts\CatalogBrowseContract;
 use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Offer\Domain\Exceptions\OfferException;
@@ -26,6 +27,12 @@ use Illuminate\Http\JsonResponse;
  * from `CatalogBrowseContract`, so a product that has since been unpublished
  * disappears from this surface without Offer knowing anything about moderation.
  *
+ * THREE CONTRACTS, NO IMPORTS, and that is the composition ADR-058 asks for made
+ * literal: Catalog says what the thing is, Offer says what it costs, Store says
+ * who is selling it. Offer holds store uuids and nothing else — putting a
+ * merchant's NAME in front of a shopper is a Store fact, asked for through
+ * `StoreQueryContract` rather than by reaching into Store's tables (ADR-033).
+ *
  * A PRODUCT NOBODY PUBLISHES AND A PRODUCT NOBODY SELLS ARE DIFFERENT ANSWERS.
  * The first 404s — it is not public, and saying so would leak that a draft
  * exists. The second returns the product with `featured: null`: it is a real
@@ -39,6 +46,7 @@ final class PublicProductOfferController extends BaseController
     public function __construct(
         private readonly OfferQueryContract $offers,
         private readonly CatalogBrowseContract $catalog,
+        private readonly StoreQueryContract $stores,
         private readonly CurrencyRepositoryContract $currencies,
     ) {}
 
@@ -56,9 +64,17 @@ final class PublicProductOfferController extends BaseController
                 ->withStatus(404);
         }
 
+        $offers = $this->offers->activeOffersForProduct($product);
+
         return $this->ok(new PublicProductOffersResource(
             $summary,
-            $this->offers->activeOffersForProduct($product),
+            $offers,
+            // Every seller on the page in ONE call — one per row would be a query
+            // per merchant on the platform's busiest page.
+            $this->stores->publicProfilesFor(array_values(array_unique(array_map(
+                static fn (array $offer): string => (string) $offer['store_uuid'],
+                $offers,
+            )))),
             (int) $this->currencies->default()->decimal_places,
         ));
     }

@@ -70,6 +70,45 @@ interface StoreQueryContract
     public function liveStoresForOrganization(int $organizationId): array;
 
     /**
+     * The PUBLIC display facts for these stores, as
+     * `uuid => ['name' => string, 'city' => string|null]`. Stores that are not
+     * live are simply absent.
+     *
+     * ADDED FOR OFFER'S BUY BOX (2026-08-01) — the second change frozen Store has
+     * granted a later module, on the same footing as
+     * `liveStoresForOrganization()` above and recorded in the same amendment log.
+     *
+     * WHY IT WAS MISSING. Every method here answered a question about a store's
+     * STATE — does it exist, is it live, who owns it — because that is all an
+     * isolation check needs. Offer arrived with a different question: it holds
+     * store uuids and has to put a merchant's NAME in front of a shopper. "Satıcı:
+     * a1086566-10aa-…" is what the buy box renders without this.
+     *
+     * BATCHED, because a product page asks about every seller of one product and
+     * asking one at a time is a query per row on the platform's busiest page.
+     *
+     * LIVE ONLY, and that is a safety property rather than a convenience: this is
+     * the one method on this contract whose output reaches a public payload
+     * verbatim, so a suspended shop cannot have its name rendered by a caller that
+     * forgot to filter. It reuses `isLive()`'s definition so the storefront and
+     * every downstream module keep agreeing on what live means.
+     *
+     * `city` IS NULL FOR NOW ON EVERY STORE, and the honesty matters more than the
+     * field: it is read from the store's contact address, which no seller-facing
+     * form yet writes (Store.md §2.6 — the contact block exists, the UI does not).
+     * The read is here so the surface is complete the day that form ships, rather
+     * than the API changing shape again then.
+     *
+     * NO OTHER PROFILE FIELDS. Logo, banner, announcement and support hours are a
+     * public READ SURFACE (ADR-034), not a downstream contract — a module that
+     * needs them is asking for the store page, which already exists.
+     *
+     * @param  array<int, string>  $storeUuids
+     * @return array<string, array{name: string, city: string|null}>
+     */
+    public function publicProfilesFor(array $storeUuids): array;
+
+    /**
      * Whether any store already trades under this name, case-insensitively.
      *
      * ADDED FOR THE ONBOARDING REFLOW (owner-approved, see the Store freeze
