@@ -24,9 +24,9 @@ export function ProductCard({ product, prices }: { product: Card; prices: BuyBox
   return (
     <Link
       href={`/urun/${product.id}`}
-      className="group flex flex-col overflow-hidden rounded-xl border border-ink-200 transition hover:border-brand-300 hover:shadow-lg dark:border-ink-800"
+      className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:-translate-y-1 hover:border-transparent hover:shadow-[0_20px_44px_-20px_rgba(20,25,35,.28)] dark:border-ink-800 dark:bg-ink-900"
     >
-      <div className="aspect-square overflow-hidden bg-ink-50 dark:bg-ink-900">
+      <div className="relative aspect-square bg-white p-4 dark:bg-ink-50">
         {product.image === null ? (
           // A placeholder, not a broken image: plenty of real listings have no
           // photograph yet and a missing file should not look like a fault.
@@ -38,28 +38,30 @@ export function ProductCard({ product, prices }: { product: Card; prices: BuyBox
           <img
             src={product.image}
             alt={product.title}
-            className="h-full w-full object-cover transition group-hover:scale-105"
+            className="h-full w-full object-contain mix-blend-multiply transition group-hover:scale-[1.04]"
             loading="lazy"
           />
         )}
       </div>
 
-      <div className="flex flex-1 flex-col gap-1 p-4">
+      <div className="flex flex-1 flex-col gap-1.5 p-3.5">
         {product.brand !== null && (
-          <span className="text-xs font-medium uppercase tracking-wide text-ink-500">
+          <span className="text-[.72rem] font-extrabold text-ink-900 dark:text-ink-100">
             {product.brand.name}
           </span>
         )}
 
-        <h3 className="line-clamp-2 font-medium leading-snug">{product.title}</h3>
+        <h3 className="line-clamp-2 min-h-[2.4em] text-sm leading-snug text-ink-600 dark:text-ink-300">
+          {product.title}
+        </h3>
 
-        <div className="mt-auto pt-3">
+        <div className="mt-auto pt-2">
           {price === undefined ? (
-            <span className="text-sm text-ink-500">şu an satışta yok</span>
+            <span className="text-sm font-semibold text-ink-500">şu an satışta yok</span>
           ) : (
-            <span className="text-lg font-bold text-brand-600">
+            <span className="flex items-baseline gap-1 text-[1.28rem] font-extrabold tracking-tight text-brand-600">
               {formatMoney(price.from_price, price.currency)}
-              <span className="ml-1 text-xs font-normal text-ink-500">'den başlayan</span>
+              <span className="text-[.72rem] font-semibold text-ink-500">&apos;den başlayan</span>
             </span>
           )}
         </div>

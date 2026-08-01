@@ -16,6 +16,20 @@ import { ProductGrid } from '@/components/ProductGrid';
  */
 export const dynamic = 'force-dynamic';
 
+// Editorial chrome (category shortcuts + promotional coupons) is static — it is
+// merchandising, not live data — so it lives here rather than behind a fetch.
+const categoryLinks = [
+  'Dermokozmetik', 'Cilt Bakımı', 'Güneş Ürünleri', 'Saç Bakımı',
+  'Anne & Bebek', 'Vitamin & Takviye', 'Kişisel Bakım', 'Ağız & Diş', 'Medikal',
+];
+
+const coupons = [
+  { amount: '50₺', title: '500 TL üzeri', note: 'Kod: SAGLIK50' },
+  { amount: '%15', title: 'Dermokozmetik', note: 'Sepette otomatik' },
+  { amount: '0₺', title: 'Kargo bedava', note: '200 TL üzeri' },
+  { amount: '%10', title: 'İlk siparişe', note: 'Kod: MERHABA' },
+];
+
 /**
  * The front page — newest sellable products (§2.2).
  *
@@ -31,32 +45,77 @@ export default async function HomePage() {
   const page = await browseProducts({ perPage: 12 });
 
   return (
-    <div className="flex flex-col gap-10">
-      <section className="rounded-2xl bg-gradient-to-br from-brand-500 to-brand-700 px-8 py-14 text-white">
-        <h1 className="max-w-2xl text-3xl font-bold leading-tight sm:text-4xl">
-          Binlerce satıcı, tek pazar yeri.
+    <div className="flex flex-col gap-9">
+      {/* category shortcuts */}
+      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+        {categoryLinks.map((c) => (
+          <Link
+            key={c}
+            href={`/urunler?category=${encodeURIComponent(c)}`}
+            className="flex flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
+          >
+            <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-brand-500 shadow-sm ring-1 ring-ink-100 dark:bg-ink-900 dark:ring-ink-800">
+              <LeafIcon />
+            </span>
+            <span className="text-center text-xs font-bold text-ink-600 dark:text-ink-300">{c}</span>
+          </Link>
+        ))}
+      </div>
+
+      {/* hero */}
+      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 px-8 py-14 text-white">
+        <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-extrabold">
+          ⚡ Süper Fırsat Günleri
+        </span>
+        <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-balance sm:text-[2.7rem]">
+          Cildine iyi gelen her şeyde %50&apos;ye varan indirim
         </h1>
-        <p className="mt-3 max-w-xl text-brand-50">
-          Aradığınızı en uygun fiyatla sunan satıcıyı sizin için öne çıkarıyoruz.
+        <p className="mt-3 max-w-xl text-[1.02rem] text-brand-50">
+          Onaylı satıcılardan orijinal ürünler, en uygun fiyatla — biz sizin için en iyi teklifi öne çıkarıyoruz.
         </p>
         <Link
           href="/urunler"
-          className="mt-6 inline-block rounded-lg bg-white px-5 py-2.5 font-medium text-brand-700 transition hover:bg-brand-50"
+          className="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-extrabold text-brand-700 transition hover:bg-brand-50"
         >
           Ürünleri keşfet
         </Link>
       </section>
 
+      {/* coupons */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        {coupons.map((c) => (
+          <div
+            key={c.title}
+            className="flex items-center gap-3.5 rounded-2xl border border-dashed border-ink-300 bg-white p-4 dark:border-ink-700 dark:bg-ink-900"
+          >
+            <div className="whitespace-nowrap text-2xl font-extrabold tracking-tight text-brand-600">{c.amount}</div>
+            <div className="border-l border-dashed border-ink-300 pl-3.5 dark:border-ink-700">
+              <div className="text-sm font-bold">{c.title}</div>
+              <div className="text-xs text-ink-500">{c.note}</div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* newest sellable products */}
       <section className="flex flex-col gap-5">
         <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-bold">Yeni eklenenler</h2>
-          <Link href="/urunler" className="text-sm text-brand-600 hover:underline">
-            tümünü gör
+          <h2 className="text-xl font-extrabold tracking-tight">Yeni eklenenler</h2>
+          <Link href="/urunler" className="text-sm font-bold text-brand-600 hover:underline">
+            tümünü gör →
           </Link>
         </div>
 
         <ProductGrid products={page.items} />
       </section>
     </div>
+  );
+}
+
+function LeafIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9z" />
+    </svg>
   );
 }

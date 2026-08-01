@@ -48,9 +48,13 @@ const config: Config = {
         },
       },
       fontFamily: {
-        // System stack: a marketplace's first paint should not wait on a font
-        // download, and Turkish diacritics render correctly in every one of these.
-        sans: ['system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+        // Manrope (the approved §2.3 face), self-hosted via next/font so there is
+        // no render-blocking CDN request and Turkish latin-ext ships in the same
+        // subset; the system stack stays as the fallback until the font paints.
+        sans: ['var(--font-manrope)', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
+      },
+      maxWidth: {
+        page: '80rem',
       },
     },
   },
