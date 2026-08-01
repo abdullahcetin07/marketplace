@@ -125,8 +125,11 @@ happily, and only shows up as a feature that quietly does not happen.
 
 Starting it also revealed that **OpenSearch is not reachable there**
 (`OPENSEARCH_HOST=opensearch`, a Compose service name), so every indexing job
-fails. That is a pre-existing condition the worker made visible rather than
-caused.
+failed. That is a pre-existing condition the worker made visible rather than
+caused — and the fix, owner-approved 2026-08-02, is `SCOUT_DRIVER=null` on that
+box: the `search` queue now drains through Scout's `NullEngine` instead of
+accumulating failures. **A switch, not a removal** — see
+[search.md](search.md).
 
 ---
 

@@ -147,6 +147,17 @@ user's save request.
 
 `SCOUT_DRIVER=null` in `.env.testing`, so the suite never reaches a cluster.
 
+**Also `null` on the bare-metal test box** (owner-approved 2026-08-02): there is
+no OpenSearch there, and `OPENSEARCH_HOST=opensearch` is a Compose service name
+that resolves to nothing on it, so every index job was failing. Scout falls back
+to its `NullEngine` — the calls succeed and do nothing.
+
+**Nothing was removed and nothing should be.** `Searchable` models, index jobs and
+mappings are all still here; standing the cluster up and setting the driver back
+to `opensearch` is the whole of that task. What is unavailable meanwhile is
+buyer-facing relevance search — the public browse and the seller's catalogue
+browse read Postgres by design (Offer.md §8.2) and are unaffected.
+
 `scout.prefix` (`mos_`) namespaces indexes so staging and production can share a
 cluster without overwriting each other's documents.
 

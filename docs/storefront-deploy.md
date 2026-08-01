@@ -132,15 +132,24 @@ php artisan media-library:regenerate --force
 — on this deployment that is true of most of them, because they are seeded demo
 rows.
 
-## OpenSearch is not running on this box
+## Search is switched OFF on this box — `SCOUT_DRIVER=null`
 
-`SCOUT_DRIVER=opensearch` and `OPENSEARCH_HOST=opensearch` — the Docker Compose
-service name, which resolves to nothing on bare metal. Every `MakeSearchable` /
-`RemoveFromSearch` job therefore fails on the `search` queue. Standing up the
-worker did not cause this; it made it **visible**, since the jobs previously just
-sat in Redis unattended.
+There is no OpenSearch here: `OPENSEARCH_HOST=opensearch` is the Docker Compose
+service name and resolves to nothing on bare metal, so every `MakeSearchable` /
+`RemoveFromSearch` job failed. Standing the worker up did not cause that; it made
+it **visible**, since the jobs had previously just sat in Redis unattended.
+Owner-approved 2026-08-02: `SCOUT_DRIVER=null`, which routes Scout to its
+`NullEngine` — indexing calls succeed and do nothing.
 
-Nothing customer-facing depends on it today: the public browse reads Postgres
-(`PublicProductBrowse`), and the seller's catalogue search reads Postgres by
-design (Offer.md §8.2). It needs an owner decision — run OpenSearch here, or set
-`SCOUT_DRIVER=null` on this box — and until then `failed_jobs` grows slowly.
+**A switch, not a removal.** Every `Searchable` model, every index job and every
+mapping stays exactly where it is; standing OpenSearch up and flipping this back
+to `opensearch` is the whole of that future task. Do not "clean up" the Scout
+wiring on the strength of this line.
+
+**Nothing customer-facing depends on it.** The public browse reads Postgres
+(`PublicProductBrowse`) and the seller's catalogue browse reads Postgres by
+design (Offer.md §8.2 — an internal panel must not be blocked by a search
+cluster). What is off is the buyer-facing *relevance* search that would use the
+index once it exists.
+
+After flipping it either way: `php artisan config:clear` and restart Horizon.
