@@ -12,8 +12,14 @@ frozen. `LayeringTest` + `CatalogBoundaryTest` stay green; money stays **decimal
 ### A — Catalog: product detail exposes `gtin` (Barkod)
 `GET /api/v1/products/{id}` currently returns
 `{id, slug, title, description, images, category, brand, attributes, variants}` — **no
-`gtin`**. The Product already stores a GTIN/barcode (Catalog §3.4). **Add `gtin` (string,
-nullable)** to the public detail response so the product page can show the Barkod row.
+`gtin`**. The data EXISTS: `Product.gtin` is stored and **entered by the seller at
+authoring** (verified — the seller `ProductResource` captures it). It is **deliberately
+withheld** from the public surface today: `PublicProductCardResource`'s docblock lists "the
+GTIN" among the excluded fields. **Re-expose it on the DETAIL surface only** — add
+`gtin` (string, nullable) to `PublicProductResource`. A barcode is printed on the physical
+product, so it is public-safe; this is not leaking anything private (unlike the internal id,
+moderation state or proposing company, which stay hidden). The card surface can keep
+excluding it.
 - **Attributes are already returned** (`attributes: [{name,value}]`) — no code change. They
   are empty for a product authored without them; "Cilt Tipi / Hacim / Kullanım" appear only
   when the **category defines those attributes** and the **seller entered them at authoring**.
