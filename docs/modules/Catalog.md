@@ -467,6 +467,7 @@ be built ahead of its approval (CLAUDE.md).
 | Search (§10) | `Product::toSearchableArray()`, `SyncProductSearchIndex` |
 | Core read contract (§8) | `App\Core\Domain\Contracts\CatalogQueryContract` |
 | Starter taxonomy (§13.3) | `Database\Modules\Catalog\Seeders\CatalogTaxonomySeeder` |
+| **Cosmetic demo schema (added 2026-08-02)** — Cilt Tipi / Hacim / Kullanım / Menşei bound to the cosmetic branch, values on the two real demo products. All **descriptive**; the two `select` ones are eligible to be variant axes and are explicitly refused, or a face cream would acquire "Hassas × Yüz" SKUs. Goes through `BindCategoryAttributeAction` + `SetProductAttributesAction`, never raw pivot rows, so it produces only data a seller could have produced. Idempotent, and it **skips any product that already carries values** — `SetProductAttributesAction` is a full replacement, and a seeder re-run must not wipe curated content. Not registered in `DatabaseSeeder`; an operator runs it | `Database\Modules\Catalog\Seeders\CosmeticAttributeDemoSeeder` |
 
 Localization is **per-locale columns**, tr + en (§13.5): `title_tr` / `title_en`,
 resolved through `Domain/Concerns/HasLocalizedText`. Catalog text is *content* —
@@ -515,3 +516,21 @@ Surfacing the fuzzy half is a UI addition, not a model change.
    fixed: `App\Shared\Traits\HasMedia`'s conversion chain (Catalog is the first module
    to attach media) and Scout's queue connection in `phpunit.xml` (the first Searchable
    model). Neither was Catalog's own bug.
+
+6. **An empty spec table on a product page was a TAXONOMY gap, not an authoring one**
+   (2026-08-02). The public detail surface has always returned `attributes`, and it was
+   empty for every product in the catalogue — because the platform held four attributes
+   (Renk, Beden, Malzeme, Garanti Süresi), all of them clothing or general, and the
+   cosmetic categories were bound to none of them. A seller cannot enter "Cilt Tipi"
+   when no category offers the field.
+
+   **The ordering is ADR-038's, and it is the thing to remember when adding attributes
+   later:** a Category Manager defines the attribute *on the category*, and only then
+   does it appear in the seller's authoring form — `AttributesRelationManager` builds
+   the form from `AttributeRepositoryContract::schemaFor($product->category)` minus that
+   category's variant axes. `SetProductAttributesAction` enforces the same order from
+   the other side: a value for an attribute the category does not bind is refused, not
+   stored. Defining an attribute globally does nothing on its own.
+
+   `CosmeticAttributeDemoSeeder` is demo scaffolding for one deployment, not taxonomy —
+   the real cosmetic schema is the owner's to curate.
