@@ -110,6 +110,24 @@ make queue-restart    # graceful restart (horizon:terminate)
 **Deploys must run `horizon:terminate`**, otherwise workers keep executing the
 previous release's code against the new database schema.
 
+### On the bare-metal test box
+
+`raftabul-horizon.service` (systemd, `www-data`, logs to
+`/var/log/raftabul-horizon.log`) — `ExecStart=artisan horizon`,
+`ExecStop=artisan horizon:terminate`, so a `systemctl restart` is already the
+graceful restart above. See [storefront-deploy.md](storefront-deploy.md).
+
+It was stood up on 2026-08-01, and until then **nothing drained the queues on
+that box**: media conversions never ran, so every product uploaded through the
+seller panel showed "görsel yok" on the storefront. Worth stating plainly — the
+absence of a worker is invisible in the application, which keeps enqueueing
+happily, and only shows up as a feature that quietly does not happen.
+
+Starting it also revealed that **OpenSearch is not reachable there**
+(`OPENSEARCH_HOST=opensearch`, a Compose service name), so every indexing job
+fails. That is a pre-existing condition the worker made visible rather than
+caused.
+
 ---
 
 ## Local development

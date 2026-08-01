@@ -120,10 +120,41 @@ trait HasMedia
     {
         $media = $this->getFirstMedia('images');
 
-        if ($media === null) {
-            return null;
-        }
+        return $media === null ? null : $this->urlFor($media, $conversion);
+    }
 
+    /**
+     * Every image in the collection, in order — the same fallback rule as
+     * `imageUrl()`, applied per image.
+     *
+     * FOR THE GALLERY ON A PUBLIC PAGE. Asking a media item for a conversion URL
+     * returns the path the conversion WOULD live at, generated or not: Spatie
+     * builds it by convention rather than by checking the disk. So a payload
+     * assembled without this check hands the browser a 404 for every image whose
+     * conversion has not been processed yet — which, on a queue that has fallen
+     * behind or stopped, is every image uploaded since.
+     *
+     * @return array<int, string>
+     */
+    public function imageUrls(string $conversion = 'preview'): array
+    {
+        return $this->getMedia('images')
+            ->map(fn (Media $media): string => $this->urlFor($media, $conversion))
+            ->values()
+            ->all();
+    }
+
+    /**
+     * The conversion's URL if it has actually been generated, otherwise the
+     * original's.
+     *
+     * A FULL-SIZE PHONE PHOTO IS THE FALLBACK, and that is the trade: the page is
+     * slower for as long as the queue is behind, and it WORKS. The alternative —
+     * a correct-looking URL nobody can fetch — reads to a shopper as a product
+     * with no picture, which is the one thing a listing cannot survive.
+     */
+    private function urlFor(Media $media, string $conversion): string
+    {
         return $media->hasGeneratedConversion($conversion)
             ? $media->getUrl($conversion)
             : $media->getUrl();

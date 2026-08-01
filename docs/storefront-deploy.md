@@ -91,15 +91,56 @@ products — published, with an active offer that Inventory says is available
 (ADR-058). A product whose last unit is held by an in-flight order correctly
 disappears until that order is placed or cancelled.
 
-## Media
-
-Product images are served by Laravel from `/storage`, and the conversions are
-made by a queued job. There is **no queue worker service yet**, so after
-uploading images somebody must run:
+## The queue — `raftabul-horizon.service`
 
 ```bash
-php artisan queue:work redis --stop-when-empty
+systemctl status raftabul-horizon      # is it running
+php artisan horizon:status             # what it thinks
+tail -f /var/log/raftabul-horizon.log  # what it is doing
+php artisan queue:failed               # what it could not do
 ```
 
-Until that becomes a systemd unit of its own, freshly uploaded product images
-render as "görsel yok" on the storefront.
+**Horizon, not `queue:work`.** `config/horizon.php` deliberately splits four
+queues across three supervisors — `notifications`+`default`, `search`, `media` —
+so a bulk product import cannot delay a password-reset mail. A bare
+`queue:work redis` serves only `default` and leaves `search` and `media`
+unattended, which is indistinguishable from a working worker until somebody
+wonders why nothing is indexed.
+
+`ExecStop` is `horizon:terminate`, not a kill: each worker finishes the job in
+its hands first. SIGKILL mid-conversion leaves a half-written file and a job
+already marked reserved.
+
+## Media
+
+Product images are served by Laravel from `/storage`. Conversions (`thumb`,
+`preview`, `large` — all webp) are made by a queued job, so the worker above is
+what makes an uploaded image appear.
+
+**A missing conversion no longer means a missing image.** Spatie builds a
+conversion URL by convention rather than by checking the disk, so a payload that
+asks for `preview` unconditionally hands the browser a well-formed 404 for
+everything the worker has not reached. Both the listing thumbnail and the product
+gallery now fall back to the **original** file until the conversion exists — the
+page is heavier for a minute and it works. To rebuild everything by hand:
+
+```bash
+php artisan media-library:regenerate --force
+```
+
+**"Görsel yok" with the queue healthy means the product genuinely has no images**
+— on this deployment that is true of most of them, because they are seeded demo
+rows.
+
+## OpenSearch is not running on this box
+
+`SCOUT_DRIVER=opensearch` and `OPENSEARCH_HOST=opensearch` — the Docker Compose
+service name, which resolves to nothing on bare metal. Every `MakeSearchable` /
+`RemoveFromSearch` job therefore fails on the `search` queue. Standing up the
+worker did not cause this; it made it **visible**, since the jobs previously just
+sat in Redis unattended.
+
+Nothing customer-facing depends on it today: the public browse reads Postgres
+(`PublicProductBrowse`), and the seller's catalogue search reads Postgres by
+design (Offer.md §8.2). It needs an owner decision — run OpenSearch here, or set
+`SCOUT_DRIVER=null` on this box — and until then `failed_jobs` grows slowly.

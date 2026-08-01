@@ -110,14 +110,18 @@ final class PublicProductResource extends JsonResource
     /**
      * Every gallery image, largest-usable conversion.
      *
+     * THROUGH THE SHARED HELPER, which falls back to the original when the
+     * conversion has not been generated. This used to ask each media item for its
+     * `preview` URL directly, and Spatie answers that by CONVENTION rather than by
+     * looking at the disk — so with the queue stopped every product page returned
+     * a set of perfectly-formed URLs that all 404'd, and the storefront rendered
+     * "görsel yok" for products that had images all along.
+     *
      * @return array<int, string>
      */
     private function gallery(): array
     {
-        return $this->getMedia('images')
-            ->map(static fn ($media): string => $media->getUrl('preview'))
-            ->values()
-            ->all();
+        return $this->imageUrls('preview');
     }
 
     /**

@@ -163,3 +163,56 @@ it('attaches every file in a multi-file upload', function (): void {
 
     expect($product->fresh()->getMedia('images'))->toHaveCount(2);
 });
+
+/*
+|--------------------------------------------------------------------------
+| A gallery URL a browser can actually fetch
+|--------------------------------------------------------------------------
+|
+| Conversions are QUEUED, so between the upload and the worker there is a window
+| where an image exists and its `preview` does not. The window is minutes when the
+| queue is healthy and unbounded when nothing is draining it — which is how this
+| deployment ran for weeks.
+|
+| `Queue::fake()` above puts every test in this file inside that window, which is
+| exactly the state these two assert against.
+*/
+
+it('serves the ORIGINAL while a conversion is still queued, never a dead path', function (): void {
+    ['product' => $product] = productWithGallery();
+
+    app(AttachProductMediaAction::class)->run($product, [galleryImage()]);
+
+    $media = $product->fresh()->getFirstMedia('images');
+
+    /*
+     * THE BUG THIS CLOSES. Spatie builds a conversion URL by CONVENTION — it does
+     * not look at the disk — so asking for one that has not been generated returns
+     * a perfectly-formed path that 404s. The product page did exactly that for its
+     * whole gallery, and the storefront rendered "görsel yok" for products whose
+     * images had been uploaded and stored correctly all along.
+     *
+     * A full-size phone photo is the fallback, and that IS the trade: the page is
+     * heavier until the worker catches up, and it works.
+     */
+    expect($media->hasGeneratedConversion('preview'))->toBeFalse()
+        ->and($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl()])
+        // The listing thumbnail already had this fallback; it is asserted here so
+        // the two cannot drift apart again.
+        ->and($product->fresh()->imageUrl('thumb'))->toBe($media->getUrl());
+});
+
+it('prefers the conversion the moment it exists', function (): void {
+    ['product' => $product] = productWithGallery();
+
+    app(AttachProductMediaAction::class)->run($product, [galleryImage()]);
+
+    $media = $product->fresh()->getFirstMedia('images');
+    $media->generated_conversions = ['preview' => true];
+    $media->save();
+
+    // The fallback is a fallback, not a policy: a generated conversion is smaller,
+    // webp, and the whole reason the conversions exist.
+    expect($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl('preview')])
+        ->and($media->getUrl('preview'))->not->toBe($media->getUrl());
+});
