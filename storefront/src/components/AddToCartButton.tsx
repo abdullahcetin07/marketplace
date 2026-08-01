@@ -62,9 +62,18 @@ export function AddToCartButton({ offerId }: { offerId: string }) {
         type="button"
         onClick={() => void onClick()}
         disabled={busy || status === 'loading'}
-        className="rounded-lg bg-brand-500 px-6 py-3 font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+        className="flex w-full items-center justify-center gap-2 rounded-xl bg-brand-500 px-6 py-3.5 text-base font-extrabold text-white transition hover:bg-brand-600 disabled:opacity-60"
       >
-        {busy ? 'Ekleniyor…' : 'Sepete ekle'}
+        {busy ? (
+          'Ekleniyor…'
+        ) : (
+          <>
+            <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+              <path d="M12 5v14M5 12h14" />
+            </svg>
+            Sepete ekle
+          </>
+        )}
       </button>
 
       {added && error === null && (
