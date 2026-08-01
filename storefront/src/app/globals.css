@@ -16,3 +16,13 @@
     @apply bg-white text-ink-900 antialiased dark:bg-ink-950 dark:text-ink-100;
   }
 }
+
+@layer utilities {
+  /* hide the scrollbar on horizontal chip/category strips without losing scroll */
+  .hide-scroll {
+    scrollbar-width: none;
+  }
+  .hide-scroll::-webkit-scrollbar {
+    display: none;
+  }
+}

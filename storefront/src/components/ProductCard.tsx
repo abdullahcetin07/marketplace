@@ -55,14 +55,25 @@ export function ProductCard({ product, prices }: { product: Card; prices: BuyBox
           {product.title}
         </h3>
 
+        {price !== undefined && price.seller_count > 1 && (
+          <span className="text-[.72rem] font-bold text-green-600">{price.seller_count} satıcı</span>
+        )}
+
         <div className="mt-auto pt-2">
           {price === undefined ? (
             <span className="text-sm font-semibold text-ink-500">şu an satışta yok</span>
           ) : (
-            <span className="flex items-baseline gap-1 text-[1.28rem] font-extrabold tracking-tight text-brand-600">
-              {formatMoney(price.from_price, price.currency)}
-              <span className="text-[.72rem] font-semibold text-ink-500">&apos;den başlayan</span>
-            </span>
+            <div className="flex flex-col">
+              {price.list_price !== null && (
+                <span className="text-[.78rem] text-ink-400 line-through">
+                  {formatMoney(price.list_price, price.currency)}
+                </span>
+              )}
+              <span className="flex items-baseline gap-1 text-[1.28rem] font-extrabold tracking-tight text-brand-600">
+                {formatMoney(price.from_price, price.currency)}
+                <span className="text-[.72rem] font-semibold text-ink-500">&apos;den başlayan</span>
+              </span>
+            </div>
           )}
         </div>
       </div>

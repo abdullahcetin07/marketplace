@@ -51,6 +51,7 @@ export type ProductDetail = {
   images: string[];
   category: { id: string; name: string; path: { id: string; name: string }[] };
   brand: { id: string; name: string } | null;
+  gtin: string | null;
   attributes: { name: string; value: string }[];
   variants: { id: string; label: string; is_default: boolean }[];
 };
@@ -58,7 +59,15 @@ export type ProductDetail = {
 /** Keyed by product id — absent means "nobody sells it", never "free". */
 export type BuyBoxPrices = Record<
   string,
-  { from_price: string; currency: string; in_stock: boolean }
+  {
+    from_price: string;
+    /** the featured offer's list price, for the struck-through display; never parsed */
+    list_price: string | null;
+    currency: string;
+    in_stock: boolean;
+    /** number of merchants (not offers) selling it — see ADR-042/039 */
+    seller_count: number;
+  }
 >;
 
 export type OfferRow = {
@@ -68,7 +77,7 @@ export type OfferRow = {
   list_price: string | null;
   currency: string;
   in_stock: boolean;
-  store: { id: string; name: string | null } | null;
+  store: { id: string; name: string | null; city: string | null } | null;
 };
 
 export type ProductOffers = {

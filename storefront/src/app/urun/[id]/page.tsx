@@ -81,14 +81,26 @@ export default async function ProductPage({ params }: Props) {
             <span className="font-bold text-green-600">✓ Orijinal ürün</span>
           </div>
 
-          {product.attributes.length > 0 && (
+          {(product.attributes.length > 0 || product.gtin) && (
             <dl className="my-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-ink-50 p-5 text-sm dark:bg-ink-900 sm:grid-cols-2">
+              {product.brand !== null && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-500">Marka</dt>
+                  <dd className="text-right font-bold">{product.brand.name}</dd>
+                </div>
+              )}
               {product.attributes.map((a) => (
                 <div key={a.name} className="flex justify-between gap-3">
                   <dt className="text-ink-500">{a.name}</dt>
                   <dd className="text-right font-bold">{a.value}</dd>
                 </div>
               ))}
+              {product.gtin && (
+                <div className="flex justify-between gap-3">
+                  <dt className="text-ink-500">Barkod</dt>
+                  <dd className="text-right font-bold tabular-nums">{product.gtin}</dd>
+                </div>
+              )}
             </dl>
           )}
 
@@ -134,7 +146,9 @@ export default async function ProductPage({ params }: Props) {
                   </div>
                   <div>
                     <div className="text-[.92rem] font-extrabold">{featured.store?.name ?? 'Mağaza'}</div>
-                    <div className="text-[.76rem] text-ink-500">Onaylı satıcı</div>
+                    <div className="text-[.76rem] text-ink-500">
+                      {featured.store?.city ? `${featured.store.city} · ` : ''}Onaylı satıcı
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2.5">
