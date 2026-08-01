@@ -128,14 +128,15 @@ export default async function ProductPage({ params }: Props) {
                 <span className="absolute -top-[11px] left-4 rounded-full bg-brand-500 px-2.5 py-0.5 text-[.7rem] font-extrabold uppercase tracking-wide text-white">
                   En uygun satıcı
                 </span>
-                {featured.store?.name != null && (
-                  <div className="mb-3 flex items-center gap-2.5">
-                    <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-[.9rem] font-extrabold text-brand-700 dark:bg-brand-500/15">
-                      {initials(featured.store.name)}
-                    </div>
-                    <div className="text-[.92rem] font-extrabold">{featured.store.name}</div>
+                <div className="mb-3 flex items-center gap-2.5">
+                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-brand-50 text-[.9rem] font-extrabold text-brand-700 dark:bg-brand-500/15">
+                    {initials(featured.store?.name ?? 'Mağaza')}
                   </div>
-                )}
+                  <div>
+                    <div className="text-[.92rem] font-extrabold">{featured.store?.name ?? 'Mağaza'}</div>
+                    <div className="text-[.76rem] text-ink-500">Onaylı satıcı</div>
+                  </div>
+                </div>
                 <div className="flex items-baseline gap-2.5">
                   <span className="text-[2rem] font-extrabold tracking-tight text-brand-600">
                     {formatMoney(featured.price, featured.currency)}
@@ -149,7 +150,10 @@ export default async function ProductPage({ params }: Props) {
                 <div className="mb-4 mt-1.5 flex items-center gap-1.5 text-[.82rem] font-extrabold text-green-600">
                   <span className="h-2 w-2 rounded-full bg-green-500" /> Stokta var · KDV dahil
                 </div>
-                <AddToCartButton offerId={featured.id} />
+                <AddToCartButton offerId={featured.id} variant="primary" label="Hemen Al" redirectOnAdd="/sepet" />
+                <div className="mt-2.5">
+                  <AddToCartButton offerId={featured.id} variant="secondary" label="Sepete ekle" />
+                </div>
                 <div className="mt-4 flex flex-col gap-2 border-t border-ink-100 pt-3.5 text-[.8rem] text-ink-500 dark:border-ink-800">
                   <span className="flex items-center gap-2">🚚 Hızlı ve güvenli kargo</span>
                   <span className="flex items-center gap-2">🛡️ Orijinal ürün &amp; 14 gün iade</span>
@@ -174,6 +178,7 @@ export default async function ProductPage({ params }: Props) {
                     <span className="whitespace-nowrap text-[1.02rem] font-extrabold text-brand-600">
                       {formatMoney(offer.price, offer.currency)}
                     </span>
+                    <AddToCartButton offerId={offer.id} variant="icon" />
                   </li>
                 ))}
               </ul>
