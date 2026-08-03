@@ -1,136 +1,149 @@
-# Work order — SEO-friendly public URLs (backend) + ADR-059
+# Work order — Flat SEO slug URLs (backend) + ADR-059
 
-**Status:** approved by owner 2026-08-03 ("şimdi, tam SEO", before Payment).
-Disposable — `git rm` this file when the work lands.
+**Status:** approved by owner 2026-08-03 ("düz / rakip tarzı" scheme, full SEO,
+before Payment). **Supersedes the prefixed draft.** Disposable — `git rm` when done.
 
 **Session split:** BACKEND → the **server session**. The frontend (desktop session)
-does the slug routes, category/brand pages, canonical tags, `sitemap.xml`,
-`robots.txt` and JSON-LD once these endpoints exist. Do **not** touch `storefront/`.
+does the catch-all route, the three page types, the real category menu, canonical,
+`sitemap.xml`, `robots.txt` and JSON-LD once these endpoints exist. Do **not** touch
+`storefront/`.
 
 ---
 
-## Why (and a LIVE BUG this also fixes)
+## The scheme (owner-chosen: flat, competitor-style)
 
-Today's public URLs are not addressable the way a search engine or a human wants,
-and one of them is outright broken:
+Root-level slugs, no `/urun` `/kategori` `/marka` prefixes:
 
-- Product is `/urun/{uuid}` — the API only resolves a product by uuid, so the slug
-  it already has (`laborum-iure-...`) is unusable in a URL.
-- Category links are `/urunler?category=Dermokozmetik` — the browse filter expects a
-  **uuid** and **500s on a name** (`?category=Dermokozmetik` → 500 live right now).
-  The home page's category shortcuts are therefore dead links.
-- Categories and brands have **no slug**, and there is **no `/categories` or
-  `/brands` endpoint** (both 404) — the storefront can't even list the real taxonomy.
-- There is no brand page at all.
+```
+Product   →  /avene-cicalfate-hassas-ve-yipranmis-ciltler-icin-bakim-kremi-40-ml
+Category  →  /cilt-bakimi
+Brand     →  /bioderma
+```
 
-### THE UUID-vs-STRING 500 IS THE SAME TRAP, NOW THE 3RD TIME
+For SEO **ranking** a prefix is neutral — Google ignores it — so this is an
+aesthetic/brand choice. Its real cost is a **shared namespace**: product, category,
+brand and the app's own routes (`/sepet`, `/hesap`, …) all live at the root, so a
+slug must be unique across ALL of them and must never equal a reserved route. That
+is what the registry and reserved list below buy.
 
-`/products/{slug}` → 500 and `?category={name}` → 500 are both
-`where('uuid_col', $string)` → **SQLSTATE[22P02]** on pgsql (SQLite returns false
-silently, so the suite stays green). Same class as the reservation-uuid bug and the
-geo bug. **Every lookup in this order must decide uuid-or-slug by shape and return
-404 on miss, never 500.** Add a pgsql feature test that asserts a non-uuid slug and
-an unknown value both resolve or 404 — not 500.
+## Why this also fixes a LIVE BUG + the recurring trap
+
+- `?category=Dermokozmetik` **500s** today (browse filter compares a uuid column to a
+  name). `/products/{slug}` **500s** (same). Both are the `where('uuid_col', $string)`
+  → **SQLSTATE[22P02]** trap — 3rd occurrence (reservation-uuid, geo, now this).
+  **Every lookup resolves by shape (uuid-pattern → uuid, else slug) and returns 404
+  on miss, never 500.** A pgsql test must assert non-uuid + unknown values 404/empty,
+  not 500.
 
 ---
 
 ## ADR-059 (new — apply to the ADR + the 001 amendment log + Catalog.md, same change)
 
-> **# ADR-059 Human-Readable Slugs Are the Public Storefront Address**
+> **# ADR-059 Flat Human-Readable Slugs Are the Public Storefront Address; a Global
+> Slug Registry Guarantees Uniqueness and Redirects**
 >
-> **Decision.** Product, category and brand are addressable in the storefront by a
-> unique **slug**, and the public read surface resolves a lookup by **slug OR uuid**.
-> Slugs are generated from the name (Turkish-aware: lowercased, diacritics folded —
-> "Cilt Bakımı" → `cilt-bakimi`), unique within their kind (a numeric suffix breaks
-> ties), and stable once issued. The storefront's canonical URL for an entity uses
-> its slug; a uuid URL 301-redirects to it (the frontend does the redirect).
+> **Decision.** The storefront addresses product, category and brand by a **flat,
+> root-level slug** (`/bioderma`, `/cilt-bakimi`, `/avene-...-krem`) — no type
+> prefix. Because all three (plus the app's own routes) share one root namespace, a
+> single **slug registry** owns every public slug and enforces uniqueness across the
+> three entity kinds and a reserved-word list. A slug is generated from the name
+> (Turkish-aware: İ/ı/ş/ğ/ü/ö/ç → i/i/s/g/u/o/c), unique (numeric suffix on
+> collision), and **stable once issued** — renaming an entity does not change its live
+> slug; when a slug must change, the old one is retained as a non-canonical alias that
+> **301-redirects** to the new one.
 >
-> **This does not weaken non-negotiable #7.** #7 forbids leaking the internal
-> auto-increment `id`; a slug is a *public* identifier like the uuid, not the
-> internal key. The API keeps uuids; slugs are an additional public lookup key.
+> **A resolver turns a slug into a type.** `GET /resolve/{slug}` returns the entity
+> kind + id (or 404), so the storefront's one catch-all route can render the right
+> page without guessing.
 >
-> **Every public lookup resolves by shape:** a parameter matching the uuid pattern is
-> looked up by uuid, otherwise by slug; a miss is 404. Passing a name/slug where a
-> uuid was assumed must never reach the database as a uuid comparison (the
-> SQLSTATE[22P02] class of bug).
+> **#7 intact.** A slug is a *public* identifier like the uuid, never the internal
+> auto-increment id. The API keeps uuids; slugs are an additional public key.
+> **Every lookup resolves by shape and 404s on miss — never a uuid-cast 500.**
 >
-> **Cost.** A slug column + unique index + backfill on products (already sluggable),
-> categories and brands; a slugify that must stay stable (renaming a category does
-> not silently change its URL — a new slug needs a redirect, a follow-up); two new
-> public read endpoints (`/categories`, `/brands`) and slug-or-uuid resolution on
-> product detail and the browse filters.
+> **Cost.** A `slugs` registry table + a reserved-word guard + backfill; slug
+> stability logic and a redirect alias trail; a resolver endpoint; two new public
+> read surfaces (`/categories`, `/brands`). The shared namespace means a new reserved
+> app route must be added to the backend list before the frontend ships it, or a
+> product could shadow it.
 
 ---
 
 ## Backend tasks
 
-### 1. Slugs on category + brand (Catalog — not frozen)
+### 1. Slug registry (Catalog — the core of this order)
 
-- Add `slug` (string, unique) to categories and brands. Generate from name with a
-  **Turkish-aware** slugify (fold İ/ı/ş/ğ/ü/ö/ç → i/i/s/g/u/o/c), unique with a
-  numeric suffix on collision. Backfill all existing rows.
-- Expose `slug` everywhere the entity already appears: product detail `category` +
-  every node of `category.path`, `brand`, and the new endpoints below.
-- Slug is auto-generated now; **operator-editable slug is a follow-up**, not this
-  order. Renaming a name must NOT auto-change an existing slug (URL stability).
+Create a `slugs` table: `{ slug (unique), sluggable_type, sluggable_id, is_canonical,
+timestamps }`. Every product, category and brand registers its slug here.
 
-### 2. Public category endpoints
+- **Uniqueness is global** — one unique index on `slug` across all three kinds.
+- **Reserved words** the slugify must never emit (append a suffix instead): `sepet,
+  hesap, odeme, giris, kayit, urunler, magaza, api, admin, seller, store, sanctum,
+  livewire, build, storage, sitemap.xml, sitemap, robots.txt, _next, favicon.ico,
+  giris-yap, cikis`. Keep this list in one place; it must match the storefront's
+  static routes (the frontend will confirm its set).
+- **Stability + redirects:** a name change does NOT mutate a canonical slug. If a slug
+  is deliberately changed, insert the new one canonical and keep the old row
+  `is_canonical=false` pointing at the same entity — the resolver reports it so the
+  frontend 301s.
+- Turkish-aware slugify (fold diacritics, lowercase, hyphenate, strip punctuation).
+- Backfill: products already have a slug string — migrate them into the registry;
+  generate + register category and brand slugs.
 
-```
-GET /api/v1/categories
-    → the active category tree, each node:
-      { id, name, slug, parent_id, children: [...], product_count }
-    product_count = count of SELLABLE products (≥1 active in-stock offer) in the
-    subtree — the same "sellable" rule the browse listing already uses.
-
-GET /api/v1/categories/{slug}
-    → { id, name, slug,
-        path: [{ id, name, slug }, ...],      // root → self, for breadcrumb
-        children: [{ id, name, slug, product_count }] }
-```
-
-Read through the existing Core `CatalogQueryContract` where it fits; no new
-cross-module import (Catalog owns this). ADR-009 envelope, anonymous, cache-friendly.
-
-### 3. Public brand endpoints
+### 2. Resolver
 
 ```
-GET /api/v1/brands            → [{ id, name, slug, product_count }]  (sellable only)
-GET /api/v1/brands/{slug}     → { id, name, slug, logo?, product_count }
+GET /api/v1/resolve/{slug}
+  → 200 { type: 'product' | 'category' | 'brand', id, slug, canonical_slug }
+  → 404 when no registry row
+canonical_slug differs from slug only for a retired alias → frontend 301s to it.
 ```
 
-### 4. Product resolve by slug OR uuid
+### 3. Category endpoints (slug-addressed)
 
-- `GET /api/v1/products/{idOrSlug}` — resolve by uuid when the param matches the uuid
-  pattern, else by slug; **404 on miss, never 500**. (Frontend will canonicalize a
-  uuid hit to the slug URL via 301, so keep both working.)
+```
+GET /api/v1/categories            → active tree: [{ id, name, slug, parent_id,
+                                      children: [...], product_count }]
+GET /api/v1/categories/{slug}     → { id, name, slug,
+                                      path: [{ id, name, slug }],   // breadcrumb
+                                      children: [{ id, name, slug, product_count }] }
+```
+`product_count` = SELLABLE products (≥1 active in-stock offer) in the subtree.
 
-### 5. Browse filters accept slug OR uuid — and stop 500ing
+### 4. Brand endpoints (slug-addressed)
 
+```
+GET /api/v1/brands           → [{ id, name, slug, product_count }]   (sellable only)
+GET /api/v1/brands/{slug}    → { id, name, slug, logo?, product_count }
+```
+
+### 5. Product + browse resolve by slug OR uuid, and stop 500ing
+
+- `GET /api/v1/products/{idOrSlug}` — uuid-pattern → uuid, else slug; 404 on miss.
 - `GET /api/v1/products?category={slug|uuid}` and `?brand={slug|uuid}` — resolve
-  slug→id internally; an unknown or malformed value returns an **empty page**, not a
-  500. This fixes the live category-link break.
-- Category filter should match the **subtree** (a parent category lists its
-  descendants' products), which is what a category landing page expects.
+  slug→id; category matches the **subtree**; unknown value → empty 200, never 500.
+- Expose `slug` on product detail's `category` + every `path` node, and on `brand`.
 
 ### 6. Tests
 
-- pgsql feature test: `/products/{slug}` 200; `/products/{unknown}` 404;
-  `?category={slug}` 200; `?category=made-up` empty+200; **none 500**.
+- pgsql: `/resolve/{productSlug|categorySlug|brandSlug}` returns the right type;
+  `/resolve/made-up` 404; `/products/{slug}` 200, `/products/{unknown}` 404;
+  `?category={slug}` 200, `?category=made-up` empty 200 — **none 500**.
+- slugify: Turkish folding, collision suffix, reserved-word avoidance, stability on
+  rename, alias→canonical redirect reporting.
 - `/categories`, `/categories/{slug}`, `/brands`, `/brands/{slug}` shapes.
-- slugify: Turkish folding + collision suffix + stability on rename.
-- `make check` green. Report: migrations, backfilled row counts, endpoint
-  signatures, and confirm the uuid/slug guard on each lookup.
+- `make check` green. Report: registry table, backfilled counts, reserved list,
+  endpoint signatures, and the uuid/slug guard on each lookup.
 
 ## Boundaries
 
-- Catalog is NOT frozen (Offer/Inventory/Order reach into it) — these are Catalog
-  additions. `LayeringTest` / `CatalogBoundaryTest` stay green (slugs carry no price
-  or stock). UUIDs still public; slugs are an additional public key (#7 intact).
+- Catalog is NOT frozen — these are Catalog additions; the registry is Catalog-owned
+  (product/category/brand are all Catalog). `LayeringTest` / `CatalogBoundaryTest`
+  stay green (slugs carry no price/stock). UUIDs still public; slugs additional (#7).
 
 ## Frontend follow-up (desktop session — NOT you)
 
-Once these land, the desktop session builds: `/urun/{slug}` (uuid→slug 301),
-`/kategori/{slug}`, `/marka/{slug}`, a real category menu from `/categories`,
-`<link rel=canonical>`, `sitemap.xml` + `robots.txt`, and Product/BreadcrumbList
-JSON-LD. Nothing for you in `storefront/`.
+Once these land: a single catch-all `/[slug]` that calls `/resolve`, then renders the
+product / category / brand view (404 unknown, 301 to `canonical_slug`); Next's static
+routes (`/sepet`, `/hesap`, …) naturally take precedence over the catch-all. Plus the
+real category menu from `/categories`, `<link rel=canonical>`, `sitemap.xml` +
+`robots.txt`, and Product/BreadcrumbList JSON-LD. Nothing for you in `storefront/`.
