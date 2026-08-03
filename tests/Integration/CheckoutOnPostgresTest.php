@@ -6,6 +6,8 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Catalog\Domain\Models\TaxRate;
+use App\Modules\Localization\Domain\Contracts\GeoRepositoryContract;
+use App\Modules\Localization\Domain\Models\GeoProvince;
 use App\Modules\Inventory\Domain\Models\StockReservation;
 use App\Modules\Offer\Application\Actions\CreateOfferAction;
 use App\Modules\Offer\Domain\DTOs\CreateOfferDTO;
@@ -240,4 +242,62 @@ it('keeps the reservation reference a string column, not a uuid', function (): v
 
     expect($type)->not->toBeNull('stock_reservations.reference is missing')
         ->and($type->data_type)->toBeIn(['character varying', 'text']);
+});
+
+/*
+|--------------------------------------------------------------------------
+| The same trap, a second time: the geo cascade (ADR-056 amendment)
+|--------------------------------------------------------------------------
+|
+| ADDED 2026-08-03, AFTER THIS EXACT CLASS OF BUG APPEARED AGAIN. The geo
+| endpoints resolve a parent by NAME — a saved address holds "İstanbul", not a
+| uuid — and the first implementation asked `where('uuid', $value)->orWhere('name',
+| $value)`, which is a 500 on PostgreSQL and a silent false on SQLite. It was
+| caught by hand, live, exactly like the reservation reference was.
+|
+| Twice is a pattern, so the guard lives here rather than in a comment: any read
+| that accepts user text and touches a `uuid` column gets a case in this file.
+*/
+
+it('resolves a province and district BY NAME on PostgreSQL', function (): void {
+    $province = GeoProvince::query()
+        ->whereHas('country', static fn ($q) => $q->where('iso2', 'TR'))
+        ->where('is_active', true)
+        ->first();
+
+    if ($province === null) {
+        $this->markTestSkipped('TR geography is not seeded on this database.');
+    }
+
+    $geo = app(GeoRepositoryContract::class);
+
+    /*
+     * THE CALL THAT USED TO THROW SQLSTATE[22P02]. "İstanbul" is not a uuid, and
+     * `geo_provinces.uuid` is a NATIVE uuid column here — so a comparison against
+     * it is a type error, not a non-match. If this fails with 22P02, somebody has
+     * put the uuid comparison back on the unconditional path.
+     */
+    expect($geo->districts($province->name, 'TR'))->not->toBeEmpty();
+
+    $district = $province->districts()->where('is_active', true)->first();
+
+    if ($district !== null) {
+        // Neighbourhoods take TWO user-supplied names, so both resolution paths
+        // are exercised.
+        $geo->neighborhoods($district->name, $province->name, 'TR');
+    }
+
+    // And a genuine uuid still resolves, so the guard did not simply disable the
+    // uuid path it was written to protect.
+    expect($geo->districts($province->uuid, 'TR'))->not->toBeEmpty();
+});
+
+it('keeps a name that is not a uuid away from the uuid column', function (): void {
+    // Belt and braces: the raw query, so the failure is unambiguous if the
+    // repository is ever refactored into something clever.
+    expect(static fn (): mixed => DB::connection('pgsql')
+        ->table('geo_provinces')
+        ->where('name', 'İstanbul')
+        ->first())
+        ->not->toThrow(\Throwable::class);
 });

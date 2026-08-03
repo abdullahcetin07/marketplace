@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Localization;
 
 use App\Modules\Localization\Domain\Contracts\CountryRepositoryContract;
+use App\Modules\Localization\Domain\Contracts\GeoRepositoryContract;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Localization\Domain\Contracts\LanguageRepositoryContract;
 use App\Modules\Localization\Domain\Contracts\TimezoneRepositoryContract;
@@ -16,6 +17,7 @@ use App\Modules\Localization\Domain\Models\Translation;
 use App\Modules\Localization\Infrastructure\DatabaseTranslationLoader;
 use App\Modules\Localization\Infrastructure\Observers\LocalizationCacheObserver;
 use App\Modules\Localization\Infrastructure\Repositories\CountryRepository;
+use App\Modules\Localization\Infrastructure\Repositories\GeoRepository;
 use App\Modules\Localization\Infrastructure\Repositories\CurrencyRepository;
 use App\Modules\Localization\Infrastructure\Repositories\LanguageRepository;
 use App\Modules\Localization\Infrastructure\Repositories\TimezoneRepository;
@@ -59,6 +61,7 @@ final class LocalizationServiceProvider extends ServiceProvider
         $this->app->singleton(LanguageRepositoryContract::class, LanguageRepository::class);
         $this->app->singleton(CurrencyRepositoryContract::class, CurrencyRepository::class);
         $this->app->singleton(CountryRepositoryContract::class, CountryRepository::class);
+        $this->app->singleton(GeoRepositoryContract::class, GeoRepository::class);
         $this->app->singleton(TimezoneRepositoryContract::class, TimezoneRepository::class);
 
         /*

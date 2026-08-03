@@ -1529,6 +1529,36 @@ and Catalog gains a field + a table for Order's sake. Accepted.
 
 Full specification: [docs/modules/Order.md](modules/Order.md) §0.7.
 
+## Amendment (2026-08-03) — an optional `neighborhood`, and a geo reference dataset
+
+The customer address gains an **optional `neighborhood`** (mahalle) field — nullable, free
+text in storage, exactly like `city` and `district`. Addresses remain country-agnostic:
+`neighborhood` is null for non-TR addresses and is never required by the API. It is
+snapshotted onto the order with the rest of the address (ADR-053), so a placed order keeps
+the mahalle it was shipped to.
+
+A separate, operator-manageable **geo reference dataset** (provinces → districts →
+neighbourhoods) is added as **Localization** lookup tables — `geo_provinces`,
+`geo_districts`, `geo_neighborhoods`, each with `is_active` (ADR-015) — to let TR clients
+offer a cascade. It is **reference data, not part of the address aggregate**, and imposes
+**no validation** on stored addresses: a client MAY send any string, and the address holds
+**no foreign key** into these tables.
+
+That last point is the amendment's load-bearing sentence. A neighbourhood is renamed, merged
+or created by administrative act several times a year; an address saved before that must not
+become invalid — or, worse, unreadable — because the registry moved on. The same reasoning
+that keeps `city` a string keeps this one, and it is also what lets every other country keep
+sending free text.
+
+**Rationale:** usability for the TR market (the platform's launch market) without re-opening
+structured world-address validation. Mahalle is what a Turkish courier actually routes on,
+and ~73,000 rows is why the level could not simply be bundled into the client the way il and
+ilçe were.
+
+**Cost:** a TR-specific dataset to seed and keep current, and a read surface to serve it.
+The dataset is committed gzipped rather than fetched at seed time, so refreshing it is a
+deliberate act with a reviewable diff instead of a deploy that depends on a third-party host.
+
 ---
 
 # ADR-057 Placement Holds the Reservation; Cancellation Is Actor-Typed (Amends ADR-054)

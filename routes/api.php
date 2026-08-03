@@ -11,6 +11,7 @@ use App\Modules\Identity\Presentation\Controllers\Api\PasswordController;
 use App\Modules\Identity\Presentation\Controllers\Api\ProfileController;
 use App\Modules\Identity\Presentation\Controllers\Api\SessionController;
 use App\Modules\Identity\Presentation\Controllers\Api\TwoFactorController;
+use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\StoreRequestController as AdminStoreRequestController;
@@ -84,6 +85,23 @@ Route::prefix('v1')
             Route::get('/localization', [LocalizationController::class, 'index'])->name('localization');
             Route::get('/localization/countries', [LocalizationController::class, 'countries'])->name('localization.countries');
             Route::get('/localization/timezones', [LocalizationController::class, 'timezones'])->name('localization.timezones');
+
+            /*
+            | The address form's il → ilçe → mahalle cascade (ADR-056 amendment).
+            |
+            | ANONYMOUS, like the country list above: a guest fills in a delivery
+            | address before signing up, and Turkey's administrative divisions
+            | are published by the state — a login in front of them protects
+            | nothing.
+            |
+            | ONE ROUTE PER LEVEL, each returning ONE PARENT'S CHILDREN. There is
+            | no "all neighbourhoods" route on purpose: it would be 73,300 rows,
+            | and a route that can express that is one somebody eventually calls
+            | on page load.
+            */
+            Route::get('/geo/provinces', [GeoController::class, 'provinces'])->name('geo.provinces');
+            Route::get('/geo/districts', [GeoController::class, 'districts'])->name('geo.districts');
+            Route::get('/geo/neighborhoods', [GeoController::class, 'neighborhoods'])->name('geo.neighborhoods');
         });
 
         /*

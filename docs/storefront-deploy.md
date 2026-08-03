@@ -153,3 +153,21 @@ cluster). What is off is the buyer-facing *relevance* search that would use the
 index once it exists.
 
 After flipping it either way: `php artisan config:clear` and restart Horizon.
+
+## Address geography (`geo_*`)
+
+The il → ilçe → mahalle cascade is reference data an operator seeds once, not
+part of a deploy:
+
+```bash
+php artisan db:seed --class="Database\Modules\Localization\Seeders\TurkeyGeoSeeder"
+```
+
+81 / 973 / 73,300 rows, ~6 seconds, idempotent, and it never touches `is_active`
+— so re-running it after an operator has retired a merged neighbourhood does not
+bring it back. See [localization.md](localization.md) for what was normalised on
+the way in.
+
+`php artisan cache:clear` afterwards: the reads are cached for a day, which is
+short for data that changes a few times a year and long enough to notice if you
+seed and then wonder why the dropdown is empty.

@@ -201,8 +201,20 @@ display; snapshotted only at checkout.
 
 ## 2.2 `CustomerAddress` (address book)
 `customer_id`/`uuid`, `label`, `recipient_name`, `phone`, `line1`, `line2`, `district`,
-`city`, `postal_code`, `country_id`, `is_default_shipping`, `is_default_billing`. Many per
-customer; customer-scoped CRUD.
+**`neighborhood`**, `city`, `postal_code`, `country_id`, `is_default_shipping`,
+`is_default_billing`. Many per customer; customer-scoped CRUD.
+
+**`neighborhood` (mahalle) — added 2026-08-03** (ADR-056 amendment). Nullable free text, like
+`city` and `district`, and carried into the order snapshot (§0.4) so a placed order keeps the
+mahalle it was shipped to. It is what a Turkish courier routes on, and a customer typing it
+into `line1` works right up until somebody has to sort parcels by it.
+
+**It is NOT a foreign key**, even though Localization now holds the full TR
+il/ilçe/mahalle registry (`geo_provinces` → `geo_districts` → `geo_neighborhoods`). Those
+tables exist so a client can offer a *dropdown*; they do not get a vote on whether an address
+is valid. A mahalle is renamed or merged by administrative act several times a year, and an
+address saved before that must not become invalid — or unreadable — because the registry
+moved on. It is also what keeps every non-TR address working with the field simply null.
 
 ## 2.3 `Order` (aggregate root, one per seller per checkout)
 `id` · `uuid` · `order_number` · `checkout_group_uuid` (groups a purchase) · `customer_id`/

@@ -16,6 +16,9 @@ Sprint 1. Reasoning and cost: [001_Architecture.md §9](001_Architecture.md).
 | `currencies` | symbol, separators, decimals, exchange rate | `code` (`TRY`) |
 | `timezones` | IANA name, curated display label | `name` |
 | `translations` | admin-editable string overrides | `(language, group, key)` |
+| `geo_provinces` | il — name + TR plate code, per country | `(country, name)` |
+| `geo_districts` | ilçe | `(province, name)` |
+| `geo_neighborhoods` | mahalle | `(district, name)` |
 
 Exactly one `languages` row and one `currencies` row may be `is_default` —
 enforced by a **partial unique index**, not only by a model hook. Two defaults
@@ -156,10 +159,35 @@ difference between a fast site and a slow one.
 GET /api/v1/localization              languages + currencies + current locale
 GET /api/v1/localization/countries    separate: large, only checkout needs it
 GET /api/v1/localization/timezones
+
+GET /api/v1/geo/provinces?country=TR                      il
+GET /api/v1/geo/districts?province=İstanbul               ilçe
+GET /api/v1/geo/neighborhoods?district=Kadıköy&province=İstanbul   mahalle
 ```
 
 Unauthenticated by design — the storefront needs the switcher before anyone
-signs in, and everything served is already public on the rendered page.
+signs in, and everything served is already public on the rendered page. The geo
+cascade is anonymous for the same reason plus one more: a guest fills in a
+delivery address before they have an account.
+
+**A parent may be named or identified.** `?province=İstanbul` and
+`?province={uuid}` both work, and the NAME is the case that matters — ADR-056
+stores `city`/`district` as free strings, so a client reopening a *saved* address
+holds names and no ids. Matching is diacritic- and case-insensitive
+("Kahta"/"Kâhta", "istanbul"/"İSTANBUL"), because two lists in this repo already
+spell four district names differently.
+
+**An unresolvable or missing parent is an empty list, not a 404.** A saved
+address may name a district that has since been renamed; "no options" lets the
+form fall back to free text, while a 404 reads as a broken endpoint. There is
+deliberately **no "all neighbourhoods" route** — 73,300 rows is not a payload,
+and a route that can express it is one somebody eventually calls on page load.
+
+**Sorted with a `tr` collator in PHP, not by SQL.** Turkish order interleaves ç
+after c, ğ after g, ı before i, ö after o, ş after s, ü after u — which neither
+SQLite's byte comparison nor a default-collation Postgres produces, so
+`ORDER BY name` puts İstanbul after Isparta. Every read here is one parent's
+children, so sorting them in PHP costs nothing and is correct on every driver.
 
 ---
 
@@ -173,3 +201,31 @@ Idempotent, and deliberately does **not** overwrite `exchange_rate` on re-run �
 a deploy must not reset rates the update job has since refreshed.
 
 In tests: `$this->seedPlatform()`.
+
+### `TurkeyGeoSeeder` — il / ilçe / mahalle
+
+81 provinces, 973 districts, **73,300 neighbourhoods**. **Not** registered in
+`DatabaseSeeder` and not part of `seedPlatform()`: an operator runs it once, and
+73k rows in every test database would make the suite unusable. A test that needs
+geography builds the three rows it is testing.
+
+```bash
+php artisan db:seed --class="Database\Modules\Localization\Seeders\TurkeyGeoSeeder"
+```
+
+The data is committed **gzipped** at `database/Modules/Localization/data/tr-geo.json.gz`
+(400 KB; 1.5 MB of JSON). Fetching it at seed time would make a deploy depend on a
+third-party host still existing and still serving the same shape — the failure
+nobody can diagnose at 2am. Source: `muratgozel/turkey-neighbourhoods` (MIT), from
+the NVİ registry.
+
+Names were normalised on the way in: the redundant "Mah" label dropped
+("Caferağa Mah" → "Caferağa"), whitespace collapsed, and the first letter of the
+disambiguating parenthetical capitalised ("(konalga Köyü)" → "(Konalga Köyü)").
+"Köyü", "Beldesi" and "Yaylası" are **kept** — they are the place TYPE, not a
+label, and a village and a neighbourhood of the same name are different places.
+
+Idempotent on `(parent, name)`, which the UNIQUE indexes enforce, and it **never
+touches `is_active`** — a neighbourhood an operator deactivated stays deactivated
+through a re-seed. That is the property that matters: re-seeding must not undo an
+operator's decision.
