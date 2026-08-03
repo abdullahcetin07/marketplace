@@ -44,7 +44,7 @@ export function AddressForm({
   const [form, setForm] = useState<AddressInput>({
     label: initial?.label ?? '',
     recipientName: initial?.recipientName ?? '',
-    phone: initial?.phone ?? '',
+    phone: maskPhone(initial?.phone ?? ''),
     line1: initial?.line1 ?? '',
     line2: initial?.line2 ?? '',
     neighborhood: initial?.neighborhood ?? '',
@@ -152,7 +152,17 @@ export function AddressForm({
           <input type="text" required autoComplete="name" className={input} {...bind('recipientName')} />
         </Row>
         <Row label="Telefon" error={errors.phone?.[0]}>
-          <input type="tel" required autoComplete="tel" className={input} {...bind('phone')} />
+          <input
+            type="tel"
+            required
+            autoComplete="tel"
+            inputMode="numeric"
+            placeholder="5XX-XXX-XXXX"
+            maxLength={12}
+            className={input}
+            value={form.phone}
+            onChange={(event) => setForm((current) => ({ ...current, phone: maskPhone(event.target.value) }))}
+          />
         </Row>
       </div>
 
@@ -289,6 +299,30 @@ export function AddressForm({
  * a saved field: the stored value is kept as an extra option until the real list
  * confirms it. A value already in the list is not duplicated.
  */
+/**
+ * A Turkish mobile number, grouped as the user types (5XX-XXX-XXXX).
+ *
+ * It only ever holds up to 10 digits: a leading trunk `0` and a `+90` / `90`
+ * country code are stripped, because they are not part of the number a mask should
+ * carry — a Turkish mobile is ten digits starting with 5. The server takes any
+ * string (max 32), so the dashes ride along as a readable label rather than being
+ * a format the API enforces.
+ */
+function maskPhone(value: string): string {
+  let digits = value.replace(/\D/g, '');
+  if (digits.startsWith('90')) digits = digits.slice(2);
+  digits = digits.replace(/^0+/, '').slice(0, 10);
+
+  const a = digits.slice(0, 3);
+  const b = digits.slice(3, 6);
+  const c = digits.slice(6, 10);
+
+  if (digits.length <= 3) return a;
+  if (digits.length <= 6) return `${a}-${b}`;
+
+  return `${a}-${b}-${c}`;
+}
+
 function options(list: GeoPlace[] | null, current: string): string[] {
   const names = (list ?? []).map((place) => place.name);
 
