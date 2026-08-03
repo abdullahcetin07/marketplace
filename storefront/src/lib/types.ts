@@ -71,6 +71,8 @@ export type Address = {
   phone: string;
   line1: string;
   line2: string | null;
+  /** Mahalle (ADR-056 amendment 2026-08-03) — optional, TR structured. */
+  neighborhood: string | null;
   district: string | null;
   city: string;
   postal_code: string | null;
@@ -86,11 +88,15 @@ export type AddressInput = {
   phone: string;
   line1: string;
   line2: string;
+  neighborhood: string;
   district: string;
   city: string;
   postalCode: string;
   country: string;
 };
+
+/** One geo place from the Localization geo endpoint — il, ilçe or mahalle. */
+export type GeoPlace = { id: string; name: string; code?: string };
 
 /**
  * The frozen address an order carries (ADR-053/056).
@@ -105,6 +111,7 @@ export type AddressSnapshot = {
   phone: string | null;
   line1: string | null;
   line2: string | null;
+  neighborhood: string | null;
   district: string | null;
   city: string | null;
   postal_code: string | null;

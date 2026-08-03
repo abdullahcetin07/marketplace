@@ -101,6 +101,7 @@ export default function AddressBookPage() {
                   phone: address.phone,
                   line1: address.line1,
                   line2: address.line2 ?? '',
+                  neighborhood: address.neighborhood ?? '',
                   district: address.district ?? '',
                   city: address.city,
                   postalCode: address.postal_code ?? '',

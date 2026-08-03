@@ -22,7 +22,7 @@
  * makes it possible — the whole reason ADR-058 chose one origin.
  */
 
-import type { Address, AddressInput, CartView, Country, Order, User } from './types';
+import type { Address, AddressInput, CartView, Country, GeoPlace, Order, User } from './types';
 
 /** Laravel's envelope, again — see `api.ts`. */
 type Envelope<T> = { success: boolean; data: T; message?: string | null };
@@ -242,6 +242,7 @@ function addressBody(input: AddressInput): Record<string, unknown> {
     // Empty strings become null: an optional field left blank is ABSENT, not a
     // blank line printed on a parcel label.
     line2: input.line2 === '' ? null : input.line2,
+    neighborhood: input.neighborhood === '' ? null : input.neighborhood,
     district: input.district === '' ? null : input.district,
     city: input.city,
     postal_code: input.postalCode === '' ? null : input.postalCode,
@@ -285,6 +286,42 @@ export async function fetchCountries(): Promise<Country[]> {
   const envelope = (await response.json()) as Envelope<{ code: string; name: string }[]>;
 
   return envelope.data.map((country) => ({ code: country.code, name: country.name }));
+}
+
+/*
+|------------------------------------------------------------------------------
+| Geo cascade for TR addresses (ADR-056 amendment 2026-08-03)
+|------------------------------------------------------------------------------
+|
+| PUBLIC, CACHED REFERENCE DATA served from Localization — il → ilçe → mahalle.
+| The single source of truth: the form used to bundle its own il/ilçe list, which
+| drifted from the registry by two names; reading the same tables the address is
+| validated against is how the pick and the parcel can never disagree. Names in
+| (what the client holds), names out (what it stores as city/district/neighborhood).
+*/
+
+async function fetchGeo(path: string): Promise<GeoPlace[]> {
+  const response = await fetch(path, { headers: { Accept: 'application/json' } });
+
+  if (!response.ok) return [];
+
+  const envelope = (await response.json().catch(() => null)) as Envelope<GeoPlace[]> | null;
+
+  return envelope?.data ?? [];
+}
+
+export function fetchProvinces(): Promise<GeoPlace[]> {
+  return fetchGeo('/api/v1/geo/provinces');
+}
+
+export function fetchDistricts(province: string): Promise<GeoPlace[]> {
+  return fetchGeo(`/api/v1/geo/districts?province=${encodeURIComponent(province)}`);
+}
+
+export function fetchNeighborhoods(province: string, district: string): Promise<GeoPlace[]> {
+  return fetchGeo(
+    `/api/v1/geo/neighborhoods?province=${encodeURIComponent(province)}&district=${encodeURIComponent(district)}`,
+  );
 }
 
 /*

@@ -1,25 +1,32 @@
 'use client';
 
-import { useState } from 'react';
-import { SessionApiError } from '@/lib/session-api';
-import { districtsOf, TR_PROVINCE_NAMES } from '@/lib/tr-geo';
+import { useEffect, useState } from 'react';
+import {
+  fetchDistricts,
+  fetchNeighborhoods,
+  fetchProvinces,
+  SessionApiError,
+} from '@/lib/session-api';
 import { ui } from '@/lib/ui';
-import type { AddressInput, Country } from '@/lib/types';
+import type { AddressInput, Country, GeoPlace } from '@/lib/types';
 
 /**
- * One address, entered or edited (ADR-056).
+ * One address, entered or edited (ADR-056 + the 2026-08-03 geo amendment).
  *
- * THE FIELDS ARE LOOSE ON PURPOSE, matching the API: `city` and `district` are
- * free text because validating world addresses structurally is a project of its
- * own, and getting it half right rejects real addresses — which is worse than
- * accepting an odd one, since a human reads it off a parcel either way.
+ * TR CASCADES OFF THE LOCALIZATION GEO ENDPOINT — İl → İlçe → Mahalle, each list
+ * fetched from the SAME tables the address is validated against. An earlier version
+ * bundled its own il/ilçe list, which drifted from the registry by two names; a
+ * pick that can't match the registry is a parcel sent nowhere, so there is one
+ * source now. Every other country keeps free text — a dropdown of the world is the
+ * project ADR-056 declined to take on.
  *
- * `label` IS WHAT MAKES A BOOK USABLE. "Ev", "İş" — the string a customer picks
- * by at checkout. It is required for that reason and no other.
+ * STILL STRINGS ON THE WIRE. A selected il/ilçe/mahalle is sent as the plain
+ * `city` / `district` / `neighborhood` string; the geo tables are an input aid, not
+ * a foreign key on the address (ADR-056 stays country-agnostic in storage).
  *
- * ERRORS ARE THE SERVER'S, per field. The country list comes from Localization,
- * so a deactivated country is simply not offered rather than being accepted here
- * and refused there.
+ * `label` IS WHAT MAKES A BOOK USABLE. "Ev", "İş" — the string a customer picks by
+ * at checkout. Required for that reason and no other. Errors are the server's, per
+ * field; the country list comes from Localization.
  */
 export function AddressForm({
   countries,
@@ -40,6 +47,7 @@ export function AddressForm({
     phone: initial?.phone ?? '',
     line1: initial?.line1 ?? '',
     line2: initial?.line2 ?? '',
+    neighborhood: initial?.neighborhood ?? '',
     district: initial?.district ?? '',
     city: initial?.city ?? '',
     postalCode: initial?.postalCode ?? '',
@@ -49,6 +57,59 @@ export function AddressForm({
   const [busy, setBusy] = useState(false);
   const [errors, setErrors] = useState<Record<string, string[]>>({});
   const [message, setMessage] = useState<string | null>(null);
+
+  // The three geo lists, each fetched when its parent is chosen. A `null` list
+  // means "not loaded yet" (show a loading hint); `[]` means "loaded, none".
+  const isTR = form.country === 'TR';
+  const [provinces, setProvinces] = useState<GeoPlace[] | null>(null);
+  const [districts, setDistricts] = useState<GeoPlace[] | null>(null);
+  const [neighborhoods, setNeighborhoods] = useState<GeoPlace[] | null>(null);
+
+  // İl list — once, when the form is (or becomes) a TR address.
+  useEffect(() => {
+    if (!isTR || provinces !== null) return;
+
+    let live = true;
+    void fetchProvinces().then((list) => live && setProvinces(list));
+
+    return () => {
+      live = false;
+    };
+  }, [isTR, provinces]);
+
+  // İlçe list — follows the chosen İl.
+  useEffect(() => {
+    if (!isTR || form.city === '') {
+      setDistricts(null);
+
+      return;
+    }
+
+    let live = true;
+    setDistricts(null);
+    void fetchDistricts(form.city).then((list) => live && setDistricts(list));
+
+    return () => {
+      live = false;
+    };
+  }, [isTR, form.city]);
+
+  // Mahalle list — follows the chosen İlçe.
+  useEffect(() => {
+    if (!isTR || form.city === '' || form.district === '') {
+      setNeighborhoods(null);
+
+      return;
+    }
+
+    let live = true;
+    setNeighborhoods(null);
+    void fetchNeighborhoods(form.city, form.district).then((list) => live && setNeighborhoods(list));
+
+    return () => {
+      live = false;
+    };
+  }, [isTR, form.city, form.district]);
 
   function bind(name: keyof AddressInput) {
     return {
@@ -80,21 +141,6 @@ export function AddressForm({
 
   const input = ui.field;
 
-  // Editing a legacy address whose il/ilçe was free-typed before this cascade
-  // existed: keep its value as an extra option so opening the form never silently
-  // blanks a saved field. A value already in the registry list is not duplicated.
-  const provinceValue = form.city;
-  const provinceOptions =
-    form.city !== '' && !TR_PROVINCE_NAMES.includes(form.city)
-      ? [form.city, ...TR_PROVINCE_NAMES]
-      : TR_PROVINCE_NAMES;
-
-  const baseDistricts = districtsOf(form.city);
-  const districtOptions =
-    form.district !== '' && !baseDistricts.includes(form.district)
-      ? [form.district, ...baseDistricts]
-      : baseDistricts;
-
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
       <Row label="Adres adı" error={errors.label?.[0]}>
@@ -110,55 +156,72 @@ export function AddressForm({
         </Row>
       </div>
 
-      <Row label="Adres" error={errors.line1?.[0]}>
-        <input type="text" required autoComplete="address-line1" className={input} {...bind('line1')} />
-      </Row>
-
-      <Row label="Adres devamı (isteğe bağlı)" error={errors.line2?.[0]}>
-        <input type="text" autoComplete="address-line2" className={input} {...bind('line2')} />
-      </Row>
-
-      {/* TR gets a real cascade — İl chooses, İlçe narrows (ADR-056: still sent as
-          the same `city`/`district` strings, so the API stays country-agnostic).
-          Any other country keeps free text, because a dropdown of the world is the
-          project ADR-056 declined to take on. */}
-      {form.country === 'TR' ? (
-        <div className="grid gap-3 sm:grid-cols-3">
+      {/* TR gets the cascade; anywhere else keeps free text (ADR-056). */}
+      {isTR ? (
+        <div className="grid gap-3 sm:grid-cols-2">
           <Row label="İl" error={errors.city?.[0]}>
             <select
               required
               className={input}
-              value={provinceValue}
+              value={form.city}
+              disabled={provinces === null}
               onChange={(event) =>
-                // Changing the province invalidates the old district — clear it so
-                // "Kadıköy, Ankara" can never be saved.
-                setForm((current) => ({ ...current, city: event.target.value, district: '' }))
+                // A new province invalidates the old district and mahalle — clear
+                // both so "Caferağa, Ankara" can never be saved.
+                setForm((current) => ({ ...current, city: event.target.value, district: '', neighborhood: '' }))
               }
             >
-              <option value="">Seçiniz</option>
-              {provinceOptions.map((name) => (
+              <option value="">{provinces === null ? 'Yükleniyor…' : 'Seçiniz'}</option>
+              {options(provinces, form.city).map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>
               ))}
             </select>
           </Row>
+
           <Row label="İlçe" error={errors.district?.[0]}>
             <select
               required
               className={input}
               value={form.district}
-              disabled={form.city === ''}
-              onChange={(event) => setForm((current) => ({ ...current, district: event.target.value }))}
+              disabled={form.city === '' || districts === null}
+              onChange={(event) =>
+                setForm((current) => ({ ...current, district: event.target.value, neighborhood: '' }))
+              }
             >
-              <option value="">{form.city === '' ? 'Önce il seçin' : 'Seçiniz'}</option>
-              {districtOptions.map((name) => (
+              <option value="">
+                {form.city === '' ? 'Önce il seçin' : districts === null ? 'Yükleniyor…' : 'Seçiniz'}
+              </option>
+              {options(districts, form.district).map((name) => (
                 <option key={name} value={name}>
                   {name}
                 </option>
               ))}
             </select>
           </Row>
+
+          <Row label="Mahalle (isteğe bağlı)" error={errors.neighborhood?.[0]}>
+            <select
+              className={input}
+              disabled={form.district === '' || neighborhoods === null}
+              {...bind('neighborhood')}
+            >
+              <option value="">
+                {form.district === ''
+                  ? 'Önce ilçe seçin'
+                  : neighborhoods === null
+                    ? 'Yükleniyor…'
+                    : 'Seçiniz'}
+              </option>
+              {options(neighborhoods, form.neighborhood).map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </Row>
+
           <Row label="Posta kodu" error={errors.postal_code?.[0]}>
             <input type="text" inputMode="numeric" className={input} {...bind('postalCode')} />
           </Row>
@@ -176,6 +239,14 @@ export function AddressForm({
           </Row>
         </div>
       )}
+
+      <Row label="Adres (sokak, bina, daire no)" error={errors.line1?.[0]}>
+        <input type="text" required autoComplete="address-line1" className={input} {...bind('line1')} />
+      </Row>
+
+      <Row label="Adres devamı (isteğe bağlı)" error={errors.line2?.[0]}>
+        <input type="text" autoComplete="address-line2" className={input} {...bind('line2')} />
+      </Row>
 
       <Row label="Ülke" error={errors.country?.[0]}>
         <select required className={input} {...bind('country')}>
@@ -208,6 +279,20 @@ export function AddressForm({
       </div>
     </form>
   );
+}
+
+/**
+ * The option names for a select, with the current value guaranteed present.
+ *
+ * Editing a legacy address whose il/ilçe/mahalle was free-typed before the geo
+ * cascade — or one whose registry list is still loading — must never silently blank
+ * a saved field: the stored value is kept as an extra option until the real list
+ * confirms it. A value already in the list is not duplicated.
+ */
+function options(list: GeoPlace[] | null, current: string): string[] {
+  const names = (list ?? []).map((place) => place.name);
+
+  return current !== '' && !names.includes(current) ? [current, ...names] : names;
 }
 
 function Row({

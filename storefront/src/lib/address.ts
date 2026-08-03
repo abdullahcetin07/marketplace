@@ -13,7 +13,7 @@ export function formatAddress(address: Address): string {
     address.phone,
     address.line1,
     address.line2,
-    [address.district, address.city].filter(Boolean).join(' '),
+    [address.neighborhood, address.district, address.city].filter(Boolean).join(' '),
     [address.postal_code, address.country].filter(Boolean).join(' '),
   ]
     .filter((line) => line !== null && line.trim() !== '')
