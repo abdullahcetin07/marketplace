@@ -44,6 +44,9 @@ final class CustomerAddressRequest extends BaseRequest
             'line1' => ['required', 'string', 'max:255'],
             'line2' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],
+            // Never required, and never checked against the geo tables: those
+            // are a dropdown's data source, not a validator (ADR-056 amendment).
+            'neighborhood' => ['nullable', 'string', 'max:255'],
             'city' => ['required', 'string', 'max:255'],
             'postal_code' => ['nullable', 'string', 'max:20'],
             'country' => ['required', 'string', 'size:2', 'exists:countries,iso2'],
@@ -63,6 +66,7 @@ final class CustomerAddressRequest extends BaseRequest
             countryCode: (string) $this->validated('country'),
             line2: $this->validated('line2'),
             district: $this->validated('district'),
+            neighborhood: $this->validated('neighborhood'),
             postalCode: $this->validated('postal_code'),
             isDefaultShipping: (bool) ($this->validated('is_default_shipping') ?? false),
             isDefaultBilling: (bool) ($this->validated('is_default_billing') ?? false),

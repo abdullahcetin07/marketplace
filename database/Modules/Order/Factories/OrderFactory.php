@@ -81,6 +81,7 @@ final class OrderFactory extends Factory
             'line1' => fake()->streetAddress(),
             'line2' => null,
             'district' => 'Kadıköy',
+            'neighborhood' => 'Caferağa',
             'city' => 'İstanbul',
             'postal_code' => fake()->numerify('#####'),
             'country_code' => 'TR',

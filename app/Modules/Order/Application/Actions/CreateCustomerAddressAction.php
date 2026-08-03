@@ -78,6 +78,7 @@ final class CreateCustomerAddressAction extends BaseAction
             'line1' => $data->line1,
             'line2' => $data->line2,
             'district' => $data->district,
+            'neighborhood' => $data->neighborhood,
             'city' => $data->city,
             'postal_code' => $data->postalCode,
             'country_id' => $country->getKey(),

@@ -32,6 +32,8 @@ final class CustomerAddressDTO extends BaseDTO
         public readonly string $countryCode,
         public readonly ?string $line2 = null,
         public readonly ?string $district = null,
+        /** The mahalle — TR addresses only; null everywhere else (ADR-056 amendment). */
+        public readonly ?string $neighborhood = null,
         public readonly ?string $postalCode = null,
         public readonly bool $isDefaultShipping = false,
         public readonly bool $isDefaultBilling = false,

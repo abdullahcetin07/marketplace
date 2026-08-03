@@ -37,11 +37,19 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * and "who changed the delivery address, and when" is a fraud question. Cheap
  * here, because addresses change rarely.
  *
- * TURKISH SHAPE, deliberately: `district` (ilçe) beside `city` (il), and a
- * `country_id` into Localization's lookup because that is the one exception every
- * module reads (§5.1). The rest are plain strings — validating world addresses
- * structurally is a project of its own, and getting it half right rejects real
- * addresses.
+ * TURKISH SHAPE, deliberately: `district` (ilçe) and `neighborhood` (mahalle)
+ * beside `city` (il), and a `country_id` into Localization's lookup because that
+ * is the one exception every module reads (§5.1). The rest are plain strings —
+ * validating world addresses structurally is a project of its own, and getting it
+ * half right rejects real addresses.
+ *
+ * `neighborhood` IS A STRING, NOT A REFERENCE, even though Localization now holds
+ * a full TR il/ilçe/mahalle dataset (ADR-056 amendment, 2026-08-03). The dataset
+ * exists so a client can offer a dropdown; it does not get to decide whether an
+ * address is valid. A mahalle is renamed, merged or created by administrative
+ * act, and an address saved last year must not become invalid — or unreadable —
+ * because the registry moved on. Every other country sends free text here or
+ * nothing at all, which the same decision allows for free.
  *
  * @property int $id
  * @property string $uuid
@@ -53,6 +61,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string $line1
  * @property string|null $line2
  * @property string|null $district
+ * @property string|null $neighborhood
  * @property string $city
  * @property string|null $postal_code
  * @property int $country_id
@@ -87,6 +96,7 @@ final class CustomerAddress extends Model
         'line1',
         'line2',
         'district',
+        'neighborhood',
         'city',
         'postal_code',
         'country_id',
@@ -129,6 +139,7 @@ final class CustomerAddress extends Model
             'line1' => $this->line1,
             'line2' => $this->line2,
             'district' => $this->district,
+            'neighborhood' => $this->neighborhood,
             'city' => $this->city,
             'postal_code' => $this->postal_code,
             'country_code' => $this->country->iso2,

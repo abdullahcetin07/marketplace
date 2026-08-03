@@ -32,6 +32,7 @@ final class CustomerAddressResource extends JsonResource
             'line1' => $this->line1,
             'line2' => $this->line2,
             'district' => $this->district,
+            'neighborhood' => $this->neighborhood,
             'city' => $this->city,
             'postal_code' => $this->postal_code,
             'country' => $this->country->iso2,

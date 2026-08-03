@@ -39,6 +39,7 @@ final class CustomerAddressFactory extends Factory
             'line1' => fake()->streetAddress(),
             'line2' => null,
             'district' => fake()->randomElement(['Kadıköy', 'Çankaya', 'Konak', 'Nilüfer']),
+            'neighborhood' => fake()->randomElement(['Caferağa', 'Kızılay', 'Alsancak', 'Görükle']),
             'city' => fake()->randomElement(['İstanbul', 'Ankara', 'İzmir', 'Bursa']),
             'postal_code' => fake()->numerify('#####'),
             'country_id' => Country::query()->where('iso2', 'TR')->value('id')

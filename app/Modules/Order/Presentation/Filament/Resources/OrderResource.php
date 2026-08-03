@@ -331,6 +331,10 @@ final class OrderResource extends Resource
             $address['phone'] ?? null,
             $address['line1'] ?? null,
             $address['line2'] ?? null,
+            // Mahalle on its own line, above ilçe/il — the order a Turkish
+            // address is read on a parcel. Absent for a pre-2026-08 order and
+            // for every non-TR one, and `array_filter` drops the empty line.
+            $address['neighborhood'] ?? null,
             trim(($address['district'] ?? '').' '.($address['city'] ?? '')),
             trim(($address['postal_code'] ?? '').' '.($address['country_code'] ?? '')),
         ]));
