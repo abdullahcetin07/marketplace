@@ -22,6 +22,8 @@ use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicTaxonomyController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SlugResolverController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Order\Presentation\Controllers\Api\CartController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
@@ -167,6 +169,40 @@ Route::prefix('v1')
             */
             Route::post('offers/prices', [PublicBuyBoxPriceController::class, 'index'])
                 ->name('storefront.offers.prices');
+
+            /*
+            | THE FLAT URL SCHEME'S KEYSTONE (ADR-059). The storefront addresses
+            | product, category and brand at the ROOT — `/bioderma`,
+            | `/cilt-bakimi`, `/avene-...-krem` — with no type prefix, so its one
+            | catch-all route cannot tell from the URL what it is rendering. This
+            | tells it, in one request; the alternative is three, two of them 404s,
+            | on every first paint.
+            |
+            | It answers with a TYPE and a uuid rather than a page, plus the
+            | canonical slug so a visitor on a retired alias gets a 301 instead of
+            | a rendered duplicate.
+            */
+            Route::get('resolve/{slug}', [SlugResolverController::class, 'show'])
+                ->name('storefront.resolve');
+
+            /*
+            | THE MENU AND THE LANDING PAGES the flat scheme needs (ADR-059).
+            | Both collections carry SELLABLE counts — a menu promising "48" that
+            | opens on an empty listing is worse than a menu with no numbers.
+            |
+            | Slug-addressed and uuid-tolerant, resolved BY SHAPE: a value that is
+            | not uuid-shaped never touches a uuid column, which is the 500 this
+            | sprint existed to end.
+            */
+            Route::get('categories', [PublicTaxonomyController::class, 'categories'])
+                ->name('storefront.categories.index');
+            Route::get('categories/{category}', [PublicTaxonomyController::class, 'category'])
+                ->name('storefront.categories.show');
+
+            Route::get('brands', [PublicTaxonomyController::class, 'brands'])
+                ->name('storefront.brands.index');
+            Route::get('brands/{brand}', [PublicTaxonomyController::class, 'brand'])
+                ->name('storefront.brands.show');
         });
 
         /*

@@ -13,12 +13,14 @@ use App\Modules\Catalog\Domain\Contracts\CategoryRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategorySlugGeneratorContract;
 use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\SkuGeneratorContract;
+use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultCatalogSlugGenerator;
 use App\Modules\Catalog\Infrastructure\Generators\DefaultSkuGenerator;
 use App\Modules\Catalog\Infrastructure\Queries\CatalogBrowse;
 use App\Modules\Catalog\Infrastructure\Queries\CatalogQuery;
+use App\Modules\Catalog\Infrastructure\Registries\SlugRegistry;
 use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
@@ -64,6 +66,7 @@ final class CatalogServiceProvider extends ServiceProvider
 
         // Slug and SKU policy behind contracts so the aggregates never encode
         // it and a future scheme swaps only the binding — the Store precedent.
+        $this->app->singleton(SlugRegistryContract::class, SlugRegistry::class);
         $this->app->singleton(CategorySlugGeneratorContract::class, DefaultCatalogSlugGenerator::class);
         $this->app->singleton(SkuGeneratorContract::class, DefaultSkuGenerator::class);
 

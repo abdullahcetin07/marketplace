@@ -46,7 +46,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicProductResource extends JsonResource
 {
     /**
-     * @param  array<int, array{uuid: string, name: string}>  $categoryPath
+     * @param  array<int, array{uuid: string, name: string, slug: string}>  $categoryPath
      */
     public function __construct(
         Product $product,
@@ -71,19 +71,28 @@ final class PublicProductResource extends JsonResource
 
             'images' => $this->gallery(),
 
+            /*
+            | EVERY NODE CARRIES ITS SLUG (ADR-059). The breadcrumb is a row of
+            | LINKS — `/kozmetik` → `/cilt-bakimi` → this page — and without the
+            | slug a client would have to resolve each crumb separately to build
+            | the href it is about to render.
+            */
             'category' => [
                 'id' => $this->category->uuid,
                 'name' => $this->category->localized('name'),
+                'slug' => $this->category->slug,
                 // Root first — the breadcrumb a shopper reads left to right.
                 'path' => array_map(static fn (array $node): array => [
                     'id' => $node['uuid'],
                     'name' => $node['name'],
+                    'slug' => $node['slug'],
                 ], $this->categoryPath),
             ],
 
             'brand' => $this->brand === null ? null : [
                 'id' => $this->brand->uuid,
                 'name' => $this->brand->name,
+                'slug' => $this->brand->slug,
             ],
 
             /*

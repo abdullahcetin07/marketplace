@@ -2,13 +2,14 @@
 
 declare(strict_types=1);
 
+use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Catalog\Domain\Models\TaxRate;
+use App\Modules\Inventory\Domain\Models\StockReservation;
 use App\Modules\Localization\Domain\Contracts\GeoRepositoryContract;
 use App\Modules\Localization\Domain\Models\GeoProvince;
-use App\Modules\Inventory\Domain\Models\StockReservation;
 use App\Modules\Offer\Application\Actions\CreateOfferAction;
 use App\Modules\Offer\Domain\DTOs\CreateOfferDTO;
 use App\Modules\Order\Application\Actions\AddCartItemAction;
@@ -300,4 +301,67 @@ it('keeps a name that is not a uuid away from the uuid column', function (): voi
         ->where('name', 'İstanbul')
         ->first())
         ->not->toThrow(\Throwable::class);
+});
+
+/*
+|--------------------------------------------------------------------------
+| The same trap, a THIRD time: slug-addressed catalog reads (ADR-059)
+|--------------------------------------------------------------------------
+|
+| ADDED 2026-08-03. `?category=Dermokozmetik` and `/products/{slug}` both 500'd in
+| production — `where('uuid', <a word>)` again — while the whole SQLite suite
+| stayed green, again. Three occurrences of one shape of bug:
+|
+|   1. ADR-049  the reservation reference; every checkout, in production
+|   2. ADR-056  the geo cascade; caught by hand on the live box
+|   3. ADR-059  the storefront's own listing filter and product page
+|
+| The rule the amendment log now carries: ANY read that accepts user text and
+| touches a uuid column gets a case in THIS file. These are those cases.
+*/
+
+it('takes a slug on every public catalog read without casting it to a uuid', function (): void {
+    $product = Product::query()
+        ->where('status', 'published')
+        ->whereNotNull('slug')
+        ->first();
+
+    if ($product === null) {
+        $this->markTestSkipped('No published product on this database.');
+    }
+
+    /*
+     * THE CALL THAT USED TO THROW SQLSTATE[22P02]. `products.uuid` is a NATIVE
+     * uuid column here, so comparing it to a slug is a type error rather than a
+     * non-match. `PublicKey::looksLikeUuid()` is what keeps the two apart, and if
+     * this fails with 22P02 somebody has put the uuid comparison back on the
+     * unconditional path.
+     */
+    $this->getJson('/api/v1/products/'.$product->slug)->assertOk();
+
+    // The listing filters, both of them, with a value that is plainly not a uuid.
+    $this->getJson('/api/v1/products?category=Dermokozmetik')->assertOk();
+    $this->getJson('/api/v1/products?brand=Bir%20Marka')->assertOk();
+
+    // And a miss is a 404 or an empty list — never a 500.
+    $this->getJson('/api/v1/products/kesinlikle-boyle-bir-urun-yok')->assertNotFound();
+    $this->getJson('/api/v1/resolve/kesinlikle-boyle-bir-slug-yok')->assertNotFound();
+    $this->getJson('/api/v1/categories/kesinlikle-yok')->assertNotFound();
+    $this->getJson('/api/v1/brands/kesinlikle-yok')->assertNotFound();
+});
+
+it('resolves a real slug to its type on PostgreSQL', function (): void {
+    $row = DB::connection('pgsql')->table('slugs')->where('is_canonical', true)->first();
+
+    if ($row === null) {
+        $this->markTestSkipped('The slug registry is not backfilled on this database.');
+    }
+
+    // The registry itself, on the engine that enforces types — the whole chain
+    // from a URL segment through `slugs` to a uuid.
+    $match = app(SlugRegistryContract::class)->resolve((string) $row->slug);
+
+    expect($match)->not->toBeNull()
+        ->and($match->slug)->toBe((string) $row->slug)
+        ->and($match->uuid)->not->toBe('');
 });

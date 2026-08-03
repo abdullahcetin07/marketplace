@@ -5,12 +5,15 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Presentation\Controllers\Api\Storefront;
 
 use App\Core\Presentation\Controllers\BaseController;
+use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Infrastructure\Queries\PublicProductBrowse;
 use App\Modules\Catalog\Presentation\Resources\PublicProductCardResource;
 use App\Modules\Catalog\Presentation\Resources\PublicProductResource;
+use App\Shared\Support\PublicKey;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
@@ -48,6 +51,7 @@ final class PublicProductController extends BaseController
 {
     public function __construct(
         private readonly PublicProductBrowse $browse,
+        private readonly SlugRegistryContract $slugs,
     ) {}
 
     /**
@@ -57,8 +61,8 @@ final class PublicProductController extends BaseController
     {
         $result = $this->browse->cards(
             query: (string) $request->query('q', ''),
-            categoryUuid: $this->uuidParam($request, 'category'),
-            brandUuid: $this->uuidParam($request, 'brand'),
+            categoryUuid: $this->filterUuid($request, 'category', SluggableType::Category),
+            brandUuid: $this->filterUuid($request, 'brand', SluggableType::Brand),
             sort: $this->sort($request),
             page: (int) $request->query('page', 1),
             perPage: $this->perPage(default: 24, max: 48),
@@ -84,9 +88,18 @@ final class PublicProductController extends BaseController
      */
     public function show(string $product): JsonResponse
     {
-        $model = Product::query()
+        /*
+        | BY SHAPE, NEVER BY TRIAL (ADR-059). This used to be `where('uuid',
+        | $product)` unconditionally, so `/products/avene-cicalfate-krem` — the
+        | flat scheme's whole point — was SQLSTATE[22P02] and a 500 on PostgreSQL
+        | while every SQLite test passed. Third time the platform shipped that
+        | shape of bug; see `PublicKey`.
+        */
+        $uuid = $this->productUuid($product);
+
+        $model = $uuid === null ? null : Product::query()
             ->with(['brand', 'category', 'media', 'variants', 'variants.attributeValues', 'descriptiveAttributes', 'descriptiveAttributes.values'])
-            ->where('uuid', $product)
+            ->where('uuid', $uuid)
             ->where('status', ProductStatus::Published->value)
             ->first();
 
@@ -109,7 +122,7 @@ final class PublicProductController extends BaseController
      * parent by parent: one query for the whole ancestry, and the same mechanism
      * the subtree filter uses.
      *
-     * @return array<int, array{uuid: string, name: string}>
+     * @return array<int, array{uuid: string, name: string, slug: string}>
      */
     private function categoryPath(Product $product): array
     {
@@ -126,6 +139,8 @@ final class PublicProductController extends BaseController
             ->map(static fn (Category $category): array => [
                 'uuid' => $category->uuid,
                 'name' => $category->localized('name'),
+                // The crumb is a link (ADR-059), so it needs its address.
+                'slug' => $category->slug,
             ])
             ->all();
     }
@@ -149,12 +164,46 @@ final class PublicProductController extends BaseController
     }
 
     /**
-     * A uuid filter, or null — never a raw string reaching a query.
+     * The product uuid behind a uuid OR a slug, or null.
      */
-    private function uuidParam(Request $request, string $key): ?string
+    private function productUuid(string $value): ?string
+    {
+        if (PublicKey::looksLikeUuid($value)) {
+            return $value;
+        }
+
+        $match = $this->slugs->resolve($value);
+
+        // A slug that points at a category or a brand is not a product, and
+        // answering with one would let `/products/{brandSlug}` render something
+        // unrelated rather than 404.
+        return $match !== null && $match->type === SluggableType::Product ? $match->uuid : null;
+    }
+
+    /**
+     * A filter value as a uuid the browse can use — accepting a slug too.
+     *
+     * AN UNRESOLVABLE FILTER RETURNS A SENTINEL, NOT NULL, which is the subtle
+     * half. Null means "no filter" and would silently return the WHOLE catalogue
+     * for `?category=made-up` — a filter that quietly stops filtering. The browse
+     * treats an unknown uuid as matching nothing, so passing the raw value
+     * through gives the honest empty result. It is only ever compared, never
+     * cast: `PublicProductBrowse` looks it up by shape too.
+     */
+    private function filterUuid(Request $request, string $key, SluggableType $type): ?string
     {
         $value = $request->query($key);
 
-        return is_string($value) && $value !== '' ? $value : null;
+        if (! is_string($value) || $value === '') {
+            return null;
+        }
+
+        if (PublicKey::looksLikeUuid($value)) {
+            return $value;
+        }
+
+        $match = $this->slugs->resolve($value);
+
+        return $match !== null && $match->type === $type ? $match->uuid : $value;
     }
 }

@@ -95,6 +95,37 @@ tr+en, PWA/native.
     empty spec table is a content gap, not a bug.
 - Extends `CatalogQueryContract` if a read it lacks is needed (e.g. a card projection).
 
+### Flat SEO URLs (ADR-059, added 2026-08-03)
+The storefront addresses everything at the ROOT — `/bioderma`, `/cilt-bakimi`,
+`/avene-...-krem` — with no type prefix, so a single catch-all route serves three page
+types and needs to be told which:
+
+```
+GET /api/v1/resolve/{slug}   → { type: product|category|brand, id, slug, canonical_slug }
+                               404 for unknown, unpublished, or deactivated
+GET /api/v1/categories       → the active tree; each node { id, name, slug, parent_id,
+                                 product_count, children[] }
+GET /api/v1/categories/{slug|uuid}
+                             → { id, name, slug, product_count,
+                                 path[] (breadcrumb, root first, INCLUDING itself),
+                                 children[] }
+GET /api/v1/brands           → [{ id, name, slug, logo, product_count }] — sellable only
+GET /api/v1/brands/{slug|uuid}
+                             → one brand; renders even with nothing for sale
+```
+
+- **`canonical_slug` is the 301 signal.** Equal to `slug` on an ordinary hit; different
+  means the visitor followed a retired alias and should be redirected there.
+- **`product_count` is of SELLABLE products** and rolls up the tree, so a menu promising
+  "48" and the listing it opens cannot disagree.
+- **Product detail and the listing filters now take a slug OR a uuid**
+  (`/products/{slug}`, `?category={slug}`, `?brand={slug}`), and every breadcrumb node
+  and the brand carry their `slug` — a crumb is a link.
+- **A reserved-word list guards the storefront's own pages.** A new static route must be
+  added to `config('catalog.slugs.reserved')` on the backend **before** the frontend ships
+  it, or a product may already occupy that address — silently, since the static route wins
+  and the product simply becomes unreachable.
+
 ## 1.2 Offer — price & availability for the buyer (Offer not frozen)
 - `GET /api/v1/products/{uuid}/offers` — the buy box (**exists**): featured offer + seller
   list + per-offer availability (from Inventory).

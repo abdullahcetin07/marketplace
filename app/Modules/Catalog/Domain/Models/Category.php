@@ -5,6 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Domain\Models;
 
 use App\Modules\Catalog\Domain\Concerns\HasLocalizedText;
+use App\Modules\Catalog\Domain\Concerns\HasRegisteredSlug;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 use App\Shared\Traits\HasUuid;
 use Database\Modules\Catalog\Factories\CategoryFactory;
 use Illuminate\Database\Eloquent\Builder;
@@ -65,6 +67,7 @@ final class Category extends Model
     use HasFactory;
 
     use HasLocalizedText;
+    use HasRegisteredSlug;
     use HasUuid;
 
     /**
@@ -288,5 +291,13 @@ final class Category extends Model
             'depth' => 'integer',
             'position' => 'integer',
         ];
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Category;
     }
 }

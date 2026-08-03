@@ -4,70 +4,39 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Infrastructure\Generators;
 
-use App\Modules\Catalog\Domain\Contracts\CategoryRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategorySlugGeneratorContract;
-use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
-use Illuminate\Support\Str;
+use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 
 /**
  * Slugifies the requested handle and suffixes it until globally unique.
  *
- * Uniqueness is asked of the repositories — the aggregates never check it —
- * which is what keeps the slug policy swappable behind the contract, exactly as
- * Store does it.
+ * UNIQUENESS MOVED TO THE REGISTRY (ADR-059) and this became a two-line adapter.
+ * It used to ask each entity's own repository — `categories.slug_exists`,
+ * `products.slug_exists` — which was right while the two lived under different URL
+ * prefixes and could each own their namespace. The flat scheme ended that: a
+ * category and a brand both addressed at the root cannot each check only their own
+ * table, or the second one wins the URL and the first one disappears.
  *
- * `Str::slug` transliterates Turkish characters ("Kadın Giyim" → "kadin-giyim"),
- * which is what a URL needs; the localized name columns keep the real spelling.
+ * KEPT RATHER THAN DELETED, so the four actions that already depend on
+ * `CategorySlugGeneratorContract` do not all change to say the same thing a
+ * different way. The contract's promise — "a globally-unique slug for this
+ * handle" — is unchanged; what "globally" means got bigger.
  *
  * @see App\Modules\Catalog\Domain\Contracts\CategorySlugGeneratorContract
+ * @see App\Modules\Catalog\Infrastructure\Registries\SlugRegistry
  */
 final class DefaultCatalogSlugGenerator implements CategorySlugGeneratorContract
 {
-    public function __construct(
-        private readonly CategoryRepositoryContract $categories,
-        private readonly ProductRepositoryContract $products,
-    ) {}
+    public function __construct(private readonly SlugRegistryContract $registry) {}
 
     public function forCategory(string $requested, ?int $exceptId = null): string
     {
-        return $this->unique(
-            $requested,
-            'category',
-            fn (string $slug): bool => $this->categories->slugExists($slug, $exceptId),
-        );
+        return $this->registry->issue($requested, SluggableType::Category, $exceptId);
     }
 
     public function forProduct(string $requested, ?int $exceptId = null): string
     {
-        return $this->unique(
-            $requested,
-            'product',
-            fn (string $slug): bool => $this->products->slugExists($slug, $exceptId),
-        );
-    }
-
-    /**
-     * @param  callable(string): bool  $taken
-     */
-    private function unique(string $requested, string $fallback, callable $taken): string
-    {
-        $base = Str::slug($requested);
-
-        // A title of nothing but non-transliterable characters slugs to the
-        // empty string, which would produce a URL of `//`. The fallback is
-        // ugly but addressable, and the suffix loop makes it unique.
-        if ($base === '') {
-            $base = $fallback;
-        }
-
-        $slug = $base;
-        $suffix = 2;
-
-        while ($taken($slug)) {
-            $slug = $base.'-'.$suffix;
-            $suffix++;
-        }
-
-        return $slug;
+        return $this->registry->issue($requested, SluggableType::Product, $exceptId);
     }
 }

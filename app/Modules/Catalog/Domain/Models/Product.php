@@ -6,7 +6,9 @@ namespace App\Modules\Catalog\Domain\Models;
 
 use App\Modules\Audit\Domain\Concerns\Auditable;
 use App\Modules\Catalog\Domain\Concerns\HasLocalizedText;
+use App\Modules\Catalog\Domain\Concerns\HasRegisteredSlug;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 use App\Shared\Traits\HasMedia;
 use App\Shared\Traits\HasUuid;
 use Database\Modules\Catalog\Factories\ProductFactory;
@@ -89,6 +91,7 @@ final class Product extends Model implements HasMediaContract
     use Auditable;
     use HasLocalizedText;
     use HasMedia;
+    use HasRegisteredSlug;
     use HasUuid;
     use Searchable;
     use SoftDeletes;
@@ -530,5 +533,13 @@ final class Product extends Model implements HasMediaContract
             'moderated_at' => 'datetime',
             'published_at' => 'datetime',
         ];
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Product;
     }
 }

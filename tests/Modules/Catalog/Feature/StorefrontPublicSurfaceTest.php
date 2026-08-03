@@ -118,7 +118,14 @@ it('puts every public buyer route on the storefront throttle', function (): void
     expect($uris)->toContain('api/v1/products')
         ->toContain('api/v1/products/{product}')
         ->toContain('api/v1/products/{product}/offers')
-        ->toContain('api/v1/offers/prices');
+        ->toContain('api/v1/offers/prices')
+        // The flat-URL surfaces (ADR-059) — anonymous browsing too, and
+        // `/resolve` is called on EVERY storefront page load.
+        ->toContain('api/v1/resolve/{slug}')
+        ->toContain('api/v1/categories')
+        ->toContain('api/v1/categories/{category}')
+        ->toContain('api/v1/brands')
+        ->toContain('api/v1/brands/{brand}');
 });
 
 it('never requires a session on a public buyer route', function (): void {
@@ -140,6 +147,11 @@ it('never puts an internal id in any public payload', function (): void {
         $this->getJson('/api/v1/products/'.$fixture['product']->uuid)->json(),
         $this->getJson('/api/v1/products/'.$fixture['product']->uuid.'/offers')->json(),
         $this->postJson('/api/v1/offers/prices', ['product_ids' => [$fixture['product']->uuid]])->json(),
+        // The tree carries `parent_id`, which is the field most likely to be a
+        // raw foreign key by accident (ADR-059).
+        $this->getJson('/api/v1/categories')->json(),
+        $this->getJson('/api/v1/brands')->json(),
+        $this->getJson('/api/v1/resolve/'.$fixture['product']->slug)->json(),
     ];
 
     /*

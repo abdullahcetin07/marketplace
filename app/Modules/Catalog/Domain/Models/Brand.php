@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Domain\Models;
 
+use App\Modules\Catalog\Domain\Concerns\HasRegisteredSlug;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 use App\Shared\Traits\HasMedia;
 use App\Shared\Traits\HasUuid;
 use Database\Modules\Catalog\Factories\BrandFactory;
@@ -40,6 +42,7 @@ final class Brand extends Model implements HasMediaContract
     use HasFactory;
 
     use HasMedia;
+    use HasRegisteredSlug;
     use HasUuid;
 
     protected $table = 'brands';
@@ -90,5 +93,13 @@ final class Brand extends Model implements HasMediaContract
         return [
             'is_active' => 'boolean',
         ];
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Brand;
     }
 }

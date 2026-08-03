@@ -1631,4 +1631,48 @@ Full specification: [docs/modules/Storefront.md](modules/Storefront.md).
 
 ---
 
+# ADR-059 Flat Human-Readable Slugs Are the Public Storefront Address; a Global Slug Registry Guarantees Uniqueness and Redirects
+
+**Decision.** The storefront addresses product, category and brand by a **flat, root-level
+slug** (`/bioderma`, `/cilt-bakimi`, `/avene-cicalfate-hassas-ciltler-icin-krem-40-ml`) — no
+type prefix. Because all three, plus the storefront's own pages, share one root namespace, a
+single **slug registry** (`slugs`) owns every public slug and enforces uniqueness across the
+three kinds and a reserved-word list. A slug is generated from the name (Turkish-aware:
+İ/ı/ş/ğ/ü/ö/ç → i/i/s/g/u/o/c), made unique with a numeric suffix on collision, and is
+**stable once issued** — renaming an entity does not move its live slug. When a slug must
+change, the old row is **retained as a non-canonical alias** so the resolver can report the
+new address and the storefront can **301**.
+
+**A resolver turns a slug into a type.** `GET /api/v1/resolve/{slug}` returns the entity kind
++ uuid + canonical slug (or 404), so the storefront's one catch-all route renders the right
+page without guessing.
+
+**#7 intact.** A slug is a *public* identifier like the uuid, never the internal
+auto-increment id. The API keeps uuids everywhere; slugs are an **additional** public key,
+and every slug-addressed endpoint accepts a uuid too.
+
+**Every lookup resolves BY SHAPE and 404s on a miss — never a uuid-cast 500.** A value that
+is not uuid-shaped must never reach a `uuid` column. `where('uuid', 'Dermokozmetik')` on
+PostgreSQL is `SQLSTATE[22P02]`, an unhandled 500, while on SQLite the column is text and the
+comparison quietly returns false — so the suite cannot see it. **This platform has shipped
+that exact bug three times** (ADR-049's reservation reference, the ADR-056 geo cascade, and
+this sprint's `?category=` filter and product page), which is why the rule is an ADR clause
+rather than a code comment. `App\Shared\Support\PublicKey` is the one place that decides,
+and `tests/Integration` — the PostgreSQL suite the first occurrence produced — carries a case
+for every read that takes user text near a uuid column.
+
+Rationale: the owner chose the flat, competitor-style scheme. For **ranking** a prefix is
+neutral — Google ignores it — so this is an aesthetic and brand decision, not an SEO one.
+
+Cost: a `slugs` registry table, a reserved-word guard and a backfill migration; slug-stability
+logic and an alias trail that only ever grows; a resolver endpoint on every page load; and two
+new public read surfaces (`/categories`, `/brands`). The shared namespace means **a new
+storefront route must be added to the backend's reserved list BEFORE the frontend ships it**,
+or a product may already be sitting on that address — and the symptom is not an error, it is
+a product that silently cannot be reached.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §2.7.
+
+---
+
 END OF FILE

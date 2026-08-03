@@ -263,6 +263,41 @@ soft-deletes. Every product has ≥1 variant; the combination is unique within a
   transition test); leave it untouched — the Store precedent is that the module owns its
   real status enum and the Shared placeholder is not reused.
 
+## 2.7 The slug registry — every public address (ADR-059)
+`slugs` = `{ slug (globally UNIQUE), sluggable_type ('product'|'category'|'brand'),
+sluggable_id, is_canonical, timestamps }`.
+
+**Why it exists.** The storefront addresses all three at the ROOT — `/bioderma`,
+`/cilt-bakimi`, `/avene-...-krem` — with no type prefix, so they share one namespace
+with each other *and* with the storefront's own pages. Three `slug` columns cannot be
+unique across three tables; one index over one table can.
+
+- **Turkish-folded** — `Str::slug` already maps İ/ı/ş/ğ/ü/ö/ç → i/i/s/g/u/o/c, pinned by
+  test rather than trusted. Numeric suffix on collision.
+- **Reserved words** (`config('catalog.slugs.reserved')`) are refused, not rejected: a
+  product called "Sepet" gets `sepet-2`. Shadowing `/sepet` would not error — the
+  storefront's static route wins and the product becomes silently **unreachable**.
+  **A new storefront route must be added to that list BEFORE the frontend ships it.**
+- **Stable once issued.** A rename does not move a URL. A deliberate slug change writes a
+  new canonical row and keeps the old one `is_canonical = false`, so the resolver reports
+  where it moved and the storefront **301**s instead of 404ing.
+- **Registered by a model hook** (`HasRegisteredSlug`), not by each action — there are four
+  actions, two panels, three factories and a seeder that write a slug, and the cost of
+  forgetting one is an entity with no public address at all.
+- Hard delete releases the slug; **soft delete parks it** (it stops resolving on its own,
+  because the registry loads the model and the default scope hides it).
+
+**`GET /api/v1/resolve/{slug}`** → `{ type, id (uuid), slug, canonical_slug }` or 404. It
+is what lets the storefront's single catch-all route render three page types without
+three speculative requests per paint, and it **respects publication** — a draft has a
+registry row from the moment it is saved, so resolving without a status check would let
+anyone enumerate unreleased products by guessing names.
+
+**Every lookup resolves BY SHAPE** (`App\Shared\Support\PublicKey`) and 404s on a miss.
+A value that is not uuid-shaped never reaches a `uuid` column: on PostgreSQL that is
+`SQLSTATE[22P02]` and a 500, on SQLite a silent false — the platform shipped that bug
+three times before the rule became an ADR clause. See ADR-059.
+
 ---
 
 # 3. Business Rules
@@ -306,7 +341,8 @@ Matching/merge policy for near-duplicates without a GTIN is a **documented open
 question** for review (§13), not silently resolved.
 
 ## 3.5 Slugs & soft-delete
-Product and category slugs are unique and stable (SEO). Archive/soft-delete never
+Product and category slugs are unique and stable (SEO). **Since ADR-059 that uniqueness is
+GLOBAL and includes brands** — see §2.7 for the registry that enforces it. Archive/soft-delete never
 hard-removes a product that Offers will later reference; `Archived` is the terminal
 delist state.
 
@@ -467,6 +503,8 @@ be built ahead of its approval (CLAUDE.md).
 | Search (§10) | `Product::toSearchableArray()`, `SyncProductSearchIndex` |
 | Core read contract (§8) | `App\Core\Domain\Contracts\CatalogQueryContract` |
 | Starter taxonomy (§13.3) | `Database\Modules\Catalog\Seeders\CatalogTaxonomySeeder` |
+| **Slug registry (ADR-059, added 2026-08-03)** — one globally-unique namespace for product/category/brand plus a reserved-word list, because the storefront addresses all three at the ROOT. Turkish-folded, suffixed on collision, **stable once issued**, with a demote-not-delete alias trail so a changed slug 301s instead of 404ing. Registered by a model hook rather than by each action. `GET /resolve/{slug}` turns an address into a type so one catch-all route can render three page types | `Domain/Models/Slug`, `Infrastructure/Registries/SlugRegistry`, `Presentation/Controllers/Api/Storefront/SlugResolverController` |
+| **Category + brand public reads (ADR-059)** — `/categories` (tree), `/categories/{slug}`, `/brands`, `/brands/{slug}`, all carrying **sellable** counts through `OfferQueryContract` so a menu and the listing it opens cannot disagree. Counts roll up the materialised path in one pass rather than one query per node | `Infrastructure/Queries/PublicTaxonomyBrowse`, `Presentation/Controllers/Api/Storefront/PublicTaxonomyController` |
 | **Cosmetic demo schema (added 2026-08-02)** — Cilt Tipi / Hacim / Kullanım / Menşei bound to the cosmetic branch, values on the two real demo products. All **descriptive**; the two `select` ones are eligible to be variant axes and are explicitly refused, or a face cream would acquire "Hassas × Yüz" SKUs. Goes through `BindCategoryAttributeAction` + `SetProductAttributesAction`, never raw pivot rows, so it produces only data a seller could have produced. Idempotent, and it **skips any product that already carries values** — `SetProductAttributesAction` is a full replacement, and a seeder re-run must not wipe curated content. Not registered in `DatabaseSeeder`; an operator runs it | `Database\Modules\Catalog\Seeders\CosmeticAttributeDemoSeeder` |
 
 Localization is **per-locale columns**, tr + en (§13.5): `title_tr` / `title_en`,

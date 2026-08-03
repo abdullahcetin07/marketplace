@@ -55,4 +55,49 @@ return [
         'suggestion_limit' => (int) env('CATALOG_DUPLICATE_SUGGESTIONS', 5),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Slug Registry (ADR-059)
+    |--------------------------------------------------------------------------
+    |
+    | The storefront addresses product, category and brand at the ROOT —
+    | `/bioderma`, `/cilt-bakimi`, `/avene-...-krem` — with no type prefix. That
+    | is an aesthetic choice (a prefix is SEO-neutral; Google ignores it), and
+    | its real cost is a SHARED NAMESPACE: those three plus the storefront's own
+    | pages all live at `/`, so a slug must be unique across every one of them.
+    |
+    | THE RESERVED LIST IS THE OTHER HALF OF THAT COST. A product called "Sepet"
+    | would slug to `sepet` and shadow the basket page — the catch-all route
+    | never sees it, so the product simply becomes unreachable and the basket
+    | keeps working, which is the kind of bug nobody reports because nobody can
+    | describe it. The registry refuses these outright and suffixes instead.
+    |
+    | IT MUST MATCH THE STOREFRONT'S STATIC ROUTES, and that direction matters:
+    | a NEW app route has to be added HERE FIRST, before the frontend ships it,
+    | or a product may already be sitting on it. There is no way for the backend
+    | to discover the frontend's routes, so this list is the contract between the
+    | two and the only place either side should look.
+    |
+    */
+
+    'slugs' => [
+
+        'reserved' => [
+            // Storefront pages (see `storefront/src/app/`).
+            'sepet', 'hesap', 'odeme', 'giris', 'giris-yap', 'kayit', 'cikis',
+            'urunler', 'urun', 'magaza', 'kategori', 'marka', 'arama',
+
+            // Laravel + infrastructure prefixes nginx routes away from Next
+            // (see `docs/storefront-deploy.md`).
+            'api', 'admin', 'seller', 'store', 'sanctum', 'livewire', 'build',
+            'storage', 'vendor', 'horizon', 'telescope',
+
+            // Files and conventions a crawler or the framework expects at the
+            // root; a product living at `/sitemap.xml` would be worse than
+            // unreachable.
+            'sitemap', 'sitemap.xml', 'robots.txt', 'favicon.ico', '_next',
+        ],
+
+    ],
+
 ];

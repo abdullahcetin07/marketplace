@@ -8,6 +8,7 @@ use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Shared\Support\PublicKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -326,7 +327,17 @@ final class PublicProductBrowse
             return;
         }
 
-        $category = Category::query()->where('uuid', $categoryUuid)->active()->first();
+        /*
+        | THE CRASH THIS METHOD SHIPPED. `?category=Dermokozmetik` reached here as
+        | a plain name and `where('uuid', 'Dermokozmetik')` is SQLSTATE[22P02] on
+        | PostgreSQL — a 500, not a miss — while SQLite's text column made every
+        | test pass (ADR-059, `PublicKey`). A value that is not uuid-shaped now
+        | never touches the column; it matches nothing, which is what the block
+        | below was always meant to do.
+        */
+        $category = PublicKey::looksLikeUuid($categoryUuid)
+            ? Category::query()->where('uuid', $categoryUuid)->active()->first()
+            : null;
 
         if ($category === null) {
             // An unknown or deactivated category matches nothing rather than
@@ -351,6 +362,13 @@ final class PublicProductBrowse
     private function applyBrand(Builder $builder, ?string $brandUuid): void
     {
         if ($brandUuid === null || $brandUuid === '') {
+            return;
+        }
+
+        // Same guard as the category filter above, and the same reason.
+        if (! PublicKey::looksLikeUuid($brandUuid)) {
+            $builder->whereRaw('1 = 0');
+
             return;
         }
 
