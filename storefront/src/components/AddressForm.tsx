@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { SessionApiError } from '@/lib/session-api';
+import { districtsOf, TR_PROVINCE_NAMES } from '@/lib/tr-geo';
 import { ui } from '@/lib/ui';
 import type { AddressInput, Country } from '@/lib/types';
 
@@ -79,6 +80,21 @@ export function AddressForm({
 
   const input = ui.field;
 
+  // Editing a legacy address whose il/ilçe was free-typed before this cascade
+  // existed: keep its value as an extra option so opening the form never silently
+  // blanks a saved field. A value already in the registry list is not duplicated.
+  const provinceValue = form.city;
+  const provinceOptions =
+    form.city !== '' && !TR_PROVINCE_NAMES.includes(form.city)
+      ? [form.city, ...TR_PROVINCE_NAMES]
+      : TR_PROVINCE_NAMES;
+
+  const baseDistricts = districtsOf(form.city);
+  const districtOptions =
+    form.district !== '' && !baseDistricts.includes(form.district)
+      ? [form.district, ...baseDistricts]
+      : baseDistricts;
+
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
       <Row label="Adres adı" error={errors.label?.[0]}>
@@ -102,17 +118,64 @@ export function AddressForm({
         <input type="text" autoComplete="address-line2" className={input} {...bind('line2')} />
       </Row>
 
-      <div className="grid gap-3 sm:grid-cols-3">
-        <Row label="İlçe" error={errors.district?.[0]}>
-          <input type="text" className={input} {...bind('district')} />
-        </Row>
-        <Row label="İl" error={errors.city?.[0]}>
-          <input type="text" required className={input} {...bind('city')} />
-        </Row>
-        <Row label="Posta kodu" error={errors.postal_code?.[0]}>
-          <input type="text" inputMode="numeric" className={input} {...bind('postalCode')} />
-        </Row>
-      </div>
+      {/* TR gets a real cascade — İl chooses, İlçe narrows (ADR-056: still sent as
+          the same `city`/`district` strings, so the API stays country-agnostic).
+          Any other country keeps free text, because a dropdown of the world is the
+          project ADR-056 declined to take on. */}
+      {form.country === 'TR' ? (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Row label="İl" error={errors.city?.[0]}>
+            <select
+              required
+              className={input}
+              value={provinceValue}
+              onChange={(event) =>
+                // Changing the province invalidates the old district — clear it so
+                // "Kadıköy, Ankara" can never be saved.
+                setForm((current) => ({ ...current, city: event.target.value, district: '' }))
+              }
+            >
+              <option value="">Seçiniz</option>
+              {provinceOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <Row label="İlçe" error={errors.district?.[0]}>
+            <select
+              required
+              className={input}
+              value={form.district}
+              disabled={form.city === ''}
+              onChange={(event) => setForm((current) => ({ ...current, district: event.target.value }))}
+            >
+              <option value="">{form.city === '' ? 'Önce il seçin' : 'Seçiniz'}</option>
+              {districtOptions.map((name) => (
+                <option key={name} value={name}>
+                  {name}
+                </option>
+              ))}
+            </select>
+          </Row>
+          <Row label="Posta kodu" error={errors.postal_code?.[0]}>
+            <input type="text" inputMode="numeric" className={input} {...bind('postalCode')} />
+          </Row>
+        </div>
+      ) : (
+        <div className="grid gap-3 sm:grid-cols-3">
+          <Row label="İlçe / Bölge" error={errors.district?.[0]}>
+            <input type="text" className={input} {...bind('district')} />
+          </Row>
+          <Row label="İl / Şehir" error={errors.city?.[0]}>
+            <input type="text" required className={input} {...bind('city')} />
+          </Row>
+          <Row label="Posta kodu" error={errors.postal_code?.[0]}>
+            <input type="text" inputMode="numeric" className={input} {...bind('postalCode')} />
+          </Row>
+        </div>
+      )}
 
       <Row label="Ülke" error={errors.country?.[0]}>
         <select required className={input} {...bind('country')}>
