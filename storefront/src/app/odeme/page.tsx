@@ -6,6 +6,7 @@ import { AddressForm } from '@/components/AddressForm';
 import { useSession } from '@/components/SessionProvider';
 import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
+import { ui } from '@/lib/ui';
 import * as api from '@/lib/session-api';
 import { SessionApiError } from '@/lib/session-api';
 import type { Address, Country, Order } from '@/lib/types';
@@ -85,9 +86,10 @@ export default function CheckoutPage() {
 
   if (cart.items.length === 0 && pendingGroup === null) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Sepetiniz boş</h1>
-        <Link href="/urunler" className="rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white">
+      <div className={`mx-auto flex max-w-md flex-col items-center gap-4 py-14 text-center ${ui.card} px-6 py-12`}>
+        <h1 className="text-2xl font-extrabold tracking-tight">Sepetiniz boş</h1>
+        <p className="text-ink-500">Ödeme yapabilmek için önce sepetinize ürün ekleyin.</p>
+        <Link href="/urunler" className={`${ui.btnPrimary} mt-1`}>
           Ürünlere göz at
         </Link>
       </div>
@@ -124,10 +126,10 @@ export default function CheckoutPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Ödeme</h1>
+      <h1 className={ui.h1}>Ödeme</h1>
 
       {cart.has_unavailable_items && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        <p className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
           Sepetinizde artık satışta olmayan ürünler var. Devam etmeden önce{' '}
           <Link href="/sepet" className="underline">
             sepetinizden
@@ -138,8 +140,8 @@ export default function CheckoutPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-6">
-          <section className="flex flex-col gap-3 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-            <h2 className="font-semibold">Teslimat adresi</h2>
+          <section className={`flex flex-col gap-3 p-5 ${ui.card}`}>
+            <h2 className={ui.h2}>Teslimat adresi</h2>
 
             {addresses.length === 0 && !adding && (
               <p className="text-sm text-ink-500">
@@ -174,15 +176,15 @@ export default function CheckoutPage() {
               <button
                 type="button"
                 onClick={() => setAdding(true)}
-                className="self-start text-sm text-brand-600 hover:underline"
+                className="self-start text-sm font-bold text-brand-600 hover:underline"
               >
                 + Yeni adres ekle
               </button>
             )}
           </section>
 
-          <section className="flex flex-col gap-3 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-            <h2 className="font-semibold">Fatura adresi</h2>
+          <section className={`flex flex-col gap-3 p-5 ${ui.card}`}>
+            <h2 className={ui.h2}>Fatura adresi</h2>
 
             <label className="flex items-center gap-2 text-sm">
               <input
@@ -203,15 +205,15 @@ export default function CheckoutPage() {
             )}
           </section>
 
-          <section className="flex flex-col gap-2 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-            <h2 className="font-semibold">Sipariş özeti</h2>
-            <ul className="divide-y divide-ink-200 text-sm dark:divide-ink-800">
+          <section className={`flex flex-col gap-2 p-5 ${ui.card}`}>
+            <h2 className={ui.h2}>Sipariş özeti</h2>
+            <ul className="divide-y divide-ink-100 text-sm dark:divide-ink-800">
               {cart.items.map((line) => (
-                <li key={line.id} className="flex justify-between gap-4 py-2">
+                <li key={line.id} className="flex justify-between gap-4 py-2.5">
                   <span>
                     {line.title ?? 'Ürün'} <span className="text-ink-500">× {line.quantity}</span>
                   </span>
-                  <span className="font-medium">
+                  <span className="font-bold">
                     {line.line_total !== null && line.currency !== null
                       ? formatMoney(line.line_total, line.currency)
                       : '—'}
@@ -222,18 +224,25 @@ export default function CheckoutPage() {
           </section>
         </div>
 
-        <aside className="flex h-fit flex-col gap-4 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-          <h2 className="font-semibold">Toplam</h2>
+        <aside className={`${ui.rail} lg:sticky lg:top-[130px]`}>
+          <h2 className={ui.h2}>Toplam</h2>
 
           <div className="flex justify-between text-sm">
             <span className="text-ink-500">Ürünler</span>
-            <span className="font-semibold">
+            <span className="font-bold">
+              {cart.currency === null ? '—' : formatMoney(cart.items_total, cart.currency)}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between border-t border-ink-100 pt-3 dark:border-ink-800">
+            <span className="font-extrabold">Ödenecek</span>
+            <span className="text-xl font-extrabold tracking-tight text-brand-600">
               {cart.currency === null ? '—' : formatMoney(cart.items_total, cart.currency)}
             </span>
           </div>
 
           {cart.order_count > 1 && (
-            <p className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600 dark:bg-ink-900 dark:text-ink-300">
+            <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs font-medium text-brand-800 dark:bg-brand-500/10 dark:text-brand-200">
               Siparişiniz {cart.order_count} satıcıya bölünecek. Her satıcı kendi siparişini ayrı
               hazırlar ve ayrı kargolar.
             </p>
@@ -241,7 +250,9 @@ export default function CheckoutPage() {
 
           <p className="text-xs text-ink-500">KDV dahildir. Kargo ücreti bu aşamada alınmaz.</p>
 
-          {error !== null && <p className="text-sm text-red-600">{error}</p>}
+          {error !== null && (
+            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-600 dark:bg-red-950/40">{error}</p>
+          )}
 
           {pendingGroup !== null && error !== null && (
             <p className="text-xs text-ink-500">
@@ -254,7 +265,7 @@ export default function CheckoutPage() {
             type="button"
             onClick={() => void submit()}
             disabled={busy || shippingId === '' || (!sameAsShipping && billingId === '') || cart.has_unavailable_items}
-            className="rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
+            className={`${ui.btnPrimary} w-full`}
           >
             {busy ? 'Gönderiliyor…' : pendingGroup !== null ? 'Onayı tekrar dene' : 'Siparişi ver'}
           </button>
@@ -287,17 +298,17 @@ function AddressChoices({
     <ul className="flex flex-col gap-2">
       {addresses.map((address) => (
         <li key={address.id}>
-          <label className="flex cursor-pointer gap-3 rounded-lg border border-ink-200 p-3 text-sm has-[:checked]:border-brand-400 dark:border-ink-800">
+          <label className="flex cursor-pointer gap-3 rounded-xl border-2 border-ink-200 p-3.5 text-sm transition has-[:checked]:border-brand-500 has-[:checked]:bg-brand-50/50 dark:border-ink-700 dark:has-[:checked]:bg-brand-500/10">
             <input
               type="radio"
               name={name}
               value={address.id}
               checked={selected === address.id}
               onChange={() => onSelect(address.id)}
-              className="mt-1"
+              className="mt-1 accent-brand-500"
             />
             <span>
-              <span className="font-medium">{address.label}</span>
+              <span className="font-bold">{address.label}</span>
               <span className="block text-ink-500">
                 {address.recipient_name} — {address.line1}, {address.district ?? ''} {address.city}
               </span>
@@ -318,32 +329,32 @@ function AddressChoices({
  */
 function Confirmation({ orders }: { orders: Order[] }) {
   return (
-    <div className="mx-auto flex max-w-xl flex-col gap-5 py-10 text-center">
-      <h1 className="text-2xl font-bold">Siparişiniz alındı</h1>
+    <div className="mx-auto flex max-w-xl flex-col items-center gap-5 py-10 text-center">
+      <span className="grid h-16 w-16 place-items-center rounded-full bg-green-50 text-green-600 dark:bg-green-950/40">
+        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
+          <path d="m5 13 4 4L19 7" />
+        </svg>
+      </span>
 
-      <p className="text-ink-600 dark:text-ink-300">
+      <h1 className="text-2xl font-extrabold tracking-tight">Siparişiniz alındı</h1>
+
+      <p className="max-w-md text-ink-600 dark:text-ink-300">
         {orders.length > 1
           ? `Siparişiniz ${orders.length} satıcıya bölündü ve ${orders.length} ayrı sipariş oluşturuldu.`
           : 'Siparişiniz oluşturuldu.'}{' '}
         Ödeme adımı yakında devreye girecek.
       </p>
 
-      <ul className="flex flex-col gap-2 text-left">
+      <ul className="flex w-full flex-col gap-2 text-left">
         {orders.map((order) => (
-          <li
-            key={order.id}
-            className="flex items-center justify-between rounded-lg border border-ink-200 p-4 dark:border-ink-800"
-          >
+          <li key={order.id} className={`flex items-center justify-between p-4 ${ui.card}`}>
             <span className="font-mono text-sm">{order.number}</span>
-            <span className="font-semibold">{formatMoney(order.grand_total, order.currency)}</span>
+            <span className="font-extrabold tracking-tight">{formatMoney(order.grand_total, order.currency)}</span>
           </li>
         ))}
       </ul>
 
-      <Link
-        href="/hesap/siparislerim"
-        className="mx-auto rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-600"
-      >
+      <Link href="/hesap/siparislerim" className={`${ui.btnPrimary} mt-1`}>
         Siparişlerime git
       </Link>
     </div>

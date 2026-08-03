@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SessionApiError } from '@/lib/session-api';
+import { ui } from '@/lib/ui';
 import { useSession } from '@/components/SessionProvider';
 
 /**
@@ -56,57 +57,64 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="mx-auto flex w-full max-w-sm flex-col gap-6 py-8">
-      <h1 className="text-2xl font-bold">Giriş yap</h1>
+    <div className="mx-auto flex w-full max-w-md flex-col gap-6 py-6 sm:py-10">
+      <div className="text-center">
+        <span className="text-2xl font-extrabold tracking-tight">
+          <span className="text-brand-500">raf</span>tabul
+        </span>
+        <h1 className="mt-4 text-2xl font-extrabold tracking-tight">Giriş yap</h1>
+        <p className="mt-1 text-sm text-ink-500">Hesabınıza girip alışverişe kaldığınız yerden devam edin.</p>
+      </div>
 
-      <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
-        <label className="flex flex-col gap-1 text-sm">
-          E-posta
-          <input
-            type="email"
-            required
-            autoComplete="email"
-            value={email}
-            onChange={(event) => setEmail(event.target.value)}
-            className="rounded-lg border border-ink-300 px-3 py-2 dark:border-ink-700 dark:bg-ink-900"
-          />
-        </label>
+      <div className={`${ui.card} p-6 shadow-[0_24px_60px_-32px_rgba(20,25,35,.3)] sm:p-8`}>
+        <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-700 dark:text-ink-200">
+            E-posta
+            <input
+              type="email"
+              required
+              autoComplete="email"
+              value={email}
+              onChange={(event) => setEmail(event.target.value)}
+              className={ui.field}
+            />
+          </label>
 
-        <label className="flex flex-col gap-1 text-sm">
-          Parola
-          <input
-            type="password"
-            required
-            autoComplete="current-password"
-            value={password}
-            onChange={(event) => setPassword(event.target.value)}
-            className="rounded-lg border border-ink-300 px-3 py-2 dark:border-ink-700 dark:bg-ink-900"
-          />
-        </label>
+          <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-700 dark:text-ink-200">
+            Parola
+            <input
+              type="password"
+              required
+              autoComplete="current-password"
+              value={password}
+              onChange={(event) => setPassword(event.target.value)}
+              className={ui.field}
+            />
+          </label>
 
-        <label className="flex items-center gap-2 text-sm text-ink-600 dark:text-ink-300">
-          <input
-            type="checkbox"
-            checked={remember}
-            onChange={(event) => setRemember(event.target.checked)}
-          />
-          Beni hatırla
-        </label>
+          <label className="flex items-center gap-2 text-sm text-ink-600 dark:text-ink-300">
+            <input
+              type="checkbox"
+              checked={remember}
+              onChange={(event) => setRemember(event.target.checked)}
+              className="h-4 w-4 accent-brand-500"
+            />
+            Beni hatırla
+          </label>
 
-        {error !== null && <p className="text-sm text-red-600">{error}</p>}
+          {error !== null && (
+            <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-600 dark:bg-red-950/40">{error}</p>
+          )}
 
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
-        >
-          {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
-        </button>
-      </form>
+          <button type="submit" disabled={busy} className={`${ui.btnPrimary} mt-1 w-full`}>
+            {busy ? 'Giriş yapılıyor…' : 'Giriş yap'}
+          </button>
+        </form>
+      </div>
 
-      <p className="text-sm text-ink-500">
+      <p className="text-center text-sm text-ink-500">
         Hesabınız yok mu?{' '}
-        <Link href="/kayit" className="text-brand-600 hover:underline">
+        <Link href="/kayit" className="font-bold text-brand-600 hover:underline">
           Kayıt olun
         </Link>
       </p>

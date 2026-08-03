@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { ui } from '@/lib/ui';
 
 /**
  * What every account page shows a visitor who is not signed in.
@@ -21,15 +22,19 @@ export function SignInPrompt({
   description?: string;
 }) {
   return (
-    <div className="flex flex-col items-center gap-4 py-16 text-center">
-      <h1 className="text-2xl font-bold">{title}</h1>
+    <div className={`mx-auto flex max-w-md flex-col items-center gap-4 py-14 text-center ${ui.card} px-6 py-12 sm:px-10`}>
+      <span className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/15">
+        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4" />
+          <path d="M10 17l5-5-5-5M15 12H3" />
+        </svg>
+      </span>
 
-      {description !== undefined && <p className="text-ink-500">{description}</p>}
+      <h1 className="text-2xl font-extrabold tracking-tight">{title}</h1>
 
-      <Link
-        href={`/giris?next=${encodeURIComponent(next)}`}
-        className="rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-600"
-      >
+      {description !== undefined && <p className="max-w-sm text-ink-500">{description}</p>}
+
+      <Link href={`/giris?next=${encodeURIComponent(next)}`} className={`${ui.btnPrimary} mt-1`}>
         Giriş yap
       </Link>
     </div>

@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { useSession } from '@/components/SessionProvider';
 import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
+import { ui } from '@/lib/ui';
 import type { CartLine } from '@/lib/types';
 
 /**
@@ -50,12 +51,13 @@ export default function CartPage() {
 
   if (cart.items.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Sepetiniz boş</h1>
-        <Link
-          href="/urunler"
-          className="rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white transition hover:bg-brand-600"
-        >
+      <div className={`mx-auto flex max-w-md flex-col items-center gap-4 py-14 text-center ${ui.card} px-6 py-12`}>
+        <span className="grid h-16 w-16 place-items-center rounded-2xl bg-brand-50 text-brand-600 dark:bg-brand-500/15">
+          <CartIcon />
+        </span>
+        <h1 className="text-2xl font-extrabold tracking-tight">Sepetiniz boş</h1>
+        <p className="text-ink-500">Beğendiğiniz ürünleri sepete ekleyerek başlayın.</p>
+        <Link href="/urunler" className={`${ui.btnPrimary} mt-1`}>
           Ürünlere göz at
         </Link>
       </div>
@@ -64,16 +66,18 @@ export default function CartPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Sepetim</h1>
+      <h1 className={ui.h1}>
+        Sepetim <span className="text-base font-bold text-ink-400">({cart.items.length} ürün)</span>
+      </h1>
 
       {cart.has_unavailable_items && (
-        <p className="rounded-lg border border-amber-300 bg-amber-50 px-4 py-3 text-sm text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
+        <p className="rounded-2xl border border-amber-300 bg-amber-50 px-4 py-3 text-sm font-medium text-amber-900 dark:border-amber-700 dark:bg-amber-950 dark:text-amber-200">
           Sepetinizdeki bazı ürünler artık satışta değil. Devam etmeden önce çıkarmanız gerekiyor.
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
-        <ul className="divide-y divide-ink-200 rounded-xl border border-ink-200 dark:divide-ink-800 dark:border-ink-800">
+      <div className="grid gap-6 lg:grid-cols-[1fr_21rem]">
+        <ul className={`divide-y divide-ink-100 dark:divide-ink-800 ${ui.card}`}>
           {cart.items.map((line) => (
             <CartRow
               key={line.id}
@@ -84,12 +88,19 @@ export default function CartPage() {
           ))}
         </ul>
 
-        <aside className="flex h-fit flex-col gap-4 rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-          <h2 className="font-semibold">Özet</h2>
+        <aside className={`${ui.rail} lg:sticky lg:top-[130px]`}>
+          <h2 className={ui.h2}>Özet</h2>
 
           <div className="flex justify-between text-sm">
-            <span className="text-ink-500">Ürünler</span>
-            <span className="font-semibold">
+            <span className="text-ink-500">Ürünler ({cart.items.length})</span>
+            <span className="font-bold">
+              {cart.currency === null ? '—' : formatMoney(cart.items_total, cart.currency)}
+            </span>
+          </div>
+
+          <div className="flex items-baseline justify-between border-t border-ink-100 pt-3 dark:border-ink-800">
+            <span className="font-extrabold">Toplam</span>
+            <span className="text-xl font-extrabold tracking-tight text-brand-600">
               {cart.currency === null ? '—' : formatMoney(cart.items_total, cart.currency)}
             </span>
           </div>
@@ -97,7 +108,7 @@ export default function CartPage() {
           {/* THE SPLIT, SHOWN EARLY (ADR-052). "This will arrive as 2 separate
               deliveries" is something to learn now, not at confirmation. */}
           {cart.order_count > 1 && (
-            <p className="rounded-lg bg-ink-50 px-3 py-2 text-xs text-ink-600 dark:bg-ink-900 dark:text-ink-300">
+            <p className="rounded-xl bg-brand-50 px-3 py-2.5 text-xs font-medium text-brand-800 dark:bg-brand-500/10 dark:text-brand-200">
               Siparişiniz {cart.order_count} satıcıya bölünecek ve {cart.order_count} ayrı sipariş
               olarak oluşturulacak.
             </p>
@@ -108,18 +119,11 @@ export default function CartPage() {
           </p>
 
           {cart.has_unavailable_items ? (
-            <button
-              type="button"
-              disabled
-              className="rounded-lg bg-brand-500 px-4 py-2.5 font-semibold text-white opacity-60"
-            >
+            <button type="button" disabled className={`${ui.btnPrimary} w-full opacity-60`}>
               Siparişi tamamla
             </button>
           ) : (
-            <Link
-              href="/odeme"
-              className="rounded-lg bg-brand-500 px-4 py-2.5 text-center font-semibold text-white transition hover:bg-brand-600"
-            >
+            <Link href="/odeme" className={`${ui.btnPrimary} w-full`}>
               Siparişi tamamla
             </Link>
           )}
@@ -129,6 +133,16 @@ export default function CartPage() {
         </aside>
       </div>
     </div>
+  );
+}
+
+function CartIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="9" cy="20" r="1.4" />
+      <circle cx="18" cy="20" r="1.4" />
+      <path d="M2 3h2.5l2 12.5A1.5 1.5 0 0 0 8 17h9a1.5 1.5 0 0 0 1.5-1.2L20.5 7H6" />
+    </svg>
   );
 }
 
@@ -154,9 +168,9 @@ function CartRow({
   }
 
   return (
-    <li className={`flex items-center gap-4 p-4 ${line.available ? '' : 'opacity-60'}`}>
-      <div className="flex flex-1 flex-col gap-1">
-        <Link href={`/urun/${line.product_id}`} className="font-medium hover:text-brand-600">
+    <li className={`flex flex-wrap items-center gap-4 p-4 sm:flex-nowrap ${line.available ? '' : 'opacity-60'}`}>
+      <div className="flex min-w-0 flex-1 flex-col gap-1">
+        <Link href={`/urun/${line.product_id}`} className="font-bold leading-snug hover:text-brand-600">
           {line.title ?? 'Ürün'}
         </Link>
 
@@ -167,33 +181,33 @@ function CartRow({
               : null}
           </span>
         ) : (
-          <span className="text-sm text-amber-700 dark:text-amber-400">Artık satışta değil</span>
+          <span className="text-sm font-semibold text-amber-700 dark:text-amber-400">Artık satışta değil</span>
         )}
       </div>
 
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-1 rounded-xl border-2 border-ink-200 p-0.5 dark:border-ink-700">
         <button
           type="button"
           onClick={() => change(line.quantity - 1)}
           disabled={busy || line.quantity <= 1}
           aria-label="Adedi azalt"
-          className="h-8 w-8 rounded-lg border border-ink-300 disabled:opacity-40 dark:border-ink-700"
+          className="grid h-8 w-8 place-items-center rounded-lg text-lg leading-none text-ink-600 transition hover:bg-ink-50 disabled:opacity-40 dark:text-ink-300 dark:hover:bg-ink-800"
         >
           −
         </button>
-        <span className="w-8 text-center text-sm">{line.quantity}</span>
+        <span className="w-8 text-center text-sm font-bold tabular-nums">{line.quantity}</span>
         <button
           type="button"
           onClick={() => change(line.quantity + 1)}
           disabled={busy}
           aria-label="Adedi artır"
-          className="h-8 w-8 rounded-lg border border-ink-300 disabled:opacity-40 dark:border-ink-700"
+          className="grid h-8 w-8 place-items-center rounded-lg text-lg leading-none text-ink-600 transition hover:bg-ink-50 disabled:opacity-40 dark:text-ink-300 dark:hover:bg-ink-800"
         >
           +
         </button>
       </div>
 
-      <div className="w-24 text-right font-semibold">
+      <div className="w-24 text-right font-extrabold tracking-tight">
         {line.line_total !== null && line.currency !== null
           ? formatMoney(line.line_total, line.currency)
           : '—'}
@@ -203,9 +217,12 @@ function CartRow({
         type="button"
         onClick={onRemove}
         aria-label="Sepetten çıkar"
-        className="text-sm text-ink-400 hover:text-red-600"
+        className="grid h-8 w-8 place-items-center rounded-lg text-ink-400 transition hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950/40"
+        title="Sepetten çıkar"
       >
-        Kaldır
+        <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.9} strokeLinecap="round" strokeLinejoin="round">
+          <path d="M3 6h18M8 6V4h8v2M6 6l1 14h10l1-14" />
+        </svg>
       </button>
     </li>
   );

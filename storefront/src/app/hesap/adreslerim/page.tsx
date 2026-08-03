@@ -6,6 +6,7 @@ import { SignInPrompt } from '@/components/SignInPrompt';
 import { useSession } from '@/components/SessionProvider';
 import { formatAddress } from '@/lib/address';
 import * as api from '@/lib/session-api';
+import { ui } from '@/lib/ui';
 import type { Address, AddressInput, Country } from '@/lib/types';
 
 /**
@@ -57,21 +58,17 @@ export default function AddressBookPage() {
   return (
     <div className="flex flex-col gap-6">
       <div className="flex items-center justify-between">
-        <h1 className="text-2xl font-bold">Adreslerim</h1>
+        <h1 className={ui.h1}>Adreslerim</h1>
         {!creating && (
-          <button
-            type="button"
-            onClick={() => setCreating(true)}
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600"
-          >
-            Yeni adres
+          <button type="button" onClick={() => setCreating(true)} className={ui.btnPrimarySm}>
+            + Yeni adres
           </button>
         )}
       </div>
 
       {creating && (
-        <section className="rounded-xl border border-ink-200 p-5 dark:border-ink-800">
-          <h2 className="mb-4 font-semibold">Yeni adres</h2>
+        <section className={`p-5 ${ui.card}`}>
+          <h2 className={`mb-4 ${ui.h2}`}>Yeni adres</h2>
           <AddressForm
             countries={countries}
             submitLabel="Kaydet"
@@ -86,14 +83,14 @@ export default function AddressBookPage() {
       )}
 
       {addresses.length === 0 && !creating && (
-        <p className="rounded-xl border border-dashed border-ink-300 p-10 text-center text-ink-500 dark:border-ink-700">
+        <p className="rounded-2xl border-2 border-dashed border-ink-200 p-12 text-center text-ink-500 dark:border-ink-700">
           Henüz kayıtlı adresiniz yok.
         </p>
       )}
 
       <ul className="grid gap-4 sm:grid-cols-2">
         {addresses.map((address) => (
-          <li key={address.id} className="rounded-xl border border-ink-200 p-5 dark:border-ink-800">
+          <li key={address.id} className={`p-5 ${ui.card}`}>
             {editing === address.id ? (
               <AddressForm
                 countries={countries}

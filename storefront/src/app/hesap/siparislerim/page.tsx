@@ -6,6 +6,7 @@ import { useSession } from '@/components/SessionProvider';
 import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
 import * as api from '@/lib/session-api';
+import { ui } from '@/lib/ui';
 import { ORDER_STATUS_LABELS, type Order } from '@/lib/types';
 
 /**
@@ -57,9 +58,10 @@ export default function OrdersPage() {
 
   if (orders.length === 0) {
     return (
-      <div className="flex flex-col items-center gap-4 py-16 text-center">
-        <h1 className="text-2xl font-bold">Henüz siparişiniz yok</h1>
-        <Link href="/urunler" className="rounded-lg bg-brand-500 px-5 py-2.5 font-semibold text-white">
+      <div className={`mx-auto flex max-w-md flex-col items-center gap-4 py-14 text-center ${ui.card} px-6 py-12`}>
+        <h1 className="text-2xl font-extrabold tracking-tight">Henüz siparişiniz yok</h1>
+        <p className="text-ink-500">İlk siparişinizi vermek için ürünlere göz atın.</p>
+        <Link href="/urunler" className={`${ui.btnPrimary} mt-1`}>
           Alışverişe başla
         </Link>
       </div>
@@ -70,12 +72,12 @@ export default function OrdersPage() {
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="text-2xl font-bold">Siparişlerim</h1>
+      <h1 className={ui.h1}>Siparişlerim</h1>
 
       <ul className="flex flex-col gap-5">
         {groups.map((group) => (
-          <li key={group.id} className="rounded-xl border border-ink-200 dark:border-ink-800">
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-200 px-5 py-3 text-sm dark:border-ink-800">
+          <li key={group.id} className={ui.card}>
+            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-100 px-5 py-3.5 text-sm dark:border-ink-800">
               <span className="text-ink-500">
                 {new Date(group.createdAt).toLocaleDateString('tr-TR', {
                   day: 'numeric',
@@ -88,12 +90,12 @@ export default function OrdersPage() {
                 <span className="text-ink-500">{group.orders.length} satıcıdan</span>
               )}
 
-              <span className="font-semibold">
+              <span className="font-extrabold tracking-tight">
                 {formatMoney(group.total, group.currency)}
               </span>
             </div>
 
-            <ul className="divide-y divide-ink-200 dark:divide-ink-800">
+            <ul className="divide-y divide-ink-100 dark:divide-ink-800">
               {group.orders.map((order) => (
                 <OrderRow
                   key={order.id}
@@ -146,7 +148,7 @@ function OrderRow({
         </div>
 
         <span
-          className={`rounded-full px-3 py-1 text-xs font-medium ${
+          className={`rounded-full px-3 py-1 text-xs font-bold ${
             order.status === 'cancelled'
               ? 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300'
               : 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
@@ -155,7 +157,7 @@ function OrderRow({
           {ORDER_STATUS_LABELS[order.status]}
         </span>
 
-        <span className="font-semibold">{formatMoney(order.grand_total, order.currency)}</span>
+        <span className="font-extrabold tracking-tight">{formatMoney(order.grand_total, order.currency)}</span>
       </div>
 
       {order.lines !== undefined && order.lines.length > 0 && (

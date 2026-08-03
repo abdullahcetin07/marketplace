@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { browseProducts, type ProductSort } from '@/lib/api';
 import { ProductGrid } from '@/components/ProductGrid';
+import { ui } from '@/lib/ui';
 
 export const metadata: Metadata = {
   title: 'Tüm ürünler',
@@ -63,8 +64,10 @@ export default async function ProductsPage({
     <div className="flex flex-col gap-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
         <div>
-          <h1 className="text-2xl font-bold">{q === '' ? 'Tüm ürünler' : `"${q}" için sonuçlar`}</h1>
-          <p className="mt-1 text-sm text-ink-500">{result.total} ürün</p>
+          <h1 className={ui.h1}>{q === '' ? 'Tüm ürünler' : `“${q}” için sonuçlar`}</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            <span className="font-bold text-ink-700 dark:text-ink-200">{result.total}</span> ürün
+          </p>
         </div>
 
         <form method="get" className="flex flex-wrap items-center gap-2">
@@ -74,15 +77,10 @@ export default async function ProductsPage({
             defaultValue={q}
             placeholder="Ürün ara"
             aria-label="Ürün ara"
-            className="rounded-lg border border-ink-300 px-3 py-2 text-sm dark:border-ink-700 dark:bg-ink-900"
+            className={`${ui.field} w-auto`}
           />
 
-          <select
-            name="sort"
-            defaultValue={sort}
-            aria-label="Sırala"
-            className="rounded-lg border border-ink-300 px-3 py-2 text-sm dark:border-ink-700 dark:bg-ink-900"
-          >
+          <select name="sort" defaultValue={sort} aria-label="Sırala" className={`${ui.field} w-auto`}>
             {SORTS.map((option) => (
               <option key={option.value} value={option.value}>
                 {option.label}
@@ -96,38 +94,47 @@ export default async function ProductsPage({
           {passthrough(params.category, 'category')}
           {passthrough(params.brand, 'brand')}
 
-          <button
-            type="submit"
-            className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-medium text-white transition hover:bg-brand-600"
-          >
+          <button type="submit" className={ui.btnPrimarySm}>
             Uygula
           </button>
         </form>
       </div>
 
-      <ProductGrid products={result.items} />
+      {result.items.length === 0 ? (
+        <div className={`flex flex-col items-center gap-3 py-16 text-center ${ui.card}`}>
+          <h2 className="text-lg font-extrabold tracking-tight">Sonuç bulunamadı</h2>
+          <p className="max-w-sm text-sm text-ink-500">
+            Aradığınız kriterlere uyan ürün yok. Farklı bir arama veya filtre deneyin.
+          </p>
+          <Link href="/urunler" className={`${ui.btnGhost} mt-1 px-4 py-2 text-sm`}>
+            Tüm ürünler
+          </Link>
+        </div>
+      ) : (
+        <ProductGrid products={result.items} />
+      )}
 
       {result.lastPage > 1 && (
         <nav className="flex items-center justify-center gap-3 pt-4 text-sm">
           {page > 1 && (
             <Link
               href={pageUrl(params, page - 1)}
-              className="rounded-lg border border-ink-300 px-4 py-2 hover:border-brand-400 dark:border-ink-700"
+              className="rounded-xl border-2 border-ink-200 px-4 py-2 font-bold transition hover:border-brand-400 dark:border-ink-700"
             >
-              Önceki
+              ← Önceki
             </Link>
           )}
 
-          <span className="text-ink-500">
+          <span className="font-semibold text-ink-500">
             {page} / {result.lastPage}
           </span>
 
           {page < result.lastPage && (
             <Link
               href={pageUrl(params, page + 1)}
-              className="rounded-lg border border-ink-300 px-4 py-2 hover:border-brand-400 dark:border-ink-700"
+              className="rounded-xl border-2 border-ink-200 px-4 py-2 font-bold transition hover:border-brand-400 dark:border-ink-700"
             >
-              Sonraki
+              Sonraki →
             </Link>
           )}
         </nav>

@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import { SessionApiError } from '@/lib/session-api';
+import { ui } from '@/lib/ui';
 import type { AddressInput, Country } from '@/lib/types';
 
 /**
@@ -76,8 +77,7 @@ export function AddressForm({
     }
   }
 
-  const input =
-    'rounded-lg border border-ink-300 px-3 py-2 text-sm dark:border-ink-700 dark:bg-ink-900';
+  const input = ui.field;
 
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
@@ -124,14 +124,12 @@ export function AddressForm({
         </select>
       </Row>
 
-      {message !== null && <p className="text-sm text-red-600">{message}</p>}
+      {message !== null && (
+        <p className="rounded-xl bg-red-50 px-3.5 py-2.5 text-sm text-red-600 dark:bg-red-950/40">{message}</p>
+      )}
 
       <div className="flex gap-2 pt-1">
-        <button
-          type="submit"
-          disabled={busy}
-          className="rounded-lg bg-brand-500 px-4 py-2 text-sm font-semibold text-white transition hover:bg-brand-600 disabled:opacity-60"
-        >
+        <button type="submit" disabled={busy} className={`${ui.btnPrimarySm}`}>
           {busy ? 'Kaydediliyor…' : submitLabel}
         </button>
 
@@ -139,7 +137,7 @@ export function AddressForm({
           <button
             type="button"
             onClick={onCancel}
-            className="rounded-lg border border-ink-300 px-4 py-2 text-sm dark:border-ink-700"
+            className="rounded-xl border-2 border-ink-200 px-4 py-2 text-sm font-bold text-ink-600 transition hover:border-ink-300 dark:border-ink-700 dark:text-ink-200"
           >
             Vazgeç
           </button>
@@ -159,8 +157,8 @@ function Row({
   children: React.ReactNode;
 }) {
   return (
-    <label className="flex flex-col gap-1 text-sm">
-      <span className="text-ink-600 dark:text-ink-300">{label}</span>
+    <label className="flex flex-col gap-1.5 text-sm">
+      <span className="font-semibold text-ink-700 dark:text-ink-200">{label}</span>
       {children}
       {error !== undefined && <span className="text-xs text-red-600">{error}</span>}
     </label>
