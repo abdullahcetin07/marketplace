@@ -1785,8 +1785,12 @@ Full specification: [docs/modules/Payment.md](modules/Payment.md) §6.
 same append-only discipline as Audit and the Inventory movement ledger.
 `seller_ledger_entries` (the model refuses update and delete) records typed, signed,
 integer-kuruş entries — `sale_credit`, `commission_debit`, `payout_debit`,
-`refund_debit`, `refund_commission_credit` — each pointing at the order/payment/payout
-that produced it. **Balance is the sum of the entries, computed on read**, never stored.
+`refund_debit`, `refund_commission_credit`, `payout_reversal_credit` — each pointing at
+the order/payment/payout that produced it. **Balance is the sum of the entries, computed
+on read**, never stored. (`payout_reversal_credit` ratified 2026-08-04 from the P4 build:
+a payout debits at creation to reserve the funds; a bank transfer the platform later
+records as **failed** must restore the balance without deleting the payout record — so
+the reversal is another row, not an erasure.)
 
 On a paid order, per seller: a `sale_credit` of the order's KDV-inclusive total and a
 `commission_debit` of the commission — so the balance rises by **net of commission**.
