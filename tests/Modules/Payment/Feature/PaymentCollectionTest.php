@@ -22,6 +22,7 @@ use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Payment\Application\Actions\SettlePaymentCallbackAction;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
+use App\Modules\Payment\Domain\Models\CommissionRule;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
@@ -377,4 +378,106 @@ it('404s a non-uuid or unknown checkout group instead of 500ing', function (): v
     foreach (['not-a-uuid', 'sepet', (string) Str::uuid()] as $group) {
         $this->postJson("/api/v1/checkout/{$group}/pay")->assertNotFound();
     }
+});
+
+/*
+|--------------------------------------------------------------------------
+| The commission snapshot (ADR-061, Payment.md §6) — P2
+|--------------------------------------------------------------------------
+*/
+
+it('freezes the commission onto every line when the payment succeeds', function (): void {
+    $fixture = paidCheckoutFixture(priceMinor: 12_000, quantity: 2);
+    $payment = pendingPaymentFor($fixture['group'], groupTotalMinor($fixture['group']));
+
+    // Before: the classification is frozen (checkout) but the money is not.
+    $line = $fixture['orders'][0]->lines()->first();
+
+    expect($line->commission_minor)->toBeNull()
+        ->and($line->category_uuid)->not->toBeNull();
+    expect($line->category_path_uuids)->toBeArray();
+    expect($line->category_path_uuids)->not->toBeEmpty();
+
+    app(SettlePaymentCallbackAction::class)->run(paytrCallback($payment));
+
+    /*
+     * AT PAYMENT, NOT AT CHECKOUT, and the timing is the decision. A rate edited
+     * between placing and paying SHOULD apply — no money had changed hands — and
+     * one edited afterwards must not.
+     *
+     * 24 000 kuruş at the seeded platform default of 18% = 4 320.
+     */
+    $line = $line->fresh();
+
+    expect($line->commission_rate)->toBe('0.1800')
+        ->and($line->commission_minor)->toBe(4_320)
+        ->and($line->commission_resolved_at)->not->toBeNull();
+});
+
+it('computes commission on the KDV-INCLUSIVE line total', function (): void {
+    $fixture = paidCheckoutFixture(priceMinor: 12_990, quantity: 1);
+    $payment = pendingPaymentFor($fixture['group'], groupTotalMinor($fixture['group']));
+
+    app(SettlePaymentCallbackAction::class)->run(paytrCallback($payment));
+
+    $line = $fixture['orders'][0]->lines()->first()->fresh();
+
+    /*
+     * THE LINE CARRIES KDV INSIDE IT (ADR-042/055) and the commission is a share
+     * of the GROSS the buyer paid, not of the net (owner choice, Payment.md §6).
+     * 12 990 × 18% = 2 338,2 → 2 338. Computed from the full 12 990, never from
+     * the ~10 825 that would be left after extracting the %20 KDV.
+     */
+    expect($line->line_total_minor)->toBe(12_990)
+        ->and($line->line_tax_minor)->toBeGreaterThan(0)
+        ->and($line->commission_minor)->toBe(2_338);
+});
+
+it('never moves a commission once it is settled', function (): void {
+    $fixture = paidCheckoutFixture(priceMinor: 12_000, quantity: 2);
+    $payment = pendingPaymentFor($fixture['group'], groupTotalMinor($fixture['group']));
+    $callback = paytrCallback($payment);
+
+    app(SettlePaymentCallbackAction::class)->run($callback);
+
+    $line = $fixture['orders'][0]->lines()->first()->fresh();
+    $settled = $line->commission_minor;
+
+    /*
+     * THE SENTENCE ADR-061 IS MADE OF: a commission a seller has already seen
+     * deducted must never move. Three ways it could, all refused:
+     */
+
+    // 1. A retried callback — PayTR sends them for days.
+    app(SettlePaymentCallbackAction::class)->run($callback);
+    expect($line->fresh()->commission_minor)->toBe($settled);
+
+    // 2. A rule change afterwards. It re-prices the NEXT sale, not this one.
+    CommissionRule::query()->update(['rate' => '0.5000']);
+    app(SettlePaymentCallbackAction::class)->run($callback);
+    expect($line->fresh()->commission_minor)->toBe($settled);
+
+    // 3. A direct write. `OrderLine` refuses it: the line is immutable, and the
+    //    commission columns are the ONE deferred write, permitted exactly once.
+    $line->update(['commission_minor' => 1]);
+    expect($line->fresh()->commission_minor)->toBe($settled);
+});
+
+it('keeps every other column of a placed line frozen', function (): void {
+    $fixture = paidCheckoutFixture();
+    $line = $fixture['orders'][0]->lines()->first();
+    $price = $line->unit_price_minor;
+
+    /*
+     * THE COMMISSION HOLE IS NARROW ON PURPOSE. A write that touches anything
+     * besides the three commission fields is refused whatever else it does — so
+     * the exception ADR-061 needed cannot become a general-purpose escape hatch
+     * by adding one more key to the same `update()` call.
+     */
+    $line->update(['unit_price_minor' => 1]);
+    expect($line->fresh()->unit_price_minor)->toBe($price);
+
+    $line->update(['commission_minor' => 500, 'unit_price_minor' => 1]);
+    expect($line->fresh()->unit_price_minor)->toBe($price)
+        ->and($line->fresh()->commission_minor)->toBeNull();
 });

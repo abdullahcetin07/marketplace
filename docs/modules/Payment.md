@@ -231,6 +231,35 @@ lines at payment time** — like the price/tax snapshot Order already freezes (A
 Changing a rule later re-prices the **next** sale, never a settled one. A commission a
 seller already saw deducted must never move.
 
+> **As built (P2, 2026-08-04).** Two snapshots at two moments, and the split matters:
+>
+> - **The classification** (`brand_uuid`, `category_uuid`, `category_path_uuids`) is
+>   frozen at **checkout**, because it is what the rules are matched against. A product
+>   re-categorised next month must not change which rule applied to a sale already made.
+>   The ancestry travels with it so the subtree test is a membership check on the line
+>   itself, never a walk of the live tree.
+> - **The commission** (`commission_rate`, `commission_minor`, `commission_resolved_at`)
+>   is frozen at **payment**, because that is when money changes hands. A rate edited
+>   between placing and paying should apply; one edited afterwards must not.
+>
+> **§12's claim that "the line already carries product/brand/category ids" was not
+> true** — `order_lines` held only `product_uuid`. The three classification columns were
+> added for this, Order-owned, the same shape ADR-055 used when Catalog gained
+> `tax_rate_id` for Order. Lines placed before the migration carry nulls and simply fall
+> through to a less specific rule, which is honest rather than back-filled from a
+> taxonomy that has since moved.
+>
+> **ORDER WRITES THE SNAPSHOT; PAYMENT COMPUTES IT.** `order_lines` is Order's
+> aggregate, so Payment answers through a Core `CommissionQueryContract` and Order's
+> existing `PaymentSucceeded` listener does the writing — the same reason Payment
+> announces rather than setting an order's status (P1).
+>
+> **`OrderLine` is immutable and stays that way.** Its `updating` guard now permits
+> exactly one deferred write: a change touching *only* the three commission columns,
+> and only while `commission_resolved_at` is null. So a retried callback, a later rule
+> change and a direct `update()` are all refused — which is the ADR's sentence enforced
+> in code rather than by convention.
+
 ---
 
 ## 7. Seller balance — an append-only ledger (ADR-062)

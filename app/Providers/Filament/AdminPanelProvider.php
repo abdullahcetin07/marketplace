@@ -17,6 +17,7 @@ use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
 use App\Modules\Order\Presentation\Filament\Resources\OrderResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
 use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequestResource;
+use App\Modules\Payment\Presentation\Filament\Resources\CommissionRuleResource;
 use App\Modules\Store\Presentation\Filament\Resources\StoreResource;
 use App\Shared\Enums\UserType;
 use Filament\Http\Middleware\Authenticate;
@@ -138,6 +139,14 @@ final class AdminPanelProvider extends PanelProvider
                 | of their parcel is.
                 */
                 OrderResource::class,
+
+                /*
+                | COMMISSION RATES (ADR-061). The only writable surface Payment
+                | has: a payment is a record of what a bank did and nothing edits
+                | it, while a rate is configuration an operator sets without a
+                | release — which is the whole reason it is a table.
+                */
+                CommissionRuleResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

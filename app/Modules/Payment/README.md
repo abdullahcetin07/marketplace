@@ -43,7 +43,34 @@ callback  → hash-verified, idempotent, one transaction:
   learns money arrived by subscribing to `PaymentSucceeded` **by class-string**
   from its own side — Payment never sets an order's status.
 
+## The commission engine (P2)
+
+`commission_rules` has four nullable scopes — seller, product, brand, category —
+and **null means "any"**. The row with all four null is the platform default: not
+a special kind of row, just the least specific one there is.
+
+**Most-specific-wins.** The rule that sets the MOST scopes takes the line.
+`priority` breaks a tie between rules of EQUAL specificity and **can never beat
+specificity itself** — a priority that could would make "why did this line get
+12%?" unanswerable without simulating the engine.
+
+**A category rule covers its subtree**, matched against the ancestry snapshotted
+on the line rather than the live tree.
+
+**Two snapshots, two moments.** The classification (brand, category, ancestry) is
+frozen at checkout because it is what the rules match; the commission (rate,
+kuruş) is frozen at payment because that is when money moves. A rate edited in
+between applies; one edited afterwards does not.
+
+**Base = the KDV-INCLUSIVE line total** — the gross the buyer paid. One half-up
+rounding helper (`CommissionAmount`) serves charge and refund, because a kuruş of
+disagreement between them drifts a seller's balance forever.
+
+Payment computes; **Order writes**. `order_lines` is Order's aggregate, so the
+answer crosses through the Core `CommissionQueryContract` and Order's own
+`PaymentSucceeded` listener does the writing.
+
 ## Phases
 
-P1 collection core ✅ · P2 commission engine · P3 seller ledger · P4 payout ·
+P1 collection core ✅ · P2 commission engine ✅ · P3 seller ledger · P4 payout ·
 P5 refund.

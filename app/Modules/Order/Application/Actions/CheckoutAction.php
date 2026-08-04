@@ -221,6 +221,16 @@ final class CheckoutAction extends BaseAction
         $variants = $this->browse->variantSummaries(
             $items->pluck('variant_uuid')->unique()->values()->all(),
         );
+        /*
+        | THE COMMISSION CLASSIFICATION, frozen with everything else (ADR-061).
+        | Brand, category and the category's ancestry are what a commission rule is
+        | matched against, and Payment.md §6 requires them read OFF THE ORDER
+        | rather than off the live catalogue — so a product re-categorised next
+        | month cannot change which rule applied to a sale already made.
+        */
+        $classifications = $this->browse->productClassifications(
+            $items->pluck('product_uuid')->unique()->values()->all(),
+        );
 
         $itemsTotal = 0;
         $taxTotal = 0;
@@ -266,6 +276,12 @@ final class CheckoutAction extends BaseAction
                 */
                 'product_title' => (string) ($titles[$item->product_uuid]['title'] ?? '—'),
                 'variant_label' => $variants[$item->variant_uuid]['label'] ?? null,
+                // Null when the catalogue has no answer — a line that cannot be
+                // classified simply falls through to a less specific commission
+                // rule, which is honest rather than invented.
+                'brand_uuid' => $classifications[$item->product_uuid]['brand_uuid'] ?? null,
+                'category_uuid' => $classifications[$item->product_uuid]['category_uuid'] ?? null,
+                'category_path_uuids' => $classifications[$item->product_uuid]['category_path_uuids'] ?? null,
                 'unit_price_minor' => $unit,
                 'tax_rate' => $rate,
                 'quantity' => $item->quantity,

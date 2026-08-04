@@ -11,6 +11,7 @@ use App\Models\Seller;
 use App\Models\User;
 use Database\Modules\Catalog\Seeders\TaxRateSeeder;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
+use Database\Modules\Payment\Seeders\CommissionRuleSeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -85,6 +86,14 @@ abstract class TestCase extends BaseTestCase
         | a test suite without them would exercise a state production never has.
         */
         $this->seed(TaxRateSeeder::class);
+
+        /*
+        | The platform's default commission rate (ADR-061). Structural for the same
+        | reason as the two above: a payment that settles with no rule configured
+        | takes 0%, and a suite that ran in that state would prove the commission
+        | engine works by never exercising it.
+        */
+        $this->seed(CommissionRuleSeeder::class);
     }
 
     /**

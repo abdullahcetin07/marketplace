@@ -56,6 +56,12 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $offer_uuid
  * @property string $variant_uuid
  * @property string $product_uuid
+ * @property string|null $brand_uuid
+ * @property string|null $category_uuid
+ * @property array<int, string>|null $category_path_uuids
+ * @property string|null $commission_rate
+ * @property int|null $commission_minor
+ * @property \Illuminate\Support\Carbon|null $commission_resolved_at
  * @property string $product_title
  * @property string|null $variant_label
  * @property int $unit_price_minor
@@ -89,6 +95,16 @@ final class OrderLine extends Model
         'offer_uuid',
         'variant_uuid',
         'product_uuid',
+        // What a commission rule is matched against, frozen at checkout
+        // (ADR-061). See the class docblock.
+        'brand_uuid',
+        'category_uuid',
+        'category_path_uuids',
+        // The deferred half of the snapshot, written once at payment — see
+        // `isSettlingCommission()` for the guard that keeps it to once.
+        'commission_rate',
+        'commission_minor',
+        'commission_resolved_at',
         'product_title',
         'variant_label',
         'unit_price_minor',
@@ -118,6 +134,43 @@ final class OrderLine extends Model
         return $this->line_total_minor - $this->line_tax_minor;
     }
 
+    /**
+     * The ONE write a placed line still permits: freezing its commission
+     * (ADR-061, Payment.md §6).
+     *
+     * WHY THE HOLE EXISTS AT ALL. Everything else on this row is agreed at
+     * checkout, but the commission is agreed at PAYMENT — a rule edited between
+     * the two should take effect, and one edited afterwards must not. So there is
+     * exactly one deferred write, and this is the only shape it may take.
+     *
+     * IT IS NARROWER THAN "allow the commission columns". The write is refused
+     * once `commission_resolved_at` is set, which makes the guard say the thing
+     * ADR-061 actually cares about: *a commission a seller has already seen
+     * deducted never moves.* A blanket allowance on those columns would let a
+     * second payment callback, a retry or a later admin action rewrite a settled
+     * figure — and the ledger crediting that seller (P3) would then disagree with
+     * the line it was computed from.
+     *
+     * EVERY OTHER COLUMN STAYS FROZEN. A change that touches anything besides the
+     * three commission fields is refused whatever else it does, so this cannot
+     * become a general-purpose escape hatch by accident: adding one more key to
+     * the same `update()` call makes the whole write fail.
+     */
+    public function isSettlingCommission(): bool
+    {
+        $dirty = array_keys($this->getDirty());
+
+        $permitted = ['commission_rate', 'commission_minor', 'commission_resolved_at'];
+
+        if ($dirty === [] || array_diff($dirty, $permitted) !== []) {
+            return false;
+        }
+
+        // Already settled: the figure is final, and this is the sentence ADR-061
+        // is made of.
+        return $this->getOriginal('commission_resolved_at') === null;
+    }
+
     protected static function newFactory(): OrderLineFactory
     {
         return OrderLineFactory::new();
@@ -134,7 +187,7 @@ final class OrderLine extends Model
      */
     protected static function booted(): void
     {
-        self::updating(fn (): bool => false);
+        self::updating(fn (self $line): bool => $line->isSettlingCommission());
         self::deleting(fn (): bool => false);
     }
 
@@ -152,6 +205,14 @@ final class OrderLine extends Model
             // invoice reproduces, and a float would reintroduce exactly what
             // DECIMAL was chosen to avoid (ADR-005).
             'tax_rate' => 'decimal:4',
+
+            // The commission snapshot (ADR-061). Same split as above and for the
+            // same reason: the RATE is a decimal, the money it produces is an
+            // integer of kuruş.
+            'category_path_uuids' => 'array',
+            'commission_rate' => 'decimal:4',
+            'commission_minor' => 'integer',
+            'commission_resolved_at' => 'datetime',
         ];
     }
 }

@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use Database\Modules\Catalog\Seeders\TaxRateSeeder;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Modules\Organization\Seeders\OrganizationPlanSeeder;
+use Database\Modules\Payment\Seeders\CommissionRuleSeeder;
 use Database\Modules\Settings\Seeders\SettingsSeeder;
 use Illuminate\Database\Seeder;
 
@@ -44,6 +45,15 @@ final class DatabaseSeeder extends Seeder
             | `products.tax_rate_id`, which is the other half of that migration.
             */
             TaxRateSeeder::class,
+
+            /*
+            | The platform's default commission rate (ADR-061). Structural for the
+            | same reason: with no rules at all the resolver takes 0%, which is a
+            | defensible state for a platform that has not decided yet and is not
+            | what anyone launching a marketplace means — and a silent 0% is
+            | discovered in a month's accounts.
+            */
+            CommissionRuleSeeder::class,
 
             // Roles and permissions, derived from PermissionRegistry.
             RolePermissionSeeder::class,

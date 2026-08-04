@@ -597,6 +597,8 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Payment\Domain\Events',
         'App\Modules\Payment\Domain\Contracts',
         'App\Modules\Payment\Domain\Exceptions',
+        'App\Modules\Payment\Domain\Services',
+        'App\Modules\Payment\Domain\Support',
         'App\Modules\Payment\Infrastructure',
         'App\Modules\Payment\Presentation',
         'App\Modules\Payment\PaymentServiceProvider',

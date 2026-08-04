@@ -4,12 +4,14 @@ declare(strict_types=1);
 
 namespace App\Modules\Order\Application\Listeners;
 
+use App\Core\Domain\Contracts\CommissionQueryContract;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Payment collected the money; Order moves its own orders (Payment.md §3, §5).
+ * Payment collected the money; Order moves its own orders and freezes what the
+ * platform takes (Payment.md §3, §5, §6).
  *
  * THE BOUNDARY MADE VISIBLE. Payment commits the stock itself — it is the caller
  * ADR-057 named — but it does not set an order's status, because a module that
@@ -48,7 +50,8 @@ final class SettleOrdersOnPayment
         /** @var array<int, string> $orderUuids */
         $orderUuids = $event->orderUuids ?? [];
 
-        foreach (Order::query()->whereIn('uuid', $orderUuids)->get() as $order) {
+        foreach (Order::query()->with('lines')->whereIn('uuid', $orderUuids)->get() as $order) {
+            $this->freezeCommission($order);
             $this->transition($order, OrderStatus::Paid, (string) ($event->paymentUuid ?? ''));
         }
     }
@@ -75,6 +78,57 @@ final class SettleOrdersOnPayment
             'checkout_group_uuid' => $event->checkoutGroupUuid ?? null,
             'reason' => $event->reason ?? null,
         ]);
+    }
+
+    /**
+     * Freeze what the platform takes on each line (ADR-061, Payment.md §6).
+     *
+     * AT PAYMENT, NOT AT CHECKOUT, and the timing is the decision. A rate edited
+     * between placing and paying SHOULD apply — no money had changed hands — and
+     * one edited afterwards must not. So the classification was frozen at checkout
+     * (what the rules match against) and the commission is frozen here (what they
+     * came to).
+     *
+     * ORDER WRITES IT, PAYMENT COMPUTES IT. `order_lines` is this module's
+     * aggregate, and Payment reaching into it would be the boundary failing at the
+     * same tempting point as setting an order's status. So the rate arrives
+     * through the Core `CommissionQueryContract` and this method does the writing.
+     *
+     * IT READS THE SNAPSHOT, NEVER THE CATALOGUE. Brand, category and ancestry all
+     * come off the line, so a product re-categorised next month cannot move a
+     * commission on a sale already made.
+     *
+     * IDEMPOTENT, because the callback behind it is: a line whose commission is
+     * already resolved is skipped, and `OrderLine`'s own guard refuses the write
+     * even if this method forgot to.
+     */
+    private function freezeCommission(Order $order): void
+    {
+        $commissions = app(CommissionQueryContract::class);
+
+        foreach ($order->lines as $line) {
+            if ($line->commission_resolved_at !== null) {
+                // A retried callback. The figure is final — see
+                // `OrderLine::isSettlingCommission()`.
+                continue;
+            }
+
+            $commission = $commissions->forLine(
+                sellerOrgUuid: $order->selling_org_uuid,
+                // KDV-INCLUSIVE (owner choice, Payment.md §6): the gross the buyer
+                // paid for this line, not the net of tax.
+                baseMinor: $line->line_total_minor,
+                productUuid: $line->product_uuid,
+                brandUuid: $line->brand_uuid,
+                categoryPathUuids: $line->category_path_uuids ?? [],
+            );
+
+            $line->update([
+                'commission_rate' => $commission['rate'],
+                'commission_minor' => $commission['amount_minor'],
+                'commission_resolved_at' => now(),
+            ]);
+        }
     }
 
     private function transition(Order $order, OrderStatus $target, string $paymentUuid): void

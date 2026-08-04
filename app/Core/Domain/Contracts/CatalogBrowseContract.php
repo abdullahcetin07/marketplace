@@ -102,6 +102,33 @@ interface CatalogBrowseContract
     public function productSummaries(array $productUuids): array;
 
     /**
+     * The classification a commission rule is scoped by: a product's brand and
+     * its category, plus that category's ancestors — all as uuids, keyed by
+     * product uuid.
+     *
+     * ADDED FOR ORDER'S LINE SNAPSHOT (2026-08-04, ADR-061). Payment resolves a
+     * commission by seller/product/brand/category, and Payment.md §12 requires it
+     * to read those OFF THE ORDER rather than off the live catalogue — so a
+     * product re-categorised next month cannot move a commission already settled.
+     * Order therefore freezes them at checkout, and this is what it freezes.
+     *
+     * THE ANCESTOR PATH IS THE INTERESTING PART. A commission rule on a parent
+     * category covers its descendants (Payment.md §6), so "does this rule apply"
+     * is "is the rule's category anywhere in this line's ancestry" — a question
+     * the line can answer alone once the ancestry is snapshotted with it. The
+     * alternative, walking the live tree at payment time, would make a settled
+     * commission depend on a taxonomy that has since been reorganised.
+     *
+     * ROOT FIRST AND INCLUDING THE CATEGORY ITSELF, so a rule scoped to the leaf
+     * and a rule scoped to the root are both a simple membership test.
+     *
+     * @param array<int, string> $productUuids
+     *
+     * @return array<string, array{brand_uuid: string|null, category_uuid: string|null, category_path_uuids: array<int, string>}>
+     */
+    public function productClassifications(array $productUuids): array;
+
+    /**
      * The product uuid behind a public identifier — a uuid OR a flat slug
      * (ADR-059). Null when nothing published matches.
      *

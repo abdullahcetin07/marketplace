@@ -4,10 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Payment;
 
+use App\Core\Domain\Contracts\CommissionQueryContract;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
+use App\Modules\Payment\Domain\Models\CommissionRule;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
+use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
+use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -57,12 +62,21 @@ final class PaymentServiceProvider extends ServiceProvider
             };
         });
 
+        /*
+        | THE COMMISSION PORT (ADR-061). Payment owns the rules; Order owns the
+        | lines the answer is frozen onto, and neither may import the other — so
+        | the rules answer through Core and Order writes its own table.
+        */
+        $this->app->singleton(CommissionQueryContract::class, CommissionQuery::class);
+
         $this->registerPermissions();
     }
 
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Payment/migrations'));
+
+        Gate::policy(CommissionRule::class, CommissionRulePolicy::class);
     }
 
     /**
@@ -82,5 +96,13 @@ final class PaymentServiceProvider extends ServiceProvider
     {
         PermissionRegistry::ability('payment.view_any', [UserType::Admin]);
         PermissionRegistry::ability('payment.view', [UserType::Admin]);
+
+        /*
+        | COMMISSION RULES ARE THE ONE WRITABLE THING IN THIS MODULE (ADR-061). A
+        | rate is configuration an operator sets without a release, unlike a
+        | payment, which is a record of what a bank did. So this resource gets the
+        | full verb set while `payment.*` stays read-only.
+        */
+        PermissionRegistry::resource('commission_rule', [UserType::Admin]);
     }
 }

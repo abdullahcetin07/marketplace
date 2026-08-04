@@ -17,5 +17,6 @@ return [
     'sellers' => 'Satıcılar',
     'customers' => 'Müşteriler',
     'store' => 'Mağaza',
+    'finance' => 'Finans',
     'system' => 'Sistem',
 ];

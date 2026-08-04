@@ -187,6 +187,72 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
+     * Added for Order's line snapshot (2026-08-04) — see the contract for why the
+     * ancestry travels with it.
+     *
+     * THE PATH IS ALREADY MATERIALISED (§13.1), so the ancestry costs no extra
+     * query: `categories.path` is "/3/17/42/", and the uuids behind those ids come
+     * from one `whereIn` over the categories already loaded for this page.
+     *
+     * @param array<int, string> $productUuids
+     *
+     * @return array<string, array{brand_uuid: string|null, category_uuid: string|null, category_path_uuids: array<int, string>}>
+     */
+    public function productClassifications(array $productUuids): array
+    {
+        $uuids = array_values(array_unique(array_filter($productUuids)));
+
+        if ($uuids === []) {
+            return [];
+        }
+
+        /** @var \Illuminate\Database\Eloquent\Collection<int, Product> $products */
+        $products = Product::query()
+            ->whereIn('uuid', $uuids)
+            ->with(['brand', 'category'])
+            ->get();
+
+        // Every ancestor id mentioned by any of these products, resolved to uuids
+        // in one go rather than per product.
+        $ancestorIds = [];
+
+        foreach ($products as $product) {
+            foreach ($product->category->ancestorIds() as $id) {
+                $ancestorIds[$id] = true;
+            }
+        }
+
+        /** @var array<int, string> $uuidById */
+        $uuidById = $ancestorIds === []
+            ? []
+            : Category::query()->whereIn('id', array_keys($ancestorIds))->pluck('uuid', 'id')->all();
+
+        $classifications = [];
+
+        foreach ($products as $product) {
+            $path = [];
+
+            foreach ($product->category->ancestorIds() as $id) {
+                if (isset($uuidById[$id])) {
+                    $path[] = $uuidById[$id];
+                }
+            }
+
+            // Root first, and the category itself last — so a rule scoped to the
+            // leaf and one scoped to the root are the same membership test.
+            $path[] = $product->category->uuid;
+
+            $classifications[$product->uuid] = [
+                'brand_uuid' => $product->brand?->uuid,
+                'category_uuid' => $product->category->uuid,
+                'category_path_uuids' => $path,
+            ];
+        }
+
+        return $classifications;
+    }
+
+    /**
      * Added for Offer's buy box — see the contract for why a downstream module
      * cannot resolve a slug itself.
      *
