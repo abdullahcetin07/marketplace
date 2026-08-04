@@ -39,9 +39,12 @@ export type ProductCard = {
   slug: string;
   title: string;
   image: string | null;
-  category: { id: string; name: string };
-  brand: { id: string; name: string } | null;
+  category: { id: string; name: string; slug?: string };
+  brand: { id: string; name: string; slug?: string } | null;
 };
+
+/** A category or brand as it appears in a breadcrumb — id, name, and its slug URL. */
+export type TaxonomyNode = { id: string; name: string; slug: string };
 
 export type ProductDetail = {
   id: string;
@@ -49,11 +52,48 @@ export type ProductDetail = {
   title: string;
   description: string | null;
   images: string[];
-  category: { id: string; name: string; path: { id: string; name: string }[] };
-  brand: { id: string; name: string } | null;
+  category: { id: string; name: string; slug: string; path: TaxonomyNode[] };
+  brand: TaxonomyNode | null;
   gtin: string | null;
   attributes: { name: string; value: string }[];
   variants: { id: string; label: string; is_default: boolean }[];
+};
+
+/** What a flat slug points at (ADR-059) — the catch-all route resolves this first. */
+export type SlugMatch = {
+  type: 'product' | 'category' | 'brand';
+  id: string;
+  slug: string;
+  /** Differs from the requested slug only for a retired alias → 301 to it. */
+  canonical_slug: string;
+};
+
+/** A node of the category tree (`/categories`). */
+export type CategoryNode = {
+  id: string;
+  name: string;
+  slug: string;
+  parent_id: string | null;
+  product_count: number;
+  children: CategoryNode[];
+};
+
+/** One category's landing payload (`/categories/{slug}`). */
+export type CategoryDetail = {
+  id: string;
+  name: string;
+  slug: string;
+  /** Root → self, for the breadcrumb. */
+  path: TaxonomyNode[];
+  children: (TaxonomyNode & { product_count: number })[];
+};
+
+export type Brand = {
+  id: string;
+  name: string;
+  slug: string;
+  logo?: string | null;
+  product_count: number;
 };
 
 /** Keyed by product id — absent means "nobody sells it", never "free". */
@@ -212,12 +252,43 @@ export async function browseProducts(params: BrowseParams = {}): Promise<Paginat
   };
 }
 
-export function getProduct(id: string): Promise<ProductDetail | null> {
-  return publicJson<ProductDetail>(`/api/v1/products/${encodeURIComponent(id)}`);
+/** By slug OR uuid — the API resolves either (ADR-059). */
+export function getProduct(idOrSlug: string): Promise<ProductDetail | null> {
+  return publicJson<ProductDetail>(`/api/v1/products/${encodeURIComponent(idOrSlug)}`);
 }
 
-export function getProductOffers(id: string): Promise<ProductOffers | null> {
-  return publicJson<ProductOffers>(`/api/v1/products/${encodeURIComponent(id)}/offers`);
+export function getProductOffers(idOrSlug: string): Promise<ProductOffers | null> {
+  return publicJson<ProductOffers>(`/api/v1/products/${encodeURIComponent(idOrSlug)}/offers`);
+}
+
+/*
+|------------------------------------------------------------------------------
+| Flat slug URLs (ADR-059)
+|------------------------------------------------------------------------------
+|
+| One namespace for product, category and brand, so the storefront resolves a
+| slug to a type before it can render — and the resolver is that one hop. The
+| category tree and brand list feed the nav menu and the two landing surfaces.
+*/
+
+export function resolveSlug(slug: string): Promise<SlugMatch | null> {
+  return publicJson<SlugMatch>(`/api/v1/resolve/${encodeURIComponent(slug)}`);
+}
+
+export async function fetchCategoryTree(): Promise<CategoryNode[]> {
+  return (await publicJson<CategoryNode[]>('/api/v1/categories')) ?? [];
+}
+
+export function getCategory(slug: string): Promise<CategoryDetail | null> {
+  return publicJson<CategoryDetail>(`/api/v1/categories/${encodeURIComponent(slug)}`);
+}
+
+export async function fetchBrands(): Promise<Brand[]> {
+  return (await publicJson<Brand[]>('/api/v1/brands')) ?? [];
+}
+
+export function getBrand(slug: string): Promise<Brand | null> {
+  return publicJson<Brand>(`/api/v1/brands/${encodeURIComponent(slug)}`);
 }
 
 /**

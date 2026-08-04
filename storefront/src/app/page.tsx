@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { browseProducts } from '@/lib/api';
+import { browseProducts, fetchCategoryTree } from '@/lib/api';
 import { ProductGrid } from '@/components/ProductGrid';
 
 /**
@@ -16,13 +16,9 @@ import { ProductGrid } from '@/components/ProductGrid';
  */
 export const dynamic = 'force-dynamic';
 
-// Editorial chrome (category shortcuts + promotional coupons) is static — it is
-// merchandising, not live data — so it lives here rather than behind a fetch.
-const categoryLinks = [
-  'Dermokozmetik', 'Cilt Bakımı', 'Güneş Ürünleri', 'Saç Bakımı',
-  'Anne & Bebek', 'Vitamin & Takviye', 'Kişisel Bakım', 'Ağız & Diş', 'Medikal',
-];
-
+// Promotional coupons are static — they are merchandising, not live data — so they
+// live here rather than behind a fetch. The category shortcuts, by contrast, are the
+// real tree now (ADR-059), fetched below and linked by slug.
 const coupons = [
   { amount: '50₺', title: '500 TL üzeri', note: 'Kod: SAGLIK50' },
   { amount: '%15', title: 'Dermokozmetik', note: 'Sepette otomatik' },
@@ -42,25 +38,28 @@ const coupons = [
  * chosen.
  */
 export default async function HomePage() {
-  const page = await browseProducts({ perPage: 12 });
+  const [page, tree] = await Promise.all([browseProducts({ perPage: 12 }), fetchCategoryTree()]);
+  const categories = tree.filter((category) => category.product_count > 0).slice(0, 9);
 
   return (
     <div className="flex flex-col gap-9">
-      {/* category shortcuts */}
-      <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
-        {categoryLinks.map((c) => (
-          <Link
-            key={c}
-            href={`/urunler?category=${encodeURIComponent(c)}`}
-            className="flex flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
-          >
-            <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-brand-500 shadow-sm ring-1 ring-ink-100 dark:bg-ink-900 dark:ring-ink-800">
-              <LeafIcon />
-            </span>
-            <span className="text-center text-xs font-bold text-ink-600 dark:text-ink-300">{c}</span>
-          </Link>
-        ))}
-      </div>
+      {/* category shortcuts — the real tree, linked by slug */}
+      {categories.length > 0 && (
+        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+          {categories.map((category) => (
+            <Link
+              key={category.id}
+              href={`/${category.slug}`}
+              className="flex flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
+            >
+              <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-brand-500 shadow-sm ring-1 ring-ink-100 dark:bg-ink-900 dark:ring-ink-800">
+                <LeafIcon />
+              </span>
+              <span className="line-clamp-2 text-center text-xs font-bold text-ink-600 dark:text-ink-300">{category.name}</span>
+            </Link>
+          ))}
+        </div>
+      )}
 
       {/* hero */}
       <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 px-8 py-14 text-white">

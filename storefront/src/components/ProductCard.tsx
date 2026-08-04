@@ -23,7 +23,7 @@ export function ProductCard({ product, prices }: { product: Card; prices: BuyBox
 
   return (
     <Link
-      href={`/urun/${product.id}`}
+      href={`/${product.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:-translate-y-1 hover:border-transparent hover:shadow-[0_20px_44px_-20px_rgba(20,25,35,.28)] dark:border-ink-800 dark:bg-ink-900"
     >
       <div className="relative aspect-square bg-white p-4 dark:bg-ink-50">

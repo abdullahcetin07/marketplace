@@ -4,6 +4,7 @@ import { Manrope } from 'next/font/google';
 import { CategoryBar } from '@/components/CategoryBar';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SessionProvider } from '@/components/SessionProvider';
+import { SITE_URL } from '@/lib/site';
 import './globals.css';
 
 // The approved §2.3 face, self-hosted (latin-ext covers Turkish diacritics).
@@ -14,7 +15,16 @@ const manrope = Manrope({
   display: 'swap',
 });
 
+/**
+ * The shell renders per request (§2.1). Its category bar reads the live tree, and
+ * the header's cart/session is client-side — nothing here is safe to freeze into
+ * static HTML at build time, so the whole app opts out of it. Prices and stock on
+ * the pages within are the same story.
+ */
+export const dynamic = 'force-dynamic';
+
 export const metadata: Metadata = {
+  metadataBase: new URL(SITE_URL),
   title: {
     default: 'Raftabul',
     template: '%s — Raftabul',
