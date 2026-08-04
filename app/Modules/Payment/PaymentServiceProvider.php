@@ -5,13 +5,16 @@ declare(strict_types=1);
 namespace App\Modules\Payment;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
+use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
+use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Models\CommissionRule;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
 use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -77,6 +80,20 @@ final class PaymentServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(database_path('Modules/Payment/migrations'));
 
         Gate::policy(CommissionRule::class, CommissionRulePolicy::class);
+
+        /*
+        | THE SELLER LEDGER (ADR-062). Payment's own event, so this is a plain
+        | typed listener rather than the class-string subscription a cross-module
+        | one needs.
+        |
+        | REGISTERED HERE, WHICH MEANS AFTER ORDER'S. `OrderServiceProvider` boots
+        | first (`bootstrap/providers.php`), so by the time this runs, Order has
+        | already frozen the commission onto the lines and the ledger can read it
+        | back instead of computing it a second time. The listener does not TRUST
+        | that ordering — a null commission makes it skip and log — but it is why
+        | the common path works.
+        */
+        Event::listen(PaymentSucceeded::class, [CreditSellerLedger::class, 'handle']);
     }
 
     /**

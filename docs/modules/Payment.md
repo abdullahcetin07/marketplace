@@ -283,6 +283,48 @@ and a **`commission_debit`** of the commission — so the seller's balance rises
 **net of commission**. Payout and refund append their own debits (§8). Balance =
 `Σ amount_minor`. Never a stored number to drift.
 
+> **As built (P3, 2026-08-04).**
+>
+> **The sign lives on the type, not at the call site.** A `sale_credit` is stored
+> positive and a `commission_debit` negative, so a balance is a plain `SUM()`
+> rather than a `CASE` ladder that must know what every type means. Callers pass a
+> MAGNITUDE and `LedgerEntryType::signedAmount()` points it — once, for everybody —
+> so no call site can append a positive commission and pay the seller the
+> platform's cut.
+>
+> **All five types are declared now**, unlike `OrderStatus`, which withheld cases
+> nothing could set. The reason differs: what is being defined here is the SIGN
+> CONVENTION, and it has to be complete to be coherent — a refund reverses a sale,
+> and saying so now is what makes P5's direction obvious rather than a decision
+> taken under deadline.
+>
+> **The ledger READS the frozen commission; it does not recompute it.** Order froze
+> it onto the lines a moment earlier (ADR-061), and reading it back is what
+> guarantees the two agree to the kuruş forever. Two computations of one number is
+> exactly how they stop agreeing.
+>
+> **Which means it depends on Order's listener having run** — both subscribe to
+> `PaymentSucceeded`, and `OrderServiceProvider` boots first. The ledger listener
+> does not TRUST that: a null commission makes it **skip and log**, because
+> crediting a full sale with no commission taken silently overpays a merchant and
+> the platform finds out at payout. A missing pair of entries is recoverable; a
+> wrong one is an argument.
+>
+> **Idempotent twice over.** PayTR retries until it hears "OK", so the listener
+> skips what is already recorded AND `(payment_uuid, order_uuid, type)` is UNIQUE,
+> so a race loses rather than double-crediting.
+>
+> **It runs after commit**, since the event fires from `BaseAction::after()` — an
+> entry for a payment a later failure rolled back would be an accounting record of
+> money that never arrived. The mirror-image cost: a failure here leaves a
+> collected payment uncredited, which is why it logs loudly and why every entry is
+> rebuildable from the order it names.
+>
+> **`SellerLedgerEntry` has no escape hatch at all** — not even the narrow,
+> once-only one `OrderLine` has. A line's commission is genuinely decided later;
+> every field of a ledger row is known when it is written, so an edit could only be
+> a correction, and a correction to money is a new entry.
+
 ---
 
 ## 8. Payout & refunds

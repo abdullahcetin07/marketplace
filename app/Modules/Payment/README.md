@@ -70,7 +70,30 @@ Payment computes; **Order writes**. `order_lines` is Order's aggregate, so the
 answer crosses through the Core `CommissionQueryContract` and Order's own
 `PaymentSucceeded` listener does the writing.
 
+## The seller ledger (P3)
+
+**There is no balance column anywhere**, and that absence is the decision: a
+stored balance is a number that can drift from the events that produced it, and
+the first time it does nobody can tell which is right. Balance is
+`Σ amount_minor`, computed on read.
+
+A paid order appends **two rows per seller** — `sale_credit` of the order's
+KDV-inclusive total and `commission_debit` of the frozen commission. Two rows and
+not one net figure, because "you earned 120,00 and we took 21,60" is a sentence a
+merchant can check.
+
+**The sign lives on the type.** Credits store positive, debits negative, so a
+balance is a plain `SUM()` — and callers pass a MAGNITUDE, so no call site can
+append a positive commission and pay the seller the platform's cut.
+
+**Append-only, with no escape hatch at all** — not even the narrow once-only one
+`OrderLine` has. A correction to money is a new entry.
+
+**It reads the frozen commission**, never resolving the rules a second time: two
+computations of one number is how the ledger and the order stop agreeing. A null
+commission makes it skip and log rather than guess.
+
 ## Phases
 
-P1 collection core ✅ · P2 commission engine ✅ · P3 seller ledger · P4 payout ·
+P1 collection core ✅ · P2 commission engine ✅ · P3 seller ledger ✅ · P4 payout ·
 P5 refund.

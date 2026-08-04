@@ -150,6 +150,39 @@ final class OrderQuery implements OrderQueryContract
     }
 
     /**
+     * Added for Payment's seller ledger (2026-08-04) — see the contract for why
+     * this reads the frozen snapshot rather than recomputing.
+     *
+     * NULL COMMISSION MEANS "NOT SETTLED YET", not "no commission". It is null on
+     * every line of an unpaid order and on every line placed before the ADR-061
+     * migration, and the two are indistinguishable from here — which is why the
+     * caller is told to treat null as unsettled rather than as zero.
+     *
+     * @return array{selling_org_uuid: string, commission_minor: int|null}|null
+     */
+    public function orderSettlement(string $orderUuid): ?array
+    {
+        $order = Order::query()->with('lines')->where('uuid', $orderUuid)->first();
+
+        if ($order === null) {
+            return null;
+        }
+
+        $lines = $order->lines;
+
+        return [
+            'selling_org_uuid' => $order->selling_org_uuid,
+            // Null unless EVERY line has been frozen: a partially settled order is
+            // not a smaller commission, it is an order somebody should look at.
+            'commission_minor' => $lines->isNotEmpty() && $lines->every(
+                static fn (OrderLine $line): bool => $line->commission_minor !== null,
+            )
+                ? (int) $lines->sum('commission_minor')
+                : null,
+        ];
+    }
+
+    /**
      * @return array{items_total_minor: int, tax_total_minor: int, grand_total_minor: int, currency_code: string}|null
      */
     public function orderTotals(string $orderUuid): ?array

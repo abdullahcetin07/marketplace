@@ -122,6 +122,32 @@ interface OrderQueryContract
     public function reservationReferencesFor(string $orderUuid): array;
 
     /**
+     * Who sells this order, and what the platform froze as its commission — the
+     * two numbers a seller's ledger entry is made of. Null when no such order
+     * exists.
+     *
+     * ADDED FOR PAYMENT'S LEDGER (2026-08-04, ADR-062). A paid order produces two
+     * entries per seller: a credit of what they earned and a debit of the
+     * platform's share. The first comes from `orderTotals()`; this supplies the
+     * seller it belongs to and the commission that was FROZEN onto the lines at
+     * payment (ADR-061).
+     *
+     * IT READS THE SNAPSHOT, IT DOES NOT RECOMPUTE. That is the whole reason the
+     * method exists rather than Payment resolving the rules a second time: the
+     * ledger and the line snapshots must agree to the kuruş, forever, and two
+     * computations of one number is exactly how they stop agreeing. `Σ` of the
+     * lines' `commission_minor`.
+     *
+     * `commission_minor` IS NULL UNTIL THE COMMISSION IS FROZEN, and a caller must
+     * treat that as "not settled yet" rather than as zero — crediting a seller
+     * their full sale with no commission taken is the expensive way to read it
+     * wrong.
+     *
+     * @return array{selling_org_uuid: string, commission_minor: int|null}|null
+     */
+    public function orderSettlement(string $orderUuid): ?array;
+
+    /**
      * What one order comes to; null when no such order exists.
      *
      * The tax total is included rather than left to be recomputed: it was

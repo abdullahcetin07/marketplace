@@ -51,4 +51,17 @@ return [
         'is_default' => 'Platform varsayılanı',
         'never_deleted' => 'Komisyon kuralları silinmez; pasifleştirilir.',
     ],
+
+    'ledger' => [
+        'singular' => 'Bakiye hareketi',
+        'plural' => 'Bakiye hareketleri',
+        'balance' => 'Bakiye',
+        'type' => [
+            'sale_credit' => 'Satış alacağı',
+            'commission_debit' => 'Komisyon kesintisi',
+            'payout_debit' => 'Ödeme (havale)',
+            'refund_debit' => 'İade kesintisi',
+            'refund_commission_credit' => 'İade komisyon iadesi',
+        ],
+    ],
 ];

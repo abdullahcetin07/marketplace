@@ -51,4 +51,17 @@ return [
         'is_default' => 'Platform default',
         'never_deleted' => 'Commission rules are never deleted; deactivate them.',
     ],
+
+    'ledger' => [
+        'singular' => 'Balance entry',
+        'plural' => 'Balance entries',
+        'balance' => 'Balance',
+        'type' => [
+            'sale_credit' => 'Sale credit',
+            'commission_debit' => 'Commission',
+            'payout_debit' => 'Payout',
+            'refund_debit' => 'Refund',
+            'refund_commission_credit' => 'Commission returned',
+        ],
+    ],
 ];
