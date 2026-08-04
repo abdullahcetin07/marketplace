@@ -23,9 +23,14 @@ import { absoluteUrl } from '@/lib/site';
  * already is, so no `Number(price)` sneaks in through the structured data either.
  */
 export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
-  const [product, offers] = await Promise.all([getProduct(idOrSlug), getProductOffers(idOrSlug)]);
+  const product = await getProduct(idOrSlug);
 
   if (product === null) notFound();
+
+  // Offers are keyed by the product's uuid — fetch them with the resolved id, not
+  // the incoming slug. (The offers route only resolves the uuid; passing a slug is
+  // the uuid-cast 500. Using the id is also just the correct key.)
+  const offers = await getProductOffers(product.id);
 
   const featured = offers?.featured ?? null;
 
