@@ -1,6 +1,14 @@
 # Payment
 
-**Status: SPEC — not built. Approved architecture (owner, 2026-08-04); ADR-060–062.**
+**Status: COMPLETE (2026-08-04; P1–P5 built, ADR-060–062).** The spec below is the
+approved architecture; the P1/P3/P6 amendment notes inline record where the build
+refined it. Two open follow-ups: refund is admin-only in v1 (the policy-allowed
+customer cancel waits on Shipping/fulfillment status — the action already takes an
+actor id and only `PaymentPolicy::refund()` changes when it arrives); and the admin
+commission-rule form takes scopes as UUIDs (a nicer seller/category picker needs a
+Core port or a Presentation seam, since Payment imports no module). One remaining
+server step: bind the new `payment.refund` permission to the Admin role in
+`RolePermissionSeeder` (Super Admin bypasses it already).
 
 Payment is the module that turns a placed-but-unpaid checkout into money collected,
 splits that money into what the platform keeps and what each seller is owed, and
