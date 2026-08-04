@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Infrastructure\Observers;
 
+use Closure;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Support\Facades\Log;
 
@@ -43,10 +44,11 @@ abstract class BaseObserver
      *
      * @template TValue
      *
-     * @param  \Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
-    public static function withoutObserving(\Closure $callback): mixed
+    public static function withoutObserving(Closure $callback): mixed
     {
         $previous = static::$muted;
         static::$muted = true;
@@ -59,7 +61,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function creating(Model $model): void
     {
@@ -67,7 +69,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function created(Model $model): void
     {
@@ -75,7 +77,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function updating(Model $model): void
     {
@@ -83,7 +85,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function updated(Model $model): void
     {
@@ -91,7 +93,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function saving(Model $model): void
     {
@@ -99,7 +101,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function saved(Model $model): void
     {
@@ -107,7 +109,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function deleting(Model $model): void
     {
@@ -115,7 +117,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function deleted(Model $model): void
     {
@@ -123,7 +125,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function restored(Model $model): void
     {
@@ -131,7 +133,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function forceDeleted(Model $model): void
     {
@@ -142,7 +144,7 @@ abstract class BaseObserver
      * Single funnel for the three side effects nearly every observer wants.
      * Override the individual hooks below rather than this method.
      *
-     * @param  TModel  $model
+     * @param TModel $model
      */
     protected function onChange(Model $model, string $event): void
     {
@@ -156,7 +158,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     protected function invalidateCache(Model $model, string $event): void
     {
@@ -168,7 +170,7 @@ abstract class BaseObserver
      * hook exists for indexes a model affects but does not own (e.g. an offer
      * change that must refresh its parent product document).
      *
-     * @param  TModel  $model
+     * @param TModel $model
      */
     protected function syncSearchIndex(Model $model, string $event): void
     {
@@ -176,7 +178,7 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     protected function recordAudit(Model $model, string $event): void
     {
@@ -184,8 +186,8 @@ abstract class BaseObserver
     }
 
     /**
-     * @param  TModel  $model
-     * @param  array<string, mixed>  $context
+     * @param TModel $model
+     * @param array<string, mixed> $context
      */
     protected function log(Model $model, string $message, array $context = []): void
     {

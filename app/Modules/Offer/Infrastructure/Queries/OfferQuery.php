@@ -143,7 +143,8 @@ final class OfferQuery implements OfferQueryContract
      * would be N queries plus N store-liveness lookups. `eligible()` already
      * memoises store liveness per instance, so the batch shares it.
      *
-     * @param  array<int, string>  $productUuids
+     * @param array<int, string> $productUuids
+     *
      * @return array<int, string>
      */
     public function sellableProductUuids(array $productUuids = []): array
@@ -180,7 +181,8 @@ final class OfferQuery implements OfferQueryContract
      * three eligible rows and one choice. "3 satıcı" on a card with a single seller
      * behind it is a lie a shopper discovers on the next page.
      *
-     * @param  array<int, string>  $productUuids
+     * @param array<int, string> $productUuids
+     *
      * @return array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}>
      */
     public function buyBoxPricesFor(array $productUuids): array
@@ -236,7 +238,8 @@ final class OfferQuery implements OfferQueryContract
      * The buy-box ordering and the eligibility rule, in one place so the
      * featured offer and the seller list can never disagree about who wins.
      *
-     * @param  Builder<Offer>  $builder
+     * @param Builder<Offer> $builder
+     *
      * @return array<int, array<string, mixed>>
      */
     private function eligible(Builder $builder, bool $filterByStore = true): array

@@ -95,7 +95,8 @@ interface CatalogBrowseContract
      * per row. Unknown or unpublished uuids are simply absent from the result —
      * a caller renders a fallback rather than getting a null-shaped entry.
      *
-     * @param  array<int, string>  $productUuids
+     * @param array<int, string> $productUuids
+     *
      * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
      */
     public function productSummaries(array $productUuids): array;
@@ -134,7 +135,8 @@ interface CatalogBrowseContract
      * `product_uuid` is included so a caller holding only a variant can group by
      * product without a second round trip.
      *
-     * @param  array<int, string>  $variantUuids
+     * @param array<int, string> $variantUuids
+     *
      * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
      */
     public function variantSummaries(array $variantUuids): array;

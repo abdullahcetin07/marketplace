@@ -64,7 +64,7 @@ function sellerWithStock(OrganizationRole $role = OrganizationRole::Owner): arra
 }
 
 /**
- * @param  array{seller: Seller, org: Organization}  $fixture
+ * @param array{seller: Seller, org: Organization} $fixture
  */
 function stockPoolFor(array $fixture, int $onHand = 10, int $reserved = 0): StockItem
 {

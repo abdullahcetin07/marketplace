@@ -82,7 +82,8 @@ final class StoreRepository implements StoreRepositoryContract
     }
 
     /**
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, Store>
      */
     public function forOrganizations(array $organizationIds): Collection

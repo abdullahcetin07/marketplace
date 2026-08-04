@@ -38,7 +38,7 @@ beforeEach(function (): void {
  *
  * Named for this file because Pest shares ONE global function namespace.
  *
- * @param  array<string, mixed>  $overrides
+ * @param array<string, mixed> $overrides
  */
 function addressPayload(array $overrides = []): CustomerAddressDTO
 {

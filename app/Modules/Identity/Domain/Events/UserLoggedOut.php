@@ -16,9 +16,13 @@ use App\Core\Domain\Events\BaseEvent;
 final class UserLoggedOut extends BaseEvent
 {
     public const string REASON_MANUAL = 'manual';
+
     public const string REASON_REVOKED = 'revoked';
+
     public const string REASON_EXPIRED = 'expired';
+
     public const string REASON_PASSWORD_CHANGED = 'password_changed';
+
     public const string REASON_ALL_DEVICES = 'all_devices';
 
     public function __construct(

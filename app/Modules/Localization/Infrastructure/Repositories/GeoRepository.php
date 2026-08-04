@@ -229,7 +229,8 @@ final class GeoRepository implements GeoRepositoryContract
      *
      * @template TModel of GeoProvince|GeoDistrict
      *
-     * @param  Collection<int, TModel>  $rows
+     * @param Collection<int, TModel> $rows
+     *
      * @return TModel|null
      */
     private function foldedMatch(Collection $rows, string $needle): mixed
@@ -267,7 +268,8 @@ final class GeoRepository implements GeoRepositoryContract
     /**
      * @template TModel of GeoProvince|GeoDistrict|GeoNeighborhood
      *
-     * @param  Collection<int, TModel>  $rows
+     * @param Collection<int, TModel> $rows
+     *
      * @return Collection<int, TModel>
      */
     private function sorted(Collection $rows): Collection

@@ -15,7 +15,7 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
 final class UpdateStoreBrandingDTO extends BaseDTO
 {
     /**
-     * @param  array<int, string>  $present
+     * @param array<int, string> $present
      */
     public function __construct(
         public readonly ?string $primaryColor = null,

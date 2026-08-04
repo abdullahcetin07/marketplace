@@ -135,7 +135,8 @@ final class UpsertVariantAction extends BaseAction
     }
 
     /**
-     * @param  array<int, int>  $valueIds
+     * @param array<int, int> $valueIds
+     *
      * @return array<int, array<string, mixed>>
      */
     private function pivot(Product $product, array $valueIds): array

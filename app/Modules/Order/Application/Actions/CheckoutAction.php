@@ -24,6 +24,8 @@ use App\Modules\Order\Domain\Models\OrderLine;
 use App\Modules\Order\Domain\Support\IncludedTax;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Str;
+use RuntimeException;
+use Throwable;
 
 /**
  * Turn a basket into orders, and HOLD the stock (ADR-052/053/054 — §3.1).
@@ -127,7 +129,7 @@ final class CheckoutAction extends BaseAction
                     $billing,
                 );
             }
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             /*
             | GIVE BACK EVERY HOLD TAKEN SO FAR, then rethrow.
             |
@@ -150,12 +152,41 @@ final class CheckoutAction extends BaseAction
         return $this->orders;
     }
 
+    protected function after(mixed $result, mixed ...$arguments): void
+    {
+        /** @var array<int, Order> $orders */
+        $orders = $result;
+
+        if ($orders === []) {
+            return;
+        }
+
+        $first = $orders[0];
+
+        /*
+        | ONE EVENT FOR THE WHOLE PURCHASE, not one per order (§6). The purchase is
+        | what the customer did; `OrderPlaced` is the per-seller fact and comes
+        | later, at placement.
+        |
+        | Dispatched AFTER COMMIT (BaseAction's `after()`), so no listener ever
+        | sees a checkout that then rolled back.
+        */
+        CartCheckedOut::dispatch(
+            $this->checkoutGroupUuid,
+            (int) $first->customer_id,
+            $first->customer_uuid,
+            array_map(fn (Order $order): string => $order->uuid, $orders),
+            array_sum(array_map(fn (Order $order): int => $order->grand_total_minor, $orders)),
+            $first->currency->code,
+        );
+    }
+
     /**
      * One seller's partition → one `Order` (ADR-052).
      *
-     * @param  Collection<int, CartItem>  $items
-     * @param  array<string, string|null>  $shipping
-     * @param  array<string, string|null>  $billing
+     * @param Collection<int, CartItem> $items
+     * @param array<string, string|null> $shipping
+     * @param array<string, string|null> $billing
      */
     private function createOrder(
         int $customerId,
@@ -300,7 +331,7 @@ final class CheckoutAction extends BaseAction
         foreach ($this->held as $reference) {
             try {
                 $this->reservations->release($reference);
-            } catch (\Throwable) {
+            } catch (Throwable) {
                 // Deliberately ignored — see above.
             }
         }
@@ -344,38 +375,9 @@ final class CheckoutAction extends BaseAction
         if ($id === null) {
             // Localization is unseeded — an environment fault, not a customer
             // one. The same class of failure as `Currency::default()` throwing.
-            throw new \RuntimeException('No currency is configured; cannot price an order.');
+            throw new RuntimeException('No currency is configured; cannot price an order.');
         }
 
         return (int) $id;
-    }
-
-    protected function after(mixed $result, mixed ...$arguments): void
-    {
-        /** @var array<int, Order> $orders */
-        $orders = $result;
-
-        if ($orders === []) {
-            return;
-        }
-
-        $first = $orders[0];
-
-        /*
-        | ONE EVENT FOR THE WHOLE PURCHASE, not one per order (§6). The purchase is
-        | what the customer did; `OrderPlaced` is the per-seller fact and comes
-        | later, at placement.
-        |
-        | Dispatched AFTER COMMIT (BaseAction's `after()`), so no listener ever
-        | sees a checkout that then rolled back.
-        */
-        CartCheckedOut::dispatch(
-            $this->checkoutGroupUuid,
-            (int) $first->customer_id,
-            $first->customer_uuid,
-            array_map(fn (Order $order): string => $order->uuid, $orders),
-            array_sum(array_map(fn (Order $order): int => $order->grand_total_minor, $orders)),
-            $first->currency->code,
-        );
     }
 }

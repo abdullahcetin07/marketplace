@@ -8,8 +8,8 @@ use App\Core\Domain\Contracts\CatalogBrowseContract;
 use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Core\Domain\Storefront\StorefrontContext;
 use App\Core\Domain\Storefront\StorefrontContributorContract;
-use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Core\Presentation\Support\MoneyString;
+use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 
 /**
  * What a store SELLS, on its public storefront page (ADR-046 — the contributor

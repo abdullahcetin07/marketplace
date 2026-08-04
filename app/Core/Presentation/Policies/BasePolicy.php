@@ -59,7 +59,7 @@ abstract class BasePolicy
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function view(User $user, Model $model): Response
     {
@@ -72,7 +72,7 @@ abstract class BasePolicy
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function update(User $user, Model $model): Response
     {
@@ -80,7 +80,7 @@ abstract class BasePolicy
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function delete(User $user, Model $model): Response
     {
@@ -88,7 +88,7 @@ abstract class BasePolicy
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function restore(User $user, Model $model): Response
     {
@@ -99,7 +99,7 @@ abstract class BasePolicy
      * Hard deletes are reserved for admins even with the permission held —
      * an irreversible action should not be reachable from a seller panel.
      *
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function forceDelete(User $user, Model $model): Response
     {
@@ -122,7 +122,7 @@ abstract class BasePolicy
      * access on permission alone, which is correct for admin-only resources.
      * Any policy exposed to the seller panel MUST override this.
      *
-     * @param  TModel  $model
+     * @param TModel $model
      */
     protected function owns(User $user, Model $model): bool
     {
@@ -157,7 +157,7 @@ abstract class BasePolicy
     /**
      * The single decision point: permission first, then ownership.
      *
-     * @param  TModel|null  $model
+     * @param TModel|null $model
      */
     protected function allowIf(User $user, string $ability, ?Model $model = null): Response
     {

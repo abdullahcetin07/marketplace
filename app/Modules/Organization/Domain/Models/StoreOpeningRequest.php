@@ -48,10 +48,10 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  */
 final class StoreOpeningRequest extends Model implements HasMediaContract
 {
+    use Auditable;
+
     /** @use HasFactory<StoreOpeningRequestFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasMedia;
     use HasUuid;
     use SoftDeletes;
@@ -97,7 +97,8 @@ final class StoreOpeningRequest extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeApproved(Builder $query): Builder

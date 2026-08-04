@@ -55,7 +55,7 @@ final class DeviceRepository implements DeviceRepositoryContract
      * the fields it can observe, and overwriting a user-assigned device `name`
      * with null on every sign-in would be a regression.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function resolve(User $user, string $fingerprint, array $attributes): UserDevice
     {

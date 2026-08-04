@@ -32,12 +32,12 @@ use Illuminate\Support\Facades\Route;
  */
 final class ListStores extends ListRecords
 {
-    protected static string $resource = StoreResource::class;
-
     /**
      * The seller-panel route of the store-opening-request form.
      */
     private const string REQUEST_ROUTE = 'filament.seller.resources.store-opening-requests.create';
+
+    protected static string $resource = StoreResource::class;
 
     /**
      * @return array<int, Actions\Action>

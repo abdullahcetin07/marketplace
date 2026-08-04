@@ -142,8 +142,9 @@ interface OfferQueryContract
      * the catalogue, and the cost of it growing is documented where the browse
      * uses it.
      *
-     * @param  array<int, string>  $productUuids  empty = every sellable product
-     * @return array<int, string>  product uuids, in no guaranteed order
+     * @param array<int, string> $productUuids empty = every sellable product
+     *
+     * @return array<int, string> product uuids, in no guaranteed order
      */
     public function sellableProductUuids(array $productUuids = []): array;
 
@@ -180,7 +181,8 @@ interface OfferQueryContract
      * declared none, which is most of them — a card renders a struck-through price
      * only when a seller actually made that claim.
      *
-     * @param  array<int, string>  $productUuids
+     * @param array<int, string> $productUuids
+     *
      * @return array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}>
      */
     public function buyBoxPricesFor(array $productUuids): array;

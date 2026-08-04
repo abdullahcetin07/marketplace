@@ -103,7 +103,8 @@ interface StoreQueryContract
      * public READ SURFACE (ADR-034), not a downstream contract — a module that
      * needs them is asking for the store page, which already exists.
      *
-     * @param  array<int, string>  $storeUuids
+     * @param array<int, string> $storeUuids
+     *
      * @return array<string, array{name: string, city: string|null}>
      */
     public function publicProfilesFor(array $storeUuids): array;

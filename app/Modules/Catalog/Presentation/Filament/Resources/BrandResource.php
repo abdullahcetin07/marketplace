@@ -145,7 +145,7 @@ final class BrandResource extends Resource
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public static function createFromForm(array $data): Brand
     {
@@ -166,7 +166,7 @@ final class BrandResource extends Resource
      * because the two ways a file can arrive — a Livewire `UploadedFile` or a
      * staged path — are the action's problem, not each page's.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public static function attachLogo(Brand $brand, array $data): void
     {

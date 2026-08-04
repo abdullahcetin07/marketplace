@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Core\Application\Jobs;
 
+use DateTimeInterface;
 use Illuminate\Bus\Queueable;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Bus\Dispatchable;
@@ -87,7 +88,7 @@ abstract class BaseJob implements ShouldQueue
      * Absolute deadline. After this the job stops being retried even if
      * attempts remain.
      */
-    public function retryUntil(): \DateTimeInterface
+    public function retryUntil(): DateTimeInterface
     {
         return now()->addHour();
     }

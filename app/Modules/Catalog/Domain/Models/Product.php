@@ -85,10 +85,10 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  */
 final class Product extends Model implements HasMediaContract
 {
+    use Auditable;
+
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasLocalizedText;
     use HasMedia;
     use HasRegisteredSlug;
@@ -97,11 +97,6 @@ final class Product extends Model implements HasMediaContract
     use SoftDeletes;
 
     protected $table = 'products';
-
-    protected static function newFactory(): ProductFactory
-    {
-        return ProductFactory::new();
-    }
 
     protected $fillable = [
         'category_id',
@@ -254,7 +249,7 @@ final class Product extends Model implements HasMediaContract
      * never seller-editable — which is why a null `proposed_by_org_id` matches
      * nothing rather than matching an empty list.
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
      */
     public function isProposedByAny(array $organizationIds): bool
     {
@@ -278,7 +273,7 @@ final class Product extends Model implements HasMediaContract
      * provenance both have to hold — a published product is nobody's to edit
      * from the seller panel, however it got there.
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
      */
     public function isEditableBy(array $organizationIds): bool
     {
@@ -286,7 +281,8 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeWhereStatus(Builder $query, ProductStatus $status): Builder
@@ -295,7 +291,8 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopePublished(Builder $query): Builder
@@ -307,7 +304,8 @@ final class Product extends Model implements HasMediaContract
      * The moderation queue's membership rule, in one place so the Filament
      * resource and the tests cannot drift apart.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeAwaitingModeration(Builder $query): Builder
@@ -325,8 +323,9 @@ final class Product extends Model implements HasMediaContract
      * That is the failure direction this scope exists to fix in one place rather
      * than in every resource that queries products.
      *
-     * @param  Builder<self>  $query
-     * @param  array<int, int>  $organizationIds
+     * @param Builder<self> $query
+     * @param array<int, int> $organizationIds
+     *
      * @return Builder<self>
      */
     public function scopeProposedByAny(Builder $query, array $organizationIds): Builder
@@ -339,7 +338,8 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeProposedBy(Builder $query, ?string $organizationUuid): Builder
@@ -461,6 +461,62 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
+     * @return array<int, string>
+     */
+    public function searchRelations(): array
+    {
+        return [
+            'category',
+            'brand',
+            'descriptiveAttributes',
+            'descriptiveAttributes.values',
+            'variants',
+            'variants.attributeValues',
+            'variants.attributeValues.attribute',
+        ];
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Product;
+    }
+
+    protected static function newFactory(): ProductFactory
+    {
+        return ProductFactory::new();
+    }
+
+    /**
+     * Everything `toSearchableArray()` reads, so a full reindex never trips
+     * strict mode's lazy-load guard — Scout loads models in chunks of its own
+     * and does not go through the repositories.
+     *
+     * @param Builder<self> $query
+     *
+     * @return Builder<self>
+     */
+    protected function makeAllSearchableUsing(Builder $query): Builder
+    {
+        return $query->with($this->searchRelations());
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    protected function casts(): array
+    {
+        return [
+            'status' => ProductStatus::class,
+            'submitted_at' => 'datetime',
+            'moderated_at' => 'datetime',
+            'published_at' => 'datetime',
+        ];
+    }
+
+    /**
      * Attribute values as flat `code:value` keywords — the shape a facet filter
      * queries (`attributes: "renk:kirmizi"`), from both the product's own
      * descriptive values and its variants' axes.
@@ -491,55 +547,5 @@ final class Product extends Model implements HasMediaContract
         }
 
         return array_values(array_unique($facets));
-    }
-
-    /**
-     * Everything `toSearchableArray()` reads, so a full reindex never trips
-     * strict mode's lazy-load guard — Scout loads models in chunks of its own
-     * and does not go through the repositories.
-     *
-     * @param  Builder<self>  $query
-     * @return Builder<self>
-     */
-    protected function makeAllSearchableUsing(Builder $query): Builder
-    {
-        return $query->with($this->searchRelations());
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function searchRelations(): array
-    {
-        return [
-            'category',
-            'brand',
-            'descriptiveAttributes',
-            'descriptiveAttributes.values',
-            'variants',
-            'variants.attributeValues',
-            'variants.attributeValues.attribute',
-        ];
-    }
-
-    /**
-     * @return array<string, string>
-     */
-    protected function casts(): array
-    {
-        return [
-            'status' => ProductStatus::class,
-            'submitted_at' => 'datetime',
-            'moderated_at' => 'datetime',
-            'published_at' => 'datetime',
-        ];
-    }
-
-    /**
-     * This entity's kind in the global slug namespace (ADR-059).
-     */
-    public function sluggableType(): SluggableType
-    {
-        return SluggableType::Product;
     }
 }

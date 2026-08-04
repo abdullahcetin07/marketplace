@@ -104,7 +104,8 @@ final class Country extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -113,7 +114,8 @@ final class Country extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -122,7 +124,8 @@ final class Country extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeEuMembers(Builder $query): Builder
@@ -146,7 +149,7 @@ final class Country extends Model
     {
         // ISO codes are canonical uppercase. Normalising on write means no
         // query ever has to guess the casing.
-        static::saving(static function (self $country): void {
+        self::saving(static function (self $country): void {
             $country->iso2 = mb_strtoupper($country->iso2);
             $country->iso3 = mb_strtoupper($country->iso3);
         });

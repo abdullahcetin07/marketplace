@@ -78,11 +78,6 @@ final class ProductVariant extends Model implements HasMediaContract
 
     protected $table = 'product_variants';
 
-    protected static function newFactory(): ProductVariantFactory
-    {
-        return ProductVariantFactory::new();
-    }
-
     protected $fillable = [
         'product_id',
         'sku',
@@ -168,12 +163,18 @@ final class ProductVariant extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeDefault(Builder $query): Builder
     {
         return $query->where('is_default', true);
+    }
+
+    protected static function newFactory(): ProductVariantFactory
+    {
+        return ProductVariantFactory::new();
     }
 
     /**

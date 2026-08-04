@@ -92,6 +92,39 @@ abstract class AccountResource extends Resource
         return $infolist->schema(static::infolistSections());
     }
 
+    public static function table(Table $table): Table
+    {
+        return $table
+            ->columns(static::baseColumns())
+            ->filters([
+                Tables\Filters\SelectFilter::make('status')
+                    ->label(__('users.status'))
+                    ->options([
+                        Status::Active->value => __('users.status_active'),
+                        Status::Suspended->value => __('users.status_suspended'),
+                    ]),
+            ])
+            ->actions(static::rowActions())
+            // No bulk delete: deactivating an account is a status change with a
+            // reason, not a mass delete. Bulk security actions do not belong on
+            // a checkbox.
+            ->bulkActions([])
+            ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * The forensic timeline every area needs: who signed in, from where, and
+     * every failure in between. Read-only, and gated on `viewLoginHistory`.
+     *
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            RelationManagers\LoginHistoryRelationManager::class,
+        ];
+    }
+
     /**
      * Split out from infolist() so a subclass can APPEND a section without
      * having to rebuild the shared ones — the same reason baseColumns() exists.
@@ -136,39 +169,6 @@ abstract class AccountResource extends Resource
                     Infolists\Components\TextEntry::make('login_count')
                         ->label(__('users.login_count')),
                 ]),
-        ];
-    }
-
-    public static function table(Table $table): Table
-    {
-        return $table
-            ->columns(static::baseColumns())
-            ->filters([
-                Tables\Filters\SelectFilter::make('status')
-                    ->label(__('users.status'))
-                    ->options([
-                        Status::Active->value => __('users.status_active'),
-                        Status::Suspended->value => __('users.status_suspended'),
-                    ]),
-            ])
-            ->actions(static::rowActions())
-            // No bulk delete: deactivating an account is a status change with a
-            // reason, not a mass delete. Bulk security actions do not belong on
-            // a checkbox.
-            ->bulkActions([])
-            ->defaultSort('created_at', 'desc');
-    }
-
-    /**
-     * The forensic timeline every area needs: who signed in, from where, and
-     * every failure in between. Read-only, and gated on `viewLoginHistory`.
-     *
-     * @return array<int, class-string>
-     */
-    public static function getRelations(): array
-    {
-        return [
-            RelationManagers\LoginHistoryRelationManager::class,
         ];
     }
 
@@ -332,7 +332,7 @@ abstract class AccountResource extends Resource
      * ONE write, through the action, so the reason and the before/after land in
      * a single audit entry — never a raw `$record->update()`.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected static function changeStatus(User $record, Status $status, array $data): void
     {

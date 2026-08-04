@@ -8,9 +8,9 @@ use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Modules\Inventory\Application\Listeners\MirrorOfferStock;
 use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
+use App\Modules\Inventory\Domain\Models\StockItem;
 use App\Modules\Inventory\Infrastructure\Commands\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
-use App\Modules\Inventory\Domain\Models\StockItem;
 use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
 use App\Modules\Inventory\Presentation\Policies\InventoryPolicy;
 use App\Shared\Enums\UserType;
@@ -72,6 +72,15 @@ final class InventoryServiceProvider extends ServiceProvider
         $this->registerPermissions();
     }
 
+    public function boot(): void
+    {
+        $this->loadMigrationsFrom(database_path('Modules/Inventory/migrations'));
+
+        Gate::policy(StockItem::class, InventoryPolicy::class);
+
+        $this->subscribeToOfferStock();
+    }
+
     /**
      * Permissions are DERIVED from a resource registration, never hand-listed.
      *
@@ -90,15 +99,6 @@ final class InventoryServiceProvider extends ServiceProvider
     {
         PermissionRegistry::ability('inventory.view_any', [UserType::Admin]);
         PermissionRegistry::ability('inventory.view', [UserType::Admin]);
-    }
-
-    public function boot(): void
-    {
-        $this->loadMigrationsFrom(database_path('Modules/Inventory/migrations'));
-
-        Gate::policy(StockItem::class, InventoryPolicy::class);
-
-        $this->subscribeToOfferStock();
     }
 
     /**

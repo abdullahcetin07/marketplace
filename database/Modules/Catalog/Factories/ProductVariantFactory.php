@@ -51,7 +51,7 @@ final class ProductVariantFactory extends Factory
      * A variant standing for a specific set of attribute values, keyed exactly
      * as the generator would key it.
      *
-     * @param  array<int, int>  $attributeValueIds
+     * @param array<int, int> $attributeValueIds
      */
     public function forValues(array $attributeValueIds): static
     {

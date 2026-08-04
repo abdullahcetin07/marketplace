@@ -34,7 +34,7 @@ final class PublicStoreResource extends BaseResource
     private array $extensions = [];
 
     /**
-     * @param  array<string, mixed>  $extensions
+     * @param array<string, mixed> $extensions
      */
     public function withExtensions(array $extensions): self
     {

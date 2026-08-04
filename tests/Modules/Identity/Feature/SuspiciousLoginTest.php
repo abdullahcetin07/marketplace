@@ -55,7 +55,7 @@ function failedLogin(string $email = 'buyer@example.test'): void
  * Seed prior failed attempts so one more crossing the threshold is cheap to
  * drive, without hammering the endpoint dozens of times.
  *
- * @param  array<int, string>  $ips  one row per IP; repeats concentrate on one
+ * @param array<int, string> $ips one row per IP; repeats concentrate on one
  */
 function seedFailures(string $email, array $ips): void
 {

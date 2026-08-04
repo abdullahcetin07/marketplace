@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Catalog\Application\Actions\ArchiveProductAction;
+use App\Modules\Catalog\Application\Actions\BindCategoryAttributeAction;
 use App\Modules\Catalog\Application\Actions\DraftProductAction;
 use App\Modules\Catalog\Application\Actions\PublishProductAction;
 use App\Modules\Catalog\Application\Actions\RejectProductAction;
@@ -15,7 +16,6 @@ use App\Modules\Catalog\Domain\DTOs\DraftProductDTO;
 use App\Modules\Catalog\Domain\DTOs\ModerationDecisionDTO;
 use App\Modules\Catalog\Domain\DTOs\ProductAttributeValueDTO;
 use App\Modules\Catalog\Domain\DTOs\UpdateProductDTO;
-use App\Modules\Catalog\Application\Actions\BindCategoryAttributeAction;
 use App\Modules\Catalog\Domain\Enums\AttributeType;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Events\ProductArchived;

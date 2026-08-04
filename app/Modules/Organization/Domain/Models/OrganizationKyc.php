@@ -31,18 +31,18 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string|null $tax_number
  * @property string|null $registration_number
  * @property string|null $authorized_person_name
- * @property string|null $authorized_person_national_id  encrypted; never audited
- * @property array<string, mixed>|null $metadata          country-specific extras
+ * @property string|null $authorized_person_national_id encrypted; never audited
+ * @property array<string, mixed>|null $metadata country-specific extras
  * @property \Illuminate\Support\Carbon|null $submitted_at
  *
  * @see docs/modules/Organization.md §4
  */
 final class OrganizationKyc extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OrganizationKycFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
 
     protected $table = 'organization_kyc';

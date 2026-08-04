@@ -67,7 +67,7 @@ function offerableFixture(): array
 }
 
 /**
- * @param  array{org: Organization, store: Store, variant: ProductVariant, product: Product}  $fixture
+ * @param array{org: Organization, store: Store, variant: ProductVariant, product: Product} $fixture
  */
 function listOffer(array $fixture, int $stock = 10): \App\Modules\Offer\Domain\Models\Offer
 {

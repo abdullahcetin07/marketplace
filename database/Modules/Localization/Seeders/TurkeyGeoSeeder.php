@@ -117,8 +117,9 @@ final class TurkeyGeoSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, array{code: string, districts: array<string, array<int, string>>}>  $data
-     * @return array<string, int>  province name => id
+     * @param array<string, array{code: string, districts: array<string, array<int, string>>}> $data
+     *
+     * @return array<string, int> province name => id
      */
     private function seedProvinces(int $countryId, array $data): array
     {
@@ -153,9 +154,10 @@ final class TurkeyGeoSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, int>  $provinceIds
-     * @param  array<string, array{code: string, districts: array<string, array<int, string>>}>  $data
-     * @return array<string, int>  "province|district" => id
+     * @param array<string, int> $provinceIds
+     * @param array<string, array{code: string, districts: array<string, array<int, string>>}> $data
+     *
+     * @return array<string, int> "province|district" => id
      */
     private function seedDistricts(array $provinceIds, array $data): array
     {
@@ -202,8 +204,8 @@ final class TurkeyGeoSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, int>  $districtIds
-     * @param  array<string, array{code: string, districts: array<string, array<int, string>>}>  $data
+     * @param array<string, int> $districtIds
+     * @param array<string, array{code: string, districts: array<string, array<int, string>>}> $data
      */
     private function seedNeighborhoods(array $districtIds, array $data): void
     {

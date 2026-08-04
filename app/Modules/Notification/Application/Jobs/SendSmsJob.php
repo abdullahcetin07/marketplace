@@ -61,6 +61,11 @@ final class SendSmsJob extends BaseJob
         return [...parent::tags(), 'sms'];
     }
 
+    protected function queueName(): string
+    {
+        return 'notifications';
+    }
+
     /**
      * Horizon displays tags and failure context to anyone with dashboard
      * access; a full phone number there is personal data on a screen with a
@@ -69,10 +74,5 @@ final class SendSmsJob extends BaseJob
     private function maskedRecipient(): string
     {
         return mb_substr($this->to, 0, 4).str_repeat('*', max(0, mb_strlen($this->to) - 6)).mb_substr($this->to, -2);
-    }
-
-    protected function queueName(): string
-    {
-        return 'notifications';
     }
 }

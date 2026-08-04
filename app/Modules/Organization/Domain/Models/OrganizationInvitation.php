@@ -76,7 +76,8 @@ final class OrganizationInvitation extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopePendingFor(Builder $query, int $organizationId, string $email): Builder

@@ -19,6 +19,7 @@ use Illuminate\Support\ServiceProvider;
  *
  * The table itself is created by the Sprint 0 core migration, because
  * App\Shared\Traits\HasMedia is part of the foundation and is inert without it.
+ *
  * @see docs/media.md
  */
 final class MediaServiceProvider extends ServiceProvider

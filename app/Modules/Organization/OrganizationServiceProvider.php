@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Organization;
 
+use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
+use App\Modules\Organization\Application\Listeners\RecordCreatedStore;
 use App\Modules\Organization\Domain\Contracts\OrganizationBankAccountRepositoryContract;
 use App\Modules\Organization\Domain\Contracts\OrganizationDocumentRepositoryContract;
 use App\Modules\Organization\Domain\Contracts\OrganizationInvitationRepositoryContract;
@@ -11,14 +13,12 @@ use App\Modules\Organization\Domain\Contracts\OrganizationMemberRepositoryContra
 use App\Modules\Organization\Domain\Contracts\OrganizationPlanRepositoryContract;
 use App\Modules\Organization\Domain\Contracts\OrganizationRepositoryContract;
 use App\Modules\Organization\Domain\Contracts\StoreOpeningRequestRepositoryContract;
-use App\Modules\Organization\Application\Listeners\RecordCreatedStore;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationBankAccount;
 use App\Modules\Organization\Domain\Models\OrganizationDocument;
 use App\Modules\Organization\Domain\Models\OrganizationInvitation;
 use App\Modules\Organization\Domain\Models\OrganizationMember;
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
-use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Modules\Organization\Infrastructure\Authorization\OrganizationAuthorization;
 use App\Modules\Organization\Infrastructure\Repositories\OrganizationBankAccountRepository;
 use App\Modules\Organization\Infrastructure\Repositories\OrganizationDocumentRepository;

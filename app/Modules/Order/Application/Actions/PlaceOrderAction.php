@@ -10,7 +10,6 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Events\OrderPlaced;
 use App\Modules\Order\Domain\Exceptions\OrderException;
 use App\Modules\Order\Domain\Models\Order;
-use Illuminate\Support\Collection;
 
 /**
  * Place a whole purchase — and KEEP the reservation held (ADR-057, §3.2).

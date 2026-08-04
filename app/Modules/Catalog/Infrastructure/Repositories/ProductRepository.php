@@ -163,7 +163,8 @@ final class ProductRepository implements ProductRepositoryContract
     }
 
     /**
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, Product>
      */
     public function proposedByAny(array $organizationIds): Collection

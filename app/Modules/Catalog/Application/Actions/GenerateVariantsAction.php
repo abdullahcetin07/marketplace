@@ -155,7 +155,8 @@ final class GenerateVariantsAction extends BaseAction
      * makes a "simple" product fall out of the same code path as a
      * twelve-variant one instead of needing a branch (ADR-039).
      *
-     * @param  array<int, array<int, int>>  $axes
+     * @param array<int, array<int, int>> $axes
+     *
      * @return array<int, array<int, int>>
      */
     private function cartesian(array $axes): array
@@ -178,7 +179,7 @@ final class GenerateVariantsAction extends BaseAction
     }
 
     /**
-     * @param  array<int, int>  $valueIds
+     * @param array<int, int> $valueIds
      */
     private function createVariant(Product $product, array $valueIds, string $key, int $position): ProductVariant
     {
@@ -217,8 +218,8 @@ final class GenerateVariantsAction extends BaseAction
      * or (later) on an order line must stay resolvable. The last variant is
      * never removed, because a product with none is not sellable (§3.3).
      *
-     * @param  array<int, array<int, int>>  $combinations
-     * @param  array<string, int>  $excluded
+     * @param array<int, array<int, int>> $combinations
+     * @param array<string, int> $excluded
      */
     private function prune(Product $product, array $combinations, array $excluded): void
     {

@@ -80,7 +80,8 @@ final class SettingsService
     }
 
     /**
-     * @param  array<mixed>  $default
+     * @param array<mixed> $default
+     *
      * @return array<mixed>
      */
     public function array(string $key, array $default = []): array
@@ -203,7 +204,8 @@ final class SettingsService
      * Write several settings. Each is attempted independently; the return value
      * lists the keys that were refused (locked or unknown).
      *
-     * @param  array<string, mixed>  $values
+     * @param array<string, mixed> $values
+     *
      * @return array<int, string>
      */
     public function setMany(array $values): array

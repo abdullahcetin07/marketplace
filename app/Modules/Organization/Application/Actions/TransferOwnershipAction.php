@@ -33,13 +33,13 @@ use App\Shared\Enums\UserType;
  */
 final class TransferOwnershipAction extends BaseAction
 {
-    public function __construct(
-        private readonly OrganizationMemberRepositoryContract $members,
-    ) {}
-
     private int $previousOwnerId;
 
     private int $newOwnerId;
+
+    public function __construct(
+        private readonly OrganizationMemberRepositoryContract $members,
+    ) {}
 
     public function handle(mixed ...$arguments): Organization
     {
@@ -72,6 +72,17 @@ final class TransferOwnershipAction extends BaseAction
         return $organization->refresh();
     }
 
+    protected function after(mixed $result, mixed ...$arguments): void
+    {
+        /** @var Organization $result */
+        OrganizationOwnerTransferred::dispatch(
+            $result->getKey(),
+            $result->uuid,
+            $this->previousOwnerId,
+            $this->newOwnerId,
+        );
+    }
+
     /**
      * @throws OwnershipViolation
      */
@@ -86,16 +97,5 @@ final class TransferOwnershipAction extends BaseAction
         if ($user === null || $user->type !== UserType::Seller) {
             throw OwnershipViolation::transferTargetCannotOwn();
         }
-    }
-
-    protected function after(mixed $result, mixed ...$arguments): void
-    {
-        /** @var Organization $result */
-        OrganizationOwnerTransferred::dispatch(
-            $result->getKey(),
-            $result->uuid,
-            $this->previousOwnerId,
-            $this->newOwnerId,
-        );
     }
 }

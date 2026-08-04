@@ -40,7 +40,8 @@ interface OfferRepositoryContract
      * scope (ADR-030). An empty id list yields an empty collection, never
      * everyone's offers.
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, Offer>
      */
     public function forOrganizations(array $organizationIds): Collection;

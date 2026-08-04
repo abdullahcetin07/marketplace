@@ -199,7 +199,8 @@ final class RecordSecurityAudit
      * metadata, alongside any extra keys. Reason is present only when an admin
      * action set it via AuditContext::withReasonFor().
      *
-     * @param  array<string, mixed>  $extra
+     * @param array<string, mixed> $extra
+     *
      * @return array<string, mixed>
      */
     private function reasonMetadata(array $extra = []): array

@@ -34,11 +34,11 @@ final class EditOrganization extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('view', ['record' => $this->getRecord()]);
+        return self::getResource()::getUrl('view', ['record' => $this->getRecord()]);
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {

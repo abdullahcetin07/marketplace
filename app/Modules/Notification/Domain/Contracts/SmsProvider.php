@@ -19,8 +19,9 @@ interface SmsProvider
     /**
      * Deliver one message.
      *
-     * @param  string  $to  E.164 number, e.g. +905551234567
-     * @return string  provider message id, for delivery-receipt reconciliation
+     * @param string $to E.164 number, e.g. +905551234567
+     *
+     * @return string provider message id, for delivery-receipt reconciliation
      *
      * @throws \App\Core\Domain\Exceptions\BaseException on permanent failure
      */

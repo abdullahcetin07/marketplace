@@ -140,7 +140,7 @@ trait HasSeo
     /**
      * Merge a partial SEO payload without dropping untouched keys.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function setSeo(array $attributes): static
     {

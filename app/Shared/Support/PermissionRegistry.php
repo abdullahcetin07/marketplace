@@ -81,7 +81,7 @@ final class PermissionRegistry
      *
      * Call from a module service provider's register() method.
      *
-     * @param  array<int, UserType>  $actorTypes
+     * @param array<int, UserType> $actorTypes
      */
     public static function resource(string $name, array $actorTypes): void
     {
@@ -91,7 +91,7 @@ final class PermissionRegistry
     /**
      * Register a single non-CRUD ability, e.g. `order.refund`.
      *
-     * @param  array<int, UserType>  $actorTypes
+     * @param array<int, UserType> $actorTypes
      */
     public static function ability(string $name, array $actorTypes): void
     {
@@ -145,7 +145,8 @@ final class PermissionRegistry
      * Names for a single resource on a single guard — used when composing a
      * role's permission set in the seeder.
      *
-     * @param  array<int, string>|null  $only  Restrict to these verbs.
+     * @param array<int, string>|null $only Restrict to these verbs.
+     *
      * @return array<int, string>
      */
     public static function forResource(string $resource, ?array $only = null): array

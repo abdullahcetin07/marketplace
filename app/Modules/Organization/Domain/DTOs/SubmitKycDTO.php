@@ -17,7 +17,7 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
 final class SubmitKycDTO extends BaseDTO
 {
     /**
-     * @param  array<string, mixed>  $metadata
+     * @param array<string, mixed> $metadata
      */
     public function __construct(
         public readonly int $organizationId,

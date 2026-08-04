@@ -29,7 +29,7 @@ abstract class BaseController extends Controller
     use ValidatesRequests;
 
     /**
-     * @param  array<string, mixed>  $meta
+     * @param array<string, mixed> $meta
      */
     protected function ok(mixed $data = null, ?string $message = null, array $meta = []): JsonResponse
     {
@@ -37,7 +37,7 @@ abstract class BaseController extends Controller
     }
 
     /**
-     * @param  array<string, mixed>  $meta
+     * @param array<string, mixed> $meta
      */
     protected function created(mixed $data = null, ?string $message = null, array $meta = []): JsonResponse
     {
@@ -62,7 +62,7 @@ abstract class BaseController extends Controller
      * Paginated payload with the page metadata the frontend needs, without
      * leaking Laravel's URL-bearing pagination format.
      *
-     * @param  LengthAwarePaginator<int, mixed>  $paginator
+     * @param LengthAwarePaginator<int, mixed> $paginator
      */
     protected function paginated(
         LengthAwarePaginator $paginator,
@@ -96,7 +96,7 @@ abstract class BaseController extends Controller
      * a null `message` is noise on the ~90% of responses that have nothing to
      * say beyond the data.
      *
-     * @param  array<string, mixed>  $meta
+     * @param array<string, mixed> $meta
      */
     private function respond(mixed $data, int $status, ?string $message = null, array $meta = []): JsonResponse
     {

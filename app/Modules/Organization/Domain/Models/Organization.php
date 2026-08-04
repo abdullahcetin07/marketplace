@@ -50,10 +50,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class Organization extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use SoftDeletes;
 
@@ -243,7 +243,8 @@ final class Organization extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeWhereStatus(Builder $query, OrganizationStatus $status): Builder

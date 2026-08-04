@@ -214,7 +214,7 @@ final class OfferResource extends Resource
                 Tables\Columns\TextColumn::make('buy_box_rank')
                     ->label(__('offer.field.buy_box_rank'))
                     ->badge()
-                    ->color(fn (Offer $record): string => static::standing()->rank($record) === 1 ? 'success' : 'gray')
+                    ->color(fn (Offer $record): string => self::standing()->rank($record) === 1 ? 'success' : 'gray')
                     ->state(function (Offer $record): string {
                         $rank = static::standing()->rank($record);
 
@@ -242,7 +242,7 @@ final class OfferResource extends Resource
                             ? '—'
                             : money($winning, $record->currency);
                     })
-                    ->description(fn (Offer $record): ?string => static::standing()->rank($record) === 1
+                    ->description(fn (Offer $record): ?string => self::standing()->rank($record) === 1
                         ? __('offer.buy_box.you_are_winning')
                         : null),
 
@@ -263,9 +263,9 @@ final class OfferResource extends Resource
             ])
             ->actions([
                 Tables\Actions\EditAction::make(),
-                static::pauseAction(),
-                static::resumeAction(),
-                static::withdrawAction(),
+                self::pauseAction(),
+                self::resumeAction(),
+                self::withdrawAction(),
             ])
             // Pausing four listings is four decisions, each with its own audit
             // reason. Nothing here belongs on a checkbox.
@@ -277,6 +277,88 @@ final class OfferResource extends Resource
                 Tables\Actions\CreateAction::make()->label(__('offer.action.create')),
             ])
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * The storefronts this actor may list under, `uuid => name`.
+     *
+     * THE SELLER PICKS A STORE, NOT A COMPANY, and the selling organization is
+     * derived from it. Both are required on an offer (§3.4), but a store is the
+     * thing a seller recognises — and asking for the company as well would mean
+     * two pickers whose valid combinations are a subset of their cross product.
+     *
+     * Scoped twice: to their active memberships, then to the organizations
+     * where they hold the management capability. A Viewer sees an empty picker
+     * rather than a form that fails on submit, and a company with no live store
+     * is told "open a store first" by absence rather than by a refusal after
+     * the whole form is filled. The policy and the action remain the controls.
+     *
+     * @return array<string, string>
+     */
+    public static function sellableStores(): array
+    {
+        $userId = (int) auth()->id();
+        $authz = app(OrganizationAuthorizationContract::class);
+        $stores = app(StoreQueryContract::class);
+
+        $options = [];
+
+        foreach ($authz->organizationIdsForUser($userId) as $organizationId) {
+            if (! $authz->canManageOrganization($userId, $organizationId)) {
+                continue;
+            }
+
+            $options += $stores->liveStoresForOrganization($organizationId);
+        }
+
+        return $options;
+    }
+
+    /**
+     * THE TENANCY WALL (ADR-030). Currency is eager loaded because every row
+     * renders money and strict mode makes a lazy load throw.
+     *
+     * @return Builder<Offer>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $ids = app(OrganizationAuthorizationContract::class)
+            ->organizationIdsForUser((int) auth()->id());
+
+        /** @var Builder<Offer> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query->with('currency')->whereIn('selling_org_id', $ids);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListOffers::route('/'),
+            'create' => Pages\CreateOffer::route('/create'),
+            'edit' => Pages\EditOffer::route('/{record}/edit'),
+        ];
+    }
+
+    /**
+     * Resolved here so the create page and the browse step share one instance
+     * and one memo.
+     */
+    public static function catalog(): CatalogBrowseContract
+    {
+        return app(CatalogBrowseContract::class);
+    }
+
+    /**
+     * The platform's default currency — the only one an offer is priced in this
+     * sprint (§13.1), and what the major/minor conversion is done against.
+     */
+    public static function defaultCurrencyId(): int
+    {
+        return (int) app(CurrencyRepositoryContract::class)->default()->getKey();
     }
 
     private static function pauseAction(): Tables\Actions\Action
@@ -345,41 +427,6 @@ final class OfferResource extends Resource
     }
 
     /**
-     * The storefronts this actor may list under, `uuid => name`.
-     *
-     * THE SELLER PICKS A STORE, NOT A COMPANY, and the selling organization is
-     * derived from it. Both are required on an offer (§3.4), but a store is the
-     * thing a seller recognises — and asking for the company as well would mean
-     * two pickers whose valid combinations are a subset of their cross product.
-     *
-     * Scoped twice: to their active memberships, then to the organizations
-     * where they hold the management capability. A Viewer sees an empty picker
-     * rather than a form that fails on submit, and a company with no live store
-     * is told "open a store first" by absence rather than by a refusal after
-     * the whole form is filled. The policy and the action remain the controls.
-     *
-     * @return array<string, string>
-     */
-    public static function sellableStores(): array
-    {
-        $userId = (int) auth()->id();
-        $authz = app(OrganizationAuthorizationContract::class);
-        $stores = app(StoreQueryContract::class);
-
-        $options = [];
-
-        foreach ($authz->organizationIdsForUser($userId) as $organizationId) {
-            if (! $authz->canManageOrganization($userId, $organizationId)) {
-                continue;
-            }
-
-            $options += $stores->liveStoresForOrganization($organizationId);
-        }
-
-        return $options;
-    }
-
-    /**
      * The buy-box reader, resolved once so its per-variant memo is shared by
      * every column and every row of one render.
      *
@@ -393,59 +440,12 @@ final class OfferResource extends Resource
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     private static function reason(array $data): ?string
     {
         $reason = $data['reason'] ?? null;
 
         return is_string($reason) && $reason !== '' ? $reason : null;
-    }
-
-    /**
-     * THE TENANCY WALL (ADR-030). Currency is eager loaded because every row
-     * renders money and strict mode makes a lazy load throw.
-     *
-     * @return Builder<Offer>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        $ids = app(OrganizationAuthorizationContract::class)
-            ->organizationIdsForUser((int) auth()->id());
-
-        /** @var Builder<Offer> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query->with('currency')->whereIn('selling_org_id', $ids);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListOffers::route('/'),
-            'create' => Pages\CreateOffer::route('/create'),
-            'edit' => Pages\EditOffer::route('/{record}/edit'),
-        ];
-    }
-
-    /**
-     * Resolved here so the create page and the browse step share one instance
-     * and one memo.
-     */
-    public static function catalog(): CatalogBrowseContract
-    {
-        return app(CatalogBrowseContract::class);
-    }
-
-    /**
-     * The platform's default currency — the only one an offer is priced in this
-     * sprint (§13.1), and what the major/minor conversion is done against.
-     */
-    public static function defaultCurrencyId(): int
-    {
-        return (int) app(CurrencyRepositoryContract::class)->default()->getKey();
     }
 }

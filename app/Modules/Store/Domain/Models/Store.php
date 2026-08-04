@@ -59,25 +59,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class Store extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<StoreFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use SoftDeletes;
 
     protected $table = 'stores';
-
-    /**
-     * Point Eloquent at the module's factory. Factories live under
-     * `database/Modules/Store/Factories`, not the default `database/factories`,
-     * so the model names it explicitly — the discovery path documented in
-     * `database/Modules/README.md`.
-     */
-    protected static function newFactory(): StoreFactory
-    {
-        return StoreFactory::new();
-    }
 
     protected $fillable = [
         'organization_id',
@@ -172,7 +161,8 @@ final class Store extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeWhereStatus(Builder $query, StoreStatus $status): Builder
@@ -184,12 +174,24 @@ final class Store extends Model
      * Only stores the public may see (ADR-034) — the visibility rule in one
      * place so the public surface never hand-rolls it.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopePubliclyVisible(Builder $query): Builder
     {
         return $query->where('status', StoreStatus::Active->value);
+    }
+
+    /**
+     * Point Eloquent at the module's factory. Factories live under
+     * `database/Modules/Store/Factories`, not the default `database/factories`,
+     * so the model names it explicitly — the discovery path documented in
+     * `database/Modules/README.md`.
+     */
+    protected static function newFactory(): StoreFactory
+    {
+        return StoreFactory::new();
     }
 
     /**

@@ -25,7 +25,7 @@ final class LoginAttemptRepository implements LoginAttemptRepositoryContract
      * sign-in into a 500, so this swallows and reports rather than throwing.
      * Returns null when the write failed.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function record(array $attributes): ?LoginAttempt
     {

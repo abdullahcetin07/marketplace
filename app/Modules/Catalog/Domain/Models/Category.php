@@ -77,15 +77,6 @@ final class Category extends Model
 
     protected $table = 'categories';
 
-    /**
-     * Factories live under `database/Modules/Catalog/Factories`, not the default
-     * `database/factories`, so the model names its own.
-     */
-    protected static function newFactory(): CategoryFactory
-    {
-        return CategoryFactory::new();
-    }
-
     protected $fillable = [
         'parent_id',
         'path',
@@ -222,7 +213,8 @@ final class Category extends Model
      * Every node beneath this one, at any depth — the prefix scan the
      * materialised path exists for.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeDescendantsOf(Builder $query, self $category): Builder
@@ -233,7 +225,8 @@ final class Category extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -248,7 +241,8 @@ final class Category extends Model
      * have to be maintained on every insert and move, and would be wrong for
      * exactly as long as nobody noticed.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeLeaves(Builder $query): Builder
@@ -263,7 +257,8 @@ final class Category extends Model
      * than `leaves()`'s `whereDoesntHave` subquery — the flag is indexed, and
      * the two now answer different questions.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeAcceptsProducts(Builder $query): Builder
@@ -272,12 +267,30 @@ final class Category extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeRoots(Builder $query): Builder
     {
         return $query->whereNull('parent_id');
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Category;
+    }
+
+    /**
+     * Factories live under `database/Modules/Catalog/Factories`, not the default
+     * `database/factories`, so the model names its own.
+     */
+    protected static function newFactory(): CategoryFactory
+    {
+        return CategoryFactory::new();
     }
 
     /**
@@ -291,13 +304,5 @@ final class Category extends Model
             'depth' => 'integer',
             'position' => 'integer',
         ];
-    }
-
-    /**
-     * This entity's kind in the global slug namespace (ADR-059).
-     */
-    public function sluggableType(): SluggableType
-    {
-        return SluggableType::Category;
     }
 }

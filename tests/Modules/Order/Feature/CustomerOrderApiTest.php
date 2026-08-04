@@ -83,7 +83,8 @@ function apiOffer(int $priceMinor = 12_000, int $stock = 10, ?string $title = nu
 }
 
 /**
- * @param  array<string, mixed>  $overrides
+ * @param array<string, mixed> $overrides
+ *
  * @return array<string, mixed>
  */
 function apiAddressPayload(array $overrides = []): array

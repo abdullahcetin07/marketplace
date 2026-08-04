@@ -2,9 +2,9 @@
 
 declare(strict_types=1);
 
+use App\Core\Domain\Contracts\OtpStoreContract;
 use App\Models\Customer;
 use App\Modules\Identity\Application\Services\TwoFactorService;
-use App\Core\Domain\Contracts\OtpStoreContract;
 use App\Modules\Identity\Infrastructure\Notifications\EmailOtpNotification;
 use Database\Factories\UserFactory;
 use Illuminate\Support\Facades\Notification;

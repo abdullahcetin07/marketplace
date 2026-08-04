@@ -109,7 +109,7 @@ final class AttributesRelationManager extends RelationManager
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     private function save(array $data): void
     {

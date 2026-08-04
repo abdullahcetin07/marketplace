@@ -10,6 +10,7 @@ use Illuminate\Contracts\Cache\Repository as CacheRepository;
 use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
+use LogicException;
 use Psr\Log\LoggerInterface;
 
 /**
@@ -82,7 +83,7 @@ abstract class BaseService
     protected function repository(): RepositoryContract
     {
         if ($this->repository === null) {
-            throw new \LogicException(static::class.' has no repository configured.');
+            throw new LogicException(static::class.' has no repository configured.');
         }
 
         return $this->repository;
@@ -93,7 +94,8 @@ abstract class BaseService
      *
      * @template TValue
      *
-     * @param  Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
     protected function remember(string $key, Closure $callback, ?int $ttl = null): mixed
@@ -122,7 +124,8 @@ abstract class BaseService
      *
      * @template TValue
      *
-     * @param  Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
     protected function transaction(Closure $callback, int $attempts = 1): mixed
@@ -131,7 +134,7 @@ abstract class BaseService
     }
 
     /**
-     * @param  array<string, mixed>  $context
+     * @param array<string, mixed> $context
      */
     protected function log(string $message, array $context = [], string $level = 'info'): void
     {

@@ -230,10 +230,46 @@ final class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                static::cancelAction(),
+                self::cancelAction(),
             ])
             ->bulkActions([])
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            LinesRelationManager::class,
+        ];
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListOrders::route('/'),
+            'view' => Pages\ViewOrder::route('/{record}'),
+        ];
+    }
+
+    /**
+     * Cross-org by construction: this is a platform power gated on `order.*`
+     * permissions, not on any organization membership. Currency is eager loaded
+     * because every row renders money.
+     *
+     * @return Builder<Order>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Order> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query->with('currency');
     }
 
     /**
@@ -282,43 +318,7 @@ final class OrderResource extends Resource
     }
 
     /**
-     * @return array<int, class-string>
-     */
-    public static function getRelations(): array
-    {
-        return [
-            LinesRelationManager::class,
-        ];
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListOrders::route('/'),
-            'view' => Pages\ViewOrder::route('/{record}'),
-        ];
-    }
-
-    /**
-     * Cross-org by construction: this is a platform power gated on `order.*`
-     * permissions, not on any organization membership. Currency is eager loaded
-     * because every row renders money.
-     *
-     * @return Builder<Order>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        /** @var Builder<Order> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query->with('currency');
-    }
-
-    /**
-     * @param  array<string, string|null>|null  $address
+     * @param array<string, string|null>|null $address
      */
     private static function formatAddress(?array $address): string
     {

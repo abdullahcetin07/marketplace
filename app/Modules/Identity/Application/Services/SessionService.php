@@ -10,6 +10,7 @@ use App\Modules\Identity\Domain\Contracts\SessionRepositoryContract;
 use App\Modules\Identity\Domain\Events\SessionRevoked;
 use App\Modules\Identity\Domain\Models\UserDevice;
 use App\Modules\Identity\Domain\Models\UserSession;
+use DateTimeInterface;
 use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -234,7 +235,7 @@ final class SessionService
      * Cookie sessions expire on the configured lifetime; Sanctum tokens on
      * their own. Null means "no expiry beyond revocation".
      */
-    private function expiryFor(?int $tokenId): ?\DateTimeInterface
+    private function expiryFor(?int $tokenId): ?DateTimeInterface
     {
         if ($tokenId !== null) {
             $minutes = (int) config('sanctum.expiration', 0);

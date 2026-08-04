@@ -6,6 +6,7 @@ namespace App\Modules\Localization\Domain\Models;
 
 use App\Shared\Traits\HasUuid;
 use Database\Modules\Localization\Factories\TimezoneFactory;
+use DateTimeImmutable;
 use DateTimeZone;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -26,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  *
  * @property int $id
  * @property string $uuid
- * @property string $name        IANA identifier, e.g. Europe/Istanbul
+ * @property string $name IANA identifier, e.g. Europe/Istanbul
  * @property string $label
  * @property int $offset_minutes
  * @property bool $is_active
@@ -85,7 +86,7 @@ final class Timezone extends Model
      */
     public function currentOffsetMinutes(): int
     {
-        return (int) ($this->toDateTimeZone()->getOffset(new \DateTimeImmutable('now', new DateTimeZone('UTC'))) / 60);
+        return (int) ($this->toDateTimeZone()->getOffset(new DateTimeImmutable('now', new DateTimeZone('UTC'))) / 60);
     }
 
     /**
@@ -101,7 +102,8 @@ final class Timezone extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -110,7 +112,8 @@ final class Timezone extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOrdered(Builder $query): Builder

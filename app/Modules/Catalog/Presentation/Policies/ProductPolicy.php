@@ -135,7 +135,7 @@ final class ProductPolicy extends BasePolicy
      * about the LIST, not a single id. A product with no proposer — authored by
      * staff — belongs to no seller and falls out as false.
      *
-     * @param  Product  $model
+     * @param Product $model
      */
     protected function owns(User $user, Model $model): bool
     {

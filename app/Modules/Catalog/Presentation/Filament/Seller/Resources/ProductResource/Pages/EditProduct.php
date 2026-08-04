@@ -10,8 +10,8 @@ use App\Modules\Catalog\Domain\DTOs\UpdateProductDTO;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
-use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Presentation\Filament\Seller\Resources\ProductResource;
 use Filament\Actions;
 use Filament\Forms\Components\FileUpload;
@@ -85,7 +85,7 @@ final class EditProduct extends EditRecord
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
@@ -118,8 +118,7 @@ final class EditProduct extends EditRecord
             ));
         } catch (CatalogException $exception) {
             throw ValidationException::withMessages([
-                ($exception->getContext()['reason'] ?? null) === 'gtin_taken' ? 'data.gtin' : 'data.category_id'
-                    => $exception->getMessage(),
+                ($exception->getContext()['reason'] ?? null) === 'gtin_taken' ? 'data.gtin' : 'data.category_id' => $exception->getMessage(),
             ]);
         }
     }

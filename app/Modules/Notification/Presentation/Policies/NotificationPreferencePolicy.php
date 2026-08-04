@@ -24,7 +24,7 @@ final class NotificationPreferencePolicy extends BasePolicy
     }
 
     /**
-     * @param  NotificationPreference  $model
+     * @param NotificationPreference $model
      */
     protected function owns(User $user, Model $model): bool
     {

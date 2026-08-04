@@ -34,7 +34,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property string|null $label
  * @property bool $is_primary
  * @property string $account_holder
- * @property string $iban          decrypted on access; never audited
+ * @property string $iban decrypted on access; never audited
  * @property string|null $bank_name
  * @property int $currency_id
  * @property \Illuminate\Support\Carbon|null $verified_at
@@ -43,10 +43,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class OrganizationBankAccount extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OrganizationBankAccountFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use SoftDeletes;
 

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Infrastructure\Notifications;
 
-use App\Core\Infrastructure\Frontend\FrontendUrl;
 use App\Core\Application\Notifications\BaseNotification;
+use App\Core\Infrastructure\Frontend\FrontendUrl;
 use App\Shared\Enums\NotificationType;
 use Illuminate\Notifications\Messages\MailMessage;
 use Illuminate\Support\Facades\URL;
@@ -66,6 +66,14 @@ final class VerifyEmailNotification extends BaseNotification
     }
 
     /**
+     * @return array<int, string>
+     */
+    public function tags(): array
+    {
+        return ['email-verification'];
+    }
+
+    /**
      * Build the frontend link with the signed callback params attached.
      */
     private function verificationUrl(mixed $notifiable): string
@@ -88,13 +96,5 @@ final class VerifyEmailNotification extends BaseNotification
             sha1((string) $notifiable->getEmailForVerification()),
             $query,
         );
-    }
-
-    /**
-     * @return array<int, string>
-     */
-    public function tags(): array
-    {
-        return ['email-verification'];
     }
 }

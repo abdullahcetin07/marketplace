@@ -46,7 +46,7 @@ abstract class BaseDTO implements Arrayable, Jsonable, JsonSerializable
     /**
      * Hydrate from a loosely-keyed array.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public static function fromArray(array $data): static
     {
@@ -94,7 +94,8 @@ abstract class BaseDTO implements Arrayable, Jsonable, JsonSerializable
     }
 
     /**
-     * @param  iterable<int, array<string, mixed>>  $rows
+     * @param iterable<int, array<string, mixed>> $rows
+     *
      * @return Collection<int, static>
      */
     public static function collect(iterable $rows): Collection
@@ -149,7 +150,7 @@ abstract class BaseDTO implements Arrayable, Jsonable, JsonSerializable
      * Copy with selected properties replaced. DTOs are readonly, so mutation
      * is expressed as derivation.
      *
-     * @param  array<string, mixed>  $overrides
+     * @param array<string, mixed> $overrides
      */
     public function with(array $overrides): static
     {
@@ -175,7 +176,7 @@ abstract class BaseDTO implements Arrayable, Jsonable, JsonSerializable
     /**
      * Look a parameter up under both its camelCase and snake_case spellings.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     private static function extractValue(array $data, ReflectionParameter $parameter): mixed
     {

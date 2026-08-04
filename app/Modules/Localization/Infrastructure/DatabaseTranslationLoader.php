@@ -41,9 +41,10 @@ final class DatabaseTranslationLoader extends FileLoader
     private array $memo = [];
 
     /**
-     * @param  string  $locale
-     * @param  string  $group
-     * @param  string|null  $namespace
+     * @param string $locale
+     * @param string $group
+     * @param string|null $namespace
+     *
      * @return array<string, mixed>
      */
     public function load($locale, $group, $namespace = null): array

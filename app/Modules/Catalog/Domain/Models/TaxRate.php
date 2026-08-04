@@ -59,10 +59,10 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 final class TaxRate extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<TaxRateFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
 
     /**
@@ -73,11 +73,6 @@ final class TaxRate extends Model
     public const int SCALE = 10_000;
 
     protected $table = 'tax_rates';
-
-    protected static function newFactory(): TaxRateFactory
-    {
-        return TaxRateFactory::new();
-    }
 
     protected $fillable = [
         'code',
@@ -125,12 +120,18 @@ final class TaxRate extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    protected static function newFactory(): TaxRateFactory
+    {
+        return TaxRateFactory::new();
     }
 
     /**

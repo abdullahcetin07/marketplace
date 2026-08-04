@@ -36,48 +36,53 @@ interface RepositoryContract
     public function findOrFail(int|string $id): Model;
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return TModel|null
      */
     public function findBy(array $criteria): ?Model;
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return Collection<int, TModel>
      */
     public function all(array $criteria = []): Collection;
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return LengthAwarePaginator<int, TModel>
      */
     public function paginate(int $perPage = 25, array $criteria = []): LengthAwarePaginator;
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
+     *
      * @return TModel
      */
     public function create(array $attributes): Model;
 
     /**
-     * @param  TModel  $model
-     * @param  array<string, mixed>  $attributes
+     * @param TModel $model
+     * @param array<string, mixed> $attributes
+     *
      * @return TModel
      */
     public function update(Model $model, array $attributes): Model;
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function delete(Model $model): bool;
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
      */
     public function exists(array $criteria): bool;
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
      */
     public function count(array $criteria = []): int;
 }

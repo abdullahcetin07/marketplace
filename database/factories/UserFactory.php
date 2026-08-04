@@ -35,13 +35,13 @@ use Illuminate\Support\Str;
  */
 class UserFactory extends Factory
 {
-    /** @var class-string<User> */
-    protected $model = User::class;
-
     /**
      * The plaintext every factory-built user is given. Tests log in with this.
      */
     public const string PASSWORD = 'password';
+
+    /** @var class-string<User> */
+    protected $model = User::class;
 
     /**
      * Hashing dominates factory runtime. One shared hash across all generated

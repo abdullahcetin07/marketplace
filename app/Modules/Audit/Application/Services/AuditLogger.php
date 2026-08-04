@@ -38,7 +38,7 @@ final class AuditLogger
      * when the attacked address has no account. `$causer` defaults to the
      * current actor, which is correctly null for an unauthenticated attacker.
      *
-     * @param  array<string, mixed>  $metadata  event context with no model diff
+     * @param array<string, mixed> $metadata event context with no model diff
      */
     public function record(
         AuditEventType $type,
@@ -74,7 +74,7 @@ final class AuditLogger
     /**
      * Convenience for the common case: a security event, defaulting to High.
      *
-     * @param  array<string, mixed>  $metadata
+     * @param array<string, mixed> $metadata
      */
     public function security(
         AuditEventType $type,

@@ -10,6 +10,7 @@ use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
 use App\Modules\Order\Domain\DTOs\CancelOrderDTO;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Give back the stock of checkouts nobody finished (§3.3, ADR-054).
@@ -98,7 +99,7 @@ final class ExpireReservationsJob extends BaseJob
                 cancelledBy: CancelOrderDTO::BY_EXPIRY,
                 reason: __('order.cancel.expired'),
             ));
-        } catch (\Throwable $exception) {
+        } catch (Throwable $exception) {
             /*
              * Logged, not rethrown. Rethrowing would fail the whole batch and
              * retry it — re-cancelling the orders that already succeeded (a

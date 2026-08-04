@@ -11,6 +11,7 @@ use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\HasMany;
+use RuntimeException;
 
 /**
  * A locale the platform can be served in.
@@ -28,8 +29,8 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $uuid
  * @property string $code
  * @property string $locale
- * @property string $name           English exonym, for admin lists
- * @property string $native_name    endonym — always render a language in itself
+ * @property string $name English exonym, for admin lists
+ * @property string $native_name endonym — always render a language in itself
  * @property TextDirection $direction
  * @property string|null $flag
  * @property bool $is_default
@@ -97,7 +98,8 @@ final class Language extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -106,7 +108,8 @@ final class Language extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -129,7 +132,7 @@ final class Language extends Model
 
     protected static function booted(): void
     {
-        static::saving(static function (self $language): void {
+        self::saving(static function (self $language): void {
             // Exactly one default, and it must be active.
             if ($language->is_default && $language->isDirty('is_default')) {
                 self::query()
@@ -139,11 +142,11 @@ final class Language extends Model
             }
         });
 
-        static::deleting(static function (self $language): void {
+        self::deleting(static function (self $language): void {
             // Deleting the default locale would leave the application with no
             // locale to fall back to on the very next request.
             if ($language->is_default) {
-                throw new \RuntimeException(
+                throw new RuntimeException(
                     'The default language cannot be deleted. Promote another language first.',
                 );
             }

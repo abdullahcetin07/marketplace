@@ -34,6 +34,7 @@ interface AttributeRepositoryContract
 
     /**
      * @param array<int, string> $uuids
+     *
      * @return Collection<int, AttributeValue>
      */
     public function valuesByUuids(array $uuids): Collection;

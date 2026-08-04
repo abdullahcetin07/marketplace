@@ -25,7 +25,7 @@ final class LanguagePolicy extends BasePolicy
      * refusing at the policy layer means the admin UI hides the button rather
      * than showing one that always errors.
      *
-     * @param  Language  $model
+     * @param Language $model
      */
     public function delete(User $user, Model $model): Response
     {

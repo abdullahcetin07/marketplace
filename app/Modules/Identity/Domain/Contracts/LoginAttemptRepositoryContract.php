@@ -23,7 +23,7 @@ interface LoginAttemptRepositoryContract
     /**
      * Write an attempt row.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function record(array $attributes): ?LoginAttempt;
 

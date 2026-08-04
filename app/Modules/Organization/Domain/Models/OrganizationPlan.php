@@ -25,7 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  * @property string $uuid
  * @property string $name
  * @property string $slug
- * @property int|null $store_limit   null = unlimited
+ * @property int|null $store_limit null = unlimited
  * @property bool $is_active
  * @property int $sort_order
  *
@@ -49,7 +49,8 @@ final class OrganizationPlan extends Model
     ];
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder

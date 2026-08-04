@@ -5,8 +5,8 @@ declare(strict_types=1);
 namespace App\Modules\Organization\Domain\Contracts;
 
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
-use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
+use Illuminate\Database\Eloquent\Collection;
 
 /**
  * Persistence port for Store Opening Requests.
@@ -52,8 +52,8 @@ interface StoreOpeningRequestRepositoryContract
      * holding anything, and an approved one has become a store, where the other
      * check takes over.
      *
-     * @param  int|null  $exceptId  a request to ignore — its own name is not a
-     *                              collision with itself.
+     * @param int|null $exceptId a request to ignore — its own name is not a
+     *                           collision with itself.
      */
     public function storeNameClaimed(string $storeName, ?int $exceptId = null): bool;
 }

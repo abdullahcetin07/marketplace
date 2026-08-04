@@ -100,7 +100,7 @@ abstract class BaseException extends Exception
     }
 
     /**
-     * @param  array<string, mixed>  $context
+     * @param array<string, mixed> $context
      */
     public function withContext(array $context): static
     {

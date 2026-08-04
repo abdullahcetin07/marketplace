@@ -8,6 +8,7 @@ use App\Core\Application\Actions\BaseAction;
 use App\Models\User;
 use App\Modules\Identity\Domain\Events\SessionRevoked;
 use App\Modules\Identity\Domain\Models\UserDevice;
+use DomainException;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -41,8 +42,8 @@ final class ForgetDeviceAction extends BaseAction
     private array $revokedUuids = [];
 
     /**
-     * @param  UserDevice  $arguments [0]
-     * @param  User  $arguments [1] the acting user (the owner)
+     * @param UserDevice $arguments [0]
+     * @param User $arguments [1] the acting user (the owner)
      */
     public function handle(mixed ...$arguments): mixed
     {
@@ -52,7 +53,7 @@ final class ForgetDeviceAction extends BaseAction
         $actor = $arguments[1];
 
         if ($device->user_id !== $actor->getKey()) {
-            throw new \DomainException('A device can only be forgotten by its owner.');
+            throw new DomainException('A device can only be forgotten by its owner.');
         }
 
         $sessions = $device->sessions()->whereNull('revoked_at')->get();

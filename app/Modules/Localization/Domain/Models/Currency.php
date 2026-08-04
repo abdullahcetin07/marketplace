@@ -28,7 +28,7 @@ use Illuminate\Support\Carbon;
  *
  * @property int $id
  * @property string $uuid
- * @property string $code            ISO-4217, e.g. TRY
+ * @property string $code ISO-4217, e.g. TRY
  * @property string $name
  * @property string|null $native_name
  * @property string $symbol
@@ -36,7 +36,7 @@ use Illuminate\Support\Carbon;
  * @property int $decimal_places
  * @property string $decimal_separator
  * @property string $thousands_separator
- * @property string $exchange_rate    relative to the default currency
+ * @property string $exchange_rate relative to the default currency
  * @property bool $is_default
  * @property bool $is_active
  * @property int $sort_order
@@ -171,7 +171,8 @@ final class Currency extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -180,7 +181,8 @@ final class Currency extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOrdered(Builder $query): Builder
@@ -211,7 +213,7 @@ final class Currency extends Model
         // Exactly one default currency. Enforced here as well as by a partial
         // unique index, because the failure mode of two defaults is that
         // CurrencyRepository::default() returns whichever row the planner picked.
-        static::saving(static function (self $currency): void {
+        self::saving(static function (self $currency): void {
             if ($currency->is_default && $currency->isDirty('is_default')) {
                 self::query()
                     ->where('is_default', true)

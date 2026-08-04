@@ -34,7 +34,7 @@ final class OrganizationPolicy extends BasePolicy
      * permission. Org data is private (KYC, bank), so `view` is ownership-gated
      * for non-admins — hence the override of ownershipRequiredFor() below.
      *
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function view(User $user, Model $model): Response
     {
@@ -46,7 +46,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function approve(User $user, Model $model): Response
     {
@@ -54,7 +54,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function reject(User $user, Model $model): Response
     {
@@ -62,7 +62,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function suspend(User $user, Model $model): Response
     {
@@ -87,7 +87,7 @@ final class OrganizationPolicy extends BasePolicy
     */
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function update(User $user, Model $model): Response
     {
@@ -99,7 +99,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function manageKyc(User $user, Model $model): Response
     {
@@ -107,7 +107,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function inviteMembers(User $user, Model $model): Response
     {
@@ -115,7 +115,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function createStoreRequest(User $user, Model $model): Response
     {
@@ -123,7 +123,7 @@ final class OrganizationPolicy extends BasePolicy
     }
 
     /**
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function transferOwnership(User $user, Model $model): Response
     {
@@ -133,7 +133,7 @@ final class OrganizationPolicy extends BasePolicy
     /**
      * Admin sets the store-limit override / plan. Admin Spatie ability.
      *
-     * @param  Organization  $model
+     * @param Organization $model
      */
     public function manageLimit(User $user, Model $model): Response
     {
@@ -145,20 +145,6 @@ final class OrganizationPolicy extends BasePolicy
         return 'organization';
     }
 
-    private function capabilityResponse(User $user, Organization $organization, OrganizationCapability $capability): Response
-    {
-        return $this->memberCan($user, $organization, $capability)
-            ? Response::allow()
-            : Response::deny(__('errors.forbidden'));
-    }
-
-    private function memberCan(User $user, Organization $organization, OrganizationCapability $capability): bool
-    {
-        $membership = $this->members->findMembership($organization->getKey(), $user->getKey());
-
-        return $membership !== null && $membership->can($capability);
-    }
-
     /**
      * The seller-side tenancy check (ADR-030): a user "owns" — may access — an
      * organization when they are its Owner OR an active member of it. Anyone
@@ -166,7 +152,7 @@ final class OrganizationPolicy extends BasePolicy
      * gating (who may update vs merely view) lands with the seller API in
      * Phase 6; this establishes the isolation wall.
      *
-     * @param  Organization  $model
+     * @param Organization $model
      */
     protected function owns(User $user, Model $model): bool
     {
@@ -184,5 +170,19 @@ final class OrganizationPolicy extends BasePolicy
     protected function ownershipRequiredFor(): array
     {
         return ['view', 'update', 'delete', 'restore', 'forceDelete'];
+    }
+
+    private function capabilityResponse(User $user, Organization $organization, OrganizationCapability $capability): Response
+    {
+        return $this->memberCan($user, $organization, $capability)
+            ? Response::allow()
+            : Response::deny(__('errors.forbidden'));
+    }
+
+    private function memberCan(User $user, Organization $organization, OrganizationCapability $capability): bool
+    {
+        $membership = $this->members->findMembership($organization->getKey(), $user->getKey());
+
+        return $membership !== null && $membership->can($capability);
     }
 }

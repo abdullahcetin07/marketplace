@@ -69,25 +69,15 @@ use Laravel\Scout\Searchable;
  */
 final class Offer extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OfferFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use Searchable;
     use SoftDeletes;
 
     protected $table = 'offers';
-
-    /**
-     * Factories live under `database/Modules/Offer/Factories`, not the default
-     * `database/factories`, so the model names its own — the discovery path
-     * documented in `database/Modules/README.md`.
-     */
-    protected static function newFactory(): OfferFactory
-    {
-        return OfferFactory::new();
-    }
 
     protected $fillable = [
         'variant_uuid',
@@ -163,7 +153,8 @@ final class Offer extends Model
      * Offers that count toward the one-active-offer-per-(org, variant) rule
      * (§3.2) — everything except withdrawn.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeBlockingDuplicate(Builder $query): Builder
@@ -175,7 +166,8 @@ final class Offer extends Model
      * The status+stock half of buy-box eligibility, as a query. The store-active
      * half is applied by the query layer, which is allowed to ask Store.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeSellable(Builder $query): Builder
@@ -186,7 +178,8 @@ final class Offer extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForProduct(Builder $query, string $productUuid): Builder
@@ -195,7 +188,8 @@ final class Offer extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForVariant(Builder $query, string $variantUuid): Builder
@@ -306,6 +300,16 @@ final class Offer extends Model
             'status' => ['type' => 'keyword'],
             'created_at' => ['type' => 'date'],
         ];
+    }
+
+    /**
+     * Factories live under `database/Modules/Offer/Factories`, not the default
+     * `database/factories`, so the model names its own — the discovery path
+     * documented in `database/Modules/README.md`.
+     */
+    protected static function newFactory(): OfferFactory
+    {
+        return OfferFactory::new();
     }
 
     /**

@@ -38,7 +38,8 @@ final class EditStaff extends EditRecord
      * Queried explicitly — reading `$record->roles` would be a lazy load, which
      * throws under strict mode.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     protected function mutateFormDataBeforeFill(array $data): array
@@ -52,8 +53,8 @@ final class EditStaff extends EditRecord
     }
 
     /**
-     * @param  User  $record
-     * @param  array<string, mixed>  $data
+     * @param User $record
+     * @param array<string, mixed> $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {
@@ -104,7 +105,7 @@ final class EditStaff extends EditRecord
      * the first stops an Admin editing the platform owner, the second stops an
      * Admin promoting anyone, including themselves, to the platform owner.
      *
-     * @param  array<int, string>  $roles
+     * @param array<int, string> $roles
      *
      * @throws AuthorizationException
      */

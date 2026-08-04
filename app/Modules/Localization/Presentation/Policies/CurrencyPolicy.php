@@ -16,7 +16,7 @@ use Illuminate\Database\Eloquent\Model;
 final class CurrencyPolicy extends BasePolicy
 {
     /**
-     * @param  Currency  $model
+     * @param Currency $model
      */
     public function delete(User $user, Model $model): Response
     {

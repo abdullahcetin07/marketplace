@@ -146,7 +146,7 @@ final class CosmeticAttributeDemoSeeder extends Seeder
      * string that is not a number, and the lookup casts it back rather than
      * pretending otherwise.
      *
-     * @var array<int, array<string, string>>  gtin => attribute code => value (option value for select)
+     * @var array<int, array<string, string>> gtin => attribute code => value (option value for select)
      */
     public const array PRODUCT_VALUES = [
         // Bioderma Sensibio AR+ CC Cream SPF50+ 40 ml
@@ -199,7 +199,7 @@ final class CosmeticAttributeDemoSeeder extends Seeder
     /**
      * The attribute definitions and their enumerated values.
      *
-     * @return array<string, Attribute>  keyed by code
+     * @return array<string, Attribute> keyed by code
      */
     private function seedAttributes(): array
     {
@@ -250,7 +250,7 @@ final class CosmeticAttributeDemoSeeder extends Seeder
     /**
      * Bind the whole schema to every cosmetic category that exists here.
      *
-     * @param  array<string, Attribute>  $attributes
+     * @param array<string, Attribute> $attributes
      */
     private function bindCosmeticCategories(array $attributes): void
     {
@@ -283,7 +283,7 @@ final class CosmeticAttributeDemoSeeder extends Seeder
     }
 
     /**
-     * @param  array<string, Attribute>  $attributes
+     * @param array<string, Attribute> $attributes
      */
     private function valueRealProducts(array $attributes): void
     {
@@ -305,7 +305,7 @@ final class CosmeticAttributeDemoSeeder extends Seeder
      * values yet — deterministic for a given database, so re-running picks the
      * same pair rather than spreading demo values across the catalogue.
      *
-     * @param  array<string, Attribute>  $attributes
+     * @param array<string, Attribute> $attributes
      */
     private function valueDemoProducts(array $attributes): void
     {
@@ -347,8 +347,8 @@ final class CosmeticAttributeDemoSeeder extends Seeder
      * — correct for a form submit, destructive for a seeder — so a product a
      * human has since curated is left exactly as it is.
      *
-     * @param  array<string, Attribute>  $attributes
-     * @param  array<string, string>  $values  attribute code => AttributeValue value, or a raw string
+     * @param array<string, Attribute> $attributes
+     * @param array<string, string> $values attribute code => AttributeValue value, or a raw string
      */
     private function applyValues(Product $product, array $attributes, array $values): void
     {

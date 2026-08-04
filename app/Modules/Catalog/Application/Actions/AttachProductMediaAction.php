@@ -44,9 +44,9 @@ final class AttachProductMediaAction extends BaseAction
     protected bool $useTransaction = false;
 
     /**
-     * @param  mixed  ...$arguments  Product, array<UploadedFile|string> $files,
-     *                               ?string $disk — the disk the string paths
-     *                               are relative to. Ignored for UploadedFile.
+     * @param mixed ...$arguments Product, array<UploadedFile|string> $files,
+     *                            ?string $disk — the disk the string paths
+     *                            are relative to. Ignored for UploadedFile.
      *
      * @return array<int, Media>
      */

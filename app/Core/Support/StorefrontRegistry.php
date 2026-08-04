@@ -29,7 +29,7 @@ final class StorefrontRegistry
     private static array $contributors = [];
 
     /**
-     * @param  class-string<StorefrontContributorContract>  $contributor
+     * @param class-string<StorefrontContributorContract> $contributor
      */
     public static function register(string $contributor): void
     {

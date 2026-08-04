@@ -214,47 +214,13 @@ final class StockResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                static::setThresholdAction(),
+                self::setThresholdAction(),
             ])
             ->bulkActions([])
             ->emptyStateIcon('heroicon-o-archive-box')
             ->emptyStateHeading(__('inventory.empty.heading'))
             ->emptyStateDescription(__('inventory.empty.description'))
             ->defaultSort('id', 'desc');
-    }
-
-    /**
-     * The seller's warning line — the one write on this surface.
-     *
-     * A PREFERENCE, NOT A COUNT, which is why the action records no movement: the
-     * ledger explains where stock went, and "tell me at five" is not stock going
-     * anywhere.
-     */
-    private static function setThresholdAction(): Tables\Actions\Action
-    {
-        return Tables\Actions\Action::make('set_threshold')
-            ->label(__('inventory.action.set_threshold'))
-            ->icon('heroicon-o-bell-alert')
-            ->form([
-                Forms\Components\TextInput::make('threshold')
-                    ->label(__('inventory.field.low_stock_threshold'))
-                    ->helperText(__('inventory.field.low_stock_threshold_hint'))
-                    ->numeric()
-                    ->minValue(0)
-                    ->default(fn (StockItem $record): ?int => $record->low_stock_threshold),
-            ])
-            ->visible(fn (StockItem $record): bool => auth()->user()?->can('setLowStockThreshold', $record) === true)
-            ->action(function (StockItem $record, array $data): void {
-                $threshold = $data['threshold'] ?? null;
-
-                app(SetLowStockThresholdAction::class)->run($record, new SetLowStockThresholdDTO(
-                    // Empty means "stop telling me" — distinct from 0, which
-                    // means "tell me when I actually run out".
-                    threshold: $threshold === null || $threshold === '' ? null : (int) $threshold,
-                ));
-
-                Notification::make()->title(__('inventory.notice.threshold_set'))->success()->send();
-            });
     }
 
     /**
@@ -292,5 +258,39 @@ final class StockResource extends Resource
         return [
             MovementsRelationManager::class,
         ];
+    }
+
+    /**
+     * The seller's warning line — the one write on this surface.
+     *
+     * A PREFERENCE, NOT A COUNT, which is why the action records no movement: the
+     * ledger explains where stock went, and "tell me at five" is not stock going
+     * anywhere.
+     */
+    private static function setThresholdAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('set_threshold')
+            ->label(__('inventory.action.set_threshold'))
+            ->icon('heroicon-o-bell-alert')
+            ->form([
+                Forms\Components\TextInput::make('threshold')
+                    ->label(__('inventory.field.low_stock_threshold'))
+                    ->helperText(__('inventory.field.low_stock_threshold_hint'))
+                    ->numeric()
+                    ->minValue(0)
+                    ->default(fn (StockItem $record): ?int => $record->low_stock_threshold),
+            ])
+            ->visible(fn (StockItem $record): bool => auth()->user()?->can('setLowStockThreshold', $record) === true)
+            ->action(function (StockItem $record, array $data): void {
+                $threshold = $data['threshold'] ?? null;
+
+                app(SetLowStockThresholdAction::class)->run($record, new SetLowStockThresholdDTO(
+                    // Empty means "stop telling me" — distinct from 0, which
+                    // means "tell me when I actually run out".
+                    threshold: $threshold === null || $threshold === '' ? null : (int) $threshold,
+                ));
+
+                Notification::make()->title(__('inventory.notice.threshold_set'))->success()->send();
+            });
     }
 }

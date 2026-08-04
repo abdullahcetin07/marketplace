@@ -40,7 +40,8 @@ final class EditOffer extends EditRecord
      * platform default: an offer priced before a currency change still renders
      * against the one it was priced in.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
+     *
      * @return array<string, mixed>
      */
     protected function mutateFormDataBeforeFill(array $data): array
@@ -57,8 +58,8 @@ final class EditOffer extends EditRecord
     }
 
     /**
-     * @param  Offer  $record
-     * @param  array<string, mixed>  $data
+     * @param Offer $record
+     * @param array<string, mixed> $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {

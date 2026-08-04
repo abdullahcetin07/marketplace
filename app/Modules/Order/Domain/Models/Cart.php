@@ -57,11 +57,6 @@ final class Cart extends Model
 
     protected $table = 'carts';
 
-    protected static function newFactory(): CartFactory
-    {
-        return CartFactory::new();
-    }
-
     protected $fillable = [
         'customer_id',
         'customer_uuid',
@@ -112,12 +107,18 @@ final class Cart extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForCustomer(Builder $query, int $customerId): Builder
     {
         return $query->where('customer_id', $customerId);
+    }
+
+    protected static function newFactory(): CartFactory
+    {
+        return CartFactory::new();
     }
 
     /**

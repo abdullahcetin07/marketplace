@@ -11,6 +11,7 @@ use Illuminate\Http\Request;
  * A user, as the API exposes them.
  *
  * `id` is the UUID. The internal bigint never appears in a response —
+ *
  * @see docs/001_Architecture.md §8.
  *
  * Locale relations are emitted as CODES, not ids, for the same reason: the

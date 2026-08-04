@@ -43,10 +43,10 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  */
 final class OrganizationDocument extends Model implements HasMediaContract
 {
+    use Auditable;
+
     /** @use HasFactory<OrganizationDocumentFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasMedia;
     use HasUuid;
     use SoftDeletes;

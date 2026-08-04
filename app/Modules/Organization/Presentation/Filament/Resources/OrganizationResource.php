@@ -212,10 +212,46 @@ final class OrganizationResource extends Resource
     }
 
     /**
+     * @return array<int, class-string>
+     */
+    public static function getRelations(): array
+    {
+        return [
+            DocumentsRelationManager::class,
+        ];
+    }
+
+    /**
+     * @return Builder<Organization>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            // The review infolist reads the owner, the KYC row and the payout
+            // account; strict mode turns a missed eager load into an exception.
+            ->with(['plan', 'country', 'currency', 'owner', 'kyc', 'bankAccount.currency'])
+            ->withCount([
+                'documents as pending_documents_count' => static fn (Builder $query) => $query
+                    ->where('status', OrganizationDocumentStatus::Pending->value),
+            ]);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListOrganizations::route('/'),
+            'view' => Pages\ViewOrganization::route('/{record}'),
+        ];
+    }
+
+    /**
      * A lifecycle decision as a row action: policy-gated, reason-carrying,
      * delegating to the module action.
      *
-     * @param  class-string  $actionClass
+     * @param class-string $actionClass
      */
     private static function decisionAction(
         string $name,
@@ -309,41 +345,5 @@ final class OrganizationResource extends Resource
         return $record->documents()
             ->where('status', OrganizationDocumentStatus::Pending->value)
             ->count();
-    }
-
-    /**
-     * @return array<int, class-string>
-     */
-    public static function getRelations(): array
-    {
-        return [
-            DocumentsRelationManager::class,
-        ];
-    }
-
-    /**
-     * @return Builder<Organization>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            // The review infolist reads the owner, the KYC row and the payout
-            // account; strict mode turns a missed eager load into an exception.
-            ->with(['plan', 'country', 'currency', 'owner', 'kyc', 'bankAccount.currency'])
-            ->withCount([
-                'documents as pending_documents_count' => static fn (Builder $query) => $query
-                    ->where('status', OrganizationDocumentStatus::Pending->value),
-            ]);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListOrganizations::route('/'),
-            'view' => Pages\ViewOrganization::route('/{record}'),
-        ];
     }
 }

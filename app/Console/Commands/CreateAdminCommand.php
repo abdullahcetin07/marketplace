@@ -127,7 +127,7 @@ final class CreateAdminCommand extends Command
         }
 
         $this->info("Administrator created: {$admin->email}");
-        $this->line("Sign in at ".config('app.url')."/admin");
+        $this->line('Sign in at '.config('app.url').'/admin');
 
         if (! $this->option('super')) {
             $this->newLine();

@@ -60,7 +60,8 @@ final class PublicBuyBoxPriceController extends BaseController
      * (JPY) formatted as "1299.00" is wrong, and the rule already lives on the
      * currency row (003 §16). One query for the whole page, not one per row.
      *
-     * @param  array<string, array{price_minor: int, currency_code: string, in_stock: bool}>  $prices
+     * @param array<string, array{price_minor: int, currency_code: string, in_stock: bool}> $prices
+     *
      * @return array<string, int>
      */
     private function decimalsByCurrency(array $prices): array

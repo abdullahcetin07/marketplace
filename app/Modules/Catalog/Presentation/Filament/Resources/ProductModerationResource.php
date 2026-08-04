@@ -399,7 +399,7 @@ final class ProductModerationResource extends Resource
      * missing an attribute its category requires" — so it becomes a warning
      * notification carrying the reason, never a 500.
      *
-     * @param  callable(): mixed  $decision
+     * @param callable(): mixed $decision
      */
     private static function decide(callable $decision, string $successMessage): void
     {

@@ -26,7 +26,7 @@ final class CreateStoreOpeningRequest extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        return self::getResource()::getUrl('index');
     }
 
     protected function getCreatedNotificationTitle(): ?string
@@ -35,7 +35,7 @@ final class CreateStoreOpeningRequest extends CreateRecord
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordCreation(array $data): Model
     {

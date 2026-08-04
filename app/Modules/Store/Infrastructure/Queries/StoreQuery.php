@@ -78,7 +78,8 @@ final class StoreQuery implements StoreQueryContract
      * held". A cast or an undefined-index notice reaching a public product page
      * would be a 500 caused by one seller's malformed profile.
      *
-     * @param  array<int, string>  $storeUuids
+     * @param array<int, string> $storeUuids
+     *
      * @return array<string, array{name: string, city: string|null}>
      */
     public function publicProfilesFor(array $storeUuids): array

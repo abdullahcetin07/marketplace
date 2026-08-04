@@ -51,7 +51,8 @@ interface StoreRepositoryContract
      * Every store across the given organizations — the seller's cross-org list,
      * scoped to the orgs they belong to (ADR-030).
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, Store>
      */
     public function forOrganizations(array $organizationIds): Collection;

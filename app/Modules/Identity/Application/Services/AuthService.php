@@ -15,12 +15,13 @@ use App\Modules\Identity\Domain\Contracts\UserRepositoryContract;
 use App\Modules\Identity\Domain\DTOs\LoginDTO;
 use App\Modules\Identity\Domain\DTOs\RegisterUserDTO;
 use App\Modules\Identity\Domain\Events\SuspiciousLoginDetected;
-use App\Shared\Enums\LoginThreatKind;
 use App\Modules\Identity\Domain\Events\UserLoggedOut;
 use App\Modules\Identity\Domain\Exceptions\AuthenticationFailed;
 use App\Modules\Identity\Domain\Models\UserSession;
+use App\Shared\Enums\LoginThreatKind;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cache;
+use Throwable;
 
 /**
  * The authentication API the rest of the platform calls.
@@ -32,6 +33,7 @@ use Illuminate\Support\Facades\Cache;
  * second place to forget one.
  *
  * The service ORCHESTRATES; the actions do the work and own the transactions.
+ *
  * @see docs/001_Architecture.md §3
  *
  * @extends BaseService<User>
@@ -137,6 +139,29 @@ final class AuthService extends BaseService
     }
 
     /**
+     * Sessions the user can see and revoke on their security page.
+     *
+     * @return \Illuminate\Database\Eloquent\Collection<int, UserSession>
+     */
+    public function activeSessions(User $user): \Illuminate\Database\Eloquent\Collection
+    {
+        return $this->sessions->activeFor($user);
+    }
+
+    /**
+     * "Sign out everywhere else."
+     */
+    public function signOutOtherDevices(User $user, Request $request): int
+    {
+        return $this->sessions->revokeAll(
+            user: $user,
+            reason: UserLoggedOut::REASON_ALL_DEVICES,
+            exceptSessionId: $request->hasSession() ? $request->session()->getId() : null,
+            actor: $user,
+        );
+    }
+
+    /**
      * After a failed login, raise SuspiciousLoginDetected if the address has
      * crossed the threshold — but at most once per cooldown, so a sustained
      * attack produces one alert per window, not one per attempt.
@@ -187,31 +212,8 @@ final class AuthService extends BaseService
                 $user?->getKey(),
                 $user?->uuid,
             );
-        } catch (\Throwable $e) {
+        } catch (Throwable $e) {
             report($e);
         }
-    }
-
-    /**
-     * Sessions the user can see and revoke on their security page.
-     *
-     * @return \Illuminate\Database\Eloquent\Collection<int, UserSession>
-     */
-    public function activeSessions(User $user): \Illuminate\Database\Eloquent\Collection
-    {
-        return $this->sessions->activeFor($user);
-    }
-
-    /**
-     * "Sign out everywhere else."
-     */
-    public function signOutOtherDevices(User $user, Request $request): int
-    {
-        return $this->sessions->revokeAll(
-            user: $user,
-            reason: UserLoggedOut::REASON_ALL_DEVICES,
-            exceptSessionId: $request->hasSession() ? $request->session()->getId() : null,
-            actor: $user,
-        );
     }
 }

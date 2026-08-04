@@ -119,7 +119,8 @@ final class CartPricingService
      * deliveries" is a thing a shopper should learn while they can still change
      * their mind, not on the confirmation screen.
      *
-     * @param  array<int, array<string, mixed>>  $lines
+     * @param array<int, array<string, mixed>> $lines
+     *
      * @return array<int, array<string, mixed>>
      */
     private function groups(array $lines): array
@@ -150,7 +151,8 @@ final class CartPricingService
      * the cart never stored one, and inventing one here would be the stale copy
      * §2.1 exists to avoid.
      *
-     * @param  array<string, string>  $titles
+     * @param array<string, string> $titles
+     *
      * @return array<string, mixed>
      */
     private function unsellableLine(CartItem $item, array $titles): array

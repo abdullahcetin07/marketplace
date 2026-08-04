@@ -13,9 +13,9 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
 final class UpdateStoreContactDTO extends BaseDTO
 {
     /**
-     * @param  array<string, mixed>|null  $address
-     * @param  array<string, mixed>|null  $supportHours
-     * @param  array<int, string>  $present
+     * @param array<string, mixed>|null $address
+     * @param array<string, mixed>|null $supportHours
+     * @param array<int, string> $present
      */
     public function __construct(
         public readonly ?string $publicEmail = null,

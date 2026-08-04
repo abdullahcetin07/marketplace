@@ -55,22 +55,13 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  */
 final class StockItem extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<StockItemFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
 
     protected $table = 'stock_items';
-
-    /**
-     * Factories live under `database/Modules/Inventory/Factories`, not the
-     * default `database/factories`, so the model names its own.
-     */
-    protected static function newFactory(): StockItemFactory
-    {
-        return StockItemFactory::new();
-    }
 
     protected $fillable = [
         'variant_uuid',
@@ -137,7 +128,8 @@ final class StockItem extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForVariant(Builder $query, string $variantUuid): Builder
@@ -146,12 +138,22 @@ final class StockItem extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForSellingOrg(Builder $query, string $sellingOrgUuid): Builder
     {
         return $query->where('selling_org_uuid', $sellingOrgUuid);
+    }
+
+    /**
+     * Factories live under `database/Modules/Inventory/Factories`, not the
+     * default `database/factories`, so the model names its own.
+     */
+    protected static function newFactory(): StockItemFactory
+    {
+        return StockItemFactory::new();
     }
 
     /**

@@ -25,6 +25,7 @@ use Illuminate\Database\Eloquent\Model;
  *
  * Nothing here contains business rules — an observer fires on seeders and
  * imports too, and its failure modes are invisible at the call site.
+ *
  * @see App\Core\Infrastructure\Observers\BaseObserver
  *
  * @extends BaseObserver<User>
@@ -32,7 +33,7 @@ use Illuminate\Database\Eloquent\Model;
 final class UserObserver extends BaseObserver
 {
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function updated(Model $model): void
     {
@@ -57,7 +58,7 @@ final class UserObserver extends BaseObserver
     }
 
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function deleted(Model $model): void
     {
@@ -70,7 +71,7 @@ final class UserObserver extends BaseObserver
     }
 
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function forceDeleted(Model $model): void
     {

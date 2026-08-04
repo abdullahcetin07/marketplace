@@ -185,7 +185,7 @@ final class StaffResource extends AccountResource
             Forms\Components\Select::make('roles')
                 ->label(__('users.roles'))
                 ->multiple()
-                ->options(fn (): array => static::staffRoleOptions())
+                ->options(fn (): array => self::staffRoleOptions())
                 ->helperText(__('users.roles_help'))
                 ->columnSpanFull(),
 
@@ -209,30 +209,11 @@ final class StaffResource extends AccountResource
         ]);
     }
 
-    /**
-     * The shared sections plus the one thing only staff have: platform roles.
-     *
-     * @return array<int, Infolists\Components\Component>
-     */
-    protected static function infolistSections(): array
-    {
-        return [
-            ...parent::infolistSections(),
-
-            Infolists\Components\Section::make(__('users.roles'))->schema([
-                Infolists\Components\TextEntry::make('roles.name')
-                    ->label(__('users.roles'))
-                    ->badge()
-                    ->placeholder(__('users.roles_none')),
-            ]),
-        ];
-    }
-
     public static function table(Table $table): Table
     {
         return parent::table($table)
             ->columns([
-                ...static::baseColumns(),
+                ...self::baseColumns(),
                 Tables\Columns\TextColumn::make('roles.name')
                     ->label(__('users.roles'))
                     ->badge()
@@ -276,13 +257,13 @@ final class StaffResource extends AccountResource
      * what an escalation attempt actually looks like. Anything outside the
      * granting actor's own level is refused here, before the write.
      *
-     * @param  array<int, string>  $roles
+     * @param array<int, string> $roles
      *
      * @throws AuthorizationException
      */
     public static function assertRolesGrantable(array $roles): void
     {
-        $grantable = array_keys(static::staffRoleOptions());
+        $grantable = array_keys(self::staffRoleOptions());
 
         foreach ($roles as $role) {
             if (! in_array($role, $grantable, true)) {
@@ -312,6 +293,25 @@ final class StaffResource extends AccountResource
             'create' => Pages\CreateStaff::route('/create'),
             'view' => Pages\ViewStaff::route('/{record}'),
             'edit' => Pages\EditStaff::route('/{record}/edit'),
+        ];
+    }
+
+    /**
+     * The shared sections plus the one thing only staff have: platform roles.
+     *
+     * @return array<int, Infolists\Components\Component>
+     */
+    protected static function infolistSections(): array
+    {
+        return [
+            ...parent::infolistSections(),
+
+            Infolists\Components\Section::make(__('users.roles'))->schema([
+                Infolists\Components\TextEntry::make('roles.name')
+                    ->label(__('users.roles'))
+                    ->badge()
+                    ->placeholder(__('users.roles_none')),
+            ]),
         ];
     }
 

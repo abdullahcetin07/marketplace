@@ -69,8 +69,9 @@ trait HasUuid
     }
 
     /**
-     * @param  Builder<static>  $query
-     * @param  string|array<int, string>  $uuid
+     * @param Builder<static> $query
+     * @param string|array<int, string> $uuid
+     *
      * @return Builder<static>
      */
     public function scopeWhereUuid(Builder $query, string|array $uuid): Builder

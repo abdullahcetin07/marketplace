@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Domain\Context;
 
+use Closure;
+
 /**
  * The ambient request facts an audit entry needs, pushed in from Presentation.
  *
@@ -79,10 +81,11 @@ final class AuditContext
      *
      * @template TValue
      *
-     * @param  \Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
-    public static function withReasonFor(?string $reason, \Closure $callback): mixed
+    public static function withReasonFor(?string $reason, Closure $callback): mixed
     {
         return self::using(self::current()->withReason($reason), $callback);
     }
@@ -134,10 +137,11 @@ final class AuditContext
      *
      * @template TValue
      *
-     * @param  \Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
-    public static function using(self $context, \Closure $callback): mixed
+    public static function using(self $context, Closure $callback): mixed
     {
         $previous = self::$current;
         self::$current = $context;

@@ -4,8 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Infrastructure\Notifications;
 
-use App\Core\Infrastructure\Frontend\FrontendUrl;
 use App\Core\Application\Notifications\BaseNotification;
+use App\Core\Infrastructure\Frontend\FrontendUrl;
 use App\Shared\Enums\NotificationType;
 use Illuminate\Notifications\Messages\MailMessage;
 

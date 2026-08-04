@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Core\Infrastructure\Repositories;
 
 use App\Core\Domain\Contracts\RepositoryContract;
+use Generator;
 use Illuminate\Contracts\Pagination\LengthAwarePaginator;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
@@ -100,7 +101,8 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return TModel|null
      */
     public function findBy(array $criteria): ?Model
@@ -109,7 +111,8 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return Collection<int, TModel>
      */
     public function all(array $criteria = []): Collection
@@ -118,7 +121,8 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
+     *
      * @return LengthAwarePaginator<int, TModel>
      */
     public function paginate(int $perPage = 25, array $criteria = []): LengthAwarePaginator
@@ -131,16 +135,18 @@ abstract class BaseRepository implements RepositoryContract
      * Memory-safe iteration for exports and back-fills. Never load a full
      * marketplace table with all().
      *
-     * @param  array<string, mixed>  $criteria
-     * @return \Generator<int, TModel>
+     * @param array<string, mixed> $criteria
+     *
+     * @return Generator<int, TModel>
      */
-    public function cursor(array $criteria = []): \Generator
+    public function cursor(array $criteria = []): Generator
     {
         yield from $this->applyCriteria($this->query(), $criteria)->lazyById(500);
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
+     *
      * @return TModel
      */
     public function create(array $attributes): Model
@@ -149,8 +155,9 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  TModel  $model
-     * @param  array<string, mixed>  $attributes
+     * @param TModel $model
+     * @param array<string, mixed> $attributes
+     *
      * @return TModel
      */
     public function update(Model $model, array $attributes): Model
@@ -161,7 +168,7 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  TModel  $model
+     * @param TModel $model
      */
     public function delete(Model $model): bool
     {
@@ -169,7 +176,7 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
      */
     public function exists(array $criteria): bool
     {
@@ -177,7 +184,7 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  array<string, mixed>  $criteria
+     * @param array<string, mixed> $criteria
      */
     public function count(array $criteria = []): int
     {
@@ -225,8 +232,9 @@ abstract class BaseRepository implements RepositoryContract
      *   ['deleted_at' => null]                  => whereNull
      *   ['price' => ['>=', 1000]]               => operator comparison
      *
-     * @param  Builder<TModel>  $query
-     * @param  array<string, mixed>  $criteria
+     * @param Builder<TModel> $query
+     * @param array<string, mixed> $criteria
+     *
      * @return Builder<TModel>
      */
     protected function applyCriteria(Builder $query, array $criteria): Builder
@@ -236,8 +244,7 @@ abstract class BaseRepository implements RepositoryContract
                 $value === null => $query->whereNull($column),
                 // [operator, value] pair, e.g. ['>=', 1000]
                 is_array($value) && count($value) === 2 && is_string($value[0] ?? null)
-                    && in_array($value[0], ['=', '!=', '<', '<=', '>', '>=', 'like', 'ilike'], true)
-                    => $query->where($column, $value[0], $value[1]),
+                    && in_array($value[0], ['=', '!=', '<', '<=', '>', '>=', 'like', 'ilike'], true) => $query->where($column, $value[0], $value[1]),
                 is_array($value) => $query->whereIn($column, $value),
                 default => $query->where($column, $value),
             };
@@ -247,7 +254,8 @@ abstract class BaseRepository implements RepositoryContract
     }
 
     /**
-     * @param  Builder<TModel>  $query
+     * @param Builder<TModel> $query
+     *
      * @return Builder<TModel>
      */
     protected function applyOrder(Builder $query): Builder

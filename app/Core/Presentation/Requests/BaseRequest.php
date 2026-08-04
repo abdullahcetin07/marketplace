@@ -9,6 +9,7 @@ use App\Models\User;
 use Illuminate\Contracts\Validation\Validator;
 use Illuminate\Foundation\Http\FormRequest;
 use Illuminate\Http\Exceptions\HttpResponseException;
+use LogicException;
 
 /**
  * Root of every form request.
@@ -71,7 +72,7 @@ abstract class BaseRequest extends FormRequest
     public function toDto(): BaseDTO
     {
         if ($this->dto === null) {
-            throw new \LogicException(static::class.' does not declare a $dto.');
+            throw new LogicException(static::class.' does not declare a $dto.');
         }
 
         return $this->dto::fromArray($this->validated());
@@ -116,7 +117,8 @@ abstract class BaseRequest extends FormRequest
     }
 
     /**
-     * @param  array<string, mixed>  $input
+     * @param array<string, mixed> $input
+     *
      * @return array<string, mixed>
      */
     private function mapDeep(array $input): array

@@ -166,7 +166,7 @@ return new class extends Migration
         if (DB::getDriverName() === 'pgsql') {
             DB::statement(
                 'ALTER TABLE stock_items ADD CONSTRAINT stock_items_reserved_within_on_hand '
-                .'CHECK (reserved <= on_hand)'
+                .'CHECK (reserved <= on_hand)',
             );
         }
     }

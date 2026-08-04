@@ -45,11 +45,6 @@ final class AttributeValue extends Model
 
     protected $table = 'attribute_values';
 
-    protected static function newFactory(): AttributeValueFactory
-    {
-        return AttributeValueFactory::new();
-    }
-
     protected $fillable = [
         'attribute_id',
         'value',
@@ -76,12 +71,18 @@ final class AttributeValue extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    protected static function newFactory(): AttributeValueFactory
+    {
+        return AttributeValueFactory::new();
     }
 
     /**

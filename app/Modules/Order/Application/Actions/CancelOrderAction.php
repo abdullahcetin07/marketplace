@@ -13,6 +13,7 @@ use App\Modules\Order\Domain\Events\OrderCancelledBySeller;
 use App\Modules\Order\Domain\Exceptions\OrderException;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Stop an order and give the stock back (§3.3).
@@ -118,6 +119,39 @@ final class CancelOrderAction extends BaseAction
         return $order;
     }
 
+    protected function after(mixed $result, mixed ...$arguments): void
+    {
+        if ($this->alreadyCancelled) {
+            // Nothing changed, so nothing is announced — a listener notifying a
+            // seller on every retry would be noise about a non-event.
+            return;
+        }
+
+        /** @var Order $order */
+        $order = $result;
+        /** @var CancelOrderDTO $data */
+        $data = $arguments[1];
+
+        if ($data->zeroesSellerStock()) {
+            $this->announceSellerZero($order);
+        }
+
+        OrderCancelled::dispatch(
+            (int) $order->getKey(),
+            $order->uuid,
+            $order->order_number,
+            $order->checkout_group_uuid,
+            (int) $order->customer_id,
+            $order->customer_uuid,
+            $order->selling_org_uuid,
+            $data->cancelledBy,
+            $data->reason,
+            // The stock half of the same distinction: a listener should not have
+            // to infer it from a status that now reads `Cancelled` either way.
+            $this->wasHoldingReservation,
+        );
+    }
+
     /**
      * Hand every hold back, per line, under the reference checkout reserved with.
      *
@@ -153,7 +187,7 @@ final class CancelOrderAction extends BaseAction
 
             try {
                 $this->reservations->release($reference);
-            } catch (\Throwable $exception) {
+            } catch (Throwable $exception) {
                 Log::channel('errors')->warning('Could not release a hold while cancelling an order', [
                     'order_uuid' => $order->uuid,
                     'reference' => $reference,
@@ -161,39 +195,6 @@ final class CancelOrderAction extends BaseAction
                 ]);
             }
         }
-    }
-
-    protected function after(mixed $result, mixed ...$arguments): void
-    {
-        if ($this->alreadyCancelled) {
-            // Nothing changed, so nothing is announced — a listener notifying a
-            // seller on every retry would be noise about a non-event.
-            return;
-        }
-
-        /** @var Order $order */
-        $order = $result;
-        /** @var CancelOrderDTO $data */
-        $data = $arguments[1];
-
-        if ($data->zeroesSellerStock()) {
-            $this->announceSellerZero($order);
-        }
-
-        OrderCancelled::dispatch(
-            (int) $order->getKey(),
-            $order->uuid,
-            $order->order_number,
-            $order->checkout_group_uuid,
-            (int) $order->customer_id,
-            $order->customer_uuid,
-            $order->selling_org_uuid,
-            $data->cancelledBy,
-            $data->reason,
-            // The stock half of the same distinction: a listener should not have
-            // to infer it from a status that now reads `Cancelled` either way.
-            $this->wasHoldingReservation,
-        );
     }
 
     /**

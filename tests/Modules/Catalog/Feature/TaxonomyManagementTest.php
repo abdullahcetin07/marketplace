@@ -98,7 +98,7 @@ it('rewrites the whole subtree when a category moves', function (): void {
     expect($moving->fresh()->path)->toBe($newHome->path.$moving->id.'/')
         ->and($child->fresh()->path)->toBe($newHome->path.$moving->id.'/'.$child->id.'/')
         ->and($grandchild->fresh()->path)->toBe(
-            $newHome->path.$moving->id.'/'.$child->id.'/'.$grandchild->id.'/'
+            $newHome->path.$moving->id.'/'.$child->id.'/'.$grandchild->id.'/',
         )
         ->and($grandchild->fresh()->depth)->toBe(3);
 });

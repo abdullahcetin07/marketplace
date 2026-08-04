@@ -27,7 +27,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property string $uuid
  * @property int|null $user_id
- * @property string $email        as typed, so enumeration attempts are visible
+ * @property string $email as typed, so enumeration attempts are visible
  * @property string $guard
  * @property bool $successful
  * @property string|null $failure_reason
@@ -88,7 +88,8 @@ final class LoginAttempt extends Model
     */
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeSuccessful(Builder $query): Builder
@@ -97,7 +98,8 @@ final class LoginAttempt extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeFailed(Builder $query): Builder
@@ -119,7 +121,7 @@ final class LoginAttempt extends Model
     {
         // Normalise on write so "User@Example.com" and "user@example.com"
         // aggregate into the same failure count rather than dodging detection.
-        static::creating(static function (self $attempt): void {
+        self::creating(static function (self $attempt): void {
             $attempt->email = mb_strtolower(trim($attempt->email));
         });
     }

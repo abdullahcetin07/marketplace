@@ -26,7 +26,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicCategoryResource extends JsonResource
 {
     /**
-     * @param  array<string, mixed>  $node
+     * @param array<string, mixed> $node
      */
     public function __construct(private readonly array $node)
     {

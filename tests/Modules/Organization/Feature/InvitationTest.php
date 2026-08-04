@@ -36,7 +36,8 @@ beforeEach(fn () => $this->seedPlatform());
  * Create a pending invitation and return it with its raw token — the way to
  * exercise acceptance, since the raw token is never stored.
  *
- * @param  array<string, mixed>  $overrides
+ * @param array<string, mixed> $overrides
+ *
  * @return array{0: OrganizationInvitation, 1: string}
  */
 function issueInvitation(Organization $org, string $email, array $overrides = []): array

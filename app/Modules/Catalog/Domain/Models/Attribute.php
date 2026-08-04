@@ -56,11 +56,6 @@ final class Attribute extends Model
 
     protected $table = 'attributes';
 
-    protected static function newFactory(): AttributeFactory
-    {
-        return AttributeFactory::new();
-    }
-
     protected $fillable = [
         'code',
         'name_tr',
@@ -114,7 +109,8 @@ final class Attribute extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -123,12 +119,18 @@ final class Attribute extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOfType(Builder $query, AttributeType $type): Builder
     {
         return $query->where('type', $type->value);
+    }
+
+    protected static function newFactory(): AttributeFactory
+    {
+        return AttributeFactory::new();
     }
 
     /**

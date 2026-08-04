@@ -157,7 +157,8 @@ final class Setting extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeInGroup(Builder $query, SettingGroup $group): Builder
@@ -166,7 +167,8 @@ final class Setting extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopePublic(Builder $query): Builder

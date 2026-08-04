@@ -52,13 +52,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class PublicProductBrowse
 {
-    private const int MAX_PER_PAGE = 48;
-
     public const string SORT_NEWEST = 'newest';
 
     public const string SORT_PRICE_ASC = 'price_asc';
 
     public const string SORT_PRICE_DESC = 'price_desc';
+
+    private const int MAX_PER_PAGE = 48;
 
     public function __construct(
         private readonly OfferQueryContract $offers,
@@ -103,7 +103,8 @@ final class PublicProductBrowse
     /**
      * The default listing: newest published first, paginated by the database.
      *
-     * @param  array<int, string>  $sellable
+     * @param array<int, string> $sellable
+     *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
     private function byNewest(
@@ -145,7 +146,8 @@ final class PublicProductBrowse
      * alternative — a price column on the product — is exactly what ADR-037
      * forbids and what would make one product sellable at one price.
      *
-     * @param  array<int, string>  $sellable
+     * @param array<int, string> $sellable
+     *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
     private function byPrice(
@@ -221,7 +223,8 @@ final class PublicProductBrowse
     /**
      * Published, sellable, and matching the buyer's filters.
      *
-     * @param  array<int, string>  $sellable
+     * @param array<int, string> $sellable
+     *
      * @return Builder<Product>
      */
     private function baseQuery(
@@ -295,7 +298,7 @@ final class PublicProductBrowse
      * Buyer-facing relevance ranking is a later refinement (Storefront.md §1.1) —
      * this is a filter, not a search engine.
      *
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyText(Builder $builder, string $query): void
     {
@@ -319,7 +322,7 @@ final class PublicProductBrowse
      * A category filter includes DESCENDANTS: a shopper picking "Giyim" expects a
      * t-shirt filed three levels down, because they think in departments.
      *
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyCategory(Builder $builder, ?string $categoryUuid): void
     {
@@ -357,7 +360,7 @@ final class PublicProductBrowse
     }
 
     /**
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyBrand(Builder $builder, ?string $brandUuid): void
     {

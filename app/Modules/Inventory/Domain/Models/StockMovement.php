@@ -67,11 +67,6 @@ final class StockMovement extends Model
 
     protected $table = 'stock_movements';
 
-    protected static function newFactory(): StockMovementFactory
-    {
-        return StockMovementFactory::new();
-    }
-
     protected $fillable = [
         'stock_item_id',
         'type',
@@ -93,12 +88,18 @@ final class StockMovement extends Model
      * Movements recorded under one caller's key — what makes release and commit
      * idempotent rather than merely careful.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForReference(Builder $query, string $reference): Builder
     {
         return $query->where('reference', $reference);
+    }
+
+    protected static function newFactory(): StockMovementFactory
+    {
+        return StockMovementFactory::new();
     }
 
     protected static function booted(): void
@@ -109,8 +110,8 @@ final class StockMovement extends Model
         | is no escape hatch and there must not be one: the projection's whole
         | claim to be correct is that it can be recomputed from these rows.
         */
-        static::updating(static fn (): bool => false);
-        static::deleting(static fn (): bool => false);
+        self::updating(static fn (): bool => false);
+        self::deleting(static fn (): bool => false);
     }
 
     /**

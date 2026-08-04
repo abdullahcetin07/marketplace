@@ -14,14 +14,14 @@ final class CreateBrand extends CreateRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        return self::getResource()::getUrl('index');
     }
 
     /**
      * Through the action, which owns slug uniqueness and dispatches
      * `BrandCreated`.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordCreation(array $data): Model
     {

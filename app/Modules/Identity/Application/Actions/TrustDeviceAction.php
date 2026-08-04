@@ -8,6 +8,7 @@ use App\Core\Application\Actions\BaseAction;
 use App\Models\User;
 use App\Modules\Identity\Domain\Events\DeviceTrusted;
 use App\Modules\Identity\Domain\Models\UserDevice;
+use DomainException;
 
 /**
  * Mark a device trusted, so it may skip the 2FA challenge for a while.
@@ -25,8 +26,8 @@ use App\Modules\Identity\Domain\Models\UserDevice;
 final class TrustDeviceAction extends BaseAction
 {
     /**
-     * @param  UserDevice  $arguments [0]
-     * @param  User  $arguments [1] the acting user (the owner)
+     * @param UserDevice $arguments [0]
+     * @param User $arguments [1] the acting user (the owner)
      */
     public function handle(mixed ...$arguments): UserDevice
     {
@@ -36,7 +37,7 @@ final class TrustDeviceAction extends BaseAction
         $actor = $arguments[1];
 
         if ($device->user_id !== $actor->getKey()) {
-            throw new \DomainException('A device can only be trusted by its owner.');
+            throw new DomainException('A device can only be trusted by its owner.');
         }
 
         $device->trust();

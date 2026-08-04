@@ -20,7 +20,7 @@ final class SearchIndexingFailed extends BaseException
     protected bool $reportable = true;
 
     /**
-     * @param  array<string, mixed>  $response
+     * @param array<string, mixed> $response
      */
     public static function fromBulkResponse(string $index, array $response): self
     {

@@ -203,13 +203,38 @@ final class OfferResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                static::suspendAction(),
-                static::reinstateAction(),
+                self::suspendAction(),
+                self::reinstateAction(),
             ])
             // Pulling a merchant's listing is a decision with a reason attached.
             // There is no version of it that belongs on a checkbox.
             ->bulkActions([])
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * Cross-org, unlike the seller twin: an admin sees every offer. Currency is
+     * eager loaded because every row renders money.
+     *
+     * @return Builder<Offer>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Offer> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query->with('currency');
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListOffers::route('/'),
+            'view' => Pages\ViewOffer::route('/{record}'),
+        ];
     }
 
     private static function suspendAction(): Tables\Actions\Action
@@ -266,30 +291,5 @@ final class OfferResource extends Resource
 
                 Notification::make()->title(__('offer.notice.reinstated'))->success()->send();
             });
-    }
-
-    /**
-     * Cross-org, unlike the seller twin: an admin sees every offer. Currency is
-     * eager loaded because every row renders money.
-     *
-     * @return Builder<Offer>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        /** @var Builder<Offer> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query->with('currency');
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListOffers::route('/'),
-            'view' => Pages\ViewOffer::route('/{record}'),
-        ];
     }
 }

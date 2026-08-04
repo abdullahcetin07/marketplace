@@ -14,6 +14,7 @@ use Filament\Panel;
  * only actor type able to reach the /admin Filament panel.
  *
  * Roles for this guard: Admin, Editor, Category Manager.
+ *
  * @see Database\Seeders\RolePermissionSeeder
  */
 class Admin extends User implements FilamentUser, HasName

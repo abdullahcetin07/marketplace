@@ -11,6 +11,7 @@ use App\Modules\Identity\Domain\Events\PasswordChanged;
 use App\Modules\Identity\Domain\Events\UserLoggedOut;
 use App\Modules\Identity\Infrastructure\Notifications\PasswordChangedNotification;
 use Illuminate\Support\Facades\Hash;
+use InvalidArgumentException;
 
 /**
  * Change a password and invalidate every other session.
@@ -28,10 +29,10 @@ final class ChangePasswordAction extends BaseAction
     public function __construct(private readonly SessionService $sessions) {}
 
     /**
-     * @param  User  $arguments [0]
-     * @param  string  $arguments [1] new plaintext password
-     * @param  string|null  $arguments [2] session id to keep alive
-     * @param  bool  $arguments [3] whether this came from a reset flow
+     * @param User $arguments [0]
+     * @param string $arguments [1] new plaintext password
+     * @param string|null $arguments [2] session id to keep alive
+     * @param bool $arguments [3] whether this came from a reset flow
      */
     public function handle(mixed ...$arguments): User
     {
@@ -89,7 +90,7 @@ final class ChangePasswordAction extends BaseAction
         $user = $arguments[0];
 
         if (Hash::check((string) $arguments[1], $user->password)) {
-            throw new \InvalidArgumentException('The new password must differ from the current one.');
+            throw new InvalidArgumentException('The new password must differ from the current one.');
         }
     }
 }

@@ -20,7 +20,7 @@ final class UserPolicy extends BasePolicy
      * Without this, a customer could not load their own profile — they hold no
      * `user.*` permissions at all.
      *
-     * @param  User  $model
+     * @param User $model
      */
     public function view(User $user, Model $model): Response
     {
@@ -32,7 +32,7 @@ final class UserPolicy extends BasePolicy
     }
 
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function update(User $user, Model $model): Response
     {
@@ -50,7 +50,7 @@ final class UserPolicy extends BasePolicy
     }
 
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function delete(User $user, Model $model): Response
     {
@@ -71,7 +71,7 @@ final class UserPolicy extends BasePolicy
      * Impersonation is deliberately its own permission, not part of
      * `user.update`. Editing an account and BECOMING it are different powers.
      *
-     * @param  User  $model
+     * @param User $model
      */
     public function impersonate(User $user, Model $model): Response
     {
@@ -89,7 +89,7 @@ final class UserPolicy extends BasePolicy
     }
 
     /**
-     * @param  User  $model
+     * @param User $model
      */
     public function assignRoles(User $user, Model $model): Response
     {
@@ -105,7 +105,7 @@ final class UserPolicy extends BasePolicy
      * vector — it is exactly what an attacker with helpdesk access would do.
      * Separate permission, separate audit entry.
      *
-     * @param  User  $model
+     * @param User $model
      */
     public function disableTwoFactor(User $user, Model $model): Response
     {
@@ -132,7 +132,7 @@ final class UserPolicy extends BasePolicy
      * support holds it, and it is the one account-recovery lever a helpdesk
      * needs. Guarded against acting on a super-admin.
      *
-     * @param  User  $model
+     * @param User $model
      */
     public function resetPassword(User $user, Model $model): Response
     {

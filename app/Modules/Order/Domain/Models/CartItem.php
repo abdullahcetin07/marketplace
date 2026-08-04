@@ -63,11 +63,6 @@ final class CartItem extends Model
 
     protected $table = 'cart_items';
 
-    protected static function newFactory(): CartItemFactory
-    {
-        return CartItemFactory::new();
-    }
-
     protected $fillable = [
         'cart_id',
         'offer_uuid',
@@ -84,6 +79,11 @@ final class CartItem extends Model
     public function cart(): BelongsTo
     {
         return $this->belongsTo(Cart::class);
+    }
+
+    protected static function newFactory(): CartItemFactory
+    {
+        return CartItemFactory::new();
     }
 
     /**

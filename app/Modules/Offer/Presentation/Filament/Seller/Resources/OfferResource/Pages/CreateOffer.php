@@ -58,10 +58,10 @@ final class CreateOffer extends CreateRecord
                         ->native(false)
                         // Server-side search over the published catalog. The
                         // seller types; Catalog answers.
-                        ->getSearchResultsUsing(fn (string $search): array => static::productOptions($search))
+                        ->getSearchResultsUsing(fn (string $search): array => self::productOptions($search))
                         ->getOptionLabelUsing(fn (?string $value): ?string => $value === null
                             ? null
-                            : (static::productOptions('', $value)[$value] ?? null))
+                            : (self::productOptions('', $value)[$value] ?? null))
                         ->helperText(__('offer.field.product_hint'))
                         // Changing the product invalidates the variant beneath
                         // it — clearing it is safer than leaving a SKU that
@@ -73,7 +73,7 @@ final class CreateOffer extends CreateRecord
                         ->label(__('offer.field.variant'))
                         ->required()
                         ->native(false)
-                        ->options(fn (Forms\Get $get): array => static::variantOptions($get('product_uuid')))
+                        ->options(fn (Forms\Get $get): array => self::variantOptions($get('product_uuid')))
                         ->helperText(__('offer.field.variant_hint')),
 
                     Forms\Components\Select::make('store_uuid')
@@ -114,7 +114,7 @@ final class CreateOffer extends CreateRecord
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordCreation(array $data): Model
     {
@@ -140,7 +140,7 @@ final class CreateOffer extends CreateRecord
             storeUuid: $storeUuid,
             priceMinor: $currency->toMinor((string) $data['price']),
             stockQuantity: (int) $data['stock_quantity'],
-            listPriceMinor: static::optionalMinor($data['list_price'] ?? null),
+            listPriceMinor: self::optionalMinor($data['list_price'] ?? null),
             currencyId: (int) $currency->getKey(),
         ));
     }
@@ -155,7 +155,7 @@ final class CreateOffer extends CreateRecord
         if ($only !== null) {
             $summary = app(CatalogBrowseContract::class)->productSummaries([$only])[$only] ?? null;
 
-            return $summary === null ? [] : [$only => static::productLabel($summary)];
+            return $summary === null ? [] : [$only => self::productLabel($summary)];
         }
 
         $result = app(CatalogBrowseContract::class)->searchPublishedProducts($search, perPage: 25);
@@ -163,14 +163,14 @@ final class CreateOffer extends CreateRecord
         $options = [];
 
         foreach ($result['items'] as $item) {
-            $options[$item['uuid']] = static::productLabel($item);
+            $options[$item['uuid']] = self::productLabel($item);
         }
 
         return $options;
     }
 
     /**
-     * @param  array{title: string, brand: string|null}  $summary
+     * @param array{title: string, brand: string|null} $summary
      */
     private static function productLabel(array $summary): string
     {

@@ -67,7 +67,8 @@ final class StockItemRepository implements StockItemRepositoryContract
     }
 
     /**
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, StockItem>
      */
     public function forOrganizations(array $organizationIds): Collection

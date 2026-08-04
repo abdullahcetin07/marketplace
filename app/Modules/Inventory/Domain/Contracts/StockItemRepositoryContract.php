@@ -57,7 +57,8 @@ interface StockItemRepositoryContract
      * Every pool belonging to any of these organizations — the seller panel's
      * scope (ADR-030).
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, StockItem>
      */
     public function forOrganizations(array $organizationIds): Collection;

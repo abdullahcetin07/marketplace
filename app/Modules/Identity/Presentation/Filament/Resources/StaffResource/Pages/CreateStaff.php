@@ -42,7 +42,7 @@ final class CreateStaff extends CreateRecord
     protected static string $resource = StaffResource::class;
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordCreation(array $data): Model
     {

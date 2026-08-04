@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Core\Presentation\Middleware\SetLocale;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicTaxonomyController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SlugResolverController;
 use App\Modules\Identity\Presentation\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Modules\Identity\Presentation\Controllers\Api\AuthController;
 use App\Modules\Identity\Presentation\Controllers\Api\DeviceController;
@@ -13,6 +16,11 @@ use App\Modules\Identity\Presentation\Controllers\Api\SessionController;
 use App\Modules\Identity\Presentation\Controllers\Api\TwoFactorController;
 use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
+use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
+use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
+use App\Modules\Order\Presentation\Controllers\Api\CartController;
+use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
+use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\StoreRequestController as AdminStoreRequestController;
 use App\Modules\Organization\Presentation\Controllers\Api\BankAccountController;
@@ -21,19 +29,11 @@ use App\Modules\Organization\Presentation\Controllers\Api\InvitationController a
 use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
-use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
-use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicTaxonomyController;
-use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SlugResolverController;
-use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
-use App\Modules\Order\Presentation\Controllers\Api\CartController;
-use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
-use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
+use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreLifecycleController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreProfileController;
-use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
-use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
 use Illuminate\Support\Facades\Route;
 
 /*

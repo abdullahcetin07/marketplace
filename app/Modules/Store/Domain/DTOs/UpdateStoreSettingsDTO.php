@@ -15,8 +15,8 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
 final class UpdateStoreSettingsDTO extends BaseDTO
 {
     /**
-     * @param  array<string, mixed>|null  $metadata
-     * @param  array<int, string>  $present
+     * @param array<string, mixed>|null $metadata
+     * @param array<int, string> $present
      */
     public function __construct(
         public readonly ?string $announcement = null,

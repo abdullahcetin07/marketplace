@@ -73,19 +73,14 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class CustomerAddress extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<CustomerAddressFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use SoftDeletes;
 
     protected $table = 'customer_addresses';
-
-    protected static function newFactory(): CustomerAddressFactory
-    {
-        return CustomerAddressFactory::new();
-    }
 
     protected $fillable = [
         'customer_id',
@@ -148,12 +143,18 @@ final class CustomerAddress extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForCustomer(Builder $query, int $customerId): Builder
     {
         return $query->where('customer_id', $customerId);
+    }
+
+    protected static function newFactory(): CustomerAddressFactory
+    {
+        return CustomerAddressFactory::new();
     }
 
     /**

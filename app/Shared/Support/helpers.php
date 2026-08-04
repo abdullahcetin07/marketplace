@@ -18,7 +18,6 @@ use App\Modules\Settings\Application\Services\SettingsService;
  *
  * Every function is guarded so the file is safe to autoload more than once.
  */
-
 if (! function_exists('money')) {
     /**
      * Format an integer amount of minor units as currency.

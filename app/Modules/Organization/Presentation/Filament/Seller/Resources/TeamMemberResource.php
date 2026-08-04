@@ -161,13 +161,13 @@ final class TeamMemberResource extends Resource
                     ->options(fn (): array => OrganizationRole::options()),
             ])
             ->headerActions([
-                static::inviteAction(),
+                self::inviteAction(),
             ])
             ->actions([
-                static::changeRoleAction(),
-                static::deactivateAction(),
-                static::reactivateAction(),
-                static::removeAction(),
+                self::changeRoleAction(),
+                self::deactivateAction(),
+                self::reactivateAction(),
+                self::removeAction(),
             ])
             // Removing a colleague is a per-row decision with a reason. There is
             // no version of "remove these four" that should be one click.
@@ -176,6 +176,36 @@ final class TeamMemberResource extends Resource
             ->emptyStateHeading(__('organization.team.empty.heading'))
             ->emptyStateDescription(__('organization.team.empty.description'))
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * THE TENANCY WALL (ADR-030): the acting user's own active memberships and
+     * nothing else. Everything the table renders is eager loaded — strict mode
+     * makes a lazy load throw.
+     *
+     * @return Builder<OrganizationMember>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $ids = app(OrganizationMemberRepositoryContract::class)
+            ->organizationIdsForUser((int) auth()->id());
+
+        /** @var Builder<OrganizationMember> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query
+            ->with(['user', 'organization'])
+            ->whereIn('organization_id', $ids);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListTeamMembers::route('/'),
+        ];
     }
 
     /**
@@ -192,11 +222,11 @@ final class TeamMemberResource extends Resource
         return Tables\Actions\Action::make('invite')
             ->label(__('organization.team.action.invite'))
             ->icon('heroicon-o-envelope')
-            ->visible(fn (): bool => static::organizationOptions(OrganizationCapability::MemberInvite) !== [])
+            ->visible(fn (): bool => self::organizationOptions(OrganizationCapability::MemberInvite) !== [])
             ->form([
                 Forms\Components\Select::make('organization')
                     ->label(__('organization.singular'))
-                    ->options(fn (): array => static::organizationOptions(OrganizationCapability::MemberInvite))
+                    ->options(fn (): array => self::organizationOptions(OrganizationCapability::MemberInvite))
                     ->required()
                     ->native(false),
 
@@ -213,7 +243,7 @@ final class TeamMemberResource extends Resource
                 */
                 Forms\Components\Select::make('role')
                     ->label(__('organization.team.role'))
-                    ->options(fn (): array => static::assignableRoleOptions())
+                    ->options(fn (): array => self::assignableRoleOptions())
                     ->required()
                     ->native(false)
                     ->helperText(__('organization.team.role_help')),
@@ -250,7 +280,7 @@ final class TeamMemberResource extends Resource
             ->form([
                 Forms\Components\Select::make('role')
                     ->label(__('organization.team.role'))
-                    ->options(fn (): array => static::assignableRoleOptions())
+                    ->options(fn (): array => self::assignableRoleOptions())
                     ->required()
                     ->native(false)
                     ->default(fn (OrganizationMember $record): string => $record->role->value),
@@ -427,42 +457,12 @@ final class TeamMemberResource extends Resource
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     private static function reason(array $data): ?string
     {
         $reason = $data['reason'] ?? null;
 
         return is_string($reason) && $reason !== '' ? $reason : null;
-    }
-
-    /**
-     * THE TENANCY WALL (ADR-030): the acting user's own active memberships and
-     * nothing else. Everything the table renders is eager loaded — strict mode
-     * makes a lazy load throw.
-     *
-     * @return Builder<OrganizationMember>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        $ids = app(OrganizationMemberRepositoryContract::class)
-            ->organizationIdsForUser((int) auth()->id());
-
-        /** @var Builder<OrganizationMember> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query
-            ->with(['user', 'organization'])
-            ->whereIn('organization_id', $ids);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListTeamMembers::route('/'),
-        ];
     }
 }

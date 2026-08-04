@@ -33,10 +33,10 @@ use Throwable;
  */
 final class RequestEmailOtpAction extends BaseAction
 {
-    protected bool $useTransaction = false;
-
     /** A valid bcrypt hash nothing matches — burns equal time on a miss. */
     private const string DUMMY_HASH = '$2y$12$sJ8Q4nqXH0jbYjJ0eKQ0uOaG3H1s0YQ5jP5nZ8wQ7yG4L1mN2oP6a';
+
+    protected bool $useTransaction = false;
 
     public function __construct(
         private readonly UserRepositoryContract $users,

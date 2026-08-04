@@ -9,12 +9,12 @@ use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
 use App\Modules\Order\Domain\Contracts\CustomerAddressRepositoryContract;
 use App\Modules\Order\Domain\Contracts\OrderNumberGeneratorContract;
 use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
+use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Infrastructure\Generators\DefaultOrderNumberGenerator;
 use App\Modules\Order\Infrastructure\Queries\OrderQuery;
 use App\Modules\Order\Infrastructure\Repositories\CartRepository;
 use App\Modules\Order\Infrastructure\Repositories\CustomerAddressRepository;
 use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
-use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Policies\OrderPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
@@ -82,6 +82,13 @@ final class OrderServiceProvider extends ServiceProvider
         $this->registerPermissions();
     }
 
+    public function boot(): void
+    {
+        $this->loadMigrationsFrom(database_path('Modules/Order/migrations'));
+
+        Gate::policy(Order::class, OrderPolicy::class);
+    }
+
     /**
      * Permissions are DERIVED from a registration, never hand-listed.
      *
@@ -100,12 +107,5 @@ final class OrderServiceProvider extends ServiceProvider
         PermissionRegistry::ability('order.view_any', [UserType::Admin]);
         PermissionRegistry::ability('order.view', [UserType::Admin]);
         PermissionRegistry::ability('order.cancel', [UserType::Admin]);
-    }
-
-    public function boot(): void
-    {
-        $this->loadMigrationsFrom(database_path('Modules/Order/migrations'));
-
-        Gate::policy(Order::class, OrderPolicy::class);
     }
 }

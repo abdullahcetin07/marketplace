@@ -38,7 +38,7 @@ interface DeviceRepositoryContract
      * One row per browser per user — re-signing in updates, never duplicates,
      * or the security page becomes fifty identical rows of noise.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function resolve(User $user, string $fingerprint, array $attributes): UserDevice;
 }

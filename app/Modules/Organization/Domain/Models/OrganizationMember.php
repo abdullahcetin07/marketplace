@@ -39,10 +39,10 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  */
 final class OrganizationMember extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OrganizationMemberFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
     use SoftDeletes;
 
@@ -92,7 +92,8 @@ final class OrganizationMember extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder

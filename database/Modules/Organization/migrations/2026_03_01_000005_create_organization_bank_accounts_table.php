@@ -56,7 +56,7 @@ return new class extends Migration
         DB::statement(
             'CREATE UNIQUE INDEX organization_bank_accounts_one_primary '
             .'ON organization_bank_accounts (organization_id) '
-            .'WHERE is_primary AND deleted_at IS NULL'
+            .'WHERE is_primary AND deleted_at IS NULL',
         );
     }
 

@@ -30,7 +30,7 @@ final class DevicePolicy extends BasePolicy
     }
 
     /**
-     * @param  UserDevice  $model
+     * @param UserDevice $model
      */
     protected function owns(User $user, Model $model): bool
     {

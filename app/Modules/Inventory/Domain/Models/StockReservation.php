@@ -52,11 +52,6 @@ final class StockReservation extends Model
 
     protected $table = 'stock_reservations';
 
-    protected static function newFactory(): StockReservationFactory
-    {
-        return StockReservationFactory::new();
-    }
-
     protected $fillable = [
         'reference',
         'stock_item_id',
@@ -80,12 +75,18 @@ final class StockReservation extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('status', ReservationStatus::Active->value);
+    }
+
+    protected static function newFactory(): StockReservationFactory
+    {
+        return StockReservationFactory::new();
     }
 
     /**

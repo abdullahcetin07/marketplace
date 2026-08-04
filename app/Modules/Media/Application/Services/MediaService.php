@@ -26,6 +26,7 @@ use Spatie\MediaLibrary\MediaCollections\Models\Media;
  * is actually a PHP script is the oldest upload exploit there is.
  *
  * Sprint 1 ships this infrastructure with no product media attached to it —
+ *
  * @see docs/media.md.
  */
 final class MediaService
@@ -33,7 +34,7 @@ final class MediaService
     /**
      * Attach a file to a model.
      *
-     * @param  HasMedia&Model  $model
+     * @param HasMedia&Model $model
      *
      * @throws MediaRejected
      */

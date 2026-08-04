@@ -695,8 +695,7 @@ it('marks a swept order as expired, not as the customer’s doing', function ():
 
     // The one cancellation a seller most needs told apart from a customer changing
     // their mind — and the sweep has no actor to derive it from.
-    Event::assertDispatched(OrderCancelled::class, fn (OrderCancelled $event): bool
-        => $event->cancelledBy === CancelOrderDTO::BY_EXPIRY);
+    Event::assertDispatched(OrderCancelled::class, fn (OrderCancelled $event): bool => $event->cancelledBy === CancelOrderDTO::BY_EXPIRY);
 });
 
 /*
@@ -721,8 +720,7 @@ it('announces the purchase once and each placed order separately', function (): 
      * about a checkout group — carrying the total no single order holds (ADR-052).
      */
     Event::assertDispatchedTimes(CartCheckedOut::class, 1);
-    Event::assertDispatched(CartCheckedOut::class, fn (CartCheckedOut $event): bool
-        => count($event->orderUuids) === 2 && $event->grandTotalMinor === 15_000);
+    Event::assertDispatched(CartCheckedOut::class, fn (CartCheckedOut $event): bool => count($event->orderUuids) === 2 && $event->grandTotalMinor === 15_000);
 
     app(PlaceOrderAction::class)->run($orders[0]->checkout_group_uuid);
 

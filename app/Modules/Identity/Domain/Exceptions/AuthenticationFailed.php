@@ -26,14 +26,6 @@ use App\Core\Domain\Exceptions\BaseException;
  */
 final class AuthenticationFailed extends BaseException
 {
-    protected int $status = 401;
-
-    /**
-     * Machine-readable reason, stored on the attempt row. Never sent to the
-     * client unless it is in self::DISCLOSABLE.
-     */
-    private string $reason = 'invalid_credentials';
-
     /**
      * Reasons safe to tell the client, because the password was already
      * verified and the user genuinely needs to do something different.
@@ -45,6 +37,14 @@ final class AuthenticationFailed extends BaseException
         'two_factor_required',
         'two_factor_invalid',
     ];
+
+    protected int $status = 401;
+
+    /**
+     * Machine-readable reason, stored on the attempt row. Never sent to the
+     * client unless it is in self::DISCLOSABLE.
+     */
+    private string $reason = 'invalid_credentials';
 
     public static function invalidCredentials(): self
     {

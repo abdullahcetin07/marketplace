@@ -215,7 +215,7 @@ final class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                static::cancelAction(),
+                self::cancelAction(),
             ])
             // Refusing somebody's order is a decision with a reason attached.
             // There is no version of it that belongs on a checkbox.
@@ -224,54 +224,6 @@ final class OrderResource extends Resource
             ->emptyStateHeading(__('order.empty.heading'))
             ->emptyStateDescription(__('order.empty.description'))
             ->defaultSort('id', 'desc');
-    }
-
-    /**
-     * The seller's one lever (§3.3, ADR-057).
-     *
-     * A REASON IS REQUIRED, unlike on the customer's own cancellation: "changed my
-     * mind" needs no explanation, but a merchant refusing an order somebody placed
-     * does — and the customer will be shown it.
-     *
-     * AND THE SELLER IS TOLD WHAT ELSE THIS DOES. Cancelling because they cannot
-     * fulfil zeroes their declared stock for that variant (anti-oversell, ADR-057)
-     * — a real consequence that would be a nasty surprise discovered afterwards, so
-     * the confirmation says it in as many words before they commit.
-     */
-    private static function cancelAction(): Tables\Actions\Action
-    {
-        return Tables\Actions\Action::make('cancel')
-            ->label(__('order.action.cancel'))
-            ->icon('heroicon-o-x-circle')
-            ->color('danger')
-            ->requiresConfirmation()
-            ->modalHeading(__('order.action.cancel'))
-            // The warning, not a generic "are you sure": their stock goes to zero.
-            ->modalDescription(__('order.action.cancel_confirm_seller'))
-            ->modalSubmitActionLabel(__('order.action.cancel_confirm_button'))
-            ->form([
-                Forms\Components\Textarea::make('reason')
-                    ->label(__('order.field.reason'))
-                    ->helperText(__('order.action.cancel_reason_hint'))
-                    ->required()
-                    ->maxLength(500),
-            ])
-            ->visible(fn (Order $record): bool => auth()->user()?->can('cancel', $record) === true)
-            ->action(function (Order $record, array $data): void {
-                app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
-                    // The DTO forces the zero for this actor whatever a surface
-                    // passes — a screen that forgot the flag must not silently
-                    // re-list goods the seller has just said they do not have.
-                    cancelledBy: CancelOrderDTO::BY_SELLER,
-                    reason: (string) $data['reason'],
-                ));
-
-                Notification::make()
-                    ->title(__('order.notice.cancelled'))
-                    ->body(__('order.notice.stock_zeroed'))
-                    ->success()
-                    ->send();
-            });
     }
 
     /**
@@ -338,7 +290,55 @@ final class OrderResource extends Resource
     }
 
     /**
-     * @param  array<string, string|null>|null  $address
+     * The seller's one lever (§3.3, ADR-057).
+     *
+     * A REASON IS REQUIRED, unlike on the customer's own cancellation: "changed my
+     * mind" needs no explanation, but a merchant refusing an order somebody placed
+     * does — and the customer will be shown it.
+     *
+     * AND THE SELLER IS TOLD WHAT ELSE THIS DOES. Cancelling because they cannot
+     * fulfil zeroes their declared stock for that variant (anti-oversell, ADR-057)
+     * — a real consequence that would be a nasty surprise discovered afterwards, so
+     * the confirmation says it in as many words before they commit.
+     */
+    private static function cancelAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('cancel')
+            ->label(__('order.action.cancel'))
+            ->icon('heroicon-o-x-circle')
+            ->color('danger')
+            ->requiresConfirmation()
+            ->modalHeading(__('order.action.cancel'))
+            // The warning, not a generic "are you sure": their stock goes to zero.
+            ->modalDescription(__('order.action.cancel_confirm_seller'))
+            ->modalSubmitActionLabel(__('order.action.cancel_confirm_button'))
+            ->form([
+                Forms\Components\Textarea::make('reason')
+                    ->label(__('order.field.reason'))
+                    ->helperText(__('order.action.cancel_reason_hint'))
+                    ->required()
+                    ->maxLength(500),
+            ])
+            ->visible(fn (Order $record): bool => auth()->user()?->can('cancel', $record) === true)
+            ->action(function (Order $record, array $data): void {
+                app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
+                    // The DTO forces the zero for this actor whatever a surface
+                    // passes — a screen that forgot the flag must not silently
+                    // re-list goods the seller has just said they do not have.
+                    cancelledBy: CancelOrderDTO::BY_SELLER,
+                    reason: (string) $data['reason'],
+                ));
+
+                Notification::make()
+                    ->title(__('order.notice.cancelled'))
+                    ->body(__('order.notice.stock_zeroed'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * @param array<string, string|null>|null $address
      */
     private static function formatAddress(?array $address): string
     {

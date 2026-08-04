@@ -25,7 +25,7 @@ final class SettingPolicy extends BasePolicy
      *    general settings access cannot change session lifetimes or take the
      *    platform into maintenance mode.
      *
-     * @param  Setting  $model
+     * @param Setting $model
      */
     public function update(User $user, Model $model): Response
     {
@@ -49,7 +49,7 @@ final class SettingPolicy extends BasePolicy
      * does. Both are refused outright — modules register settings through
      * SettingsService::register() at boot.
      *
-     * @param  Setting  $model
+     * @param Setting $model
      */
     public function delete(User $user, Model $model): Response
     {

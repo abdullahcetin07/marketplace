@@ -108,7 +108,7 @@ it('keeps every other module out of the schema', function (): void {
         foreach (Schema::getForeignKeys($table) as $foreignKey) {
             expect($foreignKey['foreign_table'])->toBeIn(
                 ['carts', 'orders', 'currencies'],
-                "{$table} constrains {$foreignKey['foreign_table']}, which belongs to another context"
+                "{$table} constrains {$foreignKey['foreign_table']}, which belongs to another context",
             );
         }
     }

@@ -49,7 +49,8 @@ interface GeoRepositoryContract
      * Active districts of a province, Turkish-sorted; empty when the province
      * cannot be resolved.
      *
-     * @param  string  $province  a name or a uuid
+     * @param string $province a name or a uuid
+     *
      * @return Collection<int, GeoDistrict>
      */
     public function districts(string $province, string $countryIso2): Collection;
@@ -63,8 +64,9 @@ interface GeoRepositoryContract
      * without it this answers for whichever one matched first. With it, the
      * answer is unambiguous.
      *
-     * @param  string  $district  a name or a uuid
-     * @param  string|null  $province  a name or a uuid
+     * @param string $district a name or a uuid
+     * @param string|null $province a name or a uuid
+     *
      * @return Collection<int, GeoNeighborhood>
      */
     public function neighborhoods(string $district, ?string $province, string $countryIso2): Collection;

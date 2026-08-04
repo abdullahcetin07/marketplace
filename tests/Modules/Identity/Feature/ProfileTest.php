@@ -3,8 +3,8 @@
 declare(strict_types=1);
 
 use App\Models\Customer;
-use App\Modules\Identity\Infrastructure\Notifications\PasswordChangedNotification;
 use App\Modules\Identity\Domain\Models\UserSession;
+use App\Modules\Identity\Infrastructure\Notifications\PasswordChangedNotification;
 use App\Modules\Localization\Domain\Models\Language;
 use Database\Factories\UserFactory;
 use Illuminate\Support\Facades\Notification;

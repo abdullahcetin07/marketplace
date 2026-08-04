@@ -84,11 +84,6 @@ final class OrderLine extends Model
 
     protected $table = 'order_lines';
 
-    protected static function newFactory(): OrderLineFactory
-    {
-        return OrderLineFactory::new();
-    }
-
     protected $fillable = [
         'order_id',
         'offer_uuid',
@@ -102,21 +97,6 @@ final class OrderLine extends Model
         'line_tax_minor',
         'line_total_minor',
     ];
-
-    /**
-     * IMMUTABILITY, ENFORCED (ADR-053).
-     *
-     * Returning `false` from these hooks aborts the operation silently rather
-     * than throwing, which is the Audit/Activity precedent: a caller that tries to
-     * mutate a financial record gets no write, and no partially-applied change.
-     * A louder failure was considered and rejected — the point is that no code
-     * path can succeed, not that a specific caller is punished.
-     */
-    protected static function booted(): void
-    {
-        static::updating(fn (): bool => false);
-        static::deleting(fn (): bool => false);
-    }
 
     /**
      * @return BelongsTo<Order, $this>
@@ -136,6 +116,26 @@ final class OrderLine extends Model
     public function netTotalMinor(): int
     {
         return $this->line_total_minor - $this->line_tax_minor;
+    }
+
+    protected static function newFactory(): OrderLineFactory
+    {
+        return OrderLineFactory::new();
+    }
+
+    /**
+     * IMMUTABILITY, ENFORCED (ADR-053).
+     *
+     * Returning `false` from these hooks aborts the operation silently rather
+     * than throwing, which is the Audit/Activity precedent: a caller that tries to
+     * mutate a financial record gets no write, and no partially-applied change.
+     * A louder failure was considered and rejected — the point is that no code
+     * path can succeed, not that a specific caller is punished.
+     */
+    protected static function booted(): void
+    {
+        self::updating(fn (): bool => false);
+        self::deleting(fn (): bool => false);
     }
 
     /**

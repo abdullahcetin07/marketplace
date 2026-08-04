@@ -46,7 +46,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicProductResource extends JsonResource
 {
     /**
-     * @param  array<int, array{uuid: string, name: string, slug: string}>  $categoryPath
+     * @param array<int, array{uuid: string, name: string, slug: string}> $categoryPath
      */
     public function __construct(
         Product $product,

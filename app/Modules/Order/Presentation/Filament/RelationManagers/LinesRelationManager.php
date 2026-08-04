@@ -71,7 +71,7 @@ final class LinesRelationManager extends RelationManager
                     // As a percentage, because that is how a seller and a tax
                     // office both read it — the ratio is the storage form.
                     ->state(fn (OrderLine $record): string => '%'.rtrim(rtrim(
-                        number_format(((float) $record->tax_rate) * 100, 2, ',', ''), '0'
+                        number_format(((float) $record->tax_rate) * 100, 2, ',', ''), '0',
                     ), ',')),
 
                 Tables\Columns\TextColumn::make('line_tax_minor')

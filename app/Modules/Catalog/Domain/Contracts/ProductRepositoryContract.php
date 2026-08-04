@@ -60,7 +60,8 @@ interface ProductRepositoryContract
      * (ADR-030/040). Takes the id list the Core
      * `OrganizationAuthorizationContract` returns, verbatim.
      *
-     * @param  array<int, int>  $organizationIds
+     * @param array<int, int> $organizationIds
+     *
      * @return Collection<int, Product>
      */
     public function proposedByAny(array $organizationIds): Collection;

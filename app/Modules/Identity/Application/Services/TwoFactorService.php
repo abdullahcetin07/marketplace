@@ -4,13 +4,15 @@ declare(strict_types=1);
 
 namespace App\Modules\Identity\Application\Services;
 
-use App\Models\User;
 use App\Core\Domain\Contracts\OtpStoreContract;
+use App\Models\User;
 use App\Modules\Identity\Domain\Contracts\TotpProviderContract;
 use App\Modules\Identity\Domain\Events\TwoFactorDisabled;
 use App\Modules\Identity\Domain\Events\TwoFactorEnabled;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\Support\Str;
+use JsonException;
+use LogicException;
 
 /**
  * TOTP enrolment and verification (RFC 6238), plus recovery codes and the
@@ -69,7 +71,7 @@ final class TwoFactorService
     public function provisioningUri(User $user): string
     {
         if ($user->two_factor_secret === null) {
-            throw new \LogicException('Cannot build a provisioning URI before generateSecret().');
+            throw new LogicException('Cannot build a provisioning URI before generateSecret().');
         }
 
         return $this->totp->provisioningUri(
@@ -85,7 +87,7 @@ final class TwoFactorService
      * Returns the plaintext recovery codes — the ONLY time they are readable.
      * Callers must show them to the user immediately.
      *
-     * @return array<int, string>|null  null when the code was wrong
+     * @return array<int, string>|null null when the code was wrong
      */
     public function confirm(User $user, string $code): ?array
     {
@@ -147,15 +149,6 @@ final class TwoFactorService
     }
 
     /**
-     * Per-user OTP key. Keyed on the immutable id, not the email, so a
-     * mid-flow email change cannot orphan a pending code.
-     */
-    private function otpIdentifier(User $user): string
-    {
-        return 'email_otp:'.$user->getKey();
-    }
-
-    /**
      * Turn 2FA off. Requires an already-authenticated context — the caller is
      * responsible for having re-confirmed the password first.
      */
@@ -207,6 +200,15 @@ final class TwoFactorService
     public function isRequiredFor(User $user): bool
     {
         return $user->requiresTwoFactor() && ! $user->hasTwoFactorEnabled();
+    }
+
+    /**
+     * Per-user OTP key. Keyed on the immutable id, not the email, so a
+     * mid-flow email change cannot orphan a pending code.
+     */
+    private function otpIdentifier(User $user): string
+    {
+        return 'email_otp:'.$user->getKey();
     }
 
     private function verifyTotp(User $user, string $code): bool
@@ -271,7 +273,7 @@ final class TwoFactorService
             $codes = json_decode($user->two_factor_recovery_codes, true, 512, JSON_THROW_ON_ERROR);
 
             return $codes;
-        } catch (\JsonException) {
+        } catch (JsonException) {
             // Written under a rotated APP_KEY and now undecryptable. Treating
             // it as empty is correct: the user falls back to TOTP or support.
             return [];

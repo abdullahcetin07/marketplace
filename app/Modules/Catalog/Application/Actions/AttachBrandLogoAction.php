@@ -41,9 +41,9 @@ final class AttachBrandLogoAction extends BaseAction
     protected bool $useTransaction = false;
 
     /**
-     * @param  mixed  ...$arguments  Brand, UploadedFile|string $file,
-     *                               ?string $disk — the disk a string path is
-     *                               relative to. Ignored for an UploadedFile.
+     * @param mixed ...$arguments Brand, UploadedFile|string $file,
+     *                            ?string $disk — the disk a string path is
+     *                            relative to. Ignored for an UploadedFile.
      */
     public function handle(mixed ...$arguments): Media
     {

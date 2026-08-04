@@ -49,13 +49,13 @@ use Illuminate\Support\Facades\DB;
  */
 final class CatalogBrowse implements CatalogBrowseContract
 {
-    public function __construct(private readonly SlugRegistryContract $slugs) {}
-
     /**
      * A hard ceiling on page size, so a caller cannot ask for the whole catalog
      * in one request.
      */
     private const int MAX_PER_PAGE = 100;
+
+    public function __construct(private readonly SlugRegistryContract $slugs) {}
 
     /**
      * @return array{
@@ -153,7 +153,8 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
-     * @param  array<int, string>  $productUuids
+     * @param array<int, string> $productUuids
+     *
      * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
      */
     public function productSummaries(array $productUuids): array
@@ -227,7 +228,8 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
-     * @param  array<int, string>  $variantUuids
+     * @param array<int, string> $variantUuids
+     *
      * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
      */
     public function variantSummaries(array $variantUuids): array
@@ -289,7 +291,7 @@ final class CatalogBrowse implements CatalogBrowseContract
      * Branching on the driver is honest about that; folding in PHP would be a
      * silent lie on one of the two.
      *
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyText(Builder $builder, string $query): void
     {
@@ -321,7 +323,7 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyCategory(Builder $builder, ?string $categoryUuid): void
     {
@@ -350,7 +352,7 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
-     * @param  Builder<Product>  $builder
+     * @param Builder<Product> $builder
      */
     private function applyBrand(Builder $builder, ?string $brandUuid): void
     {

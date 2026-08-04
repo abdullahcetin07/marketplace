@@ -15,7 +15,7 @@ final class EditBrand extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        return self::getResource()::getUrl('index');
     }
 
     /**
@@ -32,8 +32,8 @@ final class EditBrand extends EditRecord
      * reading "absent" as "clear it" — would delete the logo every time
      * somebody fixed a typo.
      *
-     * @param  Brand  $record
-     * @param  array<string, mixed>  $data
+     * @param Brand $record
+     * @param array<string, mixed> $data
      */
     protected function handleRecordUpdate(Model $record, array $data): Model
     {

@@ -27,8 +27,8 @@ final class InvitationException extends BaseException
      */
     public static function notAcceptable(): self
     {
-        return (self::make('This invitation is no longer valid.')
-            ->withContext(['reason' => 'not_acceptable']))
+        return self::make('This invitation is no longer valid.')
+            ->withContext(['reason' => 'not_acceptable'])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 

@@ -34,7 +34,8 @@ trait HasStatus
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeWhereStatus(Builder $query, Status|string ...$statuses): Builder
@@ -51,7 +52,8 @@ trait HasStatus
      * Records the public may see. Prefer this over ->whereStatus(Status::Active)
      * at call sites so visibility rules stay changeable in one place.
      *
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeVisible(Builder $query): Builder
@@ -63,7 +65,8 @@ trait HasStatus
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeActive(Builder $query): Builder

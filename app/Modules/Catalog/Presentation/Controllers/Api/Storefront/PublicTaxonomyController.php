@@ -106,7 +106,7 @@ final class PublicTaxonomyController extends BaseController
      * 500 rather than a miss, and this platform has shipped that bug twice
      * already (ADR-049's reservation reference, then the geo cascade).
      *
-     * @param  class-string<\Illuminate\Database\Eloquent\Model>  $model
+     * @param class-string<\Illuminate\Database\Eloquent\Model> $model
      */
     private function idFor(string $value, SluggableType $type, string $model): ?int
     {

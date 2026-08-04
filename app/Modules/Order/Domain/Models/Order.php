@@ -86,18 +86,13 @@ use Illuminate\Support\Carbon;
  */
 final class Order extends Model
 {
+    use Auditable;
+
     /** @use HasFactory<OrderFactory> */
     use HasFactory;
-
-    use Auditable;
     use HasUuid;
 
     protected $table = 'orders';
-
-    protected static function newFactory(): OrderFactory
-    {
-        return OrderFactory::new();
-    }
 
     protected $fillable = [
         'order_number',
@@ -223,7 +218,8 @@ final class Order extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForCustomer(Builder $query, int $customerId): Builder
@@ -232,7 +228,8 @@ final class Order extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForSellingOrg(Builder $query, string $organizationUuid): Builder
@@ -241,7 +238,8 @@ final class Order extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeInCheckoutGroup(Builder $query, string $checkoutGroupUuid): Builder
@@ -250,12 +248,18 @@ final class Order extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeWithStatus(Builder $query, OrderStatus $status): Builder
     {
         return $query->where('status', $status->value);
+    }
+
+    protected static function newFactory(): OrderFactory
+    {
+        return OrderFactory::new();
     }
 
     /**

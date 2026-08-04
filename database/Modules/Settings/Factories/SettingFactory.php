@@ -60,7 +60,7 @@ final class SettingFactory extends Factory
     }
 
     /**
-     * @param  array<mixed>  $default
+     * @param array<mixed> $default
      */
     public function json(array $default = []): static
     {

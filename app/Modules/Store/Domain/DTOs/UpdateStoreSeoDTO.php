@@ -12,8 +12,8 @@ use App\Core\Domain\DataTransferObjects\BaseDTO;
 final class UpdateStoreSeoDTO extends BaseDTO
 {
     /**
-     * @param  array<int, string>|null  $metaKeywords
-     * @param  array<int, string>  $present
+     * @param array<int, string>|null $metaKeywords
+     * @param array<int, string> $present
      */
     public function __construct(
         public readonly ?string $metaTitle = null,

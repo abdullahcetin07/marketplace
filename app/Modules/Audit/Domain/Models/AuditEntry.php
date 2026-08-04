@@ -37,7 +37,7 @@ use Illuminate\Database\Eloquent\Relations\MorphTo;
  * @property string $uuid
  * @property AuditEventType $event_type
  * @property AuditSeverity $severity
- * @property string|null $event            model verb: created|updated|deleted|restored
+ * @property string|null $event model verb: created|updated|deleted|restored
  * @property string|null $auditable_type
  * @property int|null $auditable_id
  * @property string|null $causer_type
@@ -64,8 +64,11 @@ final class AuditEntry extends Model
     use HasUuid;
 
     public const string EVENT_CREATED = 'created';
+
     public const string EVENT_UPDATED = 'updated';
+
     public const string EVENT_DELETED = 'deleted';
+
     public const string EVENT_RESTORED = 'restored';
 
     /** Append-only: nothing ever updates a row. */
@@ -158,7 +161,8 @@ final class AuditEntry extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForModel(Builder $query, Model $model): Builder
@@ -168,7 +172,8 @@ final class AuditEntry extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeCausedBy(Builder $query, Model $causer): Builder
@@ -180,7 +185,8 @@ final class AuditEntry extends Model
     /**
      * Everything that happened under one request or job run.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForCorrelation(Builder $query, string $correlationId): Builder
@@ -192,7 +198,8 @@ final class AuditEntry extends Model
      * The security trail — the SIEM feed's subscription. Every event_type whose
      * value is prefixed `security_`.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeSecurity(Builder $query): Builder
@@ -203,7 +210,8 @@ final class AuditEntry extends Model
     /**
      * Events at or above a severity floor — "everything Warning or worse".
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeAtLeastSeverity(Builder $query, AuditSeverity $floor): Builder
@@ -216,9 +224,6 @@ final class AuditEntry extends Model
         return $query->whereIn('severity', $atLeast);
     }
 
-    /**
-     * @return bool
-     */
     public function isSecurityEvent(): bool
     {
         return $this->event_type->isSecurity();
@@ -246,7 +251,7 @@ final class AuditEntry extends Model
         | model entirely with a query builder delete — see the scheduled
         | command — so this does not prevent legitimate housekeeping.
         */
-        static::updating(static fn (): bool => false);
-        static::deleting(static fn (): bool => false);
+        self::updating(static fn (): bool => false);
+        self::deleting(static fn (): bool => false);
     }
 }

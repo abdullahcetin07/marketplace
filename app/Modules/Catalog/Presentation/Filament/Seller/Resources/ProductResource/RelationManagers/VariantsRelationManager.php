@@ -263,7 +263,8 @@ final class VariantsRelationManager extends RelationManager
      * Translate the picker's internal ids back into the uuids the DTO speaks —
      * actions take public identifiers, never internal ids (non-negotiable #7).
      *
-     * @param  array<int, mixed>  $valueIds
+     * @param array<int, mixed> $valueIds
+     *
      * @return array<int, string>
      */
     private function valueUuids(Attribute $attribute, array $valueIds): array

@@ -45,7 +45,7 @@ final class FrontendUrl
      * appends it verbatim when it calls back and `hasValidSignature()` still
      * holds. That signature travels by email (ADR-025), never in a response.
      *
-     * @param  array<string, mixed>  $signedQuery
+     * @param array<string, mixed> $signedQuery
      */
     public static function emailVerification(string $uuid, string $hash, array $signedQuery = []): string
     {
@@ -60,7 +60,7 @@ final class FrontendUrl
     /**
      * Any configured path, with placeholders substituted.
      *
-     * @param  array<string, string>  $replacements
+     * @param array<string, string> $replacements
      */
     public static function compose(string $path, array $replacements = []): string
     {

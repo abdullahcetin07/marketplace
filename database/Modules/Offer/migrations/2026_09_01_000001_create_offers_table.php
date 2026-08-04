@@ -104,8 +104,8 @@ return new class extends Migration
         */
         DB::statement(
             'CREATE UNIQUE INDEX offers_one_live_per_org_variant '
-            ."ON offers (selling_org_id, variant_uuid) "
-            ."WHERE deleted_at IS NULL AND status <> 'withdrawn'"
+            .'ON offers (selling_org_id, variant_uuid) '
+            ."WHERE deleted_at IS NULL AND status <> 'withdrawn'",
         );
 
         /*
@@ -123,7 +123,7 @@ return new class extends Migration
         DB::statement(
             'CREATE INDEX offers_buy_box '
             .'ON offers (product_uuid, price_minor, created_at) '
-            ."WHERE deleted_at IS NULL AND status = 'active' AND stock_quantity > 0"
+            ."WHERE deleted_at IS NULL AND status = 'active' AND stock_quantity > 0",
         );
 
         // The same question asked for one SKU rather than a product — what a
@@ -131,7 +131,7 @@ return new class extends Migration
         DB::statement(
             'CREATE INDEX offers_buy_box_variant '
             .'ON offers (variant_uuid, price_minor, created_at) '
-            ."WHERE deleted_at IS NULL AND status = 'active' AND stock_quantity > 0"
+            ."WHERE deleted_at IS NULL AND status = 'active' AND stock_quantity > 0",
         );
     }
 

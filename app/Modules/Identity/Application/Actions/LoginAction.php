@@ -26,6 +26,7 @@ use Illuminate\Support\Facades\Hash;
  * 1. **No account enumeration.** A missing account, a wrong password and a
  *    suspended account all produce the same response. The real reason is
  *    recorded on the attempt row for detection, never returned to the caller.
+ *
  *    @see AuthenticationFailed
  *
  * 2. **No timing oracle.** When the address does not exist we still run a
@@ -40,18 +41,17 @@ use Illuminate\Support\Facades\Hash;
  * Transaction is OFF: this action writes an attempt row that must survive
  * even when authentication fails and an exception unwinds the call. Rolling it
  * back would erase exactly the evidence the table exists to keep.
- *
  * @see docs/authentication.md
  */
 final class LoginAction extends BaseAction
 {
-    protected bool $useTransaction = false;
-
     /**
      * A valid bcrypt hash of a value nothing will ever match. Used to burn the
      * same CPU time on a missing account as on a real one.
      */
     private const string DUMMY_HASH = '$2y$12$sJ8Q4nqXH0jbYjJ0eKQ0uOaG3H1s0YQ5jP5nZ8wQ7yG4L1mN2oP6a';
+
+    protected bool $useTransaction = false;
 
     public function __construct(
         private readonly SessionService $sessions,
@@ -68,7 +68,6 @@ final class LoginAction extends BaseAction
         /** @var LoginDTO $data */
         [$data, $request] = [$arguments[0], $arguments[1]];
         /** @var Request $request */
-
         $user = $this->findUser($data);
 
         try {

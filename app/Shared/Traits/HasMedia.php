@@ -145,22 +145,6 @@ trait HasMedia
     }
 
     /**
-     * The conversion's URL if it has actually been generated, otherwise the
-     * original's.
-     *
-     * A FULL-SIZE PHONE PHOTO IS THE FALLBACK, and that is the trade: the page is
-     * slower for as long as the queue is behind, and it WORKS. The alternative —
-     * a correct-looking URL nobody can fetch — reads to a shopper as a product
-     * with no picture, which is the one thing a listing cannot survive.
-     */
-    private function urlFor(Media $media, string $conversion): string
-    {
-        return $media->hasGeneratedConversion($conversion)
-            ? $media->getUrl($conversion)
-            : $media->getUrl();
-    }
-
-    /**
      * Gallery payload for the Next.js frontend.
      *
      * @return array<int, array<string, mixed>>
@@ -184,5 +168,21 @@ trait HasMedia
     public function hasImages(): bool
     {
         return $this->getMedia('images')->isNotEmpty();
+    }
+
+    /**
+     * The conversion's URL if it has actually been generated, otherwise the
+     * original's.
+     *
+     * A FULL-SIZE PHONE PHOTO IS THE FALLBACK, and that is the trade: the page is
+     * slower for as long as the queue is behind, and it WORKS. The alternative —
+     * a correct-looking URL nobody can fetch — reads to a shopper as a product
+     * with no picture, which is the one thing a listing cannot survive.
+     */
+    private function urlFor(Media $media, string $conversion): string
+    {
+        return $media->hasGeneratedConversion($conversion)
+            ? $media->getUrl($conversion)
+            : $media->getUrl();
     }
 }

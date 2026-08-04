@@ -63,32 +63,6 @@ final class OrderFactory extends Factory
         ];
     }
 
-    /**
-     * The frozen shape `CustomerAddress::toSnapshot()` produces (ADR-056) —
-     * duplicated here rather than generated from the model, deliberately: a
-     * factory that built it by calling the model would stop catching the case
-     * where the two shapes drift, which is the thing worth catching.
-     *
-     * @return array<string, string|null>
-     */
-    private static function addressSnapshot(): array
-    {
-        return [
-            'uuid' => (string) Str::uuid(),
-            'label' => 'Ev',
-            'recipient_name' => fake()->name(),
-            'phone' => '+90555'.fake()->numerify('#######'),
-            'line1' => fake()->streetAddress(),
-            'line2' => null,
-            'district' => 'Kadıköy',
-            'neighborhood' => 'Caferağa',
-            'city' => 'İstanbul',
-            'postal_code' => fake()->numerify('#####'),
-            'country_code' => 'TR',
-            'country_name' => 'Türkiye',
-        ];
-    }
-
     public function forCustomer(int $customerId, string $customerUuid): static
     {
         return $this->state(fn (): array => [
@@ -168,5 +142,31 @@ final class OrderFactory extends Factory
             // No shipping and no discount this sprint (§3.4).
             'grand_total_minor' => $itemsMinor,
         ]);
+    }
+
+    /**
+     * The frozen shape `CustomerAddress::toSnapshot()` produces (ADR-056) —
+     * duplicated here rather than generated from the model, deliberately: a
+     * factory that built it by calling the model would stop catching the case
+     * where the two shapes drift, which is the thing worth catching.
+     *
+     * @return array<string, string|null>
+     */
+    private static function addressSnapshot(): array
+    {
+        return [
+            'uuid' => (string) Str::uuid(),
+            'label' => 'Ev',
+            'recipient_name' => fake()->name(),
+            'phone' => '+90555'.fake()->numerify('#######'),
+            'line1' => fake()->streetAddress(),
+            'line2' => null,
+            'district' => 'Kadıköy',
+            'neighborhood' => 'Caferağa',
+            'city' => 'İstanbul',
+            'postal_code' => fake()->numerify('#####'),
+            'country_code' => 'TR',
+            'country_name' => 'Türkiye',
+        ];
     }
 }

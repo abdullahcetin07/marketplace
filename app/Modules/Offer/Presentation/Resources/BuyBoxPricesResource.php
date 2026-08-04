@@ -37,8 +37,8 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class BuyBoxPricesResource extends JsonResource
 {
     /**
-     * @param  array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}>  $prices
-     * @param  array<string, int>  $decimalsByCurrency
+     * @param array<string, array{price_minor: int, list_price_minor: int|null, currency_code: string, in_stock: bool, seller_count: int}> $prices
+     * @param array<string, int> $decimalsByCurrency
      */
     public function __construct(
         private readonly array $prices,

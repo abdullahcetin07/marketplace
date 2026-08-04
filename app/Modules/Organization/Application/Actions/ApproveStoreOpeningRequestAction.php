@@ -7,9 +7,9 @@ namespace App\Modules\Organization\Application\Actions;
 use App\Core\Application\Actions\BaseAction;
 use App\Core\Domain\Context\AuditContext;
 use App\Models\User;
+use App\Modules\Organization\Domain\Enums\StoreOpeningRequestStatus;
 use App\Modules\Organization\Domain\Events\StoreOpeningApproved;
 use App\Modules\Organization\Domain\Exceptions\StoreOpeningException;
-use App\Modules\Organization\Domain\Enums\StoreOpeningRequestStatus;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
 

@@ -30,7 +30,7 @@ use App\Core\Domain\Events\BaseEvent;
 final class CartCheckedOut extends BaseEvent
 {
     /**
-     * @param  array<int, string>  $orderUuids  every order the checkout produced
+     * @param array<int, string> $orderUuids every order the checkout produced
      */
     public function __construct(
         public readonly string $checkoutGroupUuid,

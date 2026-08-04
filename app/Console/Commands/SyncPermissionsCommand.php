@@ -44,7 +44,7 @@ final class SyncPermissionsCommand extends Command
             $this->info('All declared permissions already exist.');
         } else {
             foreach ($created as $guard => $names) {
-                $this->info("Created ".count($names)." permission(s) on the '{$guard}' guard:");
+                $this->info('Created '.count($names)." permission(s) on the '{$guard}' guard:");
                 $this->line('  '.implode(', ', $names));
             }
         }

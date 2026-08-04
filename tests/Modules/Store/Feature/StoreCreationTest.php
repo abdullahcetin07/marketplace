@@ -36,7 +36,7 @@ function approvedRequestEvent(?string $slug = null): array
 {
     $org = Organization::factory()->approved()->create();
     $request = StoreOpeningRequest::factory()->for($org)->approved()->create(
-        $slug !== null ? ['slug' => $slug] : []
+        $slug !== null ? ['slug' => $slug] : [],
     );
 
     $event = new StoreOpeningApproved(

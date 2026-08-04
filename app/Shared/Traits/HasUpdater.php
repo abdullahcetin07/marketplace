@@ -50,7 +50,8 @@ trait HasUpdater
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeUpdatedBy(Builder $query, User|int $user): Builder
@@ -66,7 +67,7 @@ trait HasUpdater
      * writes (imports, reconciliation jobs) that should not look like a human
      * edited the record.
      *
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function updateSilently(array $attributes): bool
     {

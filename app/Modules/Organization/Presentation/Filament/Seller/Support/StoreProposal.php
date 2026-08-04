@@ -49,7 +49,7 @@ final class StoreProposal
                 ->required()
                 ->maxLength(255)
                 ->helperText(__('organization.store_request.name_hint'))
-                ->rule(static fn (): Closure => static::uniqueNameRule()),
+                ->rule(static fn (): Closure => self::uniqueNameRule()),
 
             Forms\Components\TextInput::make('store_slug')
                 ->label(__('organization.store_request.slug'))
@@ -114,7 +114,7 @@ final class StoreProposal
      * means. The status list is still where it is sent on, and that is also
      * where the store allowance is checked (§7.3).
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public static function request(Organization $organization, array $data): StoreOpeningRequest
     {

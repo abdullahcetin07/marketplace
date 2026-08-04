@@ -13,6 +13,7 @@ use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource\Pages;
 use App\Modules\Organization\Presentation\Filament\Seller\Support\StoreProposal;
+use Closure;
 use Filament\Forms;
 use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
@@ -148,7 +149,7 @@ final class StoreOpeningRequestResource extends Resource
                 ->helperText(__('organization.store_request.name_hint'))
                 // The same rule the onboarding form applies — one definition,
                 // so the two entry points cannot disagree about a taken name.
-                ->rule(static fn (): \Closure => StoreProposal::uniqueNameRule()),
+                ->rule(static fn (): Closure => StoreProposal::uniqueNameRule()),
 
             Forms\Components\TextInput::make('slug')
                 ->label(__('organization.store_request.slug'))
@@ -225,6 +226,31 @@ final class StoreOpeningRequestResource extends Resource
             ->emptyStateHeading(__('organization.store_request.empty.heading'))
             ->emptyStateDescription(__('organization.store_request.empty.description'))
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * The tenancy wall (ADR-030): only requests belonging to an organization
+     * the actor is an active member of.
+     *
+     * @return Builder<StoreOpeningRequest>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        return parent::getEloquentQuery()
+            ->with('organization')
+            ->whereIn('organization_id', self::memberOrganizationIds());
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListStoreOpeningRequests::route('/'),
+            // Reachable, not advertised — "Mağazalarım" links here.
+            'create' => Pages\CreateStoreOpeningRequest::route('/create'),
+        ];
     }
 
     /**
@@ -322,30 +348,5 @@ final class StoreOpeningRequestResource extends Resource
     {
         return app(OrganizationMemberRepositoryContract::class)
             ->organizationIdsForUser((int) auth()->id());
-    }
-
-    /**
-     * The tenancy wall (ADR-030): only requests belonging to an organization
-     * the actor is an active member of.
-     *
-     * @return Builder<StoreOpeningRequest>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        return parent::getEloquentQuery()
-            ->with('organization')
-            ->whereIn('organization_id', self::memberOrganizationIds());
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListStoreOpeningRequests::route('/'),
-            // Reachable, not advertised — "Mağazalarım" links here.
-            'create' => Pages\CreateStoreOpeningRequest::route('/create'),
-        ];
     }
 }

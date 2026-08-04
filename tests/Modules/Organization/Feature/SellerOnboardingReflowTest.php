@@ -14,7 +14,6 @@ use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationMember;
 use App\Modules\Organization\Domain\Models\StoreOpeningRequest;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\OrganizationResource\Pages\CreateOrganization;
-use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource\Pages\CreateStoreOpeningRequest;
 use App\Modules\Organization\Presentation\Filament\Seller\Resources\StoreOpeningRequestResource\Pages\ListStoreOpeningRequests;
 use App\Modules\Store\Domain\Enums\StoreStatus;

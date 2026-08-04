@@ -10,6 +10,7 @@ use App\Models\User;
 use App\Modules\Organization\Domain\Enums\OrganizationDocumentStatus;
 use App\Modules\Organization\Domain\Events\OrganizationDocumentReviewed;
 use App\Modules\Organization\Domain\Models\OrganizationDocument;
+use InvalidArgumentException;
 
 /**
  * An admin reviews an uploaded document — approve, ask for a revision, or reject.
@@ -37,7 +38,7 @@ final class ReviewDocumentAction extends BaseAction
         $reviewer = $arguments[3];
 
         if (! in_array($decision, OrganizationDocumentStatus::reviewOutcomes(), true)) {
-            throw new \InvalidArgumentException('A document review must approve, request a revision, or reject.');
+            throw new InvalidArgumentException('A document review must approve, request a revision, or reject.');
         }
 
         $this->decision = $decision;

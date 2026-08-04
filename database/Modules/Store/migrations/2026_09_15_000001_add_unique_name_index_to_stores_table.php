@@ -44,7 +44,7 @@ return new class extends Migration
         DB::statement(
             'CREATE UNIQUE INDEX stores_name_unique '
             .'ON stores (LOWER(name)) '
-            .'WHERE deleted_at IS NULL'
+            .'WHERE deleted_at IS NULL',
         );
     }
 

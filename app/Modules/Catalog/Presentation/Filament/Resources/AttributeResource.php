@@ -183,7 +183,7 @@ final class AttributeResource extends Resource
      * Creation goes through the action so the ADR-039 type rule is enforced in
      * one place, whatever the form allowed.
      *
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     public static function createFromForm(array $data): Attribute
     {

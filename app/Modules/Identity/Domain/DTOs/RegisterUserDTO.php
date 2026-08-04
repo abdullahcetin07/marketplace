@@ -12,6 +12,7 @@ use App\Shared\Enums\UserType;
  *
  * Locale preferences arrive as ISO CODES, not ids. The client has no business
  * knowing internal primary keys, and codes survive a database reseed —
+ *
  * @see docs/001_Architecture.md §8. RegisterUserAction resolves them to ids.
  */
 final class RegisterUserDTO extends BaseDTO

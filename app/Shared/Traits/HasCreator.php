@@ -46,7 +46,8 @@ trait HasCreator
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeCreatedBy(Builder $query, User|int $user): Builder

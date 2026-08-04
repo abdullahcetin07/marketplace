@@ -7,6 +7,7 @@ namespace App\Modules\Media\Application\Jobs;
 use App\Core\Application\Jobs\BaseJob;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
+use Throwable;
 
 /**
  * Remove files from object storage after their database record is gone.
@@ -26,7 +27,7 @@ use Illuminate\Support\Facades\Storage;
 final class DeleteMediaJob extends BaseJob
 {
     /**
-     * @param  array<int, string>  $paths
+     * @param array<int, string> $paths
      */
     public function __construct(
         private readonly array $paths,
@@ -47,7 +48,7 @@ final class DeleteMediaJob extends BaseJob
                 if ($storage->exists($path)) {
                     $storage->delete($path);
                 }
-            } catch (\Throwable $e) {
+            } catch (Throwable $e) {
                 $failed[] = $path;
                 report($e);
             }

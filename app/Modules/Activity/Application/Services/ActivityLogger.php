@@ -31,7 +31,7 @@ final class ActivityLogger
      * taken ON a user BY someone else — an admin changing a seller's role is
      * activity on the seller's timeline, not the admin's.
      *
-     * @param  array<string, mixed>  $properties
+     * @param array<string, mixed> $properties
      */
     public function log(
         ActivityType $type,
@@ -66,7 +66,7 @@ final class ActivityLogger
      * Record an activity for an email that may not correspond to an account —
      * a failed login against an address that does not exist.
      *
-     * @param  array<string, mixed>  $properties
+     * @param array<string, mixed> $properties
      */
     public function logAnonymous(ActivityType $type, string $email, array $properties = []): ActivityEntry
     {

@@ -44,7 +44,7 @@ final class OpenSearchEngine extends Engine
     /**
      * Index or reindex a set of models.
      *
-     * @param  EloquentCollection<int, Model>  $models
+     * @param EloquentCollection<int, Model> $models
      */
     public function update($models): void
     {
@@ -95,7 +95,7 @@ final class OpenSearchEngine extends Engine
     }
 
     /**
-     * @param  EloquentCollection<int, Model>  $models
+     * @param EloquentCollection<int, Model> $models
      */
     public function delete($models): void
     {
@@ -142,7 +142,8 @@ final class OpenSearchEngine extends Engine
     }
 
     /**
-     * @param  array<string, mixed>  $results
+     * @param array<string, mixed> $results
+     *
      * @return Collection<int, mixed>
      */
     public function mapIds($results): Collection
@@ -160,7 +161,8 @@ final class OpenSearchEngine extends Engine
      * is the point of the sortBy below — without it, relevance ranking is
      * silently discarded.
      *
-     * @param  array<string, mixed>  $results
+     * @param array<string, mixed> $results
+     *
      * @return EloquentCollection<int, Model>
      */
     public function map(Builder $builder, $results, $model): EloquentCollection
@@ -180,7 +182,8 @@ final class OpenSearchEngine extends Engine
     }
 
     /**
-     * @param  array<string, mixed>  $results
+     * @param array<string, mixed> $results
+     *
      * @return LazyCollection<int, Model>
      */
     public function lazyMap(Builder $builder, $results, $model): LazyCollection
@@ -189,7 +192,7 @@ final class OpenSearchEngine extends Engine
     }
 
     /**
-     * @param  array<string, mixed>  $results
+     * @param array<string, mixed> $results
      */
     public function getTotalCount($results): int
     {
@@ -212,7 +215,8 @@ final class OpenSearchEngine extends Engine
     }
 
     /**
-     * @param  array<string, mixed>  $options
+     * @param array<string, mixed> $options
+     *
      * @return array<string, mixed>
      */
     public function createIndex($name, array $options = []): array
@@ -267,7 +271,8 @@ final class OpenSearchEngine extends Engine
     /**
      * Build and run the query.
      *
-     * @param  array<string, mixed>  $options
+     * @param array<string, mixed> $options
+     *
      * @return array<string, mixed>
      */
     private function performSearch(Builder $builder, array $options = []): array

@@ -34,7 +34,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicProductCardResource extends JsonResource
 {
     /**
-     * @param  array<string, mixed>  $card
+     * @param array<string, mixed> $card
      */
     public function __construct(private readonly array $card)
     {

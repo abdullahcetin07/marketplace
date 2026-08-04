@@ -112,7 +112,8 @@ final class ActivityEntry extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForUser(Builder $query, User|int $user): Builder
@@ -121,7 +122,8 @@ final class ActivityEntry extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOfType(Builder $query, ActivityType ...$types): Builder
@@ -134,7 +136,8 @@ final class ActivityEntry extends Model
      * subset. Internal entries (permission changes made by an admin) are
      * excluded from this scope, not merely hidden by the view.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeUserVisible(Builder $query): Builder
@@ -143,7 +146,8 @@ final class ActivityEntry extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeSecuritySensitive(Builder $query): Builder
@@ -166,7 +170,7 @@ final class ActivityEntry extends Model
     {
         // Append-only, same reasoning as AuditEntry. Retention pruning uses
         // the query builder and bypasses this.
-        static::updating(static fn (): bool => false);
-        static::deleting(static fn (): bool => false);
+        self::updating(static fn (): bool => false);
+        self::deleting(static fn (): bool => false);
     }
 }

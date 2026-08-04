@@ -46,9 +46,9 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicProductOffersResource extends JsonResource
 {
     /**
-     * @param  array{uuid: string, title: string, brand: string|null, category: string}|null  $product
-     * @param  array<int, array<string, mixed>>  $offers
-     * @param  array<string, array{name: string, city: string|null}>  $stores  keyed by store uuid
+     * @param array{uuid: string, title: string, brand: string|null, category: string}|null $product
+     * @param array<int, array<string, mixed>> $offers
+     * @param array<string, array{name: string, city: string|null}> $stores keyed by store uuid
      */
     public function __construct(
         private readonly ?array $product,
@@ -84,7 +84,8 @@ final class PublicProductOffersResource extends JsonResource
     }
 
     /**
-     * @param  array<string, mixed>  $offer
+     * @param array<string, mixed> $offer
+     *
      * @return array<string, mixed>
      */
     private function offer(array $offer): array

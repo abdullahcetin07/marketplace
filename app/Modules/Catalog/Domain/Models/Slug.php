@@ -46,7 +46,8 @@ final class Slug extends Model
     ];
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeCanonical(Builder $query): Builder
@@ -57,7 +58,8 @@ final class Slug extends Model
     /**
      * Every slug an entity owns, canonical first.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeOwnedBy(Builder $query, SluggableType $type, int $id): Builder

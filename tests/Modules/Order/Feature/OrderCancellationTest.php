@@ -116,7 +116,7 @@ function cancellableOrder(int $stock = 10, int $quantity = 3, bool $place = true
 }
 
 /**
- * @param  array{order: Order, org: Organization, variant: ProductVariant, offer: \App\Modules\Offer\Domain\Models\Offer}  $fixture
+ * @param array{order: Order, org: Organization, variant: ProductVariant, offer: \App\Modules\Offer\Domain\Models\Offer} $fixture
  */
 function availableFor(array $fixture): int
 {
@@ -271,8 +271,7 @@ it('treats a SELLER cancellation as a claim about their stock, always', function
         reason: 'Stokta kalmadı',
     ));
 
-    Event::assertDispatched(OrderCancelledBySeller::class, fn (OrderCancelledBySeller $event): bool
-        => $event->offerUuid === $fixture['offer']->uuid
+    Event::assertDispatched(OrderCancelledBySeller::class, fn (OrderCancelledBySeller $event): bool => $event->offerUuid === $fixture['offer']->uuid
         && $event->variantUuid === $fixture['variant']->uuid
         && $event->sellingOrgUuid === $fixture['org']->uuid);
 });

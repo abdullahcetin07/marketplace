@@ -33,7 +33,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $platform
  * @property string|null $browser
  * @property string|null $device_type
- * @property string|null $location   coarse, geo-IP-populated; null until configured
+ * @property string|null $location coarse, geo-IP-populated; null until configured
  * @property bool $is_trusted
  * @property Carbon|null $trusted_at
  * @property Carbon $last_used_at
@@ -145,7 +145,8 @@ final class UserDevice extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeTrusted(Builder $query): Builder

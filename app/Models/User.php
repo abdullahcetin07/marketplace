@@ -22,6 +22,7 @@ use App\Shared\Enums\Status;
 use App\Shared\Enums\UserType;
 use App\Shared\Traits\HasStatus;
 use App\Shared\Traits\HasUuid;
+use BackedEnum;
 use Database\Factories\UserFactory;
 use Illuminate\Contracts\Auth\MustVerifyEmail;
 use Illuminate\Database\Eloquent\Builder;
@@ -97,16 +98,17 @@ use Spatie\Permission\Traits\HasRoles;
  */
 class User extends Authenticatable implements MustVerifyEmail
 {
-    use HasApiTokens;
-
-    /** @use HasFactory<UserFactory> */
-    use HasFactory;
-
     // The User is an auditable aggregate: every account change — admin or
     // self-service — leaves an immutable before/after record. Sensitive columns
     // (password, remember_token, two_factor_secret, two_factor_recovery_codes)
     // are on the trait's global exclusion list and never reach the trail.
     use Auditable;
+
+    use HasApiTokens;
+
+    /** @use HasFactory<UserFactory> */
+    use HasFactory;
+
     // The Spatie check is aliased so the override below can wrap it without
     // recursing through checkPermissionTo(), which calls hasPermissionTo().
     use HasRoles {
@@ -154,30 +156,6 @@ class User extends Authenticatable implements MustVerifyEmail
     ];
 
     /**
-     * Scope every query on a subclass to its own actor type.
-     *
-     * This is the mechanism that keeps the three guards genuinely independent:
-     * Admin::find($id) can never return a seller, and the seller guard's user
-     * provider (which resolves Seller::class) can never authenticate an admin
-     * even if the attacker knows a valid admin password.
-     */
-    protected static function booted(): void
-    {
-        $type = static::actorType();
-
-        if ($type !== null) {
-            static::addGlobalScope(
-                'actor_type',
-                static fn (Builder $query): Builder => $query->where('type', $type->value),
-            );
-
-            static::creating(static function (self $model) use ($type): void {
-                $model->type = $type;
-            });
-        }
-    }
-
-    /**
      * The actor type this class represents. Null on the base User, which is
      * deliberately unscoped so relations like `creator()` can resolve any actor.
      */
@@ -205,7 +183,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * Only the base class does this — a subclass is already the right class,
      * and its global scope guarantees the row's type matches.
      *
-     * @param  array<string, mixed>|object  $attributes
+     * @param array<string, mixed>|object $attributes
      */
     public function newFromBuilder($attributes = [], $connection = null): static
     {
@@ -281,7 +259,7 @@ class User extends Authenticatable implements MustVerifyEmail
      * a policy that errors instead of denying is a worse bug than one that is
      * merely over-strict.
      *
-     * @param  string|int|\BackedEnum|\Spatie\Permission\Contracts\Permission  $permission
+     * @param string|int|BackedEnum|\Spatie\Permission\Contracts\Permission $permission
      */
     public function hasPermissionTo($permission, $guardName = null): bool
     {
@@ -318,49 +296,6 @@ class User extends Authenticatable implements MustVerifyEmail
     public function isCustomer(): bool
     {
         return $this->type === UserType::Customer;
-    }
-
-    // ---------------------------------------------------------------------
-    // Naming
-    // ---------------------------------------------------------------------
-
-    /**
-     * The name to show a human — `$user->display_name`.
-     *
-     * A COMPUTED ATTRIBUTE (ADR-012). Its four guarantees:
-     *
-     *  1. **Never persisted.** There is no `display_name` or `full_name`
-     *     column and there must never be one — a denormalised copy is a second
-     *     source of truth that drifts the first time one side is written
-     *     alone.
-     *  2. **Never writable.** The setter throws. Writing it would either
-     *     silently do nothing or attempt an INSERT against a column that does
-     *     not exist; both are worse than failing loudly at the assignment.
-     *  3. **Never mass assignable.** Absent from `$fillable`, so `fill()` and
-     *     `create()` cannot reach it.
-     *  4. **Always computed dynamically.** Derived on every read, so it can
-     *     never disagree with `first_name` / `last_name`.
-     *
-     * `last_name` is nullable, so this collapses cleanly to just the given
-     * name for sole traders and for cultures with a single name.
-     *
-     * An accessor rather than a plain method so it works unchanged in Blade,
-     * in Filament table columns and in API resources, none of which call
-     * methods on a model.
-     */
-    protected function displayName(): Attribute
-    {
-        return Attribute::make(
-            get: fn (): string => trim($this->first_name.' '.($this->last_name ?? '')),
-            // A full closure, not an arrow fn: an arrow fn implicitly returns
-            // its expression, which conflicts with the `never` return type.
-            set: static function (): never {
-                throw new LogicException(
-                    'display_name is computed from first_name and last_name (ADR-012) '
-                    .'and cannot be written. Set those instead.',
-                );
-            },
-        );
     }
 
     /**
@@ -641,7 +576,8 @@ class User extends Authenticatable implements MustVerifyEmail
     // ---------------------------------------------------------------------
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeOfType(Builder $query, UserType $type): Builder
@@ -650,7 +586,8 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeVerified(Builder $query): Builder
@@ -659,12 +596,80 @@ class User extends Authenticatable implements MustVerifyEmail
     }
 
     /**
-     * @param  Builder<static>  $query
+     * @param Builder<static> $query
+     *
      * @return Builder<static>
      */
     public function scopeWithTwoFactor(Builder $query): Builder
     {
         return $query->whereNotNull('two_factor_confirmed_at');
+    }
+
+    /**
+     * Scope every query on a subclass to its own actor type.
+     *
+     * This is the mechanism that keeps the three guards genuinely independent:
+     * Admin::find($id) can never return a seller, and the seller guard's user
+     * provider (which resolves Seller::class) can never authenticate an admin
+     * even if the attacker knows a valid admin password.
+     */
+    protected static function booted(): void
+    {
+        $type = static::actorType();
+
+        if ($type !== null) {
+            static::addGlobalScope(
+                'actor_type',
+                static fn (Builder $query): Builder => $query->where('type', $type->value),
+            );
+
+            static::creating(static function (self $model) use ($type): void {
+                $model->type = $type;
+            });
+        }
+    }
+
+    // ---------------------------------------------------------------------
+    // Naming
+    // ---------------------------------------------------------------------
+
+    /**
+     * The name to show a human — `$user->display_name`.
+     *
+     * A COMPUTED ATTRIBUTE (ADR-012). Its four guarantees:
+     *
+     *  1. **Never persisted.** There is no `display_name` or `full_name`
+     *     column and there must never be one — a denormalised copy is a second
+     *     source of truth that drifts the first time one side is written
+     *     alone.
+     *  2. **Never writable.** The setter throws. Writing it would either
+     *     silently do nothing or attempt an INSERT against a column that does
+     *     not exist; both are worse than failing loudly at the assignment.
+     *  3. **Never mass assignable.** Absent from `$fillable`, so `fill()` and
+     *     `create()` cannot reach it.
+     *  4. **Always computed dynamically.** Derived on every read, so it can
+     *     never disagree with `first_name` / `last_name`.
+     *
+     * `last_name` is nullable, so this collapses cleanly to just the given
+     * name for sole traders and for cultures with a single name.
+     *
+     * An accessor rather than a plain method so it works unchanged in Blade,
+     * in Filament table columns and in API resources, none of which call
+     * methods on a model.
+     */
+    protected function displayName(): Attribute
+    {
+        return Attribute::make(
+            get: fn (): string => trim($this->first_name.' '.($this->last_name ?? '')),
+            // A full closure, not an arrow fn: an arrow fn implicitly returns
+            // its expression, which conflicts with the `never` return type.
+            set: static function (): never {
+                throw new LogicException(
+                    'display_name is computed from first_name and last_name (ADR-012) '
+                    .'and cannot be written. Set those instead.',
+                );
+            },
+        );
     }
 
     /**

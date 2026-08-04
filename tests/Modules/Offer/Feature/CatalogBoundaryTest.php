@@ -92,7 +92,7 @@ it('keeps every commerce concern out of the catalog schema', function (string $t
 
     expect($offending)->toBe(
         [],
-        "{$table} has grown a commerce column: ".implode(', ', $offending)
+        "{$table} has grown a commerce column: ".implode(', ', $offending),
     );
 })->with(['products', 'product_variants', 'categories', 'brands']);
 
@@ -123,7 +123,7 @@ it('offers no way to ask the catalog what something costs', function (): void {
     foreach ($methods as $method) {
         foreach (['price', 'stock', 'commission'] as $fragment) {
             expect(str_contains(mb_strtolower($method), $fragment))->toBeFalse(
-                "CatalogQueryContract/CatalogBrowseContract exposes {$method}"
+                "CatalogQueryContract/CatalogBrowseContract exposes {$method}",
             );
         }
     }
@@ -147,7 +147,7 @@ it('returns no price or stock from the catalog browse port', function (): void {
         foreach (commerceColumnFragments() as $fragment) {
             foreach (array_keys($payload) as $key) {
                 expect(str_contains($key, $fragment))->toBeFalse(
-                    "catalog browse payload exposes {$key}"
+                    "catalog browse payload exposes {$key}",
                 );
             }
         }
@@ -162,7 +162,7 @@ it('keeps the catalog free of any offers relation', function (): void {
         foreach (get_class_methods($model) as $method) {
             foreach (['offer', 'price', 'stock', 'inventory'] as $fragment) {
                 expect(str_contains(mb_strtolower($method), $fragment))->toBeFalse(
-                    "{$model}::{$method}() reaches into commerce"
+                    "{$model}::{$method}() reaches into commerce",
                 );
             }
         }

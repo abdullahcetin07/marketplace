@@ -59,20 +59,6 @@ final class DocumentsRelationManager extends RelationManager
     }
 
     /**
-     * Uploading is gated on the ORGANIZATION's manageKyc capability, exactly as
-     * `UploadDocumentRequest::authorize()` gates the API.
-     *
-     * Filament would otherwise ask `OrganizationDocumentPolicy` for a `create`
-     * ability. That policy deliberately has none: a document is not created in
-     * its own right, it is created against a company, and the decision belongs
-     * to the company's capability matrix — not to a per-document rule.
-     */
-    protected function canCreate(): bool
-    {
-        return auth()->user()?->can('manageKyc', $this->getOwnerRecord()) === true;
-    }
-
-    /**
      * Upload only. Type and file mirror `UploadDocumentRequest` — the same
      * accepted formats and the same 10 MB cap the API enforces.
      */
@@ -166,5 +152,19 @@ final class DocumentsRelationManager extends RelationManager
             ->emptyStateHeading(__('organization.document.empty.heading'))
             ->emptyStateDescription(__('organization.document.empty.description'))
             ->defaultSort('created_at', 'desc');
+    }
+
+    /**
+     * Uploading is gated on the ORGANIZATION's manageKyc capability, exactly as
+     * `UploadDocumentRequest::authorize()` gates the API.
+     *
+     * Filament would otherwise ask `OrganizationDocumentPolicy` for a `create`
+     * ability. That policy deliberately has none: a document is not created in
+     * its own right, it is created against a company, and the decision belongs
+     * to the company's capability matrix — not to a per-document rule.
+     */
+    protected function canCreate(): bool
+    {
+        return auth()->user()?->can('manageKyc', $this->getOwnerRecord()) === true;
     }
 }

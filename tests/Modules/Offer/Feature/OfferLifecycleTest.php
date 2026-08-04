@@ -71,7 +71,7 @@ function sellableFixture(ProductStatus $status = ProductStatus::Published): arra
 }
 
 /**
- * @param  array{org: Organization, store: Store, variant: ProductVariant, product: Product}  $fixture
+ * @param array{org: Organization, store: Store, variant: ProductVariant, product: Product} $fixture
  */
 function createOfferDto(array $fixture, int $price = 12_990, ?int $listPrice = null, int $stock = 5): CreateOfferDTO
 {

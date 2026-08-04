@@ -13,6 +13,7 @@ use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Localization\Domain\Contracts\LanguageRepositoryContract;
 use App\Shared\Enums\Status;
 use App\Shared\Enums\UserType;
+use DomainException;
 use Illuminate\Auth\Events\Registered;
 
 /**
@@ -74,7 +75,7 @@ final class RegisterUserAction extends BaseAction
         $data = $arguments[0];
 
         if ($data->type === UserType::Admin) {
-            throw new \DomainException(
+            throw new DomainException(
                 'Administrators cannot be self-registered. Use marketplace:create-admin.',
             );
         }

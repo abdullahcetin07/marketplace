@@ -43,6 +43,16 @@ final class VerifyEmailRequest extends BaseRequest
         ];
     }
 
+    public function uuid(): string
+    {
+        return (string) $this->route('uuid');
+    }
+
+    public function hash(): string
+    {
+        return (string) $this->route('hash');
+    }
+
     /**
      * Route parameters are not part of the input Laravel validates, so the
      * rules above would have failed `required` on every genuine link. Merging
@@ -57,15 +67,5 @@ final class VerifyEmailRequest extends BaseRequest
             'uuid' => $this->route('uuid'),
             'hash' => $this->route('hash'),
         ]);
-    }
-
-    public function uuid(): string
-    {
-        return (string) $this->route('uuid');
-    }
-
-    public function hash(): string
-    {
-        return (string) $this->route('hash');
     }
 }

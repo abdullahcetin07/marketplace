@@ -36,7 +36,7 @@ final class CreateProduct extends CreateRecord
     {
         // To the edit page, not the index: a fresh draft has no variants yet and
         // cannot be submitted, so the next step is right there.
-        return static::getResource()::getUrl('edit', ['record' => $this->getRecord()]);
+        return self::getResource()::getUrl('edit', ['record' => $this->getRecord()]);
     }
 
     protected function getCreatedNotificationTitle(): string
@@ -45,7 +45,7 @@ final class CreateProduct extends CreateRecord
     }
 
     /**
-     * @param  array<string, mixed>  $data
+     * @param array<string, mixed> $data
      */
     protected function handleRecordCreation(array $data): Model
     {

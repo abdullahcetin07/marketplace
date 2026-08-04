@@ -35,7 +35,7 @@ namespace App\Core\Presentation\Support;
 final class MoneyString
 {
     /**
-     * @param  int  $decimals  the currency's own `decimal_places`
+     * @param int $decimals the currency's own `decimal_places`
      */
     public static function from(int $minorAmount, int $decimals = 2): string
     {

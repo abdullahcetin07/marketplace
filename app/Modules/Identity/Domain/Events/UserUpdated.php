@@ -17,7 +17,7 @@ use App\Core\Domain\Events\BaseEvent;
 final class UserUpdated extends BaseEvent
 {
     /**
-     * @param  array<int, string>  $changed
+     * @param array<int, string> $changed
      */
     public function __construct(
         public readonly int $userId,

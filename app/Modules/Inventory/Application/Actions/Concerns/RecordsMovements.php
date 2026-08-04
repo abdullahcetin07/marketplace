@@ -32,7 +32,8 @@ trait RecordsMovements
     /**
      * Apply a signed change to a locked pool.
      *
-     * @param  StockItem  $item  MUST already be row-locked by the caller.
+     * @param StockItem $item MUST already be row-locked by the caller.
+     *
      * @return StockMovement the ledger row, so the action can put its uuid on an
      *                       event
      */

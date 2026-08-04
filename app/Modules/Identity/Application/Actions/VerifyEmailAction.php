@@ -32,8 +32,8 @@ final class VerifyEmailAction extends BaseAction
     public function __construct(private readonly UserRepositoryContract $users) {}
 
     /**
-     * @param  string  $arguments [0] user UUID from the route
-     * @param  string  $arguments [1] sha1(email) hash from the route
+     * @param string $arguments [0] user UUID from the route
+     * @param string $arguments [1] sha1(email) hash from the route
      *
      * @throws EmailVerificationFailed
      */

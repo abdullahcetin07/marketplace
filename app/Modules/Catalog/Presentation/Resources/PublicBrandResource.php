@@ -20,7 +20,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class PublicBrandResource extends JsonResource
 {
     /**
-     * @param  array<string, mixed>  $brand
+     * @param array<string, mixed> $brand
      */
     public function __construct(private readonly array $brand)
     {

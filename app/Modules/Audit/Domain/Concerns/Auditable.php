@@ -8,6 +8,7 @@ use App\Core\Domain\Context\AuditContext;
 use App\Modules\Audit\Domain\Enums\AuditEventType;
 use App\Modules\Audit\Domain\Enums\AuditSeverity;
 use App\Modules\Audit\Domain\Models\AuditEntry;
+use Closure;
 use Illuminate\Database\Eloquent\Relations\MorphMany;
 
 /**
@@ -77,10 +78,11 @@ trait Auditable
      *
      * @template TValue
      *
-     * @param  \Closure(): TValue  $callback
+     * @param Closure(): TValue $callback
+     *
      * @return TValue
      */
-    public static function withoutAuditing(\Closure $callback): mixed
+    public static function withoutAuditing(Closure $callback): mixed
     {
         $previous = self::$auditingDisabled;
         self::$auditingDisabled = true;
@@ -188,5 +190,4 @@ trait Auditable
             default => [$strip($this->getOriginal()), $strip($this->getChanges())],
         };
     }
-
 }

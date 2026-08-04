@@ -7,6 +7,7 @@ namespace Database\Seeders;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Database\Seeder;
+use RuntimeException;
 use Spatie\Permission\Models\Role;
 use Spatie\Permission\PermissionRegistrar;
 
@@ -270,7 +271,7 @@ final class RolePermissionSeeder extends Seeder
         $name = config("marketplace.roles.{$configKey}");
 
         if (! is_string($name) || $name === '') {
-            throw new \RuntimeException("Role name not configured: marketplace.roles.{$configKey}");
+            throw new RuntimeException("Role name not configured: marketplace.roles.{$configKey}");
         }
 
         return Role::findOrCreate($name, $guard);

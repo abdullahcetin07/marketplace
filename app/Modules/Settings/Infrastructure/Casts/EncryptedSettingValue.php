@@ -35,7 +35,7 @@ use Illuminate\Support\Facades\Crypt;
 final class EncryptedSettingValue implements CastsAttributes
 {
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     public function get(Model $model, string $key, mixed $value, array $attributes): ?string
     {
@@ -52,7 +52,8 @@ final class EncryptedSettingValue implements CastsAttributes
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
+     *
      * @return array<string, mixed>
      */
     public function set(Model $model, string $key, mixed $value, array $attributes): array
@@ -71,7 +72,7 @@ final class EncryptedSettingValue implements CastsAttributes
     }
 
     /**
-     * @param  array<string, mixed>  $attributes
+     * @param array<string, mixed> $attributes
      */
     private function isEncrypted(array $attributes): bool
     {

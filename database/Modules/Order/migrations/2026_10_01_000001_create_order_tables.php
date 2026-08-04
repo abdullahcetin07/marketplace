@@ -307,13 +307,13 @@ return new class extends Migration
             DB::statement(
                 'CREATE UNIQUE INDEX customer_addresses_one_default_shipping
                  ON customer_addresses (customer_id)
-                 WHERE is_default_shipping AND deleted_at IS NULL'
+                 WHERE is_default_shipping AND deleted_at IS NULL',
             );
 
             DB::statement(
                 'CREATE UNIQUE INDEX customer_addresses_one_default_billing
                  ON customer_addresses (customer_id)
-                 WHERE is_default_billing AND deleted_at IS NULL'
+                 WHERE is_default_billing AND deleted_at IS NULL',
             );
         }
     }

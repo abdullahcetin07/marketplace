@@ -177,9 +177,10 @@ final class PublicTaxonomyBrowse
     /**
      * Recursively assemble one level of the tree.
      *
-     * @param  array<int, array<int, Category>>  $byParent
-     * @param  array<int, int>  $counts
-     * @param  array<int, string>  $uuidById
+     * @param array<int, array<int, Category>> $byParent
+     * @param array<int, int> $counts
+     * @param array<int, string> $uuidById
+     *
      * @return array<int, array<string, mixed>>
      */
     private function branch(array $byParent, int $parentId, array $counts, array $uuidById): array
@@ -208,8 +209,9 @@ final class PublicTaxonomyBrowse
     /**
      * Sellable product counts per category id, rolled UP the tree.
      *
-     * @param  array<int, string>  $pathsById
-     * @return array<int, int>  category id => count including descendants
+     * @param array<int, string> $pathsById
+     *
+     * @return array<int, int> category id => count including descendants
      */
     private function sellableCountsByCategoryPath(array $pathsById): array
     {

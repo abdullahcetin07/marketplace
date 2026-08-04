@@ -146,14 +146,42 @@ final class TeamInvitationResource extends Resource
                     ->options(fn (): array => InvitationStatus::options()),
             ])
             ->actions([
-                static::resendAction(),
-                static::cancelAction(),
+                self::resendAction(),
+                self::cancelAction(),
             ])
             ->bulkActions([])
             ->emptyStateIcon('heroicon-o-envelope-open')
             ->emptyStateHeading(__('organization.team.invitation_empty.heading'))
             ->emptyStateDescription(__('organization.team.invitation_empty.description'))
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * The tenancy wall (ADR-030) — the acting user's own organizations only.
+     *
+     * @return Builder<OrganizationInvitation>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        $ids = app(OrganizationMemberRepositoryContract::class)
+            ->organizationIdsForUser((int) auth()->id());
+
+        /** @var Builder<OrganizationInvitation> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query
+            ->with('organization')
+            ->whereIn('organization_id', $ids);
+    }
+
+    /**
+     * @return array<string, mixed>
+     */
+    public static function getPages(): array
+    {
+        return [
+            'index' => Pages\ListTeamInvitations::route('/'),
+        ];
     }
 
     /**
@@ -192,33 +220,5 @@ final class TeamInvitationResource extends Resource
 
                 Notification::make()->title(__('organization.team.invitation_cancelled'))->success()->send();
             });
-    }
-
-    /**
-     * The tenancy wall (ADR-030) — the acting user's own organizations only.
-     *
-     * @return Builder<OrganizationInvitation>
-     */
-    public static function getEloquentQuery(): Builder
-    {
-        $ids = app(OrganizationMemberRepositoryContract::class)
-            ->organizationIdsForUser((int) auth()->id());
-
-        /** @var Builder<OrganizationInvitation> $query */
-        $query = parent::getEloquentQuery();
-
-        return $query
-            ->with('organization')
-            ->whereIn('organization_id', $ids);
-    }
-
-    /**
-     * @return array<string, mixed>
-     */
-    public static function getPages(): array
-    {
-        return [
-            'index' => Pages\ListTeamInvitations::route('/'),
-        ];
     }
 }

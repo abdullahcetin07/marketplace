@@ -6,7 +6,7 @@ namespace App\Modules\Order\Infrastructure\Generators;
 
 use App\Modules\Order\Domain\Contracts\OrderNumberGeneratorContract;
 use App\Modules\Order\Domain\Models\Order;
-use Illuminate\Support\Str;
+use RuntimeException;
 
 /**
  * A dated prefix plus a random code, retried until free — e.g. `SP-260730-K7M4XB`.
@@ -66,7 +66,7 @@ final class DefaultOrderNumberGenerator implements OrderNumberGeneratorContract
          * is no message that would help them. It is either an exhausted keyspace
          * or a broken random source, and both are incidents.
          */
-        throw new \RuntimeException('Could not generate a unique order number.');
+        throw new RuntimeException('Could not generate a unique order number.');
     }
 
     private function randomCode(): string

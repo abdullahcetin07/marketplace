@@ -30,7 +30,7 @@ use Illuminate\Http\Resources\Json\JsonResource;
 final class CartResource extends JsonResource
 {
     /**
-     * @param  array<string, mixed>  $priced  the CartPricingService payload
+     * @param array<string, mixed> $priced the CartPricingService payload
      */
     public function __construct(
         private readonly array $priced,
@@ -64,7 +64,8 @@ final class CartResource extends JsonResource
     }
 
     /**
-     * @param  array<string, mixed>  $line
+     * @param array<string, mixed> $line
+     *
      * @return array<string, mixed>
      */
     private function line(array $line): array

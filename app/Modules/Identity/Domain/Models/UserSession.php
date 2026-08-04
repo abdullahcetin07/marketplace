@@ -32,8 +32,8 @@ use Illuminate\Support\Carbon;
  * @property string $uuid
  * @property int $user_id
  * @property int|null $device_id
- * @property string|null $session_id       framework session id, when cookie-based
- * @property int|null $token_id            personal_access_tokens.id, when API
+ * @property string|null $session_id framework session id, when cookie-based
+ * @property int|null $token_id personal_access_tokens.id, when API
  * @property string $guard
  * @property string|null $ip_address
  * @property string|null $user_agent
@@ -138,7 +138,8 @@ final class UserSession extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
@@ -148,7 +149,8 @@ final class UserSession extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeStale(Builder $query, int $days = 30): Builder

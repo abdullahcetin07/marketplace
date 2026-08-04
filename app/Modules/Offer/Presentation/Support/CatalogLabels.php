@@ -49,8 +49,8 @@ final class CatalogLabels
     /**
      * Resolve a whole page in one round trip. Call it before rendering rows.
      *
-     * @param  array<int, string>  $productUuids
-     * @param  array<int, string>  $variantUuids
+     * @param array<int, string> $productUuids
+     * @param array<int, string> $variantUuids
      */
     public function prime(array $productUuids, array $variantUuids = []): void
     {
@@ -107,8 +107,9 @@ final class CatalogLabels
      * than the answer is what stops a missing product being re-queried on every
      * row that references it.
      *
-     * @param  array<int, string>  $uuids
-     * @param  array<string, true>  $asked
+     * @param array<int, string> $uuids
+     * @param array<string, true> $asked
+     *
      * @return array<int, string>
      */
     private function unasked(array $uuids, array &$asked): array

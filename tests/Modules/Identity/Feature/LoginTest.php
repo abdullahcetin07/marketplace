@@ -4,10 +4,10 @@ declare(strict_types=1);
 
 use App\Models\Customer;
 use App\Models\Seller;
+use App\Modules\Identity\Domain\Events\UserLoggedIn;
 use App\Modules\Identity\Domain\Models\LoginAttempt;
 use App\Modules\Identity\Domain\Models\UserDevice;
 use App\Modules\Identity\Domain\Models\UserSession;
-use App\Modules\Identity\Domain\Events\UserLoggedIn;
 use App\Shared\Enums\Status;
 use Database\Factories\UserFactory;
 use Illuminate\Support\Facades\Event;

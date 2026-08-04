@@ -29,7 +29,7 @@ final class UserSessionPolicy extends BasePolicy
     }
 
     /**
-     * @param  UserSession  $model
+     * @param UserSession $model
      */
     protected function owns(User $user, Model $model): bool
     {

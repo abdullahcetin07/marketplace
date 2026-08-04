@@ -30,10 +30,10 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property int $id
  * @property string $uuid
  * @property int $language_id
- * @property string $group      lang file name — 'errors', 'enums', '*' for JSON strings
- * @property string $key        dotted path within the group
+ * @property string $group lang file name — 'errors', 'enums', '*' for JSON strings
+ * @property string $key dotted path within the group
  * @property string $value
- * @property bool $is_overridden  true when an admin edited a shipped string
+ * @property bool $is_overridden true when an admin edited a shipped string
  * @property-read Language $language
  */
 final class Translation extends Model
@@ -78,7 +78,8 @@ final class Translation extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeForLanguage(Builder $query, Language|int $language): Builder
@@ -90,7 +91,8 @@ final class Translation extends Model
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeInGroup(Builder $query, string $group): Builder
@@ -104,7 +106,8 @@ final class Translation extends Model
      * `ilike` is PostgreSQL's case-insensitive LIKE; on SQLite (tests) LIKE is
      * already case-insensitive for ASCII, so `like` is used there.
      *
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeSearch(Builder $query, string $term): Builder

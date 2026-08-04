@@ -2,13 +2,13 @@
 
 declare(strict_types=1);
 
+use App\Models\Seller;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Organization\Domain\Enums\OrganizationRole;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationMember;
-use App\Models\Seller;
 
 /*
 |--------------------------------------------------------------------------

@@ -21,7 +21,7 @@ final class EditTaxRate extends EditRecord
 
     protected function getRedirectUrl(): string
     {
-        return static::getResource()::getUrl('index');
+        return self::getResource()::getUrl('index');
     }
 
     /**

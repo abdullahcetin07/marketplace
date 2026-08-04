@@ -47,11 +47,6 @@ final class Brand extends Model implements HasMediaContract
 
     protected $table = 'brands';
 
-    protected static function newFactory(): BrandFactory
-    {
-        return BrandFactory::new();
-    }
-
     protected $fillable = [
         'name',
         'slug',
@@ -77,12 +72,26 @@ final class Brand extends Model implements HasMediaContract
     }
 
     /**
-     * @param  Builder<self>  $query
+     * @param Builder<self> $query
+     *
      * @return Builder<self>
      */
     public function scopeActive(Builder $query): Builder
     {
         return $query->where('is_active', true);
+    }
+
+    /**
+     * This entity's kind in the global slug namespace (ADR-059).
+     */
+    public function sluggableType(): SluggableType
+    {
+        return SluggableType::Brand;
+    }
+
+    protected static function newFactory(): BrandFactory
+    {
+        return BrandFactory::new();
     }
 
     /**
@@ -93,13 +102,5 @@ final class Brand extends Model implements HasMediaContract
         return [
             'is_active' => 'boolean',
         ];
-    }
-
-    /**
-     * This entity's kind in the global slug namespace (ADR-059).
-     */
-    public function sluggableType(): SluggableType
-    {
-        return SluggableType::Brand;
     }
 }
