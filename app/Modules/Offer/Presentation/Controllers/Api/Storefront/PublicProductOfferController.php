@@ -33,6 +33,11 @@ use Illuminate\Http\JsonResponse;
  * merchant's NAME in front of a shopper is a Store fact, asked for through
  * `StoreQueryContract` rather than by reaching into Store's tables (ADR-033).
  *
+ * ADDRESSED BY SLUG OR UUID (ADR-059), resolved through `CatalogBrowseContract`
+ * before any query runs. Offer holds no slug registry — that is Catalog's, and
+ * this module imports nothing — so the resolution is one more question asked of
+ * the contract it already depends on.
+ *
  * A PRODUCT NOBODY PUBLISHES AND A PRODUCT NOBODY SELLS ARE DIFFERENT ANSWERS.
  * The first 404s — it is not public, and saying so would leak that a draft
  * exists. The second returns the product with `featured: null`: it is a real
@@ -51,20 +56,37 @@ final class PublicProductOfferController extends BaseController
     ) {}
 
     /**
-     * GET /api/v1/products/{product}/offers
+     * GET /api/v1/products/{idOrSlug}/offers
      */
     public function show(string $product): JsonResponse
     {
-        $summary = $this->catalog->productSummaries([$product])[$product] ?? null;
+        /*
+        | A SLUG OR A UUID, RESOLVED BEFORE ANYTHING TOUCHES A COLUMN (ADR-059).
+        |
+        | This is a PUBLIC storefront URL and the flat scheme means the segment is
+        | usually a slug — so passing it straight into a `product_uuid` comparison
+        | was `SQLSTATE[22P02]` on PostgreSQL: a 500 on the buy box, not a 404.
+        | The platform's FOURTH occurrence of that one shape.
+        |
+        | Offer may not import Catalog's slug registry (`LayeringTest`), so it
+        | asks the Core browse contract — exactly as it already asks that contract
+        | for the product's title two lines below.
+        */
+        $productUuid = $this->catalog->publishedProductUuidFor($product);
+
+        $summary = $productUuid === null
+            ? null
+            : ($this->catalog->productSummaries([$productUuid])[$productUuid] ?? null);
 
         if ($summary === null) {
-            // Same 404 for "no such product" and "not published", so existence
-            // never leaks — the storefront's own rule (ADR-034).
+            // Same 404 for "no such product", "not published" and "not a product
+            // slug at all", so existence never leaks — the storefront's own rule
+            // (ADR-034).
             throw OfferException::productNotPublished($product)
                 ->withStatus(404);
         }
 
-        $offers = $this->offers->activeOffersForProduct($product);
+        $offers = $this->offers->activeOffersForProduct($productUuid);
 
         return $this->ok(new PublicProductOffersResource(
             $summary,

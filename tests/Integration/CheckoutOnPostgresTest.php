@@ -343,6 +343,17 @@ it('takes a slug on every public catalog read without casting it to a uuid', fun
     $this->getJson('/api/v1/products?category=Dermokozmetik')->assertOk();
     $this->getJson('/api/v1/products?brand=Bir%20Marka')->assertOk();
 
+    /*
+     * THE BUY BOX, added 2026-08-04 as the FOURTH occurrence. `/products/{slug}/offers`
+     * is the URL the storefront's product page actually calls, and it went on
+     * 500ing after the rest of ADR-059 shipped because Offer resolves the segment
+     * through `CatalogBrowseContract` rather than through Catalog's own guard —
+     * a path this file did not yet cover. It does now.
+     */
+    $this->getJson('/api/v1/products/'.$product->slug.'/offers')->assertOk();
+    $this->getJson('/api/v1/products/'.$product->uuid.'/offers')->assertOk();
+    $this->getJson('/api/v1/products/kesinlikle-boyle-bir-urun-yok/offers')->assertNotFound();
+
     // And a miss is a 404 or an empty list — never a 500.
     $this->getJson('/api/v1/products/kesinlikle-boyle-bir-urun-yok')->assertNotFound();
     $this->getJson('/api/v1/resolve/kesinlikle-boyle-bir-slug-yok')->assertNotFound();

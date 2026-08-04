@@ -425,6 +425,7 @@ Finance** (commission, payout, settlement). Each is its own spec + architecture 
 | Seller "Tekliflerim" + catalog-first create (§4) | `Presentation/Filament/Seller/Resources/` |
 | Admin oversight — suspend/reinstate only (ADR-044) | `Presentation/Filament/Resources/` |
 | Public "product + its offers" (§5) | `Presentation/Controllers/Api/Storefront/`, `Presentation/Resources/` |
+| **Slug-addressed buy box (ADR-059, added 2026-08-04)** — `/products/{idOrSlug}/offers` resolves a flat slug as well as a uuid. Offer holds no slug registry and imports nothing, so it asks `CatalogBrowseContract::publishedProductUuidFor()` — the port it already uses for the product's title. Before this the segment went straight into a `product_uuid` comparison, which is `SQLSTATE[22P02]` on PostgreSQL: **a 500 on the storefront's product page**, and the platform's fourth occurrence of that one shape | `Presentation/Controllers/Api/Storefront/PublicProductOfferController` |
 | Storefront contributor (ADR-046, fulfils ADR-041) | `Presentation/Storefront/OfferStorefrontContributor` |
 | Search index + the in-stock/price filter fields (§10) | `Offer::toSearchableArray()`, `SyncOfferSearchIndex` |
 | Core read port (§8.1) | `App\Core\Domain\Contracts\OfferQueryContract` |

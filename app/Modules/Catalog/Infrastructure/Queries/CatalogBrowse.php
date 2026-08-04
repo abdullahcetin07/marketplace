@@ -5,11 +5,14 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\CatalogBrowseContract;
+use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
+use App\Modules\Catalog\Domain\Enums\SluggableType;
 use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Shared\Support\PublicKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -46,6 +49,8 @@ use Illuminate\Support\Facades\DB;
  */
 final class CatalogBrowse implements CatalogBrowseContract
 {
+    public function __construct(private readonly SlugRegistryContract $slugs) {}
+
     /**
      * A hard ceiling on page size, so a caller cannot ask for the whole catalog
      * in one request.
@@ -178,6 +183,47 @@ final class CatalogBrowse implements CatalogBrowseContract
         }
 
         return $summaries;
+    }
+
+    /**
+     * Added for Offer's buy box — see the contract for why a downstream module
+     * cannot resolve a slug itself.
+     *
+     * BY SHAPE, then by the registry. A uuid-looking segment goes straight to the
+     * `uuid` column; anything else is a slug and never touches it, because that
+     * comparison is `SQLSTATE[22P02]` on PostgreSQL rather than a non-match
+     * (ADR-059).
+     *
+     * ALIASES RESOLVE TOO, deliberately. An inbound link to a product's old
+     * address should still show its buy box rather than 404 while the storefront
+     * works out the 301 — the alias trail exists precisely so a retired URL keeps
+     * answering.
+     */
+    public function publishedProductUuidFor(string $idOrSlug): ?string
+    {
+        if (PublicKey::looksLikeUuid($idOrSlug)) {
+            $uuid = Product::query()
+                ->where('uuid', $idOrSlug)
+                ->where('status', ProductStatus::Published->value)
+                ->value('uuid');
+
+            return is_string($uuid) ? $uuid : null;
+        }
+
+        $match = $this->slugs->resolve($idOrSlug);
+
+        if ($match === null || $match->type !== SluggableType::Product) {
+            // A category or brand slug is not a product. Answering with one would
+            // let `/products/{brandSlug}/offers` render somebody else's buy box.
+            return null;
+        }
+
+        $uuid = Product::query()
+            ->where('uuid', $match->uuid)
+            ->where('status', ProductStatus::Published->value)
+            ->value('uuid');
+
+        return is_string($uuid) ? $uuid : null;
     }
 
     /**

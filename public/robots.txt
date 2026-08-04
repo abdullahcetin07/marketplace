@@ -1,6 +1,0 @@
-# The public storefront is served by the Next.js application and has its own
-# robots.txt. This host serves the API and the two back-office panels, none of
-# which should ever be crawled.
-
-User-agent: *
-Disallow: /

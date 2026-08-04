@@ -2,11 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Core\Presentation\Support\MoneyString;
+use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Offer\Domain\Models\Offer;
-use App\Core\Presentation\Support\MoneyString;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
 
@@ -211,6 +212,55 @@ it('survives a malformed store address rather than 500ing a product page', funct
 
     $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
         ->assertJsonPath('data.featured.store.city', null);
+});
+
+it('opens the buy box by SLUG as well as by uuid, and 404s anything else', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($fixture['store'])->create();
+
+    /*
+     * THE FOURTH APPEARANCE OF ONE BUG. `/products/{slug}/offers` is a public
+     * storefront URL and the flat scheme (ADR-059) means the segment is usually a
+     * slug — but the slug went straight into a `product_uuid` comparison, which on
+     * PostgreSQL is SQLSTATE[22P02] and a 500 on the buy box, while on SQLite it
+     * is a silent false. The three before it: ADR-049's reservation reference,
+     * the ADR-056 geo cascade, ADR-059's own listing filter.
+     *
+     * Offer may not import Catalog's slug registry, so the resolution goes
+     * through `CatalogBrowseContract` — the port it already asks for this
+     * product's title.
+     */
+    $bySlug = $this->getJson(offersUrl($fixture['product']->slug))->assertOk()->json('data');
+    $byUuid = $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()->json('data');
+
+    expect($bySlug)->toBe($byUuid)
+        ->and($bySlug['featured'])->not->toBeNull();
+});
+
+it('404s an unknown slug on the buy box rather than casting it to a uuid', function (): void {
+    publiclyOfferedProduct();
+
+    // A miss is a miss on every one of these, and none of them is a 500 — the
+    // property the guard exists for.
+    foreach (['kesinlikle-boyle-bir-urun-yok', 'not-a-uuid', (string) Str::uuid()] as $segment) {
+        $this->getJson(offersUrl($segment))->assertNotFound();
+    }
+});
+
+it('refuses a category or brand slug on the product buy box', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($fixture['store'])->create();
+
+    $brand = Brand::factory()->create(['name' => 'Bir Marka', 'slug' => 'bir-marka']);
+
+    // Resolvable, and not a product. Answering with one would let
+    // `/products/{brandSlug}/offers` render somebody else's buy box.
+    $this->getJson(offersUrl($brand->slug))->assertNotFound();
+    $this->getJson(offersUrl($fixture['product']->category->slug))->assertNotFound();
 });
 
 it('needs no authentication', function (): void {

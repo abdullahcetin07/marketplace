@@ -101,6 +101,34 @@ interface CatalogBrowseContract
     public function productSummaries(array $productUuids): array;
 
     /**
+     * The product uuid behind a public identifier — a uuid OR a flat slug
+     * (ADR-059). Null when nothing published matches.
+     *
+     * ADDED FOR OFFER'S BUY BOX (2026-08-04). `/products/{idOrSlug}/offers` is a
+     * PUBLIC storefront URL and the flat scheme means the segment is usually a
+     * slug, but the slug registry is Catalog's and Offer may not import it
+     * (`LayeringTest`). So Offer asks here, exactly as it already asks for a
+     * product's title.
+     *
+     * IT EXISTS BECAUSE THE ALTERNATIVE WAS A CRASH, not an inconvenience.
+     * Passing the raw segment into a `product_uuid` comparison is
+     * `SQLSTATE[22P02]` on PostgreSQL — an unhandled 500 — and a silent false on
+     * SQLite, which is why the whole suite stayed green through the platform's
+     * previous THREE occurrences of the same shape (ADR-049's reservation
+     * reference, the ADR-056 geo cascade, ADR-059's own listing filter). This was
+     * the fourth.
+     *
+     * RESOLVED BY SHAPE on the Catalog side, so no caller has to know the rule —
+     * which is the point of putting it behind the contract rather than making
+     * every consumer remember to call `PublicKey` first.
+     *
+     * PUBLISHED ONLY, matching `productSummaries()` above: a caller that gets a
+     * uuid from here can pass it straight on, and a draft's existence never leaks
+     * through a resolvable slug.
+     */
+    public function publishedProductUuidFor(string $idOrSlug): ?string;
+
+    /**
      * The same, for variants: the SKU and the combination label a human reads.
      *
      * `product_uuid` is included so a caller holding only a variant can group by
