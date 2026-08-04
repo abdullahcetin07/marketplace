@@ -12,6 +12,10 @@ declare(strict_types=1);
 return [
     'singular' => 'Ödeme',
     'plural' => 'Ödemeler',
+    'reference' => 'Ödeme referansı',
+    'amount' => 'Tutar',
+    'status_label' => 'Durum',
+    'paid_at' => 'Ödendi',
 
     'status' => [
         'pending' => 'Bekliyor',
@@ -31,6 +35,8 @@ return [
         'payout_amount_invalid' => 'Ödeme tutarı sıfırdan büyük olmalı.',
         'payout_exceeds_balance' => 'Bu tutar satıcının bakiyesini aşıyor.',
         'payout_already_settled' => 'Bu ödemenin sonucu zaten kaydedilmiş.',
+        'not_refundable' => 'Bu ödemede iade edilecek bir tahsilat yok.',
+        'nothing_to_refund' => 'Bu siparişlerin iadesi zaten yapılmış.',
     ],
 
     'commission' => [
@@ -95,5 +101,21 @@ return [
         'detail_hint' => 'Bankanın verdiği referans ya da ret gerekçesi.',
         'settled' => 'Ödemenin sonucu kaydedildi.',
         'never_deleted' => 'Satıcı ödemeleri silinmez; başarısız olarak işaretlenir.',
+    ],
+
+    'payment' => [
+        'never_deleted' => 'Ödeme kaydı silinmez; bankanın yaptığı işlemin kaydıdır.',
+    ],
+
+    'refund' => [
+        'singular' => 'İade',
+        'plural' => 'İadeler',
+        'action' => 'İade et',
+        'orders' => 'İade edilecek siparişler',
+        'orders_hint' => 'Boş bırakılırsa bu ödemedeki tüm siparişler iade edilir.',
+        'reason' => 'İade gerekçesi',
+        'reason_hint' => 'Bir yıl sonra bu iadenin neden yapıldığını anlatan not.',
+        'confirm' => 'Para PayTR üzerinden alıcıya geri gönderilecek, satıcının bakiyesi düşecek ve stok geri girecek. Bu işlem geri alınamaz.',
+        'done' => 'İade yapıldı.',
     ],
 ];

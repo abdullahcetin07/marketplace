@@ -39,6 +39,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property ReservationStatus $status
  * @property \Illuminate\Support\Carbon|null $released_at
  * @property \Illuminate\Support\Carbon|null $committed_at
+ * @property \Illuminate\Support\Carbon|null $restocked_at
  * @property-read StockItem $stockItem
  *
  * @see docs/modules/Inventory.md §2.3, §3.2
@@ -59,6 +60,7 @@ final class StockReservation extends Model
         'status',
         'released_at',
         'committed_at',
+        'restocked_at',
     ];
 
     /**
@@ -72,6 +74,15 @@ final class StockReservation extends Model
     public function isActive(): bool
     {
         return $this->status->isActive();
+    }
+
+    /**
+     * Whether these units left and could still come back — the one question
+     * `restock` asks (Payment.md §8).
+     */
+    public function isRestockable(): bool
+    {
+        return $this->status->isRestockable();
     }
 
     /**
@@ -99,6 +110,7 @@ final class StockReservation extends Model
             'status' => ReservationStatus::class,
             'released_at' => 'datetime',
             'committed_at' => 'datetime',
+            'restocked_at' => 'datetime',
         ];
     }
 }

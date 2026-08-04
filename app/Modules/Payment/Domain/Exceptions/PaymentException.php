@@ -115,6 +115,35 @@ final class PaymentException extends BaseException
     }
 
     /**
+     * There is no money here to give back (P5).
+     *
+     * A payment that never collected — pending, failed, expired — has nothing to
+     * reverse, and asking the PSP to refund one would be asking it about a
+     * transaction it does not have.
+     */
+    public static function notRefundable(string $paymentUuid, string $status): self
+    {
+        return self::make(__('payment.errors.not_refundable'))
+            ->withContext(['reason' => 'not_refundable', 'payment' => $paymentUuid, 'status' => $status])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * Every order named is already refunded, or none of them belongs to this
+     * payment (P5).
+     *
+     * THE SECOND-CLICK ANSWER. A refund is the one operation in this module a
+     * human triggers by clicking, so it will be clicked twice; the first click
+     * refunded, and this is what the second one gets. A refusal, not an incident.
+     */
+    public static function nothingToRefund(string $paymentUuid): self
+    {
+        return self::make(__('payment.errors.nothing_to_refund'))
+            ->withContext(['reason' => 'nothing_to_refund', 'payment' => $paymentUuid])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * The PSP could not be reached, or answered something unusable.
      *
      * REPORTABLE, unlike everything else here — see the class docblock. The

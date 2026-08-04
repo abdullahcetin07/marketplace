@@ -8,6 +8,7 @@ use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Modules\Inventory\Application\Actions\CommitStockAction;
 use App\Modules\Inventory\Application\Actions\ReleaseStockAction;
 use App\Modules\Inventory\Application\Actions\ReserveStockAction;
+use App\Modules\Inventory\Application\Actions\RestockAction;
 use App\Modules\Inventory\Domain\DTOs\ReserveStockDTO;
 
 /**
@@ -37,6 +38,7 @@ final class InventoryReservation implements InventoryReservationContract
         private readonly ReserveStockAction $reserve,
         private readonly ReleaseStockAction $release,
         private readonly CommitStockAction $commit,
+        private readonly RestockAction $restock,
     ) {}
 
     /**
@@ -69,5 +71,10 @@ final class InventoryReservation implements InventoryReservationContract
     public function commit(string $reference): void
     {
         $this->commit->run($reference);
+    }
+
+    public function restock(string $reference): void
+    {
+        $this->restock->run($reference);
     }
 }

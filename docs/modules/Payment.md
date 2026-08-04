@@ -390,6 +390,50 @@ because balance is a sum of entries, a refund after a payout simply drives the b
 negative and blocks the next payout until it is made whole — the money is never lost
 track of, which a mutable balance column could not promise.
 
+> **As built (P5, 2026-08-04).**
+>
+> **A refund names ORDERS, not an amount.** `partially_refunded` on this platform means
+> some of the SELLERS' ORDERS in the basket — the ADR-052 split seen from the refund
+> side. An arbitrary lira figure could say none of the three things a refund has to
+> know: which seller it comes out of, which commission to give back, which units to
+> restock.
+>
+> **The PSP goes first, inside the transaction.** Nothing is written until PayTR agrees.
+> Writing the ledger first would leave a seller debited for a refund that never
+> happened, and unlike a payment there is no callback coming later to correct it. Its
+> cost, stated: a slow PSP holds a transaction open — bounded because the rows involved
+> are this payment's own and nothing else contends for them.
+>
+> **`payment_refunds`, one row per (payment, order), append-only, no hole at all.**
+> `Payout` needed a narrow writable hole because a bank's answer arrives later; a refund
+> row is written only after the provider has already said yes, so there is no fact left
+> to learn. What is refunded is **Σ of these rows**, never a column — the same rule as
+> the balance. The unique `(payment_id, order_uuid)` index is the real guard: this is
+> the one operation in the module a human triggers by clicking, so it will be clicked
+> twice, and there is no retry semantics to lean on.
+>
+> **Inventory's command port gained a fourth verb, `restock`** (amends ADR-049). It
+> raises `on_hand` and leaves `reserved` alone — the hold ended when the sale completed
+> and does not come back — and it is a no-op on anything not `committed`, which is what
+> stops a retried refund inventing stock that does not physically exist. It is
+> deliberately not `release` called late: Order.md §12.5 ruled that reversing a sale and
+> abandoning a hold are different business events, so it has its own movement type
+> (`restocked`), terminal reservation state and timestamp. **This closes that
+> follow-up.**
+>
+> **Refunding is ADMIN-ONLY in v1 — a stated narrowing of the paragraph above.** The
+> "customer-cancel that the policy allows" half cannot be judged yet: whether a customer
+> may reverse their own purchase depends on whether it has SHIPPED, and there is no
+> fulfilment state on this platform. A self-serve refund button that cannot tell "cancel
+> before dispatch" from "return after delivery" would be granting a business rule nobody
+> wrote down. `RefundPaymentAction` takes an actor id and does not care what type of user
+> it is, so when Shipping ships, only `PaymentPolicy::refund()` changes.
+>
+> `POST /admin/payments/{uuid}/refund` (orders + reason, no amount),
+> `GET /admin/payments/{uuid}/refunds`, plus a read-only Filament screen whose single
+> action is the refund — the only button in the panel that sends money out, and the only
+> one behind a confirmation that says so.
+
 ---
 
 ## 9. Boundaries & non-negotiables (Payment-specific)
@@ -419,6 +463,8 @@ track of, which a mutable balance column could not promise.
   commission_debit on paid orders; balance-on-read.
 - **P4 — Payout.** Admin batch payout resource + state machine + the balance guard.
 - **P5 — Refund.** Gateway refund + ledger reversal + Inventory restock + state.
+  *Complete 2026-08-04 — see the "As built (P5)" note in §8. The module's build order
+  is finished; what remains is listed in §11.*
 
 ## 11. Deliberately absent / follow-ups
 
@@ -430,6 +476,17 @@ track of, which a mutable balance column could not promise.
 - **Installments (taksit) economics** — PayTR supports taksit; v1 passes it through
   (buyer may choose taksit) but does not model the vade-farkı split. A follow-up.
 - **Wallet / store credit, partial captures, subscriptions** — out of scope.
+- **`payout_reversal_credit`, the sixth ledger type** — added by P4 because a rejected
+  transfer's debit cannot be deleted from an append-only ledger and none of ADR-062's
+  five types means "that payout did not happen". **Still awaiting the owner's
+  ratification** of ADR-062.
+- **A customer-facing refund/cancel** — §8's "customer-cancel that the policy allows"
+  waits for a fulfilment state to judge it by (Shipping). The seam is
+  `PaymentPolicy::refund()`; nothing else changes.
+- **Partial refund of a single order** (some lines, or some of the money) — v1 refunds
+  whole orders, because that is the unit the ledger, the commission and the stock are
+  all keyed on. A line-level refund needs its own ruling on how a frozen commission
+  splits.
 
 ## 12. What this requires of other modules (read-only, contract-level)
 

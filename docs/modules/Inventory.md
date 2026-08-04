@@ -86,6 +86,16 @@ it; this sprint it is exercised by tests, not by a real checkout.
   `reserved`.
 - **commit**(referenceUuid) — a completed sale: lower **both** `on_hand` and `reserved` by
   the reserved qty (the units truly leave).
+- **restock**(reference) — *added 2026-08-04 by Payment P5, amending this ADR.* A sale was
+  UNDONE: raise `on_hand` and leave `reserved` alone. The hold ended when the sale
+  completed and does not come back, so the units are simply sellable again; restoring
+  `reserved` too would hold stock for an order that has been refunded. A no-op on any
+  reference that is not `committed` — the guarantee that stops a retried refund inventing
+  stock that does not physically exist. **Deliberately not `release` called late:**
+  reversing a sale and abandoning a hold are different business events, and conflating
+  them in the append-only ledger makes "why did my stock go up?" unanswerable, so it
+  carries its own movement type, terminal reservation state and timestamp
+  (Order.md §12.5, now closed).
 
 **Cost.** We build and test machinery with no live caller for one sprint, and we commit to
 a reservation API shape before Order can prove it. We accept it because Inventory's whole
@@ -190,8 +200,11 @@ computed** (`on_hand − reserved`), never stored.
 reservation by its reference.
 
 ## 2.4 Enums (module-owned, no `Enum` suffix — ADR-007)
-- `StockMovementType` — `SellerAdjustment`, `Reserved`, `Released`, `Committed`.
-- `ReservationStatus` — `Active`, `Released`, `Committed`.
+- `StockMovementType` — `SellerAdjustment`, `Reserved`, `Released`, `Committed`,
+  `Restocked` (P5).
+- `ReservationStatus` — `Active`, `Released`, `Committed`, `Restocked` (P5). Three
+  terminal states, not two: a hold that never became a sale and a sale that was undone
+  are different facts, and a reservation's history is where a dispute is settled.
 
 ---
 
@@ -209,7 +222,10 @@ if any field is missing on the shipped Offer event, Offer (not frozen) adds it.
 `reserve` succeeds only when `available ≥ qty`; it never drives `available` negative.
 `release`/`commit` act only on an `Active` reservation and are idempotent on the reference
 (a repeated commit is a no-op, not a double decrement). `commit` lowers on_hand and
-reserved together; `release` lowers reserved only.
+reserved together; `release` lowers reserved only. `restock` (P5) acts only on a
+`Committed` reservation, raises on_hand only, and is likewise idempotent — a repeated
+restock is a no-op, which matters more here than anywhere else in this module: a double
+restock would invent stock that does not exist, and the seller would sell it to somebody.
 
 ## 3.3 Low-stock signal (v1)
 When a movement leaves `available ≤ low_stock_threshold` (and a threshold is set), emit
@@ -244,13 +260,14 @@ Used by Offer's buy box (in-stock test) and any downstream. Returns plain scalar
 - `reserve(string $sellingOrgUuid, string $variantUuid, int $qty, string $referenceUuid): bool`
 - `release(string $referenceUuid): void`
 - `commit(string $referenceUuid): void`
+- `restock(string $reference): void` — P5, Payment is its only caller.
 The only sanctioned way another module mutates stock. Order is its first (later) caller.
 
 ---
 
 # 6. Events (module-owned, past tense)
 `StockItemCreated`, `StockAdjusted`, `StockReserved`, `StockReleased`, `StockCommitted`,
-`StockLowStockReached`. Audit records movements; Notification carries low-stock; Search/
+`StockRestocked` (P5), `StockLowStockReached`. Audit records movements; Notification carries low-stock; Search/
 Storefront may react to availability changes (the buy box already reads live).
 
 ---
@@ -415,3 +432,24 @@ amendment log.
 
 5. **The Activity user timeline** — shared with Organization's and Catalog's open
    follow-up, not made worse here.
+
+## 12.6 Later changes to this module
+
+**Payment P5 (2026-08-04) added a fourth reservation verb, `restock`.** Inventory was
+never frozen, and this is the change ADR-049's own phasing predicted from the other
+direction: the module before its caller shipped three verbs, and the first module that
+could refund needed a fourth. It is a Core command-port addition (an ADR-049 amendment),
+plus `StockMovementType::Restocked`, `ReservationStatus::Restocked`,
+`stock_reservations.restocked_at`, `RestockAction` and a `StockRestocked` event.
+
+**Nothing about the mirror changed**, and that is worth saying: `on_hand` still moves only
+from the seller's Offer form and from a reservation verb. A refund is a reservation verb.
+
+**One consequence is left open, deliberately:** a restock raises Inventory's `on_hand`
+without raising the Offer's own `stock_quantity`, exactly as a commit lowers Inventory's
+without lowering the Offer's. The two have been allowed to diverge since the commit
+primitive shipped — Inventory is the availability authority (ADR-048) and the buy box
+reads it, not the Offer column — but a seller editing their stock on the Offer form
+overwrites the pool with what they typed. That is a pre-existing seam, not one P5 created;
+it is recorded here because a refund makes it reachable in production for the first
+time.

@@ -76,7 +76,28 @@ it('treats cancellation as terminal in both directions', function (): void {
 
 it('says neither live state is finished with stock', function (): void {
     expect(OrderStatus::Pending->isTerminal())->toBeFalse()
-        ->and(OrderStatus::AwaitingPayment->isTerminal())->toBeFalse();
+        ->and(OrderStatus::AwaitingPayment->isTerminal())->toBeFalse()
+        /*
+         * NOR IS `Paid`, SINCE P5 (2026-08-04). It was terminal for one afternoon,
+         * while the only thing that could follow a payment was nothing. A refund
+         * both moves the order AND moves the stock — `restock` puts the committed
+         * units back — so the question this method asks is genuinely open again.
+         */
+        ->and(OrderStatus::Paid->isTerminal())->toBeFalse()
+        ->and(OrderStatus::Refunded->isTerminal())->toBeTrue();
+});
+
+it('lets a paid order be refunded, and nothing else', function (): void {
+    /*
+     * "CANCEL" AFTER PAYMENT MEANS REFUND, which is a different operation with a
+     * PSP call behind it — so the only edge out of `Paid` is the one Payment's P5
+     * drives, and it is not `Cancelled`.
+     */
+    expect(OrderStatus::Paid->transitions())->toBe([OrderStatus::Refunded])
+        ->and(OrderStatus::Paid->canTransitionTo(OrderStatus::Cancelled))->toBeFalse()
+        // Un-refunding would mean charging the customer again, which is a new
+        // payment rather than a state change.
+        ->and(OrderStatus::Refunded->transitions())->toBe([]);
 });
 
 it('lets a customer walk away from either live state, this sprint', function (): void {
@@ -88,27 +109,36 @@ it('lets a customer walk away from either live state, this sprint', function ():
      */
     expect(OrderStatus::Pending->isCancellableByCustomer())->toBeTrue()
         ->and(OrderStatus::AwaitingPayment->isCancellableByCustomer())->toBeTrue()
-        ->and(OrderStatus::Cancelled->isCancellableByCustomer())->toBeFalse();
+        ->and(OrderStatus::Cancelled->isCancellableByCustomer())->toBeFalse()
+        /*
+         * IT NARROWED, EXACTLY AS THE COMMENT ABOVE PREDICTED. Once money has
+         * changed hands, walking away is a REFUND — a different operation, with a
+         * PSP call behind it and an actor who may not be the customer. And a
+         * refunded order is finished in both directions.
+         */
+        ->and(OrderStatus::Paid->isCancellableByCustomer())->toBeFalse()
+        ->and(OrderStatus::Refunded->isCancellableByCustomer())->toBeFalse();
 });
 
 it('has exactly the cases the platform can actually reach', function (): void {
     /*
-     * THE RULE IS UNCHANGED AND `Paid` NOW PASSES IT (2026-08-04). This file used
-     * to assert three cases and name `Paid` among the states "that belong to a
-     * module that does not exist" — Payment now exists, and its verified success
-     * callback is the one thing on the platform that sets this.
+     * THE RULE IS UNCHANGED AND TWO MORE CASES NOW PASS IT (2026-08-04). This file
+     * used to assert three cases and name `Paid` among the states "that belong to
+     * a module that does not exist". Payment now exists: its verified success
+     * callback sets `Paid`, and its P5 refund sets `Refunded`. Each arrived with
+     * the phase that can actually set it, not before.
      *
-     * `Preparing`, `Shipped`, `Delivered`, `Completed` and `Returned` are still
-     * absent for exactly the original reason: Shipping and Returns do not exist,
-     * so those would be cases nothing can ever set, and the first reader would
-     * reasonably assume something does.
+     * `Preparing`, `Shipped`, `Delivered` and `Completed` are still absent for
+     * exactly the original reason: Shipping does not exist, so those would be
+     * cases nothing can ever set, and the first reader would reasonably assume
+     * something does.
      */
     expect(array_map(fn (OrderStatus $s): string => $s->value, OrderStatus::cases()))
-        ->toBe(['pending', 'awaiting_payment', 'paid', 'cancelled']);
+        ->toBe(['pending', 'awaiting_payment', 'paid', 'refunded', 'cancelled']);
 });
 
 it('gives every case a colour for the panels', function (): void {
     foreach (OrderStatus::cases() as $status) {
-        expect($status->color())->toBeIn(['warning', 'info', 'success', 'danger']);
+        expect($status->color())->toBeIn(['warning', 'info', 'success', 'gray', 'danger']);
     }
 });

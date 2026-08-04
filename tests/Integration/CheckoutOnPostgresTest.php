@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Admin;
 use App\Models\Customer;
 use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Models\Category;
@@ -384,6 +385,35 @@ it('keeps a non-uuid checkout group away from the payments uuid column', functio
     foreach (['not-a-uuid', 'sepet'] as $group) {
         $this->postJson("/api/v1/checkout/{$group}/pay")->assertNotFound();
     }
+});
+
+it('keeps a non-uuid payment away from the refund endpoint', function (): void {
+    /*
+     * THE SEVENTH WATCH (Payment.md §8, P5). The refund route takes a payment
+     * uuid straight off the URL and the ONE endpoint on this platform that moves
+     * real money out is the last place a malformed segment should become a 500.
+     * `payments.uuid` and `payment_refunds.order_uuid` are native uuid columns
+     * here; on SQLite both are text and the guard cannot be seen to work.
+     */
+    // NO ROLE IS GRANTED, and none is needed: every path here is refused at the
+    // SHAPE check, which runs before the policy. That is the property being
+    // tested — a malformed segment must never reach the database at all.
+    $this->actingAs(Admin::factory()->create(), 'admin');
+
+    foreach (['not-a-uuid', 'odeme'] as $payment) {
+        $this->postJson("/api/v1/admin/payments/{$payment}/refund")->assertNotFound();
+        $this->getJson("/api/v1/admin/payments/{$payment}/refunds")->assertNotFound();
+    }
+
+    // A well-formed uuid that does not exist is also a miss, not an error — and
+    // the refunds table takes the same shape check on the way in.
+    $this->postJson('/api/v1/admin/payments/'.Str::uuid().'/refund')->assertNotFound();
+
+    expect(static fn (): mixed => DB::connection('pgsql')
+        ->table('payment_refunds')
+        ->where('order_uuid', (string) Str::uuid())
+        ->first())
+        ->not->toThrow(\Throwable::class);
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {

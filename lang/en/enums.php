@@ -130,6 +130,7 @@ return [
         'pending' => 'In checkout',
         'awaiting_payment' => 'Awaiting payment',
         'paid' => 'Paid',
+        'refunded' => 'Refunded',
         'cancelled' => 'Cancelled',
     ],
 
@@ -143,12 +144,14 @@ return [
         'reserved' => 'Reserved',
         'released' => 'Released',
         'committed' => 'Sold',
+        'restocked' => 'Returned to stock',
     ],
 
     'ReservationStatus' => [
         'active' => 'Held',
         'released' => 'Released',
         'committed' => 'Became a sale',
+        'restocked' => 'Refunded',
     ],
 
     /*

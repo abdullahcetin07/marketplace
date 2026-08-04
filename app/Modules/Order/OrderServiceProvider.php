@@ -119,6 +119,13 @@ final class OrderServiceProvider extends ServiceProvider
             'App\Modules\Payment\Domain\Events\PaymentFailed',
             [SettleOrdersOnPayment::class, 'onFailed'],
         );
+
+        // The money went back (Payment.md §8, P5). Only the orders the event
+        // names move — a refund is per seller's order, not per basket.
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentRefunded',
+            [SettleOrdersOnPayment::class, 'onRefunded'],
+        );
     }
 
     /**

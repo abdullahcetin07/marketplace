@@ -18,6 +18,7 @@ use App\Modules\Order\Presentation\Filament\Resources\OrderResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
 use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequestResource;
 use App\Modules\Payment\Presentation\Filament\Resources\CommissionRuleResource;
+use App\Modules\Payment\Presentation\Filament\Resources\PaymentAdminResource;
 use App\Modules\Payment\Presentation\Filament\Resources\PayoutResource;
 use App\Modules\Store\Presentation\Filament\Resources\StoreResource;
 use App\Shared\Enums\UserType;
@@ -156,6 +157,15 @@ final class AdminPanelProvider extends PanelProvider
                 | records a transfer a human made.
                 */
                 PayoutResource::class,
+
+                /*
+                | PAYMENTS (Payment.md §8, P5) — read-only, with the single
+                | exception that is the whole reason the screen exists: the refund
+                | action, the ONE button on this platform that sends real money
+                | out. Everything else in this panel records what somebody else
+                | already did.
+                */
+                PaymentAdminResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

@@ -42,12 +42,22 @@ namespace App\Core\Domain\Contracts;
  * order and which variant a hold belongs to. A hash would satisfy every rule here
  * and answer nothing.
  *
- * THE THREE VERBS AND WHAT EACH MOVES:
+ * THE FOUR VERBS AND WHAT EACH MOVES:
  *
  *   reserve  — `reserved` up. `on_hand` untouched: nothing has left, the units
  *              are spoken for. Fails when `available < qty`.
  *   release  — `reserved` down. The hold is given back (cancelled, expired).
  *   commit   — BOTH down. The sale completed and the units truly left.
+ *   restock  — `on_hand` up, `reserved` untouched. The sale was UNDONE and the
+ *              units came back (a refund). Added by Payment P5.
+ *
+ * WHY RESTOCK IS A FOURTH VERB AND NOT `release` CALLED LATE. Order.md §12.5
+ * recorded this as an open follow-up and answered it in advance: Inventory "has
+ * no un-commit and must not grow one by side effect — reversing a sale is a
+ * different business event from abandoning a hold, and conflating them in the
+ * append-only ledger makes 'why did my stock go up?' unanswerable". Payment is
+ * the module that can finally refund, so the primitive lands with it, with its
+ * own movement type and its own reservation state.
  *
  * Under a row lock on the stock pool, so two concurrent reserves cannot both
  * take the last unit — the exact race this module exists to prevent (§3.4).
@@ -101,4 +111,23 @@ interface InventoryReservationContract
      * Throws when no reservation exists under this reference.
      */
     public function commit(string $reference): void;
+
+    /**
+     * Undo a sale: put the units back. Raises `on_hand` only.
+     *
+     * `reserved` STAYS PUT, which is the one asymmetry with `commit`. The hold
+     * ended when the sale completed and it does not come back — the units are on
+     * the shelf again, unheld and sellable. Restoring `reserved` too would hold
+     * stock for an order that has been refunded.
+     *
+     * ONLY A COMMITTED REFERENCE IS RESTOCKABLE. One that is already restocked
+     * is a NO-OP — and that guarantee matters more here than anywhere else in
+     * this contract: a retried refund that restocked twice would invent stock
+     * that does not physically exist, and the seller would sell it to somebody.
+     * A reference that is still active or was released is also a no-op: the
+     * units never left, so there is nothing to give back.
+     *
+     * Throws when no reservation exists under this reference.
+     */
+    public function restock(string $reference): void;
 }

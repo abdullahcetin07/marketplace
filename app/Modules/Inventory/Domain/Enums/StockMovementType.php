@@ -36,6 +36,23 @@ enum StockMovementType: string
     case Committed = 'committed';
 
     /**
+     * A committed sale came back — a refund or a return (Payment.md §8, P5).
+     *
+     * THE PRIMITIVE ORDER.md §12.5 SAID WOULD NEED ITS OWN RULING BEFORE PAYMENT
+     * SHIPPED, added 2026-08-04 now that Payment refunds. It is deliberately NOT
+     * `release`: releasing a hold means units that never left are free again,
+     * while this means units that DID leave have physically come back. Conflating
+     * them in one type would make "why did my stock go up?" unanswerable, which is
+     * the exact question the type column exists for.
+     *
+     * IT IS ALSO NOT `seller_adjustment`. A seller correcting their own count and
+     * a customer returning goods move the same number, and a merchant reading
+     * their movement list needs to tell them apart — one is their doing and the
+     * other is not.
+     */
+    case Restocked = 'restocked';
+
+    /**
      * Whether this type moves the on-hand count.
      *
      * Only two do, and they move it in opposite directions: a seller adding
@@ -44,7 +61,9 @@ enum StockMovementType: string
      */
     public function movesOnHand(): bool
     {
-        return in_array($this, [self::SellerAdjustment, self::Committed], true);
+        // Three now, and `Restocked` is the only one that moves it UP for a
+        // reason other than the seller saying so.
+        return in_array($this, [self::SellerAdjustment, self::Committed, self::Restocked], true);
     }
 
     /**
@@ -57,6 +76,7 @@ enum StockMovementType: string
             self::Reserved => 'warning',
             self::Released => 'info',
             self::Committed => 'success',
+            self::Restocked => 'gray',
         };
     }
 }

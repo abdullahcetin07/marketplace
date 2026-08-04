@@ -81,6 +81,34 @@ final class SettleOrdersOnPayment
     }
 
     /**
+     * `App\Modules\Payment\Domain\Events\PaymentRefunded` — untyped on purpose
+     * (Payment.md §8, P5).
+     *
+     * IT MOVES ONLY THE ORDERS THE EVENT NAMES. A refund on this platform is per
+     * seller's order, so the payload carries the list — marking the whole group
+     * refunded because one parcel came back would cancel four sellers' sales for
+     * a return that had nothing to do with them.
+     *
+     * THE STOCK IS ALREADY BACK by the time this runs. Payment restocks inside
+     * the transaction and dispatches after commit — this is only the status, the
+     * same division of labour as `onSucceeded`.
+     *
+     * IT DOES NOT TOUCH THE COMMISSION SNAPSHOT. The frozen figure is what the
+     * platform DID take, and the refund's own ledger entry is what gave it back;
+     * blanking the snapshot would erase the number the reversal was computed
+     * from.
+     */
+    public function onRefunded(object $event): void
+    {
+        /** @var array<int, string> $orderUuids */
+        $orderUuids = $event->orderUuids ?? [];
+
+        foreach (Order::query()->whereIn('uuid', $orderUuids)->get() as $order) {
+            $this->transition($order, OrderStatus::Refunded, (string) ($event->paymentUuid ?? ''));
+        }
+    }
+
+    /**
      * Freeze what the platform takes on each line (ADR-061, Payment.md §6).
      *
      * AT PAYMENT, NOT AT CHECKOUT, and the timing is the decision. A rate edited
@@ -139,9 +167,10 @@ final class SettleOrdersOnPayment
         }
 
         if (! $order->status->canTransitionTo($target)) {
-            Log::channel('errors')->warning('A paid order was not in a state that could be settled', [
+            Log::channel('errors')->warning('An order was not in a state that could be settled', [
                 'order_uuid' => $order->uuid,
                 'status' => $order->status->value,
+                'target' => $target->value,
                 'payment_uuid' => $paymentUuid,
             ]);
 

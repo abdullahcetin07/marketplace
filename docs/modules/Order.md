@@ -454,6 +454,18 @@ Recorded in the `001_Architecture.md` amendment log.
 | Offer (not frozen) | `OfferQueryContract::activeOfferByUuid()` | §1.4 asks for it in those words. Every other method answers a LIST question, because until Order existed every caller arrived holding a product or a store; a cart line arrives holding an offer. It reuses the buy box's own eligibility, so "can this go in a basket" and "is this what a product page would feature" cannot drift |
 | Core (Offer→Core move) | `MoneyString` promoted from `Offer\Presentation\Support` to `Core\Presentation\Support` | Its own docblock named this condition: the second module to need it. Order renders money and may not import Offer, so the choice was Core or a copy — and a second money formatter ends with two endpoints disagreeing about a kuruş |
 
+## 12.4b Later changes to this module
+
+Order is complete but not frozen, and Payment reached into it twice as its spec said it
+would. Both are recorded in the `001_Architecture.md` amendment log.
+
+| Phase | Change | Why |
+|---|---|---|
+| Payment P1 | `OrderStatus::Paid`; `holdsReservation()` and `isCancellableByCustomer()` narrowed; three reads added to `OrderQueryContract`; `SettleOrdersOnPayment` listener | ADR-057 named Payment the committer. Order moves its OWN state machine on a class-string event — Payment never sets a status |
+| Payment P2 | `order_lines` gains `brand_uuid`, `category_uuid`, `category_path_uuids` (classification, frozen at checkout) and `commission_rate`, `commission_minor`, `commission_resolved_at` (frozen at payment), with `OrderLine`'s one narrow immutability hole | ADR-061. Payment computes the commission through a Core contract; ORDER writes its own table |
+| Payment P3 | `OrderQueryContract::orderSettlement()` | The seller ledger needs the seller and the FROZEN commission — read, never recomputed |
+| Payment P5 | `OrderStatus::Refunded`; `Paid` stops being terminal; `isCancellableByCustomer()` names the two live states instead of delegating to `isTerminal()`; `SettleOrdersOnPayment::onRefunded()` | The case the `Paid` docblock reserved for P5. A refund moves a paid order and its stock, so "terminal" and "cancellable" stopped coinciding and had to be asked separately |
+
 ## 12.5 Follow-ups
 
 1. ~~**Cancelling a placed order leaves its stock committed**~~ — **RESOLVED by ADR-057**
@@ -461,6 +473,12 @@ Recorded in the `001_Architecture.md` amendment log.
    and cancelling returns them. Inventory needed no new primitive. What remains out of scope
    is **post-payment** restock (returns/RMA), which genuinely does need an Inventory reversal
    primitive with its own movement type — the Returns sprint.
+
+   ~~**Post-payment restock**~~ — **ALSO RESOLVED, by Payment P5** (2026-08-04). The
+   reversal primitive is `InventoryReservationContract::restock()`, with exactly the
+   separate movement type this paragraph demanded (`restocked`) plus its own terminal
+   reservation state, and it arrived with the first module that could actually refund
+   rather than as a Returns sprint of its own. See ADR-049's second amendment.
 
 2. **The seller has no "confirm"** (§12.2). It becomes real when Payment does — a
    seller accepting a PAID order is a meaningful transition; accepting an unpaid one is

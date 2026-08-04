@@ -57,6 +57,21 @@ enum OrderStatus: string
      * on the other side of that commit.
      */
     case Paid = 'paid';
+
+    /**
+     * The money went back (Payment.md §8, added 2026-08-04 by P5).
+     *
+     * THE CASE THE `Paid` DOCBLOCK BELOW SAID BELONGED TO PAYMENT'S P5, added by
+     * exactly that phase and by nothing earlier — the same discipline that kept
+     * `Paid` itself out of this enum until Payment could set it.
+     *
+     * IT IS NOT `Cancelled`. A cancelled order gave a HOLD back; this one took
+     * money, shipped nothing back into stock until now, and returned it. The two
+     * look alike in a list and are entirely different in a ledger, which is where
+     * an argument about an order is actually settled.
+     */
+    case Refunded = 'refunded';
+
     case Cancelled = 'cancelled';
 
     /**
@@ -79,17 +94,19 @@ enum OrderStatus: string
             // Paid on a verified success callback; cancellable until then.
             self::AwaitingPayment => [self::Paid, self::Cancelled],
             /*
-            | TERMINAL FOR NOW, and deliberately so. Fulfilment states
-            | (Preparing/Shipped/Delivered) belong to Shipping and a refund
-            | belongs to Payment's P5 — both would be cases nothing can set, which
-            | is the mistake this enum avoided for `Paid` itself until today.
+            | REFUNDABLE, AND NOTHING ELSE (P5, 2026-08-04). Fulfilment states
+            | (Preparing/Shipped/Delivered) still belong to Shipping and are still
+            | absent — this enum does not carry cases nothing can set.
             |
             | It is NOT cancellable: the stock is committed and the money is
             | collected, so "cancel" now means REFUND, which is a different
-            | operation with a different actor and a PSP call behind it.
+            | operation with a different actor and a PSP call behind it. That
+            | operation is this transition.
             */
-            self::Paid => [],
-            self::Cancelled => [],
+            self::Paid => [self::Refunded],
+            // Terminal in both directions. Un-refunding would mean charging the
+            // customer again, which is a new payment, not a state change.
+            self::Refunded, self::Cancelled => [],
         };
     }
 
@@ -144,10 +161,13 @@ enum OrderStatus: string
      */
     public function isTerminal(): bool
     {
-        // `Paid` joins it (2026-08-04): the money is collected and the stock is
-        // committed, so nothing in the CURRENT scope moves it again. Shipping and
-        // the refund path both re-open it when they exist.
-        return $this === self::Cancelled || $this === self::Paid;
+        /*
+        | `Paid` IS NO LONGER TERMINAL (P5, 2026-08-04) — a refund moves it, and it
+        | moves the stock too: `RestockAction` puts the committed units back. What
+        | is terminal is where that leaves the order. Shipping re-opens `Paid`
+        | again when it exists.
+        */
+        return $this === self::Cancelled || $this === self::Refunded;
     }
 
     /**
@@ -162,13 +182,17 @@ enum OrderStatus: string
     public function isCancellableByCustomer(): bool
     {
         /*
-        | THIS IS THE NARROWING THE DOCBLOCK ABOVE PREDICTED (2026-08-04). It
-        | falls out of `Paid` being terminal rather than needing its own clause:
-        | once money has changed hands, walking away is a REFUND — a different
+        | THIS IS THE NARROWING THE DOCBLOCK ABOVE PREDICTED (2026-08-04). Once
+        | money has changed hands, walking away is a REFUND — a different
         | operation, with a PSP call behind it and an actor who may not be the
         | customer.
+        |
+        | IT NAMES THE TWO LIVE STATES RATHER THAN DELEGATING TO `isTerminal()`,
+        | which it did until P5 made `Paid` non-terminal. Cancellation and stock
+        | are two different questions, and one method answering both was only
+        | correct while the answers happened to coincide.
         */
-        return ! $this->isTerminal();
+        return $this === self::Pending || $this === self::AwaitingPayment;
     }
 
     /**
@@ -180,6 +204,7 @@ enum OrderStatus: string
             self::Pending => 'warning',
             self::AwaitingPayment => 'info',
             self::Paid => 'success',
+            self::Refunded => 'gray',
             self::Cancelled => 'danger',
         };
     }

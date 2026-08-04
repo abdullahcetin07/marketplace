@@ -32,6 +32,7 @@ use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController
 use App\Modules\Payment\Presentation\Controllers\Api\PaymentController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
+use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
 use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
@@ -519,6 +520,26 @@ Route::prefix('v1')
                 // what they may send before trying to send it.
                 Route::get('/sellers/{seller}/balance', [PayoutController::class, 'balance'])
                     ->name('sellers.balance');
+
+                /*
+                | REFUNDS (Payment.md §8, P5) — the one endpoint on this platform
+                | that moves real money OUT. A payout only records a transfer a
+                | human made and the callback only records what a buyer did; a POST
+                | here makes PayTR send money back, debits the seller and puts the
+                | units on the shelf again.
+                |
+                | IT TAKES ORDERS, NOT AN AMOUNT: a refund names one seller's order,
+                | which is the unit the ledger is keyed on and the unit whose stock
+                | can be restocked. An empty list means the whole payment.
+                |
+                | Admin-only in v1. The spec also allows a policy-permitted customer
+                | cancel; that half waits for a fulfilment state to exist to judge
+                | it by — see `PaymentPolicy::refund()`.
+                */
+                Route::post('/payments/{payment}/refund', [RefundController::class, 'store'])
+                    ->name('payments.refund');
+                Route::get('/payments/{payment}/refunds', [RefundController::class, 'index'])
+                    ->name('payments.refunds');
 
                 /*
                 | Organization administration (ADR-028) — the KYC/lifecycle queue

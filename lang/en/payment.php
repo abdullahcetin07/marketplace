@@ -12,6 +12,10 @@ declare(strict_types=1);
 return [
     'singular' => 'Payment',
     'plural' => 'Payments',
+    'reference' => 'Payment reference',
+    'amount' => 'Amount',
+    'status_label' => 'Status',
+    'paid_at' => 'Paid',
 
     'status' => [
         'pending' => 'Pending',
@@ -31,6 +35,8 @@ return [
         'payout_amount_invalid' => 'A payout must be greater than zero.',
         'payout_exceeds_balance' => 'That is more than the seller is owed.',
         'payout_already_settled' => 'This payout has already been settled.',
+        'not_refundable' => 'This payment collected nothing that could be refunded.',
+        'nothing_to_refund' => 'These orders have already been refunded.',
     ],
 
     'commission' => [
@@ -95,5 +101,21 @@ return [
         'detail_hint' => 'The reference the bank gave, or why it refused.',
         'settled' => 'The payout outcome was recorded.',
         'never_deleted' => 'Payouts are never deleted; mark them failed instead.',
+    ],
+
+    'payment' => [
+        'never_deleted' => 'A payment is never deleted; it records what a bank did.',
+    ],
+
+    'refund' => [
+        'singular' => 'Refund',
+        'plural' => 'Refunds',
+        'action' => 'Refund',
+        'orders' => 'Orders to refund',
+        'orders_hint' => 'Leave empty to refund every order in this payment.',
+        'reason' => 'Why',
+        'reason_hint' => 'The note that explains this refund a year from now.',
+        'confirm' => 'The money goes back to the buyer through PayTR, the seller balance is debited and the stock returns. This cannot be undone.',
+        'done' => 'The refund was made.',
     ],
 ];

@@ -132,21 +132,33 @@ also registers no storefront contributor in Phase 1 (ADR-041) and imports neithe
 Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
 (ADR-040).
 
-**Payment is APPROVED and SPEC'd (2026-08-04; ADR-060–062,
-[docs/modules/Payment.md](docs/modules/Payment.md)) — building now, phased P1–P5.**
-The architecture review passed: single-merchant settlement + **manual/batch payout**
-(sellers are not submerchants — the platform holds and pays out; BDDK licensing is the
-accepted early-phase cost, submerchant migration a future ADR); **PayTR** behind a
-Core `PaymentGatewayContract`, iFrame-shaped so **no card data touches the platform**;
-**one Payment per Order `checkout_group`** (`merchant_oid = payment.uuid`), the
-hash-verified **idempotent callback** the source of truth, not the redirect. It
-**closes ADR-054/057** — on payment success Payment drives Inventory's reservation
-**commit** via the Core command port. Commission is a **multi-dimensional rule engine**
-(product/category/brand/seller, most-specific-wins) on the **KDV-inclusive** sale
-amount, frozen at payment (ADR-061); the seller balance is an **append-only ledger**
-and payout only records the external transfer (ADR-062). **Payment imports NO module** —
-Core contracts + class-string events + the gateway port only. Do NOT build ahead of the
-phased work order or change these decisions without an ADR amendment.
+**Payment is COMPLETE (2026-08-04; ADR-060–062,
+[docs/modules/Payment.md](docs/modules/Payment.md)) — the newest module, built P1–P5.**
+Single-merchant settlement + **manual/batch payout** (sellers are not submerchants — the
+platform holds and pays out; BDDK licensing is the accepted early-phase cost, submerchant
+migration a future ADR); **PayTR** behind a `PaymentGatewayContract`, iFrame-shaped so
+**no card data touches the platform**; **one Payment per Order `checkout_group`**
+(`merchant_oid = payment.uuid`), the hash-verified **idempotent callback** the source of
+truth, not the redirect. It **closed ADR-054/057** — on payment success Payment drives
+Inventory's reservation **commit** via the Core command port. Commission is a
+**multi-dimensional rule engine** (product/category/brand/seller, most-specific-wins) on
+the **KDV-inclusive** sale amount, frozen at payment (ADR-061); the seller balance is an
+**append-only ledger** and payout only records the external transfer (ADR-062); a refund
+reverses through that same ledger and **restocks** through a fourth verb P5 added to the
+Core command port (amends ADR-049, closing Order.md §12.5 follow-up #1).
+
+**The gateway port lives in `Payment\Domain\Contracts`, NOT in `app/Core`** — a reported
+deviation from the spec, awaiting ratification: its signatures are Payment's own DTOs and
+`LayeringTest` forbids Core depending on a module. Every other Core contract exists so one
+MODULE can ask ANOTHER a question; this one points *out of the platform*.
+
+**Payment imports NO module** — Core contracts + class-string events + the gateway port
+only. **A refund names ORDERS, never an amount**: "partially refunded" means some of the
+sellers' orders in one basket. **It is NOT frozen** and two things await the owner:
+`LedgerEntryType::PayoutReversalCredit` (a sixth type ADR-062 does not list, required
+because an append-only ledger cannot delete a rejected payout's debit) and a
+customer-facing refund, which waits for Shipping to give it a fulfilment state to judge
+by (see Payment.md §11).
 
 ---
 

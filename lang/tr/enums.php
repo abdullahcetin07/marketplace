@@ -131,6 +131,7 @@ return [
         'pending' => 'Ödeme adımında',
         'awaiting_payment' => 'Ödeme bekliyor',
         'paid' => 'Ödendi',
+        'refunded' => 'İade edildi',
         'cancelled' => 'İptal edildi',
     ],
 
@@ -145,12 +146,14 @@ return [
         'reserved' => 'Ayrıldı',
         'released' => 'Serbest bırakıldı',
         'committed' => 'Satıldı',
+        'restocked' => 'İade ile geri girdi',
     ],
 
     'ReservationStatus' => [
         'active' => 'Ayrılmış',
         'released' => 'Serbest bırakıldı',
         'committed' => 'Satışa dönüştü',
+        'restocked' => 'İade edildi',
     ],
 
     /*

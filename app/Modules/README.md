@@ -2,16 +2,18 @@
 
 The seven Foundation modules delivered in Sprint 1.
 
-**Payment is being built** (ADR-060–062, spec approved 2026-08-04): **P1 —
-the collection core — has landed**, so a buyer can pay through PayTR and a
-verified success callback commits the stock that placement only held. P2–P5
-(commission, seller ledger, payout, refund) are not built.
+**Payment is COMPLETE** (ADR-060–062, built P1–P5, 2026-08-04): a buyer pays
+through PayTR, a verified success callback commits the stock that placement only
+held, the commission engine freezes what the platform takes onto the order lines,
+the seller's balance is an append-only ledger, an admin records payouts against
+it, and a refund reverses all of it — money, commission and stock.
 **Organization** and **Store** are frozen v1.0 (ADR-028–036);
 **Catalog** Phase 1 is complete (ADR-037–041), **Offer** is complete
 (ADR-042–046), **Inventory** is complete (ADR-048–051) and **Order** is complete
 (ADR-052–056). None of the last four is frozen: each reaches into the one before
 it — Offer into Catalog, Inventory into Offer, Order into all of them, and
-Payment will reach into Order.
+Payment into Order and Inventory (it added the reservation port's fourth verb,
+`restock`).
 
 ---
 
@@ -29,9 +31,9 @@ Payment will reach into Order.
 | **Organization** | Legal seller company: KYC, members, invitations, documents, bank account, store-opening requests (ADR-028–031) — *frozen v1.0* | [modules/Organization.md](../../docs/modules/Organization.md) |
 | **Store** | The storefront: identity, operational state, branding/SEO/contact/settings, localization, seller/admin API, Filament panels, and the composed public read surface `/store/{slug}` — created only by consuming `StoreOpeningApproved`; path-addressed, no custom domains in v1 (ADR-032–036) — *frozen v1.0* | [modules/Store.md](../../docs/modules/Store.md) |
 | **Catalog** | The shared product catalog: category tree + per-category attribute schema, brands, products and their variants (SKUs), product media, seller authoring with a moderation lifecycle, and the Core `CatalogQueryContract` (ADR-037–041) — **no price and no stock**, those are Offer/Inventory — *Phase 1 complete* | [modules/Catalog.md](../../docs/modules/Catalog.md) |
-| **Inventory** | The availability authority: on-hand + reserved per (seller org, variant), `available = on_hand − reserved` read by the buy box, the append-only movement ledger, and the reserve/release/commit primitives Order will call (ADR-048–051). **No cart, order, money or multi-warehouse** — *complete, not frozen* | [modules/Inventory.md](../../docs/modules/Inventory.md) |
+| **Inventory** | The availability authority: on-hand + reserved per (seller org, variant), `available = on_hand − reserved` read by the buy box, the append-only movement ledger, and the reserve/release/commit primitives Order calls plus the `restock` Payment added (ADR-048–051). **No cart, order, money or multi-warehouse** — *complete, not frozen* | [modules/Inventory.md](../../docs/modules/Inventory.md) |
 | **Order** | The buyer's pipeline: one multi-seller cart, the customer address book, a checkout that splits into one order per seller under a checkout group, immutable price/tax/address snapshots, the KDV breakdown, and the reserve→commit→release calls that make it Inventory's first real caller (ADR-052–056). **Stops at awaiting payment** — no money, no shipping, no commission — *complete, not frozen* | [modules/Order.md](../../docs/modules/Order.md) |
-| **Payment** | Collecting the money: one payment per checkout group through PayTR's iframe (no card data ever), a hash-verified idempotent callback, and the **Inventory commit that keeps ADR-057's promise** — plus, in later phases, commission, the seller ledger and payouts (ADR-060–062). **Not the checkout** (Order owns the split and the reservation), not shipping, not invoicing — *P1 built* | [modules/Payment.md](../../docs/modules/Payment.md) |
+| **Payment** | The money: one payment per checkout group through PayTR's iframe (no card data ever), a hash-verified idempotent callback, the **Inventory commit that keeps ADR-057's promise**, the commission rule engine, the append-only seller ledger, recorded payouts, and refunds that reverse money, commission and stock together (ADR-060–062). **Not the checkout** (Order owns the split and the reservation), not shipping, not invoicing — *complete, not frozen* | [modules/Payment.md](../../docs/modules/Payment.md) |
 | **Offer** | What makes the catalog sellable: a seller org's price + stock for one variant, its lifecycle, the computed buy box, the public "product + its offers" surface and the storefront product-listing contributor (ADR-042–046). **No cart, order, payment or commission** — those are later sprints — *complete, not frozen* | [modules/Offer.md](../../docs/modules/Offer.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is

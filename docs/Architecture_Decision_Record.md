@@ -1391,6 +1391,24 @@ colliding key schemes — accepted, because the UNIQUE index turns a collision i
 failure rather than a silent double-hold. A **pgsql-backed checkout test** now guards the
 driver blind spot that hid this.
 
+**Amendment (2026-08-04, Payment P5): a FOURTH verb — `restock`.** The contract shipped
+with three verbs because three were all any caller could use: nothing could refund. Payment
+P5 can, so the reversal primitive lands with it. `restock($reference)` raises `on_hand` and
+leaves `reserved` alone — the hold ended when the sale completed and does not come back —
+and it is a no-op on any reference that is not `committed`, which is what stops a retried
+refund inventing stock that does not physically exist.
+
+It is deliberately NOT `release` called late. Order.md §12.5 answered this in advance:
+Inventory "has no un-commit and must not grow one by side effect — reversing a sale is a
+different business event from abandoning a hold, and conflating them in the append-only
+ledger makes 'why did my stock go up?' unanswerable". So it carries its own movement type
+(`restocked`), its own terminal reservation state (`restocked`) and its own timestamp.
+
+Cost: a fourth verb on a port that was deliberately small, and a fourth movement type on a
+ledger whose value is that each row says exactly what happened. Both accepted as the price
+of the ledger continuing to answer that question. **This closes Order.md §12.5 follow-up
+#1.**
+
 Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.4.
 
 ---

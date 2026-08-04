@@ -9,10 +9,12 @@ use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Models\CommissionRule;
+use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\Payout;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
 use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
+use App\Modules\Payment\Presentation\Policies\PaymentPolicy;
 use App\Modules\Payment\Presentation\Policies\PayoutPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
@@ -83,6 +85,7 @@ final class PaymentServiceProvider extends ServiceProvider
 
         Gate::policy(CommissionRule::class, CommissionRulePolicy::class);
         Gate::policy(Payout::class, PayoutPolicy::class);
+        Gate::policy(Payment::class, PaymentPolicy::class);
 
         /*
         | THE SELLER LEDGER (ADR-062). Payment's own event, so this is a plain
@@ -116,6 +119,16 @@ final class PaymentServiceProvider extends ServiceProvider
     {
         PermissionRegistry::ability('payment.view_any', [UserType::Admin]);
         PermissionRegistry::ability('payment.view', [UserType::Admin]);
+
+        /*
+        | REFUND IS ITS OWN ABILITY, exactly as the P1 note above said it would be
+        | rather than widening `payment.*` into something writable. It is the only
+        | ability on this platform that moves real money OUT — a payout records a
+        | transfer a human made; this one causes one — so it is granted separately
+        | from viewing, and an operator can hand it to Finance without handing over
+        | everything else.
+        */
+        PermissionRegistry::ability('payment.refund', [UserType::Admin]);
 
         /*
         | COMMISSION RULES ARE THE ONE WRITABLE THING IN THIS MODULE (ADR-061). A
