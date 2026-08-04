@@ -120,6 +120,36 @@ Architecture tests are not decoration. They fail the build if the Domain layer
 imports Eloquent, if a module reaches into another module directly, or if a
 `dd()` survives review. See `tests/Architecture/`.
 
+> ### ⚠️ `make lint` does not pass, and never has (diagnosed 2026-08-04)
+>
+> `analyse` and `test` are green and are enforced. **`lint` fails on ~405 files
+> and has failed since the initial commit** — measured, not assumed: checking out
+> `82b6963` (the first commit) and running the OLDEST Pint the constraint allows
+> (`1.18.3`, the floor of `^1.18`) against the repo's own `pint.json` already
+> fails **150 of 410** files in `app/`.
+>
+> So this is **not** drift from a recent `composer update` — `composer.json` has
+> not changed since that first commit, and **`composer.lock` is not tracked at
+> all**, so every environment resolves its own Pint somewhere in `^1.18` and gets
+> slightly different opinions about `phpdoc_align`, `ordered_imports`,
+> `fully_qualified_strict_types` and `braces_position`. One rule is a straight
+> contradiction: `pint.json` sets `not_operator_with_successor_space: false`,
+> which asks for `!$foo`, while the entire codebase is written `! $foo` (Laravel's
+> own style). Flipping that single rule removes 70 files' worth of failures.
+>
+> **Fixing it is its own piece of work, deliberately not folded into a feature
+> branch**, because the remedy touches every file and would bury whatever diff it
+> rode in on:
+>
+> 1. commit a `composer.lock` and pin Pint, so every machine and CI agree;
+> 2. decide the `not_operator_with_successor_space` question — almost certainly
+>    remove the `false`, since the codebase already writes `! $foo`;
+> 3. run `make lint-fix` once, as a single formatting-only commit.
+>
+> Until then: **new code should match the surrounding style rather than whatever
+> the locally-installed Pint prefers**, and a feature branch is not the place to
+> reformat 400 files.
+
 ---
 
 ## Documentation
