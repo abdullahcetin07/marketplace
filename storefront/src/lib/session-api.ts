@@ -22,7 +22,16 @@
  * makes it possible — the whole reason ADR-058 chose one origin.
  */
 
-import type { Address, AddressInput, CartView, Country, GeoPlace, Order, User } from './types';
+import type {
+  Address,
+  AddressInput,
+  CartView,
+  Country,
+  GeoPlace,
+  Order,
+  PaymentView,
+  User,
+} from './types';
 
 /** Laravel's envelope, again — see `api.ts`. */
 type Envelope<T> = { success: boolean; data: T; message?: string | null };
@@ -395,6 +404,35 @@ export async function placeCheckoutGroup(groupId: string): Promise<Order[]> {
 
 export async function fetchOrders(): Promise<Order[]> {
   return (await request<Order[]>('/api/v1/orders')) ?? [];
+}
+
+/*
+|------------------------------------------------------------------------------
+| Payment (ADR-060)
+|------------------------------------------------------------------------------
+|
+| ONE PAYMENT PER CHECKOUT GROUP. `initiate` returns the PayTR iframe token the
+| storefront embeds; the card and 3DS live inside that iframe and never reach this
+| app. The server-to-server callback — not this client, not the redirect — is what
+| actually confirms the payment, so the result page READS the status back rather
+| than trusting where PayTR sent the browser.
+*/
+
+export async function initiatePayment(
+  checkoutGroupId: string,
+): Promise<{ paymentId: string; iframeToken: string } | null> {
+  const data = await request<{ payment_uuid?: string; id?: string; iframe_token: string }>(
+    `/api/v1/checkout/${encodeURIComponent(checkoutGroupId)}/pay`,
+    { method: 'POST' },
+  );
+
+  if (data === null || !data.iframe_token) return null;
+
+  return { paymentId: data.payment_uuid ?? data.id ?? '', iframeToken: data.iframe_token };
+}
+
+export function fetchPayment(uuid: string): Promise<PaymentView | null> {
+  return request<PaymentView>(`/api/v1/payments/${encodeURIComponent(uuid)}`);
 }
 
 export function fetchOrder(id: string): Promise<Order | null> {

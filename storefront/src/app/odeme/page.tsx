@@ -3,35 +3,34 @@
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { AddressForm } from '@/components/AddressForm';
+import { PayTrCheckout } from '@/components/PayTrCheckout';
 import { useSession } from '@/components/SessionProvider';
 import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
 import { ui } from '@/lib/ui';
 import * as api from '@/lib/session-api';
 import { SessionApiError } from '@/lib/session-api';
-import type { Address, Country, Order } from '@/lib/types';
+import type { Address, Country } from '@/lib/types';
+
+const PAYMENT_KEY = 'raftabul:payment';
 
 /**
- * Checkout (§2.2) — pick two addresses, review, place.
+ * Checkout (§2.2, ADR-054/057/060) — pick two addresses, place, pay.
  *
- * IT IS TWO API CALLS AND THE SCREEN SAYS SO IN ITS BEHAVIOUR (ADR-054/057).
- * `checkout` splits the basket by seller and HOLDS the stock; `place` confirms
- * it. Payment will one day sit between them without either call changing — which
- * is the entire reason the two-step exists before there is a payment step to put
- * in it.
+ * THREE CALLS, EACH RESUMABLE. `checkout` splits the basket by seller and RESERVES
+ * the stock; `place` holds it as awaiting-payment orders; `pay` opens PayTR for the
+ * whole group. A failure at any step keeps the checkout group so a retry continues
+ * from where it stopped rather than re-reserving stock or stranding a placed order.
  *
- * THE FAILURE BETWEEN THE TWO IS HANDLED, not hoped away. If `checkout` succeeds
- * and `place` fails, the customer has real orders holding real stock — so the page
- * keeps the group and offers to retry the confirmation rather than sending them
- * back to a basket that is now empty. Losing that id would strand a seller's stock
- * until the expiry sweep.
+ * THE CARD NEVER TOUCHES THIS PAGE. `pay` returns a PayTR iframe token; the card and
+ * its 3-D Secure step happen inside PayTR's frame, which then redirects the browser
+ * to `/odeme/sonuc` or `/odeme/hata`. The payment id is stashed in localStorage so
+ * the result page can read the real status back — the redirect is a hint, the
+ * server-to-server callback is the truth (ADR-060).
  *
  * SEPARATE SHIPPING AND BILLING, both chosen explicitly (ADR-056). "Same as
  * shipping" is a checkbox that sends the same uuid twice — inferring it silently
  * is how a home address ends up on a company's invoice.
- *
- * NO PAYMENT UI. The order ends at "ödeme bekliyor" and says so; a fake card form
- * would be a lie about what the platform can do today.
  */
 export default function CheckoutPage() {
   const { status, cart, refreshCart } = useSession();
@@ -47,9 +46,10 @@ export default function CheckoutPage() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  /** Set when `checkout` succeeded — the handle `place` needs, kept across a retry. */
+  /** Set when `checkout` succeeded — the handle `place`/`pay` need, kept across a retry. */
   const [pendingGroup, setPendingGroup] = useState<string | null>(null);
-  const [placed, setPlaced] = useState<Order[] | null>(null);
+  /** Set once PayTR hands us a token — the page swaps to the payment iframe. */
+  const [iframeToken, setIframeToken] = useState<string | null>(null);
 
   useEffect(() => {
     if (status !== 'authenticated') {
@@ -80,8 +80,21 @@ export default function CheckoutPage() {
     return <SignInPrompt next="/odeme" />;
   }
 
-  if (placed !== null) {
-    return <Confirmation orders={placed} />;
+  if (iframeToken !== null) {
+    return (
+      <div className="mx-auto flex w-full max-w-2xl flex-col gap-4">
+        <div>
+          <h1 className={ui.h1}>Ödeme</h1>
+          <p className="mt-1 flex items-center gap-2 text-sm text-ink-500">
+            <LockIcon />
+            Kart bilgileriniz PayTR'nin güvenli ekranında girilir, bize iletilmez.
+          </p>
+        </div>
+        <div className={`overflow-hidden p-1.5 ${ui.card}`}>
+          <PayTrCheckout token={iframeToken} />
+        </div>
+      </div>
+    );
   }
 
   if (cart.items.length === 0 && pendingGroup === null) {
@@ -108,10 +121,25 @@ export default function CheckoutPage() {
 
       setPendingGroup(groupId);
 
-      const orders = await api.placeCheckoutGroup(groupId);
+      // Place the orders (awaiting_payment, reservation held) then open PayTR for
+      // the whole group. `place` is safe to repeat, and `pay` is idempotent — one
+      // live payment per group — so a retry after either resumes cleanly.
+      await api.placeCheckoutGroup(groupId);
 
-      setPlaced(orders);
-      setPendingGroup(null);
+      const payment = await api.initiatePayment(groupId);
+      if (payment === null) {
+        throw new SessionApiError('Ödeme başlatılamadı. Lütfen tekrar deneyin.', 502);
+      }
+
+      // Stash the id so /odeme/sonuc can read the real status back after PayTR
+      // redirects the browser there.
+      try {
+        window.localStorage.setItem(PAYMENT_KEY, payment.paymentId);
+      } catch {
+        // a storage that refuses us only costs the result page its confirmation
+      }
+
+      setIframeToken(payment.iframeToken);
       await refreshCart();
     } catch (caught) {
       setError(
@@ -267,13 +295,12 @@ export default function CheckoutPage() {
             disabled={busy || shippingId === '' || (!sameAsShipping && billingId === '') || cart.has_unavailable_items}
             className={`${ui.btnPrimary} w-full`}
           >
-            {busy ? 'Gönderiliyor…' : pendingGroup !== null ? 'Onayı tekrar dene' : 'Siparişi ver'}
+            {busy ? 'Hazırlanıyor…' : pendingGroup !== null ? 'Ödemeyi tekrar dene' : 'Ödemeye geç'}
           </button>
 
-          {/* No payment UI (ADR-055): the order stops at awaiting-payment, and
-              saying so is more honest than a card form that does nothing. */}
-          <span className="text-center text-xs text-ink-500">
-            Ödeme adımı yakında. Siparişiniz “ödeme bekliyor” olarak oluşturulur.
+          <span className="flex items-center justify-center gap-1.5 text-center text-xs text-ink-500">
+            <LockIcon />
+            Güvenli PayTR ekranına yönlendirilirsiniz. Kart bilgileriniz bize iletilmez.
           </span>
         </aside>
       </div>
@@ -320,43 +347,11 @@ function AddressChoices({
   );
 }
 
-/**
- * What a customer sees after placing.
- *
- * IT LISTS EVERY ORDER, because a purchase from three sellers IS three orders
- * (ADR-052) with three numbers they may be asked to quote. Hiding that behind one
- * "thank you" would leave them confused by the first email.
- */
-function Confirmation({ orders }: { orders: Order[] }) {
+function LockIcon() {
   return (
-    <div className="mx-auto flex max-w-xl flex-col items-center gap-5 py-10 text-center">
-      <span className="grid h-16 w-16 place-items-center rounded-full bg-green-50 text-green-600 dark:bg-green-950/40">
-        <svg viewBox="0 0 24 24" className="h-8 w-8" fill="none" stroke="currentColor" strokeWidth={2.2} strokeLinecap="round" strokeLinejoin="round">
-          <path d="m5 13 4 4L19 7" />
-        </svg>
-      </span>
-
-      <h1 className="text-2xl font-extrabold tracking-tight">Siparişiniz alındı</h1>
-
-      <p className="max-w-md text-ink-600 dark:text-ink-300">
-        {orders.length > 1
-          ? `Siparişiniz ${orders.length} satıcıya bölündü ve ${orders.length} ayrı sipariş oluşturuldu.`
-          : 'Siparişiniz oluşturuldu.'}{' '}
-        Ödeme adımı yakında devreye girecek.
-      </p>
-
-      <ul className="flex w-full flex-col gap-2 text-left">
-        {orders.map((order) => (
-          <li key={order.id} className={`flex items-center justify-between p-4 ${ui.card}`}>
-            <span className="font-mono text-sm">{order.number}</span>
-            <span className="font-extrabold tracking-tight">{formatMoney(order.grand_total, order.currency)}</span>
-          </li>
-        ))}
-      </ul>
-
-      <Link href="/hesap/siparislerim" className={`${ui.btnPrimary} mt-1`}>
-        Siparişlerime git
-      </Link>
-    </div>
+    <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
+      <rect x="4" y="10" width="16" height="11" rx="2" />
+      <path d="M8 10V7a4 4 0 0 1 8 0v3" />
+    </svg>
   );
 }

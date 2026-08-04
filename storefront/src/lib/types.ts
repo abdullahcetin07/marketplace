@@ -165,3 +165,23 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
 };
 
 export type Country = { code: string; name: string };
+
+/** A payment for one checkout group (ADR-060). */
+export type PaymentStatus =
+  | 'pending'
+  | 'paid'
+  | 'failed'
+  | 'expired'
+  | 'refunded'
+  | 'partially_refunded';
+
+export type PaymentView = {
+  id: string;
+  checkout_group_id: string;
+  status: PaymentStatus;
+  /** Decimal string — never parsed to a number (005 §28). */
+  amount: string;
+  currency: string;
+  paid_at: string | null;
+  created_at: string;
+};
