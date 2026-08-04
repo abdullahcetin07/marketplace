@@ -57,8 +57,8 @@ cd /var/www/www.raftabul.com/test
 git pull
 # Run artisan AS www-data, never as root — a root-created log file makes every
 # later web request that logs (an ordinary 404 included) 500 on Permission denied
-# (see "Never run php artisan as root" below). The setgid hardening in that section
-# is the belt; this is the braces.
+# (see "Never run php artisan as root" below). The setgid + default-ACL hardening
+# in that section is the belt; this is the braces.
 sudo -u www-data php artisan migrate --force     # if the backend changed
 sudo -u www-data php artisan config:clear
 
@@ -115,19 +115,38 @@ it will cost you an hour if you are curling by hand.
 rendering an ordinary 404 — dies on `Permission denied` and becomes a 500.
 Recovery: `chown -R www-data:www-data storage bootstrap/cache`.
 
-**The permanent guard (apply once) so a slip does not recur.** Prefer the
-`sudo -u www-data` deploy above, but also make the directories forgive a stray
-root write: the setgid bit forces new files to inherit the `www-data` group, and
-group-write lets `www-data` (php-fpm) append to a log even if root created it.
+**The permanent guard (applied 2026-08-04).** Prefer the `sudo -u www-data`
+deploy above, but also make the directories forgive a stray root write:
 
 ```bash
 sudo chown -R www-data:www-data storage bootstrap/cache
 sudo find storage bootstrap/cache -type d -exec chmod 2775 {} \;   # 2 = setgid
 sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+
+# setgid alone is NOT enough — see below.
+sudo apt-get install -y acl
+sudo setfacl -R    -m g:www-data:rwX storage bootstrap/cache
+sudo setfacl -R -d -m g:www-data:rwX storage bootstrap/cache   # -d = DEFAULT
 ```
 
-This is why the trap keeps returning: without setgid, every root-run command
-re-owns the day's log, and the warning above is a reminder nobody reads at 2am.
+**Why setgid alone does not fix this, tested rather than assumed.** setgid makes a
+new file inherit the directory's *group* — but its *mode* still comes from the
+creating process's umask, and root's is `022`. So a root-created log lands as
+`-rw-r--r-- root www-data`: the right group, and no group-write bit for that group
+to use. php-fpm still gets `Permission denied`, which is exactly the 500 this
+section exists to prevent. Verified by `touch`ing a file as root and trying to
+append as `www-data` — it failed with setgid in place and succeeded once the
+default ACL was added.
+
+**The `-d` (default) ACL is the part that actually works**, because it sets the
+mode on files at creation regardless of who creates them or what their umask is.
+Confirmed for new files and for files inside newly-created subdirectories.
+
+Recovery if it ever does break again:
+`sudo chown -R www-data:www-data storage bootstrap/cache`.
+
+This is why the trap kept returning: every root-run command re-owned the day's log,
+and the warning above is a reminder nobody reads at 2am.
 
 The panels are the ones to check: a routing mistake shows up there first, because
 they are the paths `location /` would happily swallow.
