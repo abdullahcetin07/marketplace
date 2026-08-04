@@ -132,9 +132,21 @@ also registers no storefront contributor in Phase 1 (ADR-041) and imports neithe
 Organization nor Store — the proposing company is a bare `proposed_by_org_uuid`
 (ADR-040).
 
-**Do not create a Payment module.** That is a later sprint, and only after its
-architecture review is approved. (Offer, Inventory and Order are approved and built —
-see above.)
+**Payment is APPROVED and SPEC'd (2026-08-04; ADR-060–062,
+[docs/modules/Payment.md](docs/modules/Payment.md)) — building now, phased P1–P5.**
+The architecture review passed: single-merchant settlement + **manual/batch payout**
+(sellers are not submerchants — the platform holds and pays out; BDDK licensing is the
+accepted early-phase cost, submerchant migration a future ADR); **PayTR** behind a
+Core `PaymentGatewayContract`, iFrame-shaped so **no card data touches the platform**;
+**one Payment per Order `checkout_group`** (`merchant_oid = payment.uuid`), the
+hash-verified **idempotent callback** the source of truth, not the redirect. It
+**closes ADR-054/057** — on payment success Payment drives Inventory's reservation
+**commit** via the Core command port. Commission is a **multi-dimensional rule engine**
+(product/category/brand/seller, most-specific-wins) on the **KDV-inclusive** sale
+amount, frozen at payment (ADR-061); the seller balance is an **append-only ledger**
+and payout only records the external transfer (ADR-062). **Payment imports NO module** —
+Core contracts + class-string events + the gateway port only. Do NOT build ahead of the
+phased work order or change these decisions without an ADR amendment.
 
 ---
 

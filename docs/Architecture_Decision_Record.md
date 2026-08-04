@@ -1675,4 +1675,126 @@ Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §2.7.
 
 ---
 
+# ADR-060 Payment: Single-Merchant Settlement with Manual Payout; PayTR Behind a Gateway Port; One Payment per Checkout Group; Stock Commits on Payment Success
+
+**Decision.** The platform is a **single merchant** at the PSP: every buyer payment
+lands in the platform's own account, sellers are **not** submerchants, and the platform
+records internally what each seller is owed (ADR-062) and pays them out **manually / in
+batches**. The PSP splits nothing.
+
+**PayTR is the first — and, behind a port, only visible — gateway.** All PSP contact
+goes through Core's **`PaymentGatewayContract`** (`initiate` / `verifyCallback` /
+`refund`); `PayTrGateway` (Infrastructure) is the sole implementation, integrated in the
+**iFrame** shape so **no card data ever touches the platform** — the card and its 3-D
+Secure step happen inside PayTR's iframe. A second PSP is a second adapter, never a
+change to the domain.
+
+**One Payment per checkout group.** The buyer pays once for the whole basket, so the
+Payment aggregate is keyed to Order's `checkout_group` (the mirror of ADR-052's split:
+Order split the basket to ship it, Payment rejoins it to charge it). `merchant_oid =
+payment.uuid`. The amount is Σ the group's orders' `grand_total`, in **integer kuruş** —
+PayTR's unit is the platform's.
+
+**The server-to-server callback is the source of truth, not the browser redirect**, and
+it is **hash-verified and idempotent**: PayTR retries until it receives `"OK"`, so the
+same `merchant_oid` may arrive repeatedly and must be processed exactly once; a spoofed
+or replayed callback changes nothing. On a verified success the Payment becomes `paid`
+and every order in the group is confirmed; on failure/expiry the reservations are
+released.
+
+**This closes ADR-054/057.** ADR-057 left placement only **holding** the reservation and
+named Payment as the committer. On the success callback, Payment drives Inventory's
+reservation **commit** through the Core command port Order already uses — turning the
+hold into a permanent decrement — keyed by Order's `order_uuid:variant_uuid` string
+reference (ADR-049's key, never a uuid). Payment never touches a stock number itself.
+
+Rationale: the owner chose the simpler collection path over the licensing-cleaner
+submerchant model for the early phase, and to own the balance/payout ledger in-house.
+
+Cost, stated plainly: **the platform holds money that belongs to sellers until payout.**
+At scale that is the activity of a payment/e-money institution and draws BDDK licensing
+obligations in Turkey. This is an accepted early-phase trade; migration to a submerchant
+settlement is a future ADR, and the ledger (ADR-062) is shaped so that migration changes
+who moves the money, not how the platform accounts for it. Payment imports **no** module
+— Core contracts, class-string events and the gateway port only; `LayeringTest` enforces
+it, as for Offer/Inventory/Order.
+
+Full specification: [docs/modules/Payment.md](modules/Payment.md) §2–5, §10.
+
+---
+
+# ADR-061 Commission Is a Multi-Dimensional Rule Engine on the KDV-Inclusive Sale Amount, Frozen at Payment
+
+**Decision.** Commission is **not** a single platform rate. The operator sets different
+commissions by **product, category, brand and seller** — any of them, in any combination
+— through a `commission_rules` **table** (an operator adds a rate without a release, so a
+table, not an enum; ADR-015 `is_active`). Each rule optionally scopes by
+`seller_org_uuid`, `product_uuid`, `brand_uuid`, `category_uuid` (any null = wildcard),
+plus a `DECIMAL` `rate` and an integer `priority`. A rule with all four scopes null is
+the **platform default**.
+
+**Resolution is most-specific-wins.** For an order line (which knows its product, brand,
+category and seller): take every active rule whose non-null scopes all match, rank by
+**specificity** (how many scopes are set), break ties by explicit **`priority`** then
+recency, and fall back to the default. So "seller X + category Kozmetik = 12%" beats
+"brand Bioderma = 10%" beats "category Kozmetik = 15%" beats "default = 18%" for a line
+matching all of them.
+
+**The base is the KDV-INCLUSIVE sale amount** (owner choice 2026-08-04) — `rate ×` the
+line's gross, KDV-inclusive total, in integer kuruş. Not ex-KDV. (The KDV on the
+commission itself and the commission invoice the platform owes the seller are
+e-fatura/accounting concerns outside this software.)
+
+**Frozen at payment.** The resolved rate and the computed commission kuruş are
+**snapshotted onto the order's lines at payment time**, exactly as Order freezes
+price/tax (ADR-053). Changing a rule re-prices the **next** sale, never a settled one — a
+commission a seller has already seen deducted must never move.
+
+Rationale: real marketplaces price commission by category with per-seller and
+per-product exceptions; a single flat rate could not express the owner's pricing.
+
+Cost: a resolution step on every paid line, and a rule table whose specificity ordering
+an operator must understand to predict the effective rate; `DECIMAL` rate, integer kuruş
+result — never a float (ADR-005).
+
+Full specification: [docs/modules/Payment.md](modules/Payment.md) §6.
+
+---
+
+# ADR-062 The Seller Balance Is an Append-Only Ledger; Payout Is Manual and Recorded
+
+**Decision.** What a seller is owed is a **ledger**, not a mutable balance column — the
+same append-only discipline as Audit and the Inventory movement ledger.
+`seller_ledger_entries` (the model refuses update and delete) records typed, signed,
+integer-kuruş entries — `sale_credit`, `commission_debit`, `payout_debit`,
+`refund_debit`, `refund_commission_credit` — each pointing at the order/payment/payout
+that produced it. **Balance is the sum of the entries, computed on read**, never stored.
+
+On a paid order, per seller: a `sale_credit` of the order's KDV-inclusive total and a
+`commission_debit` of the commission — so the balance rises by **net of commission**.
+
+**Payout is manual and only recorded.** An admin creates a Payout for a seller up to
+their available balance (appending a `payout_debit`); it carries the external reference
+of the bank transfer a human/bank actually made. The **software does not move money**
+(single-merchant model, ADR-060). A payout cannot exceed the computed balance, and
+concurrent payouts are guarded so a balance cannot go negative.
+
+**Refund reverses through the ledger too.** A successful PSP refund appends `refund_debit`
++ `refund_commission_credit` (giving back the commission the platform took) and restocks
+through Inventory (the mirror of ADR-060's commit). Because balance is a **sum**, a refund
+after a payout simply drives the balance negative and blocks the next payout until it is
+made whole — the money is never lost track of, which a mutable column could not promise.
+
+Rationale: money owed to third parties is exactly the case where append-only,
+recompute-on-read pays for itself; the refund-after-payout hazard is otherwise a silent
+corruption.
+
+Cost: balance is an aggregate query, not a column read (indexed by seller); every money
+movement is one more immutable row; the platform must reconcile the ledger against the
+PSP's own settlement report out of band.
+
+Full specification: [docs/modules/Payment.md](modules/Payment.md) §7–8.
+
+---
+
 END OF FILE
