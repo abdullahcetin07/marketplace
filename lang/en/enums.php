@@ -129,6 +129,7 @@ return [
     'OrderStatus' => [
         'pending' => 'In checkout',
         'awaiting_payment' => 'Awaiting payment',
+        'paid' => 'Paid',
         'cancelled' => 'Cancelled',
     ],
 

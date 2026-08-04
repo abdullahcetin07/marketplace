@@ -59,6 +59,15 @@ return [
     // read `OrderQueryContract`.
     App\Modules\Order\OrderServiceProvider::class,
 
+    // Business modules (Sprint: Payment)
+    // After Order, because Payment reads a checkout group through
+    // `OrderQueryContract` and commits the reservations Order's placement held
+    // (ADR-057 — Payment is the caller that decision named). It imports no
+    // module; Order learns money arrived by subscribing to `PaymentSucceeded`
+    // BY CLASS-STRING from its own provider, which is why the load order here is
+    // about contracts being bound, not about events being heard.
+    App\Modules\Payment\PaymentServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

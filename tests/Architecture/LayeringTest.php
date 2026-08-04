@@ -394,6 +394,64 @@ arch('no module depends on Order')
     ]);
 
 /*
+|--------------------------------------------------------------------------
+| Payment — the fifth module to import nothing (ADR-060, Payment.md §9)
+|--------------------------------------------------------------------------
+|
+| The module that takes money, and the one with the most reasons to cheat: it
+| needs a checkout group's orders, the stock those orders are holding, the seller
+| behind each one and — from P2 — the product a commission rule matches. Every one
+| of them arrives through a Core contract by uuid.
+|
+| IT DRIVES TWO COMMAND PORTS, not one. `InventoryReservationContract::commit()` is
+| the promise ADR-057 made and named Payment as the keeper of; the PSP is the
+| other, behind `PaymentGatewayContract` — a port that points OUT of the platform
+| rather than at another module, which is why the only class allowed to know PayTR
+| exists lives in this module's Infrastructure.
+|
+| IT DOES NOT CONFIRM AN ORDER, and that absence is the rule working. Payment
+| commits the stock but announces `PaymentSucceeded`; ORDER moves its own status,
+| subscribing by class-string from its own side. A module setting another's status
+| is the boundary failing at exactly the point where cutting the corner is most
+| tempting.
+*/
+arch('Payment imports no other module at all')
+    ->expect('App\Modules\Payment')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Order',
+    ]);
+
+/*
+| The mirror. Nothing reaches into Payment — not even Order, which learns that
+| money arrived by naming `PaymentSucceeded` as a STRING.
+|
+| `App\Core\Domain\Contracts` is on the list because `PaymentGatewayContract`
+| type-hints Payment's own DTOs: the vocabulary of paying — an intent, a session,
+| a result — belongs to the module that owns paying, and Core declaring a parallel
+| set would mean two definitions of "a payment result" that must never disagree.
+| It is a port referencing its own domain's language, not a module dependency.
+*/
+arch('no module depends on Payment')
+    ->expect('App\Modules\Payment')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Payment',
+        'App\Core\Domain\Contracts',
+        'App\Providers\Filament',
+        'Database\Modules\Payment',
+        'Tests\Modules\Payment',
+    ]);
+
+/*
 | The mirror of the rule above: nothing built so far may reach INTO Catalog.
 | Offer, Inventory and Search will read it through the Core contract when they
 | exist; until then the only correct number of importers is zero, and stating it
@@ -531,6 +589,17 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Store\StoreServiceProvider',
         // Catalog — non-DTO namespaces ignored so its Domain\DTOs stay covered
         // (they must carry the suffix), like the modules above.
+        // Payment — same shape: non-DTO namespaces ignored so its Domain\DTOs
+        // stay covered (they must carry the suffix).
+        'App\Modules\Payment\Application',
+        'App\Modules\Payment\Domain\Models',
+        'App\Modules\Payment\Domain\Enums',
+        'App\Modules\Payment\Domain\Events',
+        'App\Modules\Payment\Domain\Contracts',
+        'App\Modules\Payment\Domain\Exceptions',
+        'App\Modules\Payment\Infrastructure',
+        'App\Modules\Payment\Presentation',
+        'App\Modules\Payment\PaymentServiceProvider',
         'App\Modules\Catalog\Application',
         'App\Modules\Catalog\Domain\Models',
         'App\Modules\Catalog\Domain\Enums',

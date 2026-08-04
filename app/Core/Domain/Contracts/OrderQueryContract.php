@@ -74,6 +74,54 @@ interface OrderQueryContract
     public function ordersForCheckoutGroup(string $checkoutGroupUuid): array;
 
     /**
+     * The paying customer behind a checkout group, as the ADR-040 id/uuid pair;
+     * null when the group does not exist.
+     *
+     * ADDED FOR PAYMENT (2026-08-04). A Payment row is keyed to the GROUP but has
+     * to know whose money it is — to scope the owner-only status read, and to tell
+     * the PSP who is paying. The id is what scopes; the uuid is what may leave the
+     * application (non-negotiable #7).
+     *
+     * @return array{id: int, uuid: string, email: string}|null
+     */
+    public function checkoutGroupCustomer(string $checkoutGroupUuid): ?array;
+
+    /**
+     * One order's frozen line snapshots (ADR-053).
+     *
+     * ADDED FOR PAYMENT (2026-08-04, Payment.md §12). Two callers need it and
+     * neither may import Order: the PSP basket a buyer sees on the payment page,
+     * and — from P2 — the commission resolver, which reads product/brand/category
+     * off the SNAPSHOT rather than off the live catalogue, so a re-categorised
+     * product cannot move a settled commission.
+     *
+     * SNAPSHOT VALUES, NOT LIVE ONES. Everything here was frozen at placement and
+     * is what the customer agreed to; asking the Catalog again would answer a
+     * different question.
+     *
+     * @return array<int, array{variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string}>
+     */
+    public function orderLines(string $orderUuid): array;
+
+    /**
+     * The stock-reservation references one order is holding, in Inventory's
+     * vocabulary — ready to hand straight to `InventoryReservationContract`.
+     *
+     * ADDED FOR PAYMENT (2026-08-04), and the shape is the point. Payment must
+     * COMMIT what placement only held (ADR-057), which means naming the
+     * reservations — but the key's FORMAT is Order's (`{order_uuid}:{variant_uuid}`,
+     * the ADR-049 amendment). Handing back the assembled references keeps that
+     * format in the module that invented it; the alternative is Payment
+     * reconstructing a string it does not own, and the two drifting apart the day
+     * the scheme changes.
+     *
+     * Empty for an order with no lines, and for one that never reserved.
+     *
+     * @return array<int, string>
+     */
+    public function reservationReferencesFor(string $orderUuid): array;
+
+    /**
      * What one order comes to; null when no such order exists.
      *
      * The tax total is included rather than left to be recomputed: it was

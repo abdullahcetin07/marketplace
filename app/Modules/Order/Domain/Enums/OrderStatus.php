@@ -49,6 +49,14 @@ enum OrderStatus: string
 
     case Pending = 'pending';
     case AwaitingPayment = 'awaiting_payment';
+    /**
+     * Money arrived and the stock has left (Payment.md §5, added 2026-08-04).
+     *
+     * THE CASE ADR-057 PROMISED. Placement only HELD the reservation and this
+     * enum said so; Payment is the module that commits it, and this is the state
+     * on the other side of that commit.
+     */
+    case Paid = 'paid';
     case Cancelled = 'cancelled';
 
     /**
@@ -68,7 +76,19 @@ enum OrderStatus: string
             // back. It does NOT return to Pending: the customer has placed the
             // order, and rewinding to "still choosing" is not a state anyone asked
             // for.
-            self::AwaitingPayment => [self::Cancelled],
+            // Paid on a verified success callback; cancellable until then.
+            self::AwaitingPayment => [self::Paid, self::Cancelled],
+            /*
+            | TERMINAL FOR NOW, and deliberately so. Fulfilment states
+            | (Preparing/Shipped/Delivered) belong to Shipping and a refund
+            | belongs to Payment's P5 — both would be cases nothing can set, which
+            | is the mistake this enum avoided for `Paid` itself until today.
+            |
+            | It is NOT cancellable: the stock is committed and the money is
+            | collected, so "cancel" now means REFUND, which is a different
+            | operation with a different actor and a PSP call behind it.
+            */
+            self::Paid => [],
             self::Cancelled => [],
         };
     }
@@ -92,6 +112,14 @@ enum OrderStatus: string
      */
     public function holdsReservation(): bool
     {
+        /*
+        | IT NARROWED HERE, exactly as this docblock predicted (2026-08-04).
+        | `Paid` is deliberately absent: a paid order's reservation has been
+        | COMMITTED, so the units are gone rather than held, and Inventory's
+        | `release()` on a committed reference is a documented no-op. Treating a
+        | paid order as holding stock would make a cancellation look like it gave
+        | something back when it gave nothing.
+        */
         return $this === self::Pending || $this === self::AwaitingPayment;
     }
 
@@ -116,7 +144,10 @@ enum OrderStatus: string
      */
     public function isTerminal(): bool
     {
-        return $this === self::Cancelled;
+        // `Paid` joins it (2026-08-04): the money is collected and the stock is
+        // committed, so nothing in the CURRENT scope moves it again. Shipping and
+        // the refund path both re-open it when they exist.
+        return $this === self::Cancelled || $this === self::Paid;
     }
 
     /**
@@ -130,6 +161,13 @@ enum OrderStatus: string
      */
     public function isCancellableByCustomer(): bool
     {
+        /*
+        | THIS IS THE NARROWING THE DOCBLOCK ABOVE PREDICTED (2026-08-04). It
+        | falls out of `Paid` being terminal rather than needing its own clause:
+        | once money has changed hands, walking away is a REFUND — a different
+        | operation, with a PSP call behind it and an actor who may not be the
+        | customer.
+        */
         return ! $this->isTerminal();
     }
 
@@ -141,6 +179,7 @@ enum OrderStatus: string
         return match ($this) {
             self::Pending => 'warning',
             self::AwaitingPayment => 'info',
+            self::Paid => 'success',
             self::Cancelled => 'danger',
         };
     }

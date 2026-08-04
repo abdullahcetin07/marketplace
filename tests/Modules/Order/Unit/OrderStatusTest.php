@@ -91,19 +91,24 @@ it('lets a customer walk away from either live state, this sprint', function ():
         ->and(OrderStatus::Cancelled->isCancellableByCustomer())->toBeFalse();
 });
 
-it('has exactly the three cases the platform can actually reach', function (): void {
+it('has exactly the cases the platform can actually reach', function (): void {
     /*
-     * `Paid`, `Preparing`, `Shipped`, `Delivered`, `Completed` and `Returned` are
-     * all states this platform will need, and every one belongs to a module that
-     * does not exist. Shipping them now would put cases in the enum that nothing
-     * can ever set — and the first reader would reasonably assume something does.
+     * THE RULE IS UNCHANGED AND `Paid` NOW PASSES IT (2026-08-04). This file used
+     * to assert three cases and name `Paid` among the states "that belong to a
+     * module that does not exist" — Payment now exists, and its verified success
+     * callback is the one thing on the platform that sets this.
+     *
+     * `Preparing`, `Shipped`, `Delivered`, `Completed` and `Returned` are still
+     * absent for exactly the original reason: Shipping and Returns do not exist,
+     * so those would be cases nothing can ever set, and the first reader would
+     * reasonably assume something does.
      */
     expect(array_map(fn (OrderStatus $s): string => $s->value, OrderStatus::cases()))
-        ->toBe(['pending', 'awaiting_payment', 'cancelled']);
+        ->toBe(['pending', 'awaiting_payment', 'paid', 'cancelled']);
 });
 
 it('gives every case a colour for the panels', function (): void {
     foreach (OrderStatus::cases() as $status) {
-        expect($status->color())->toBeIn(['warning', 'info', 'danger']);
+        expect($status->color())->toBeIn(['warning', 'info', 'success', 'danger']);
     }
 });

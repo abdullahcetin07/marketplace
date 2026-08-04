@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Models\Customer;
 use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
@@ -359,6 +360,30 @@ it('takes a slug on every public catalog read without casting it to a uuid', fun
     $this->getJson('/api/v1/resolve/kesinlikle-boyle-bir-slug-yok')->assertNotFound();
     $this->getJson('/api/v1/categories/kesinlikle-yok')->assertNotFound();
     $this->getJson('/api/v1/brands/kesinlikle-yok')->assertNotFound();
+});
+
+it('keeps a non-uuid checkout group away from the payments uuid column', function (): void {
+    /*
+     * THE FIFTH WATCH (Payment.md §3, 2026-08-04). `payments.checkout_group_uuid`
+     * is a NATIVE uuid column here, so `where('checkout_group_uuid', 'sepet')` is
+     * SQLSTATE[22P02] — a 500 on the pay button — while on SQLite it is text and
+     * quietly returns false. Four modules have shipped that bug; Payment resolves
+     * by shape before it queries, and this is where that is verified on the engine
+     * that actually enforces types.
+     */
+    expect(static fn (): mixed => DB::connection('pgsql')
+        ->table('payments')
+        ->where('uuid', (string) Str::uuid())
+        ->first())
+        ->not->toThrow(\Throwable::class);
+
+    $customer = Customer::factory()->create();
+
+    $this->actingAs($customer, 'customer');
+
+    foreach (['not-a-uuid', 'sepet'] as $group) {
+        $this->postJson("/api/v1/checkout/{$group}/pay")->assertNotFound();
+    }
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {

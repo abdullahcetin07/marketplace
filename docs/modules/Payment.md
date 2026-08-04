@@ -76,8 +76,25 @@ PayTR is integrated in its **iFrame API** shape: **no card data ever touches the
 platform.** The buyer's card and its 3-D Secure step happen entirely inside PayTR's
 iframe; the platform only ever sees a result.
 
-The whole PSP surface lives behind **`PaymentGatewayContract`** (Core) so the domain
-never names PayTR:
+The whole PSP surface lives behind **`PaymentGatewayContract`** so the domain never
+names PayTR:
+
+> **Amended 2026-08-04 (P1 build, reported for ratification).** The spec placed
+> this interface in `app/Core`. It could not go there: its signatures are
+> Payment's own DTOs, and `LayeringTest` enforces "Core never depends on a
+> module" — a rule that outranks a module spec in the document chain (CLAUDE.md →
+> ADR → 001 → … → module specs). The three ways out were to move the DTOs into
+> Core, retype the port on plain arrays, or put the interface where its vocabulary
+> already lives. **It lives at
+> `App\Modules\Payment\Domain\Contracts\PaymentGatewayContract`.**
+>
+> The reason given below is fully preserved — the domain still never names PayTR,
+> because the actions depend on the interface and `PayTrGateway` is bound to it in
+> the service provider. The Core placement was never load-bearing: every contract
+> in `app/Core/Domain/Contracts` exists so one MODULE can ask ANOTHER a question
+> without importing it, and this port points *out of the platform* at a payment
+> provider that no other module will ever call. It is the same kind as
+> `CategorySlugGeneratorContract`, which lives in Catalog for the same reason.
 
 ```
 interface PaymentGatewayContract {

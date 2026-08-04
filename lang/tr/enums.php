@@ -130,6 +130,7 @@ return [
     'OrderStatus' => [
         'pending' => 'Ödeme adımında',
         'awaiting_payment' => 'Ödeme bekliyor',
+        'paid' => 'Ödendi',
         'cancelled' => 'İptal edildi',
     ],
 

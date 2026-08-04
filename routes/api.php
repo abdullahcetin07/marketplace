@@ -29,6 +29,8 @@ use App\Modules\Organization\Presentation\Controllers\Api\InvitationController a
 use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
+use App\Modules\Payment\Presentation\Controllers\Api\PaymentController;
+use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
 use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
@@ -87,6 +89,26 @@ Route::prefix('v1')
             Route::get('/localization', [LocalizationController::class, 'index'])->name('localization');
             Route::get('/localization/countries', [LocalizationController::class, 'countries'])->name('localization.countries');
             Route::get('/localization/timezones', [LocalizationController::class, 'timezones'])->name('localization.timezones');
+
+            /*
+            | THE PSP'S SERVER-TO-SERVER CALLBACK (ADR-060, Payment.md §3).
+            |
+            | UNAUTHENTICATED, AND IT HAS TO BE — PayTR has no session and no
+            | token. The security model is the HASH: the gateway recomputes it
+            | over the posted fields with the merchant key and salt, and a payload
+            | that does not verify changes nothing.
+            |
+            | IT ALWAYS ANSWERS "OK", in plain text, whatever happened. PayTR
+            | retries anything else for days, so a 500 on a payload we will never
+            | accept becomes a retry storm, and a 422 on a duplicate makes it
+            | re-send a payment already settled.
+            |
+            | ON THE API THROTTLE, not the storefront one: this is machine traffic
+            | from one known source, and it must not share an allowance with the
+            | anonymous browsing that a crawler can exhaust.
+            */
+            Route::post('/payments/paytr/callback', PayTrCallbackController::class)
+                ->name('payments.paytr.callback');
 
             /*
             | The address form's il → ilçe → mahalle cascade (ADR-056 amendment).
@@ -418,6 +440,30 @@ Route::prefix('v1')
             // PER ORDER, not per group: each seller's half of a purchase is
             // independently fulfilled, so each is independently cancellable.
             Route::post('/orders/{order}/cancel', [CustomerOrderController::class, 'cancel'])->name('orders.cancel');
+
+            /*
+            | PAYING FOR A CHECKOUT GROUP (ADR-060, Payment.md §3).
+            |
+            | ONE CHARGE FOR THE WHOLE BASKET, which is why the route is keyed to
+            | the GROUP and not to an order: Order split the basket so N sellers
+            | could fulfil independently (ADR-052), and a card is charged once.
+            |
+            | IT TAKES NO AMOUNT. The total is summed from the orders the group
+            | already holds — a client-supplied amount is the oldest vulnerability
+            | in e-commerce, and there is no field here that could carry one.
+            |
+            | The response is a TOKEN, not a redirect: the storefront embeds
+            | PayTR's iframe with it, so the card and the 3-D Secure step never
+            | touch this application.
+            */
+            Route::post('/checkout/{group}/pay', [PaymentController::class, 'store'])->name('checkout.pay');
+
+            /*
+            | What the result page asks after PayTR sends the browser back. The
+            | answer comes from what the SERVER learned on the callback — the
+            | redirect's query string is whatever the browser was handed.
+            */
+            Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
         });
 
         /*

@@ -7,6 +7,8 @@ namespace App\Modules\Order\Infrastructure\Queries;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
+use App\Modules\Order\Domain\Models\OrderLine;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Order's implementation of the downstream read port (§5).
@@ -55,6 +57,95 @@ final class OrderQuery implements OrderQueryContract
             ->inCheckoutGroup($checkoutGroupUuid)
             ->orderBy('id')
             ->pluck('uuid')
+            ->all();
+    }
+
+    /**
+     * Added for Payment (2026-08-04) — see the contract for why a Payment row
+     * keyed to a GROUP still has to know whose money it is.
+     *
+     * THE EMAIL COMES FROM THE ORDER'S OWN CUSTOMER RECORD, read through the
+     * users table by id rather than joined: Order holds the ADR-040 pair and no
+     * relation to `User`, and the PSP needs an address to send a receipt to.
+     *
+     * @return array{id: int, uuid: string, email: string}|null
+     */
+    public function checkoutGroupCustomer(string $checkoutGroupUuid): ?array
+    {
+        $order = Order::query()
+            ->inCheckoutGroup($checkoutGroupUuid)
+            ->orderBy('id')
+            ->first(['customer_id', 'customer_uuid']);
+
+        if ($order === null) {
+            return null;
+        }
+
+        $email = DB::table('users')->where('id', $order->customer_id)->value('email');
+
+        return [
+            'id' => (int) $order->customer_id,
+            'uuid' => (string) $order->customer_uuid,
+            // Empty rather than null when the account has gone: a payment is not
+            // worth refusing over a missing receipt address, and the PSP will take
+            // the charge either way.
+            'email' => is_string($email) ? $email : '',
+        ];
+    }
+
+    /**
+     * Added for Payment (2026-08-04) — the PSP basket, and from P2 the commission
+     * resolver's input.
+     *
+     * @return array<int, array{variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string}>
+     */
+    public function orderLines(string $orderUuid): array
+    {
+        $order = Order::query()->with('lines')->where('uuid', $orderUuid)->first();
+
+        if ($order === null) {
+            return [];
+        }
+
+        return $order->lines
+            ->map(static fn (OrderLine $line): array => [
+                'variant_uuid' => $line->variant_uuid,
+                'product_uuid' => $line->product_uuid,
+                // The title AS BOUGHT (ADR-053), which is what belongs on a
+                // payment page — a shopper must recognise what they are paying
+                // for, even if the catalogue has since renamed it.
+                'title' => $line->product_title,
+                'quantity' => $line->quantity,
+                'unit_price_minor' => $line->unit_price_minor,
+                'line_total_minor' => $line->line_total_minor,
+                'tax_rate' => $line->tax_rate,
+            ])
+            ->values()
+            ->all();
+    }
+
+    /**
+     * Added for Payment (2026-08-04) — see the contract for why the reference
+     * FORMAT stays in this module.
+     *
+     * BUILT BY THE AGGREGATE, not by string concatenation here: `Order::
+     * reservationReferenceFor()` is the one definition of the key, and the whole
+     * reason this method exists is so nothing outside Order ever writes that
+     * colon.
+     *
+     * @return array<int, string>
+     */
+    public function reservationReferencesFor(string $orderUuid): array
+    {
+        $order = Order::query()->with('lines')->where('uuid', $orderUuid)->first();
+
+        if ($order === null) {
+            return [];
+        }
+
+        return $order->lines
+            ->map(static fn (OrderLine $line): string => $order->reservationReferenceFor($line->variant_uuid))
+            ->values()
             ->all();
     }
 

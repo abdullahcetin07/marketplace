@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Order;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Modules\Order\Application\Listeners\SettleOrdersOnPayment;
 use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
 use App\Modules\Order\Domain\Contracts\CustomerAddressRepositoryContract;
 use App\Modules\Order\Domain\Contracts\OrderNumberGeneratorContract;
@@ -18,6 +19,7 @@ use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
 use App\Modules\Order\Presentation\Policies\OrderPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
@@ -87,6 +89,36 @@ final class OrderServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(database_path('Modules/Order/migrations'));
 
         Gate::policy(Order::class, OrderPolicy::class);
+
+        $this->subscribeToPayment();
+    }
+
+    /**
+     * Order learns that money arrived — BY CLASS-STRING (Payment.md §3).
+     *
+     * THE BOUNDARY, from Order's side. Payment commits the stock itself (it is the
+     * caller ADR-057 named) but does not set an order's status, because an order's
+     * state machine is Order's. So Payment announces and Order decides, and neither
+     * imports the other: this names the event as a STRING and the handler takes an
+     * untyped `object`.
+     *
+     * The same name-is-not-an-import coupling Offer uses for Catalog's lifecycle
+     * events and Inventory for Offer's stock events. Its cost is identical and
+     * accepted: a rename in Payment breaks this at runtime rather than at build
+     * time, bounded by a feature test that fires the real callback and asserts
+     * these orders moved.
+     */
+    private function subscribeToPayment(): void
+    {
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentSucceeded',
+            [SettleOrdersOnPayment::class, 'onSucceeded'],
+        );
+
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentFailed',
+            [SettleOrdersOnPayment::class, 'onFailed'],
+        );
     }
 
     /**
