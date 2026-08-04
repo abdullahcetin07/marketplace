@@ -55,8 +55,12 @@ break outright if the certificate lapsed.
 ```bash
 cd /var/www/www.raftabul.com/test
 git pull
-php artisan migrate --force          # if the backend changed
-php artisan config:clear
+# Run artisan AS www-data, never as root — a root-created log file makes every
+# later web request that logs (an ordinary 404 included) 500 on Permission denied
+# (see "Never run php artisan as root" below). The setgid hardening in that section
+# is the belt; this is the braces.
+sudo -u www-data php artisan migrate --force     # if the backend changed
+sudo -u www-data php artisan config:clear
 
 cd storefront
 npm ci
@@ -110,6 +114,20 @@ it will cost you an hour if you are curling by hand.
 `root`, and every subsequent web request that tries to log — including one
 rendering an ordinary 404 — dies on `Permission denied` and becomes a 500.
 Recovery: `chown -R www-data:www-data storage bootstrap/cache`.
+
+**The permanent guard (apply once) so a slip does not recur.** Prefer the
+`sudo -u www-data` deploy above, but also make the directories forgive a stray
+root write: the setgid bit forces new files to inherit the `www-data` group, and
+group-write lets `www-data` (php-fpm) append to a log even if root created it.
+
+```bash
+sudo chown -R www-data:www-data storage bootstrap/cache
+sudo find storage bootstrap/cache -type d -exec chmod 2775 {} \;   # 2 = setgid
+sudo find storage bootstrap/cache -type f -exec chmod 664 {} \;
+```
+
+This is why the trap keeps returning: without setgid, every root-run command
+re-owns the day's log, and the warning above is a reminder nobody reads at 2am.
 
 The panels are the ones to check: a routing mistake shows up there first, because
 they are the paths `location /` would happily swallow.
