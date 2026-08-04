@@ -18,6 +18,7 @@ use App\Modules\Order\Presentation\Filament\Resources\OrderResource;
 use App\Modules\Organization\Presentation\Filament\Resources\OrganizationResource;
 use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequestResource;
 use App\Modules\Payment\Presentation\Filament\Resources\CommissionRuleResource;
+use App\Modules\Payment\Presentation\Filament\Resources\PayoutResource;
 use App\Modules\Store\Presentation\Filament\Resources\StoreResource;
 use App\Shared\Enums\UserType;
 use Filament\Http\Middleware\Authenticate;
@@ -147,6 +148,14 @@ final class AdminPanelProvider extends PanelProvider
                 | release — which is the whole reason it is a table.
                 */
                 CommissionRuleResource::class,
+
+                /*
+                | SELLER PAYOUTS (ADR-062 §8). Beside the commission rules because
+                | they are the two halves of one job: what the platform takes, and
+                | what it sends back. **Nothing here moves money** — the screen
+                | records a transfer a human made.
+                */
+                PayoutResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

@@ -30,6 +30,7 @@ use App\Modules\Organization\Presentation\Controllers\Api\MemberController;
 use App\Modules\Organization\Presentation\Controllers\Api\OrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\StoreRequestController;
 use App\Modules\Payment\Presentation\Controllers\Api\PaymentController;
+use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
@@ -493,6 +494,31 @@ Route::prefix('v1')
                     ->name('users.two-factor.disable');
                 Route::get('/users/{user}/login-history', [AdminUserController::class, 'loginHistory'])
                     ->name('users.login-history');
+
+                /*
+                | PAYOUTS (ADR-062, Payment.md §8). Admin-only: there is no
+                | seller-facing payout endpoint in v1 — a merchant sees their
+                | BALANCE, and the platform's transfer records are its own.
+                |
+                | NOTHING HERE MOVES MONEY. `store` records that an admin decided
+                | to send a seller their balance (and debits it, so the same lira
+                | cannot be promised twice); `settle` records what the bank did
+                | afterwards. A human makes the transfer.
+                |
+                | ONE `settle` ROUTE FOR BOTH OUTCOMES rather than `/pay` and
+                | `/fail`: it is one decision — "what did the bank say" — and
+                | splitting it would let a client mark something paid without ever
+                | having considered that it might not have been.
+                */
+                Route::get('/payouts', [PayoutController::class, 'index'])->name('payouts.index');
+                Route::post('/payouts', [PayoutController::class, 'store'])->name('payouts.store');
+                Route::post('/payouts/{payout}/settle', [PayoutController::class, 'settle'])
+                    ->name('payouts.settle');
+
+                // The number a payout is checked against, so an admin can see
+                // what they may send before trying to send it.
+                Route::get('/sellers/{seller}/balance', [PayoutController::class, 'balance'])
+                    ->name('sellers.balance');
 
                 /*
                 | Organization administration (ADR-028) — the KYC/lifecycle queue

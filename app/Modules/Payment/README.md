@@ -93,7 +93,33 @@ append a positive commission and pay the seller the platform's cut.
 computations of one number is how the ledger and the order stop agreeing. A null
 commission makes it skip and log rather than guess.
 
+## Payouts (P4)
+
+**The software moves no money.** A `Payout` records that an admin decided to send
+a seller their balance, and later that a human or a bank did — with the reference
+they were given. There is no banking integration and v1 does not want one.
+
+**The debit lands when the payout is CREATED**, not when it is marked paid. If the
+balance only moved at `paid`, two admins could each create a payout for the whole
+balance, both pass their check, and the seller be overdrawn when both went
+through.
+
+**A rejected transfer gives the balance back** with a `payout_reversal_credit` —
+a sixth ledger type ADR-062 does not list, added for this and **reported for
+ratification**. The ledger is append-only, so the debit cannot be deleted.
+
+**The guard is a row lock on the seller's ledger** taken before the balance is
+read: a `SUM` cannot be locked, but the rows it sums can.
+
+**Append-only in its money, a state machine in its outcome.** Amount, seller and
+currency never change; only the six outcome fields, and only out of `pending`.
+Never deleted — a mistake is marked failed.
+
+Admin-only: `GET/POST /admin/payouts`, `POST /admin/payouts/{uuid}/settle`,
+`GET /admin/sellers/{uuid}/balance`, plus a Filament screen showing the live
+balance beside the amount field.
+
 ## Phases
 
-P1 collection core ✅ · P2 commission engine ✅ · P3 seller ledger ✅ · P4 payout ·
-P5 refund.
+P1 collection core ✅ · P2 commission engine ✅ · P3 seller ledger ✅ ·
+P4 payout ✅ · P5 refund.

@@ -9,7 +9,7 @@ use App\Shared\Enums\Concerns\HasEnumHelpers;
 /**
  * Why a seller's balance moved (ADR-062, Payment.md §7).
  *
- * FIVE REASONS, AND THE SIGN IS PART OF THE MEANING. A `sale_credit` is money the
+ * SIX REASONS, AND THE SIGN IS PART OF THE MEANING. A `sale_credit` is money the
  * seller earned; a `commission_debit` is the platform's share of that same sale. A
  * ledger row that only said "+12 990" would leave "why?" unanswerable, and "why?"
  * is the entire question a seller opens their balance page to ask.
@@ -19,8 +19,8 @@ use App\Shared\Enums\Concerns\HasEnumHelpers;
  * platform's cut. The amount passed in is always a magnitude; this decides which
  * way it points, once, for everybody.
  *
- * THREE OF THE FIVE ARE NOT WRITTEN YET — `payout_debit` lands in P4,
- * `refund_debit` and `refund_commission_credit` in P5. Unlike `OrderStatus`, which
+ * TWO OF THE SIX ARE NOT WRITTEN YET — `refund_debit` and
+ * `refund_commission_credit` land in P5. Unlike `OrderStatus`, which
  * deliberately withheld cases nothing could set, these are declared now because
  * the SIGN CONVENTION is the thing being defined and it has to be complete to be
  * coherent: a refund reverses a sale, and stating that here is what makes the
@@ -56,6 +56,26 @@ enum LedgerEntryType: string
     case RefundCommissionCredit = 'refund_commission_credit';
 
     /**
+     * A payout the bank refused — the money never left, so the debit comes back
+     * (P4).
+     *
+     * A SIXTH TYPE, WHICH ADR-062 DOES NOT LIST — added 2026-08-04 and reported
+     * for ratification. The ADR enumerates five and P4 needs a sixth, because the
+     * debit is appended when a payout is CREATED (the money is committed the
+     * moment an admin decides to send it, which is what stops two admins each
+     * paying out the same balance) and a transfer can still be rejected afterwards.
+     *
+     * WITHOUT IT A SELLER IS PERMANENTLY SHORT. The ledger is append-only, so the
+     * debit cannot be deleted; and none of the five existing types means "that
+     * payout did not happen" — using `refund_commission_credit` for it would put a
+     * refund in the balance history of a sale nobody refunded. The alternative
+     * shape, debiting only when a payout is marked PAID, was rejected because it
+     * lets two pending payouts each pass the balance guard and overdraw when both
+     * later succeed.
+     */
+    case PayoutReversalCredit = 'payout_reversal_credit';
+
+    /**
      * Which way this kind of entry moves a balance: `+1` or `-1`.
      *
      * THE ONE PLACE THE SIGN IS DECIDED. A caller passes a magnitude and this
@@ -65,7 +85,7 @@ enum LedgerEntryType: string
     public function sign(): int
     {
         return match ($this) {
-            self::SaleCredit, self::RefundCommissionCredit => 1,
+            self::SaleCredit, self::RefundCommissionCredit, self::PayoutReversalCredit => 1,
             self::CommissionDebit, self::PayoutDebit, self::RefundDebit => -1,
         };
     }
@@ -92,7 +112,7 @@ enum LedgerEntryType: string
         return match ($this) {
             self::SaleCredit, self::RefundCommissionCredit => 'success',
             self::CommissionDebit, self::RefundDebit => 'warning',
-            self::PayoutDebit => 'info',
+            self::PayoutDebit, self::PayoutReversalCredit => 'info',
         };
     }
 }

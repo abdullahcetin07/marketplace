@@ -9,9 +9,11 @@ use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Models\CommissionRule;
+use App\Modules\Payment\Domain\Models\Payout;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
 use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
+use App\Modules\Payment\Presentation\Policies\PayoutPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
@@ -80,6 +82,7 @@ final class PaymentServiceProvider extends ServiceProvider
         $this->loadMigrationsFrom(database_path('Modules/Payment/migrations'));
 
         Gate::policy(CommissionRule::class, CommissionRulePolicy::class);
+        Gate::policy(Payout::class, PayoutPolicy::class);
 
         /*
         | THE SELLER LEDGER (ADR-062). Payment's own event, so this is a plain
@@ -121,5 +124,13 @@ final class PaymentServiceProvider extends ServiceProvider
         | full verb set while `payment.*` stays read-only.
         */
         PermissionRegistry::resource('commission_rule', [UserType::Admin]);
+
+        /*
+        | PAYOUTS (ADR-062 §8). `create` and `update` are separate abilities
+        | because they are separate jobs in a real finance process: one person
+        | decides to send money, another confirms the bank did. Whether one role
+        | holds both is the operator's call, not this module's.
+        */
+        PermissionRegistry::resource('payout', [UserType::Admin]);
     }
 }

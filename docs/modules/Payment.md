@@ -336,6 +336,46 @@ transfer the platform actually made. The software does **not** move the money �
 records that a human/bank did (single-merchant model, §2). A payout cannot exceed the
 computed balance; concurrent payouts are guarded so a balance cannot go negative.
 
+> **As built (P4, 2026-08-04).**
+>
+> **The debit lands at CREATION, not at `paid`** — the non-obvious choice, and the
+> one the guard rests on. If the balance only moved when a payout was marked paid,
+> two admins could each create a payout for the whole balance, both would pass
+> their own check, and the seller would be overdrawn when both transfers went
+> through. Committing the balance when the DECISION is made closes that window;
+> marking it paid then changes no balance at all.
+>
+> **Which forces a sixth ledger type — reported for ratification.** ADR-062
+> enumerates five, and a rejected transfer needs a way to give the money back: the
+> ledger is append-only so the debit cannot be deleted, and none of the five means
+> "that payout did not happen". `payout_reversal_credit` is added for it. The
+> alternative shape — debiting only at `paid` — was rejected for the overdraw
+> above, and reusing `refund_commission_credit` would put a refund in the balance
+> history of a sale nobody refunded.
+>
+> **The concurrency guard is a row lock on the seller's own ledger**, taken before
+> the balance is read, inside the action's transaction. A `SUM` cannot be locked
+> but the rows it sums can, so two simultaneous payouts for one seller must lock
+> the same rows and the second reads the reduced balance. Its limit, stated: a
+> seller with no ledger rows has nothing to lock — and a zero balance, so there is
+> no payout to race over.
+>
+> **A payout is append-only in its money and a state machine in its outcome.**
+> `amount_minor`, `seller_org_uuid` and `currency_id` can never change, because the
+> ledger already debited them; the guard permits ONLY the six outcome fields and
+> only out of `pending`, so a settled payout is final and slipping `amount_minor`
+> into the same call fails the whole write. Same narrow-hole shape as `OrderLine`'s
+> commission, same reason.
+>
+> **Never deleted.** A mistaken payout is marked FAILED, which reverses the debit
+> and leaves both facts on the trail — deleting would erase a transfer somebody may
+> actually have made.
+>
+> Admin-only throughout: `GET/POST /admin/payouts`,
+> `POST /admin/payouts/{uuid}/settle`, `GET /admin/sellers/{uuid}/balance`, plus a
+> Filament screen that shows the live balance beside the amount field. There is no
+> seller-facing payout surface in v1 — a merchant sees their balance.
+
 **Refund.** A refund (admin, or a customer-cancel that the policy allows) calls
 `PaymentGateway.refund` (PayTR's iade API), and on success:
 

@@ -72,6 +72,49 @@ final class PaymentException extends BaseException
     }
 
     /**
+     * A payout for nothing, or for a negative amount.
+     *
+     * Refused before anything is locked: a non-positive payout would append a
+     * CREDIT and pay the seller by doing nothing.
+     */
+    public static function payoutAmountInvalid(int $amountMinor): self
+    {
+        return self::make(__('payment.errors.payout_amount_invalid'))
+            ->withContext(['reason' => 'payout_amount_invalid', 'amount_minor' => $amountMinor]);
+    }
+
+    /**
+     * The platform does not owe this seller that much.
+     *
+     * THE GUARD THAT KEEPS A BALANCE HONEST. A refund may drive a balance negative
+     * afterwards (Payment.md §8) and that is allowed; paying out money the
+     * platform does not owe is not.
+     */
+    public static function payoutExceedsBalance(string $sellerOrgUuid, int $amountMinor, int $balanceMinor): self
+    {
+        return self::make(__('payment.errors.payout_exceeds_balance'))
+            ->withContext([
+                'reason' => 'payout_exceeds_balance',
+                'seller_org_uuid' => $sellerOrgUuid,
+                'amount_minor' => $amountMinor,
+                'balance_minor' => $balanceMinor,
+            ]);
+    }
+
+    /**
+     * The bank's answer is already recorded, and it is not re-recordable.
+     *
+     * A rejected transfer is retried by creating a NEW payout — which keeps the
+     * failed attempt on the record for whoever reconciles the statement.
+     */
+    public static function payoutAlreadySettled(string $payoutUuid): self
+    {
+        return self::make(__('payment.errors.payout_already_settled'))
+            ->withContext(['reason' => 'payout_already_settled', 'payout' => $payoutUuid])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * The PSP could not be reached, or answered something unusable.
      *
      * REPORTABLE, unlike everything else here — see the class docblock. The
