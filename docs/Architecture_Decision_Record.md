@@ -1822,4 +1822,74 @@ Full specification: [docs/modules/Payment.md](modules/Payment.md) §7–8.
 
 ---
 
+# ADR-063 Shipping Is Seller-Fulfilled with Manual Tracking; v1 Charges No Shipping Fee; One Shipment per Order
+
+**Decision.** Each paid order becomes **one shipment**, fulfilled by its **seller**: the
+seller marks it shipped by choosing a **cargo company** (a `cargo_companies` lookup table
+— operator-managed, `is_active`, with a tracking-URL template) and entering a **tracking
+number**. There is no cargo-carrier API in v1 — tracking is manual, and any future carrier
+integration sits behind a **provider-agnostic `ShipmentTrackingContract`** that has no
+implementation yet. A checkout group's N seller orders (ADR-052) become N shipments;
+**multi-shipment / partial shipment is deliberately absent**.
+
+**v1 charges no shipping fee.** The storefront's "free over 200 TL" is the whole policy, so
+Shipping writes **no price, no KDV, no commission** — the minor-units rule does not apply
+to it. A priced shipping flow re-opens Order's frozen totals (ADR-053) and the commission
+base (ADR-061) and is a future ADR.
+
+**Shipping imports no module** — Core contracts + class-string events + the (empty) tracking
+port only; `LayeringTest` enforces it, as for Offer/Inventory/Order/Payment.
+
+Rationale: seller-fulfilled manual tracking is the fastest path to the one thing the
+platform actually needs from fulfilment — a **delivery date** — without taking on carrier
+integrations or re-opening the money flow. It is the standard early-phase Turkish
+marketplace model.
+
+Cost: the delivery signal is manual/inferred until a carrier API exists (ADR-064 addresses
+the honesty of that); the seller enters tracking by hand; free shipping is a policy the
+business may outgrow, at which point the priced flow is a real project.
+
+Full specification: [docs/modules/Shipping.md](modules/Shipping.md) §1–2, §5–6.
+
+---
+
+# ADR-064 Delivery Is Inferred, Never Asserted by the Seller; ShipmentDelivered Drives Payout and the Return Window
+
+**Decision.** The **seller cannot mark a shipment delivered** — they have an incentive to
+claim it early, because payout waits on it. Delivery is inferred, whichever comes first:
+the **buyer confirms** ("Teslim aldım"), or a **transit period elapses** (`shipped_at +
+transit_days`, a `settings()` value, swept by a scheduled job). The resulting
+`delivered_at` emits **`ShipmentDelivered`**. When a real carrier integration lands behind
+the tracking port, its actual delivery event **replaces the heuristic** without changing
+anything downstream, which keys off `delivered_at` however it was set.
+
+**`ShipmentDelivered` starts two clocks in Payment** (which subscribes by class-string —
+no import either way):
+
+1. **Auto-payout** at `delivered_at + payout_hold_days` — the automatic payout ADR-060
+   deferred. The admin's manual payout stays. A seller is **not paid before the buyer can
+   no longer return the goods**, which is the whole reason payout keys off delivery, not
+   payment.
+2. **The return / refund window** — within `delivered_at + return_days` the buyer may
+   request a return, which opens **Payment's customer refund** (P5 left it admin-only for
+   want of a fulfilment state) and the **line-level partial refund** (refund a quantity of
+   an order line: proportional commission + KDV reversal, PayTR partial refund, Inventory
+   restock).
+
+Both are **Payment enhancements driven by Shipping's event** — Payment is not frozen; they
+extend it without either module naming the other.
+
+Rationale: the delivery date is the honest basis for both paying the seller and closing the
+buyer's return right; letting the party who benefits (the seller) set it would corrupt
+both. Inference is good enough for v1 and is a clean seam for a later carrier feed.
+
+Cost: a transit-period heuristic can be wrong for a slow or fast parcel until a carrier
+feed exists; the windows are `settings()` the operator must tune; and Payment grows a
+delivery-driven payout scheduler and a partial-refund path (the finer-grained money
+arithmetic ADR-062's ledger was shaped to absorb).
+
+Full specification: [docs/modules/Shipping.md](modules/Shipping.md) §3–4, §8 (S3–S4).
+
+---
+
 END OF FILE

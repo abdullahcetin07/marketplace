@@ -161,6 +161,21 @@ because an append-only ledger cannot delete a rejected payout's debit) and a
 customer-facing refund, which waits for Shipping to give it a fulfilment state to judge
 by (see Payment.md §11).
 
+**Shipping is APPROVED and SPEC'd (2026-08-05; ADR-063–064,
+[docs/modules/Shipping.md](docs/modules/Shipping.md)) — building next, phased S1–S5.** It
+supplies the **delivery date** Payment's two follow-ups needed. **Seller-fulfilled with
+manual tracking** (cargo company from a `cargo_companies` lookup + tracking number; a
+provider-agnostic `ShipmentTrackingContract` for a future carrier API, no implementation in
+v1); **one shipment per order**; **v1 charges NO shipping fee** so Shipping writes no
+price/KDV/commission (ADR-063). **The seller CANNOT mark delivered** — delivery is inferred
+(buyer confirms, or `shipped_at + transit_days` sweep), setting `delivered_at` and emitting
+`ShipmentDelivered` (ADR-064). Payment consumes that by class-string for **auto-payout**
+(`delivered_at + payout_hold_days` — the automatic payout ADR-060 deferred; manual stays)
+and the **return window** (`+ return_days`), which opens the customer refund P5 deferred
+and a **line-level partial refund**. Windows are `settings()`. **Shipping imports NO
+module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
+build ahead of the phased work order or change these decisions without an ADR amendment.
+
 ---
 
 ## The rule that outranks everything else
