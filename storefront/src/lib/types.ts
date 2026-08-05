@@ -134,7 +134,7 @@ export type OrderLine = {
   line_tax: string;
 };
 
-export type OrderStatus = 'pending' | 'awaiting_payment' | 'cancelled';
+export type OrderStatus = 'pending' | 'awaiting_payment' | 'paid' | 'cancelled';
 
 export type Order = {
   id: string;
@@ -161,6 +161,7 @@ export type Order = {
 export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Ödeme adımında',
   awaiting_payment: 'Ödeme bekliyor',
+  paid: 'Hazırlanıyor',
   cancelled: 'İptal edildi',
 };
 

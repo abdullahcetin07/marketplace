@@ -7,7 +7,7 @@ import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
 import * as api from '@/lib/session-api';
 import { ui } from '@/lib/ui';
-import { ORDER_STATUS_LABELS, type Order } from '@/lib/types';
+import { ORDER_STATUS_LABELS, type Order, type OrderStatus } from '@/lib/types';
 
 /**
  * "Siparişlerim" (§2.2) — and the one screen where the SPLIT has to be undone
@@ -19,13 +19,11 @@ import { ORDER_STATUS_LABELS, type Order } from '@/lib/types';
  * creates — so this groups by `checkout_group_id` and presents each group as the
  * thing they remember doing.
  *
- * EACH ORDER KEEPS ITS OWN NUMBER AND STATUS INSIDE THE GROUP, because that is
- * what a seller will ask them for and what can differ between them: one seller may
- * cancel while the other ships.
- *
- * CANCELLING IS PER ORDER, not per group. A customer who wants one seller's half
- * stopped should not have to abandon the other's — the API models it that way and
- * so does this.
+ * UNPAID ATTEMPTS ARE SET APART, not mixed in. A checkout that never got paid (every
+ * order still `awaiting_payment`) is a basket the shopper abandoned — and after a few
+ * failed tries there can be many. Listing them alongside real purchases is the
+ * clutter a customer reads as "why do I have 8 orders?". They go to a muted section
+ * below, where they can be cancelled to free the stock they still hold.
  */
 export default function OrdersPage() {
   const { status } = useSession();
@@ -45,6 +43,10 @@ export default function OrdersPage() {
       setLoading(false);
     });
   }, [status]);
+
+  function onCancelled(updated: Order) {
+    setOrders((current) => current.map((existing) => (existing.id === updated.id ? updated : existing)));
+  }
 
   if (status === 'loading' || loading) {
     return <p className="py-12 text-center text-ink-500">Yükleniyor…</p>;
@@ -69,62 +71,90 @@ export default function OrdersPage() {
   }
 
   const groups = groupByCheckout(orders);
+  const active = groups.filter((group) => !isIncomplete(group));
+  const incomplete = groups.filter(isIncomplete);
 
   return (
     <div className="flex flex-col gap-6">
       <h1 className={ui.h1}>Siparişlerim</h1>
 
-      <ul className="flex flex-col gap-5">
-        {groups.map((group) => (
-          <li key={group.id} className={ui.card}>
-            <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-100 px-5 py-3.5 text-sm dark:border-ink-800">
-              <span className="text-ink-500">
-                {new Date(group.createdAt).toLocaleDateString('tr-TR', {
-                  day: 'numeric',
-                  month: 'long',
-                  year: 'numeric',
-                })}
-              </span>
+      {active.length > 0 ? (
+        <ul className="flex flex-col gap-5">
+          {active.map((group) => (
+            <GroupCard key={group.id} group={group} onCancelled={onCancelled} />
+          ))}
+        </ul>
+      ) : (
+        <p className="text-sm text-ink-500">
+          Henüz tamamlanmış siparişiniz yok.
+          {incomplete.length > 0 && ' Aşağıda ödemesi tamamlanmayan sepetleriniz var.'}
+        </p>
+      )}
 
-              {group.orders.length > 1 && (
-                <span className="text-ink-500">{group.orders.length} satıcıdan</span>
-              )}
-
-              <span className="font-extrabold tracking-tight">
-                {formatMoney(group.total, group.currency)}
-              </span>
-            </div>
-
-            <ul className="divide-y divide-ink-100 dark:divide-ink-800">
-              {group.orders.map((order) => (
-                <OrderRow
-                  key={order.id}
-                  order={order}
-                  onCancelled={(updated) =>
-                    setOrders((current) =>
-                      current.map((existing) => (existing.id === updated.id ? updated : existing)),
-                    )
-                  }
-                />
-              ))}
-            </ul>
-          </li>
-        ))}
-      </ul>
+      {incomplete.length > 0 && (
+        <section className="mt-2 flex flex-col gap-4">
+          <div className="flex items-center gap-3">
+            <span className="h-px flex-1 bg-ink-100 dark:bg-ink-800" />
+            <span className="whitespace-nowrap text-xs font-bold uppercase tracking-wide text-ink-400">
+              Tamamlanmayan ödemeler
+            </span>
+            <span className="h-px flex-1 bg-ink-100 dark:bg-ink-800" />
+          </div>
+          <p className="text-center text-xs text-ink-500">
+            Bu sepetlerin ödemesi tamamlanmadı. İptal ederek ayrılan stoğu serbest bırakabilirsiniz.
+          </p>
+          <ul className="flex flex-col gap-4 opacity-65">
+            {incomplete.map((group) => (
+              <GroupCard key={group.id} group={group} onCancelled={onCancelled} />
+            ))}
+          </ul>
+        </section>
+      )}
     </div>
   );
 }
 
-function OrderRow({
-  order,
-  onCancelled,
-}: {
-  order: Order;
-  onCancelled: (order: Order) => void;
-}) {
+function GroupCard({ group, onCancelled }: { group: OrderGroup; onCancelled: (order: Order) => void }) {
+  return (
+    <li className={ui.card}>
+      <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-ink-100 px-5 py-3.5 text-sm dark:border-ink-800">
+        <span className="text-ink-500">
+          {new Date(group.createdAt).toLocaleDateString('tr-TR', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+          })}
+        </span>
+
+        {group.orders.length > 1 && <span className="text-ink-500">{group.orders.length} satıcıdan</span>}
+
+        <span className="font-extrabold tracking-tight">{formatMoney(group.total, group.currency)}</span>
+      </div>
+
+      <ul className="divide-y divide-ink-100 dark:divide-ink-800">
+        {group.orders.map((order) => (
+          <OrderRow key={order.id} order={order} onCancelled={onCancelled} />
+        ))}
+      </ul>
+    </li>
+  );
+}
+
+/** The chip colour tells the state apart at a glance — green settled, amber waiting. */
+const STATUS_STYLE: Record<OrderStatus, string> = {
+  paid: 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
+  pending: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+  awaiting_payment: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+  cancelled: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
+};
+
+function OrderRow({ order, onCancelled }: { order: Order; onCancelled: (order: Order) => void }) {
   const [busy, setBusy] = useState(false);
 
-  const cancellable = order.status !== 'cancelled';
+  // Only a not-yet-paid order can be cancelled from here. A paid order that needs
+  // undoing is a REFUND (post-delivery, once Shipping exists) — a different flow with
+  // a PSP call behind it, not this button.
+  const cancellable = order.status === 'awaiting_payment' || order.status === 'pending';
 
   async function cancel() {
     setBusy(true);
@@ -147,13 +177,7 @@ function OrderRow({
           </span>
         </div>
 
-        <span
-          className={`rounded-full px-3 py-1 text-xs font-bold ${
-            order.status === 'cancelled'
-              ? 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300'
-              : 'bg-brand-50 text-brand-700 dark:bg-brand-900/40 dark:text-brand-200'
-          }`}
-        >
+        <span className={`rounded-full px-3 py-1 text-xs font-bold ${STATUS_STYLE[order.status]}`}>
           {ORDER_STATUS_LABELS[order.status]}
         </span>
 
@@ -178,9 +202,7 @@ function OrderRow({
       )}
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-ink-500">
-          KDV: {formatMoney(order.tax_total, order.currency)}
-        </span>
+        <span className="text-ink-500">KDV: {formatMoney(order.tax_total, order.currency)}</span>
 
         {order.cancellation_reason !== null && (
           <span className="text-ink-500">Gerekçe: {order.cancellation_reason}</span>
@@ -209,6 +231,13 @@ type OrderGroup = {
   total: string;
   orders: Order[];
 };
+
+/** A purchase nobody finished: every order in it is still waiting to be paid. */
+function isIncomplete(group: OrderGroup): boolean {
+  return group.orders.every(
+    (order) => order.status === 'awaiting_payment' || order.status === 'pending',
+  );
+}
 
 /**
  * Regroup the flat list into purchases.
