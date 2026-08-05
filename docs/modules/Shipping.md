@@ -1,8 +1,9 @@
 # Shipping
 
-**Status: S1 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
+**Status: S1–S2 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
 S1 shipped the shipment aggregate, the `cargo_companies` table and the seller's
-"kargoya ver" flow — see §11. S2–S4 are not built.
+"kargoya ver" flow; S2 shipped delivery inference and `ShipmentDelivered` — see §11.
+S3–S4 (the Payment enhancements) are not built.
 
 Shipping is the module that tracks a paid order from the seller's hands to the buyer's
 door, and turns "delivered" into the two things that wait on it: **when the seller gets
@@ -127,7 +128,7 @@ storefront can turn a tracking number into a link without hard-coding carriers.
   flow (→ `shipped`, tracking). Core Order read for the paid orders to ship. **Built
   2026-08-05 — see §11.**
 - **S2** — Delivery inference: the transit-period sweep job + the buyer "Teslim aldım"
-  action → `delivered` + `ShipmentDelivered` event.
+  action → `delivered` + `ShipmentDelivered` event. **Built 2026-08-05 — see §11.**
 - **S3** — **Payment enhancement:** consume `ShipmentDelivered` → auto-payout at
   `delivered_at + payout_hold_days`; open the return window.
 - **S4** — **Payment enhancement:** buyer-initiated return + **line-level partial refund**
@@ -150,6 +151,31 @@ storefront can turn a tracking number into a link without hard-coding carriers.
 | The admin's carrier list (§5) | `Presentation/Filament/Resources/CargoCompanyResource` |
 | `shipping:backfill` — a parcel for orders paid before this module existed | `Presentation/Console/BackfillShipmentsCommand` |
 | `orderFulfilment()` + `paidOrders()` on the Core Order port (§10) | `app/Core/Domain/Contracts/OrderQueryContract` |
+
+### S2 — delivery inference
+
+| Area | Where |
+|---|---|
+| `ShipmentDelivered` — **the event this module exists to emit** (§4) | `Domain/Events/ShipmentDelivered` |
+| The one way a parcel becomes delivered, shared by both honest paths (§3) | `Application/Actions/Concerns/RecordsDelivery` |
+| "Teslim aldım" — the buyer's confirmation (§3) | `Application/Actions/ConfirmReceiptAction` |
+| The transit sweep, hourly, `settings('shipping.transit_days')` (§3) | `Application/Jobs/SweepTransitDeliveriesJob` + `routes/console.php` |
+| `GET /orders/{order}/shipment`, `POST /orders/{order}/shipment/confirm` (§6) | `Presentation/Controllers/Api/ShipmentController` |
+| `OrderStatus::Delivered`, moved by Order's own class-string listener | `Order\Application\Listeners\SettleOrdersOnPayment::onDelivered()` |
+| The three windows as operator-tunable settings (§7) | `SettingGroup::Shipping` + `SettingsSeeder` |
+
+**The two honest sources, and the absence of a third.** The buyer confirms, or the
+clock runs out. `delivered_via` records which — an observed delivery and a guessed
+one are worth different amounts in a dispute, and a single timestamp could not say.
+The seller still has no route, no action and no permission that reaches delivery,
+and the customer endpoint answers a seller with 404 like anybody else who does not
+own the order.
+
+**Re-stamping is what the idempotence protects.** A second "Teslim aldım" is a
+no-op and the sweep skips anything already delivered — because `delivered_at` is a
+payout schedule and a return deadline, and moving it silently extends both. The
+sweep would also overwrite a BUYER-confirmed delivery with a guess, which is the
+more expensive half.
 
 **Deliberately absent in S1, and named so nobody looks for them:** nothing writes
 `delivered_at` — no action, no route, no permission — because delivery is S2's

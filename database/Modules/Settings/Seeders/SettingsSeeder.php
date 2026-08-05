@@ -86,6 +86,28 @@ final class SettingsSeeder extends Seeder
         $settings->register('performance.cache_ttl_seconds', SettingGroup::Performance, SettingType::Integer, 3600, 'Default cache TTL');
         $settings->register('performance.api_rate_limit', SettingGroup::Performance, SettingType::Integer, 60, 'API requests per minute');
 
+        // ------------------------------------------------------------- Shipping
+        /*
+        | THE THREE FULFILMENT WINDOWS (ADR-064). Operator-tunable because the
+        | right answer comes from what carriers actually do and what support
+        | tickets say, not from a release — the platform's own "who owns the
+        | value" test. `config('shipping.windows.*')` holds the same numbers as
+        | the fallback for when the settings table is unreachable, because a
+        | module that stopped inferring deliveries over a missing row would stop
+        | paying sellers.
+        |
+        | `transit_days` IS DELIBERATELY GENEROUS. Its failure mode is asymmetric:
+        | too long and a seller waits a few extra days; too short and the platform
+        | tells a buyer their parcel arrived while they are still waiting for it,
+        | and starts their return clock running.
+        */
+        $settings->register('shipping.transit_days', SettingGroup::Shipping, SettingType::Integer, 3, 'Transit days before delivery is inferred');
+        $settings->register('shipping.payout_hold_days', SettingGroup::Shipping, SettingType::Integer, 14, 'Days after delivery before a payout is eligible');
+        // 14 days is the Turkish distance-selling right of withdrawal (cayma
+        // hakkı). Shortening it below that is not a configuration choice the law
+        // allows — worth knowing before anyone edits this row.
+        $settings->register('shipping.return_days', SettingGroup::Shipping, SettingType::Integer, 14, 'Days after delivery a buyer may still return');
+
         // --------------------------------------------------------------- System
         // Locked: read by code at boot. Renaming or deleting one is a runtime
         // failure, not a configuration change.

@@ -167,7 +167,14 @@ interface OrderQueryContract
      * Order's, and typing the contract with it would make every consumer import
      * the module this port exists to avoid importing.
      *
-     * @return array{order_number: string, selling_org_uuid: string, status: string}|null
+     * `customer_id` JOINED IT IN S2 (2026-08-05), when a buyer got a button. Who
+     * RECEIVES the parcel is as much a fulfilment fact as who sends it, and a
+     * shipment cannot answer it — it carries the seller, deliberately. The
+     * internal id rather than the uuid because it is compared against the
+     * authenticated actor's key and never leaves the application (non-negotiable
+     * #7).
+     *
+     * @return array{order_number: string, selling_org_uuid: string, customer_id: int, status: string}|null
      */
     public function orderFulfilment(string $orderUuid): ?array;
 

@@ -33,6 +33,7 @@ use App\Modules\Payment\Presentation\Controllers\Api\PaymentController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
+use App\Modules\Shipping\Presentation\Controllers\Api\ShipmentController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
 use App\Modules\Store\Presentation\Controllers\Api\Storefront\PublicStoreController;
@@ -466,6 +467,23 @@ Route::prefix('v1')
             | redirect's query string is whatever the browser was handed.
             */
             Route::get('/payments/{payment}', [PaymentController::class, 'show'])->name('payments.show');
+
+            /*
+            | THE PARCEL, AND THE ONE BUTTON THE BUYER HAS (ADR-064,
+            | Shipping.md §6). Both are keyed on the ORDER, which the customer
+            | already holds — making them fetch a shipment uuid first would put a
+            | second identifier on a public surface for no benefit.
+            |
+            | `confirm` is "Teslim aldım", and it is one of exactly TWO things on
+            | this platform that can set a delivery date; the other is the transit
+            | sweep. There is no seller or admin route that writes one, because
+            | payout waits on delivery and a seller asserting it would be
+            | asserting their own payday.
+            */
+            Route::get('/orders/{order}/shipment', [ShipmentController::class, 'show'])
+                ->name('orders.shipment');
+            Route::post('/orders/{order}/shipment/confirm', [ShipmentController::class, 'confirm'])
+                ->name('orders.shipment.confirm');
         });
 
         /*

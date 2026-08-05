@@ -72,6 +72,25 @@ Schedule::command('sanctum:prune-expired --hours=24')
     ->onOneServer();
 
 /*
+| DELIVERY INFERENCE (ADR-064). Most buyers never press "Teslim aldım" — they
+| have the goods and no reason to tell anyone — so without this sweep payout
+| would wait on a confirmation that never comes and a seller would never be paid
+| for a parcel that arrived weeks ago.
+|
+| HOURLY, not daily, and the reason is the buyer rather than the seller: the
+| window is measured in days, so a daily run would be accurate enough for payout
+| — but delivery also opens the RETURN window, and a buyer who has to wait until
+| 04:00 tomorrow to be told their parcel "arrived" has lost hours of it. Hourly
+| costs one cheap indexed query.
+|
+| It is idempotent and bounded per run, so running it often is free.
+*/
+Schedule::job(new App\Modules\Shipping\Application\Jobs\SweepTransitDeliveriesJob)
+    ->name('sweep-transit-deliveries')
+    ->hourly()
+    ->onOneServer();
+
+/*
 | Horizon retains metrics snapshots indefinitely otherwise.
 */
 Schedule::command('horizon:snapshot')

@@ -26,6 +26,21 @@ enum SettingGroup: string
     case Localization = 'localization';
     case Security = 'security';
     case Performance = 'performance';
+
+    /**
+     * The fulfilment windows (ADR-063/064, Shipping.md §7).
+     *
+     * ADDED BY SHIPPING S2 (2026-08-05), and it is the first group whose values
+     * change what the platform DOES rather than how it looks: how long a parcel
+     * may be in transit before delivery is inferred, and — from S3 — how long
+     * after delivery a seller waits to be paid and a buyer may still return.
+     *
+     * NOT `Performance`-restricted, deliberately. These are the operations team's
+     * numbers, tuned from what carriers actually do and what support tickets say;
+     * they are not a super-admin-only lever like a session lifetime.
+     */
+    case Shipping = 'shipping';
+
     case System = 'system';
 
     /**
@@ -72,6 +87,7 @@ enum SettingGroup: string
             self::Localization => 'heroicon-o-language',
             self::Security => 'heroicon-o-shield-check',
             self::Performance => 'heroicon-o-bolt',
+            self::Shipping => 'heroicon-o-truck',
             self::System => 'heroicon-o-server-stack',
         };
     }
@@ -88,7 +104,10 @@ enum SettingGroup: string
             self::Seo => 7,
             self::Security => 8,
             self::Performance => 9,
-            self::System => 10,
+            // Beside the operational groups rather than the platform ones: it is
+            // the operations team's tab, not an engineer's.
+            self::Shipping => 10,
+            self::System => 11,
         };
     }
 }

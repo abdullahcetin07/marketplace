@@ -131,6 +131,7 @@ return [
         'pending' => 'Ödeme adımında',
         'awaiting_payment' => 'Ödeme bekliyor',
         'paid' => 'Ödendi',
+        'delivered' => 'Teslim edildi',
         'refunded' => 'İade edildi',
         'cancelled' => 'İptal edildi',
     ],
@@ -225,6 +226,7 @@ return [
         'localization' => 'Yerelleştirme',
         'security' => 'Güvenlik',
         'performance' => 'Performans',
+        'shipping' => 'Kargo',
         'system' => 'Sistem',
     ],
 

@@ -84,20 +84,35 @@ it('says neither live state is finished with stock', function (): void {
          * units back — so the question this method asks is genuinely open again.
          */
         ->and(OrderStatus::Paid->isTerminal())->toBeFalse()
+        // Nor is `Delivered`: the return window is open behind it (S3/S4).
+        ->and(OrderStatus::Delivered->isTerminal())->toBeFalse()
         ->and(OrderStatus::Refunded->isTerminal())->toBeTrue();
 });
 
-it('lets a paid order be refunded, and nothing else', function (): void {
+it('lets a paid order be delivered or refunded, and nothing else', function (): void {
     /*
      * "CANCEL" AFTER PAYMENT MEANS REFUND, which is a different operation with a
-     * PSP call behind it — so the only edge out of `Paid` is the one Payment's P5
-     * drives, and it is not `Cancelled`.
+     * PSP call behind it — so `Cancelled` is not reachable from here, whatever
+     * else is.
+     *
+     * `Delivered` JOINED IT (Shipping S2, 2026-08-05). Order does not decide it:
+     * Shipping infers delivery and announces it, and this module's own listener
+     * moves the state.
      */
-    expect(OrderStatus::Paid->transitions())->toBe([OrderStatus::Refunded])
-        ->and(OrderStatus::Paid->canTransitionTo(OrderStatus::Cancelled))->toBeFalse()
-        // Un-refunding would mean charging the customer again, which is a new
-        // payment rather than a state change.
-        ->and(OrderStatus::Refunded->transitions())->toBe([]);
+    expect(OrderStatus::Paid->transitions())->toBe([OrderStatus::Delivered, OrderStatus::Refunded])
+        ->and(OrderStatus::Paid->canTransitionTo(OrderStatus::Cancelled))->toBeFalse();
+
+    /*
+     * A DELIVERED ORDER STAYS REFUNDABLE, which is the whole point of the return
+     * window — and it does not go back to `Paid`: a parcel that arrived cannot
+     * un-arrive.
+     */
+    expect(OrderStatus::Delivered->transitions())->toBe([OrderStatus::Refunded])
+        ->and(OrderStatus::Delivered->canTransitionTo(OrderStatus::Paid))->toBeFalse();
+
+    // Un-refunding would mean charging the customer again, which is a new payment
+    // rather than a state change.
+    expect(OrderStatus::Refunded->transitions())->toBe([]);
 });
 
 it('lets a customer walk away from either live state, this sprint', function (): void {
@@ -117,24 +132,30 @@ it('lets a customer walk away from either live state, this sprint', function ():
          * refunded order is finished in both directions.
          */
         ->and(OrderStatus::Paid->isCancellableByCustomer())->toBeFalse()
+        // Nor a delivered one: the buyer has the goods, so walking away is a
+        // RETURN, which goes through Payment's refund (S4).
+        ->and(OrderStatus::Delivered->isCancellableByCustomer())->toBeFalse()
         ->and(OrderStatus::Refunded->isCancellableByCustomer())->toBeFalse();
 });
 
 it('has exactly the cases the platform can actually reach', function (): void {
     /*
-     * THE RULE IS UNCHANGED AND TWO MORE CASES NOW PASS IT (2026-08-04). This file
-     * used to assert three cases and name `Paid` among the states "that belong to
-     * a module that does not exist". Payment now exists: its verified success
-     * callback sets `Paid`, and its P5 refund sets `Refunded`. Each arrived with
-     * the phase that can actually set it, not before.
+     * THE RULE IS UNCHANGED AND THREE MORE CASES NOW PASS IT. This file used to
+     * assert three cases and name `Paid` among the states "that belong to a
+     * module that does not exist". Payment arrived and its callback sets `Paid`,
+     * its P5 refund sets `Refunded`; Shipping's S2 arrived and its delivery
+     * inference sets `Delivered`. Each landed with the phase that can actually
+     * set it, never before.
      *
-     * `Preparing`, `Shipped`, `Delivered` and `Completed` are still absent for
-     * exactly the original reason: Shipping does not exist, so those would be
-     * cases nothing can ever set, and the first reader would reasonably assume
-     * something does.
+     * `Preparing`, `Shipped` and `Completed` are still absent, and now for a
+     * sharper reason than "the module does not exist" — it does. WHERE A PARCEL
+     * IS, IS A SHIPMENT'S BUSINESS: mirroring those states here would create a
+     * second source of truth for one fact. `Delivered` is different because it is
+     * when the ORDER is complete from the customer's side, and it is what the
+     * return window and the payout clock are measured from.
      */
     expect(array_map(fn (OrderStatus $s): string => $s->value, OrderStatus::cases()))
-        ->toBe(['pending', 'awaiting_payment', 'paid', 'refunded', 'cancelled']);
+        ->toBe(['pending', 'awaiting_payment', 'paid', 'delivered', 'refunded', 'cancelled']);
 });
 
 it('gives every case a colour for the panels', function (): void {

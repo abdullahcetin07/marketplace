@@ -120,6 +120,19 @@ final class OrderServiceProvider extends ServiceProvider
             [SettleOrdersOnPayment::class, 'onFailed'],
         );
 
+        /*
+        | The parcel arrived (Shipping.md §4, S2). ONE shipment, ONE order — a
+        | checkout group becomes N parcels and each arrives on its own day.
+        |
+        | Order does not decide delivery any more than it decides payment:
+        | Shipping infers it (the buyer confirms, or the transit window elapses,
+        | ADR-064) and announces it; this module moves its own state.
+        */
+        Event::listen(
+            'App\Modules\Shipping\Domain\Events\ShipmentDelivered',
+            [SettleOrdersOnPayment::class, 'onDelivered'],
+        );
+
         // The money went back (Payment.md §8, P5). Only the orders the event
         // names move — a refund is per seller's order, not per basket.
         Event::listen(

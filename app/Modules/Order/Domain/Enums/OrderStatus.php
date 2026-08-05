@@ -70,6 +70,23 @@ enum OrderStatus: string
      * look alike in a list and are entirely different in a ledger, which is where
      * an argument about an order is actually settled.
      */
+    /**
+     * The parcel reached the buyer (Shipping.md §4, added 2026-08-05 by S2).
+     *
+     * THE FULFILMENT STATE THIS ENUM KEPT REFUSING TO INVENT. `Preparing` and
+     * `Shipped` are still absent and still belong to Shipping — where a parcel IS
+     * is a shipment's business, and duplicating it here would create a second
+     * source of truth for one fact. `Delivered` is different: it is the moment the
+     * ORDER is complete from the customer's side, and it is what the return window
+     * and the payout clock are measured from.
+     *
+     * ORDER DOES NOT DECIDE IT. Shipping infers delivery — the buyer confirms or
+     * the transit window elapses (ADR-064) — and announces `ShipmentDelivered`;
+     * this module subscribes by class-string and moves its own state, exactly as
+     * it does for `PaymentSucceeded`.
+     */
+    case Delivered = 'delivered';
+
     case Refunded = 'refunded';
 
     case Cancelled = 'cancelled';
@@ -103,7 +120,14 @@ enum OrderStatus: string
             | operation with a different actor and a PSP call behind it. That
             | operation is this transition.
             */
-            self::Paid => [self::Refunded],
+            self::Paid => [self::Delivered, self::Refunded],
+            /*
+            | A DELIVERED ORDER CAN STILL BE REFUNDED, and that edge is the whole
+            | point of the return window: the buyer has the goods and a limited
+            | time to send them back (S3/S4). It does NOT go back to `Paid` — a
+            | parcel that arrived cannot un-arrive.
+            */
+            self::Delivered => [self::Refunded],
             // Terminal in both directions. Un-refunding would mean charging the
             // customer again, which is a new payment, not a state change.
             self::Refunded, self::Cancelled => [],
@@ -163,9 +187,10 @@ enum OrderStatus: string
     {
         /*
         | `Paid` IS NO LONGER TERMINAL (P5, 2026-08-04) — a refund moves it, and it
-        | moves the stock too: `RestockAction` puts the committed units back. What
-        | is terminal is where that leaves the order. Shipping re-opens `Paid`
-        | again when it exists.
+        | moves the stock too: `RestockAction` puts the committed units back.
+        | Shipping's S2 gave it a second exit (`Delivered`), exactly as that note
+        | predicted. `Delivered` is not terminal either, for the same reason: the
+        | return window is open behind it.
         */
         return $this === self::Cancelled || $this === self::Refunded;
     }
@@ -204,6 +229,7 @@ enum OrderStatus: string
             self::Pending => 'warning',
             self::AwaitingPayment => 'info',
             self::Paid => 'success',
+            self::Delivered => 'success',
             self::Refunded => 'gray',
             self::Cancelled => 'danger',
         };

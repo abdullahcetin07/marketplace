@@ -189,7 +189,7 @@ final class OrderQuery implements OrderQueryContract
      * because `status` is a cast attribute and handing back the enum is the exact
      * mistake this class already made once (`orderStatus()`, 2026-08-04).
      *
-     * @return array{order_number: string, selling_org_uuid: string, status: string}|null
+     * @return array{order_number: string, selling_org_uuid: string, customer_id: int, status: string}|null
      */
     public function orderFulfilment(string $orderUuid): ?array
     {
@@ -202,6 +202,9 @@ final class OrderQuery implements OrderQueryContract
         return [
             'order_number' => $order->order_number,
             'selling_org_uuid' => $order->selling_org_uuid,
+            // Who receives the parcel — the internal id, because it is compared
+            // against the authenticated actor and never leaves the application.
+            'customer_id' => $order->customer_id,
             'status' => $order->status->value,
         ];
     }

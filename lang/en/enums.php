@@ -130,6 +130,7 @@ return [
         'pending' => 'In checkout',
         'awaiting_payment' => 'Awaiting payment',
         'paid' => 'Paid',
+        'delivered' => 'Delivered',
         'refunded' => 'Refunded',
         'cancelled' => 'Cancelled',
     ],
@@ -223,6 +224,7 @@ return [
         'localization' => 'Localization',
         'security' => 'Security',
         'performance' => 'Performance',
+        'shipping' => 'Shipping',
         'system' => 'System',
     ],
 

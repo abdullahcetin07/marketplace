@@ -10,8 +10,8 @@ use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
 
 /**
- * Payment collected the money; Order moves its own orders and freezes what the
- * platform takes (Payment.md §3, §5, §6).
+ * Somebody else's event moved this module's state machine — money arriving
+ * (Payment.md §3, §5, §6) and, since S2, a parcel arriving (Shipping.md §4).
  *
  * THE BOUNDARY MADE VISIBLE. Payment commits the stock itself — it is the caller
  * ADR-057 named — but it does not set an order's status, because a module that
@@ -109,6 +109,41 @@ final class SettleOrdersOnPayment
     }
 
     /**
+     * `App\Modules\Shipping\Domain\Events\ShipmentDelivered` — untyped on
+     * purpose (Shipping.md §4, S2).
+     *
+     * THE SECOND MODULE THIS LISTENER SERVES, and the class name has stopped
+     * being strictly accurate — it settles orders on a PAYMENT and now also on a
+     * DELIVERY. Kept together anyway: both are "somebody else's event moved this
+     * module's state machine", they share `transition()`, and a second listener
+     * would mean two places to look for why an order's status changed.
+     *
+     * ONE SHIPMENT, ONE ORDER (ADR-063), so this takes a single order uuid where
+     * the payment handler takes a list. A checkout group becomes N parcels and
+     * each arrives on its own day.
+     *
+     * IT DOES NOT ASK WHY. Whether the buyer confirmed or the transit window
+     * elapsed is on the event as `deliveredVia`, and it changes nothing here — an
+     * order that arrived is delivered however the platform learned it. Payment's
+     * S3 listener is where that provenance may matter.
+     */
+    public function onDelivered(object $event): void
+    {
+        $order = Order::query()->where('uuid', (string) ($event->orderUuid ?? ''))->first();
+
+        if ($order === null) {
+            Log::channel('errors')->warning('A delivered shipment named an order this module does not have', [
+                'order_uuid' => $event->orderUuid ?? null,
+                'shipment_uuid' => $event->shipmentUuid ?? null,
+            ]);
+
+            return;
+        }
+
+        $this->transition($order, OrderStatus::Delivered, (string) ($event->shipmentUuid ?? ''));
+    }
+
+    /**
      * Freeze what the platform takes on each line (ADR-061, Payment.md §6).
      *
      * AT PAYMENT, NOT AT CHECKOUT, and the timing is the decision. A rate edited
@@ -159,7 +194,11 @@ final class SettleOrdersOnPayment
         }
     }
 
-    private function transition(Order $order, OrderStatus $target, string $paymentUuid): void
+    /**
+     * @param string $reference the payment or shipment that caused the move,
+     *                          for the log when a status will not budge
+     */
+    private function transition(Order $order, OrderStatus $target, string $reference): void
     {
         if ($order->status === $target) {
             // A retried callback. Not an error — the correct response is silence.
@@ -171,7 +210,7 @@ final class SettleOrdersOnPayment
                 'order_uuid' => $order->uuid,
                 'status' => $order->status->value,
                 'target' => $target->value,
-                'payment_uuid' => $paymentUuid,
+                'reference' => $reference,
             ]);
 
             return;

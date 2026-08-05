@@ -15,11 +15,12 @@ return window).
 Payment: PaymentSucceeded  ──(class-string)──▶  Shipment created: pending
 
 seller (panel) → pick carrier + tracking number → shipped   (shipped_at)
-     │  buyer taps "Teslim aldım"                → delivered      ┐ S2
-     └  shipped_at + transit_days elapses        → delivered      ┘
+     │  buyer taps "Teslim aldım"                → delivered  (via=buyer)
+     └  shipped_at + transit_days elapses        → delivered  (via=transit_sweep)
                                                        │
                                                  ShipmentDelivered
                                                        │
+                    Order (now): status → delivered, by class-string
              Payment (S3): payout eligible at delivered_at + payout_hold_days
                            return window until delivered_at + return_days
 ```
@@ -50,7 +51,21 @@ seller (panel) → pick carrier + tracking number → shipped   (shipped_at)
   payment event arrives as a class-string. `LayeringTest` fails the build on any
   import, both directions.
 
+- **`delivered_at` is never re-stamped.** A second "Teslim aldım" is a no-op and
+  the sweep skips anything already delivered — that date is a payout schedule and
+  a return deadline, and moving it silently extends both. The sweep would also
+  overwrite a buyer-confirmed delivery with a guess, which is the more expensive
+  half.
+- **The windows are `settings()`, not constants.** `shipping.transit_days` (3),
+  `payout_hold_days` (14), `return_days` (14) — operations tunes them without a
+  release, with `config('shipping.windows.*')` as the fallback because a sweep that
+  stopped running over a missing settings row would stop paying sellers.
+
 ## Deploy note
+
+The transit sweep is scheduled hourly in `routes/console.php`, so the scheduler
+must actually be running — without it no delivery is ever inferred and no seller is
+ever paid.
 
 `shipping:backfill` gives every already-paid order the parcel it never got —
 orders paid before this module existed have no shipment, and without one their
