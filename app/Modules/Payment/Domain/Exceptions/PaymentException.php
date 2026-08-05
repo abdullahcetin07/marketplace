@@ -26,7 +26,14 @@ use Illuminate\Http\Response;
  *
  * NOTHING HERE EVER CARRIES PSP DETAIL INTO A USER-FACING MESSAGE. A declined card
  * is the buyer's business with their bank; the platform says the payment did not
- * complete and keeps the provider's own words in the audit trail.
+ * complete and keeps the provider's own words in the log and the audit trail.
+ *
+ * THE INTERNAL MESSAGE IS A DIFFERENT STRING FROM THE USER-FACING ONE (2026-08-05).
+ * `getMessage()` carries the provider's verbatim refusal, because that is what a
+ * stack trace and a `report()` actually contain; `userMessage()` resolves a
+ * translation from the `reason` in the context. Before that split, a live
+ * get-token rejection produced a 422 and no record anywhere of why — the platform
+ * took no money and nobody could say what PayTR had objected to.
  *
  * @see docs/modules/Payment.md §3, §9
  */
@@ -151,7 +158,7 @@ final class PaymentException extends BaseException
      */
     public static function gatewayUnavailable(string $detail): self
     {
-        $exception = self::make(__('payment.errors.gateway_unavailable'))
+        $exception = self::make("PayTR could not be reached: {$detail}")
             ->withContext(['reason' => 'gateway_unavailable', 'detail' => $detail])
             ->withStatus(Response::HTTP_SERVICE_UNAVAILABLE);
 
@@ -164,12 +171,52 @@ final class PaymentException extends BaseException
      * The PSP was reached and refused the request — a bad merchant configuration,
      * a rejected basket, an amount it will not take.
      *
-     * NOT reportable: it is an answer, not an outage. The provider's own words go
-     * into the context for support, never into the buyer's message.
+     * NOT reportable: it is an answer, not an outage.
+     *
+     * THE PROVIDER'S OWN WORDS ARE THE EXCEPTION MESSAGE (2026-08-05), because
+     * that message is what a stack trace and a `report()` actually carry, and
+     * without it a live rejection was undiagnosable — the platform took no money
+     * and nothing recorded why. PayTR's `reason` is written for an OPERATOR
+     * ("MAĞAZA PARAMETRELERINI KONTROL EDINIZ"), not for a shopper.
+     *
+     * The BUYER still never sees it: `userMessage()` below resolves the
+     * translation from the context `reason` rather than falling back to this
+     * string.
      */
     public static function gatewayRejected(string $detail): self
     {
-        return self::make(__('payment.errors.gateway_rejected'))
+        return self::make("PayTR refused the request: {$detail}")
             ->withContext(['reason' => 'gateway_rejected', 'detail' => $detail]);
+    }
+
+    /**
+     * What the buyer reads — never what the PSP said.
+     *
+     * WHY THIS IS OVERRIDDEN HERE. `BaseException::userMessage()` looks up
+     * `errors.{snake class name}`, which is `errors.payment_exception` for EVERY
+     * failure in this class — one key for nine different refusals — so it always
+     * fell through to `getMessage()`. That was harmless while the message and the
+     * buyer-facing text were the same string, and stopped being harmless the
+     * moment the message started carrying PayTR's own words.
+     *
+     * So the lookup is keyed on the `reason` every factory here already sets,
+     * which is the same value a client branches on. The result: one exception
+     * carries an operator's diagnosis in `getMessage()` and a shopper's sentence
+     * in `userMessage()`, and neither leaks into the other.
+     */
+    public function userMessage(): string
+    {
+        $reason = $this->getContext()['reason'] ?? null;
+
+        if (is_string($reason) && $reason !== '') {
+            $key = "payment.errors.{$reason}";
+            $translated = __($key);
+
+            if (is_string($translated) && $translated !== $key) {
+                return $translated;
+            }
+        }
+
+        return parent::userMessage();
     }
 }

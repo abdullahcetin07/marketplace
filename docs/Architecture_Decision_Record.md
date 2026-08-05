@@ -1710,7 +1710,10 @@ change to the domain.
 **One Payment per checkout group.** The buyer pays once for the whole basket, so the
 Payment aggregate is keyed to Order's `checkout_group` (the mirror of ADR-052's split:
 Order split the basket to ship it, Payment rejoins it to charge it). `merchant_oid =
-payment.uuid`. The amount is Σ the group's orders' `grand_total`, in **integer kuruş** —
+payment.uuid` — **hyphen-free on the wire** (amended 2026-08-05: PayTR refuses anything
+non-alphanumeric, and the 32 hex digits are the same uuid, so the "one identifier, ours"
+decision survives without a second column; the adapter strips on the way out and restores
+on the way in). The amount is Σ the group's orders' `grand_total`, in **integer kuruş** —
 PayTR's unit is the platform's.
 
 **The server-to-server callback is the source of truth, not the browser redirect**, and

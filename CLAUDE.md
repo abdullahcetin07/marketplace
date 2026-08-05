@@ -138,7 +138,8 @@ Single-merchant settlement + **manual/batch payout** (sellers are not submerchan
 platform holds and pays out; BDDK licensing is the accepted early-phase cost, submerchant
 migration a future ADR); **PayTR** behind a `PaymentGatewayContract`, iFrame-shaped so
 **no card data touches the platform**; **one Payment per Order `checkout_group`**
-(`merchant_oid = payment.uuid`), the hash-verified **idempotent callback** the source of
+(`merchant_oid = payment.uuid`, hyphen-free on the wire — PayTR refuses anything
+non-alphanumeric), the hash-verified **idempotent callback** the source of
 truth, not the redirect. It **closed ADR-054/057** — on payment success Payment drives
 Inventory's reservation **commit** via the Core command port. Commission is a
 **multi-dimensional rule engine** (product/category/brand/seller, most-specific-wins) on

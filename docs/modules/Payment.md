@@ -171,6 +171,20 @@ transition is append-only audited (the platform already audits; money doubly so)
 Public id is the uuid; the internal id never leaves. `merchant_oid = uuid` ties our
 record to PayTR's without exposing anything internal.
 
+> **As built (2026-08-05): the uuid travels WITHOUT ITS HYPHENS.** The real API answers
+> `merchant_oid alfanumerik olmalidir, ozel karakter iceremez` — a uuid's hyphens are
+> special characters, so every live get-token call was refused while the suite stayed
+> green against a mock that accepts anything. That is the standing limit of testing an
+> adapter against a fake, and it is why the fixture in that test is now a real uuid.
+>
+> The decision is unchanged: **one identifier, ours**. The 32 hex digits are the same
+> uuid, losslessly and reversibly, so no second `merchant_oid` column exists to disagree
+> with `payments.uuid`. `PayTrGateway::merchantOid()` strips on the way out and
+> `referenceFrom()` restores on the way in, so nothing outside that class has ever heard
+> of PayTR's identifier format — and an oid it does not recognise passes through
+> untouched, because a payment created before the fix carries hyphens on PayTR's side and
+> its callback must still resolve.
+
 ---
 
 ## 5. Stock commit on payment success — closing ADR-054/057
@@ -383,6 +397,20 @@ computed balance; concurrent payouts are guarded so a balance cannot go negative
 > `POST /admin/payouts/{uuid}/settle`, `GET /admin/sellers/{uuid}/balance`, plus a
 > Filament screen that shows the live balance beside the amount field. There is no
 > seller-facing payout surface in v1 — a merchant sees their balance.
+
+**Every PSP refusal is written to the `errors` log verbatim (2026-08-05).** The
+refusals in this module are non-reportable domain exceptions — a declined basket is not
+an incident — and the consequence was that a merchant-configuration failure produced a
+422 to the buyer and nothing anywhere else: the platform took no money and nobody could
+say why. `PayTrGateway::logRejection()` now records PayTR's own `reason` beside the
+request fields that decide whether the hash could have matched. **`merchant_key` and
+`merchant_salt` never appear in it** — anyone holding them can forge a "payment
+succeeded" this platform would believe — and the buyer's e-mail is masked.
+
+The exception carries it too, in two different strings: `getMessage()` holds the
+provider's verbatim refusal (what a stack trace and a `report()` actually contain) while
+`userMessage()` resolves the translation from the `reason` in the context. A shopper
+never reads PayTR's operator-facing words.
 
 **Refund.** A refund (admin, or a customer-cancel that the policy allows) calls
 `PaymentGateway.refund` (PayTR's iade API), and on success:

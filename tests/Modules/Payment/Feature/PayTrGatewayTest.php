@@ -7,6 +7,7 @@ use App\Modules\Payment\Domain\DTOs\PaymentIntentDTO;
 use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 
 /*
 |--------------------------------------------------------------------------
@@ -51,7 +52,7 @@ it('sends the amount in kuruş, untouched', function (): void {
     ]);
 
     $session = gateway()->initiate(new PaymentIntentDTO(
-        reference: 'a-payment-uuid',
+        reference: '39a87919-589f-46f8-836c-d4e6bd691f06',
         // 1 299,90 TL. What must reach PayTR is 129990 — not "1299.90", not
         // 1299.9, and above all not a float that could arrive as 1299.8999999.
         amountMinor: 129_990,
@@ -69,7 +70,15 @@ it('sends the amount in kuruş, untouched', function (): void {
     Http::assertSent(function ($request): bool {
         expect($request['payment_amount'])->toBe('129990')
             ->and($request['currency'])->toBe('TL')
-            ->and($request['merchant_oid'])->toBe('a-payment-uuid')
+            /*
+             * HYPHEN-FREE, AND THIS ASSERTION IS THE BUG (2026-08-05). The
+             * fixture used to be the string 'a-payment-uuid', which has hyphens
+             * and is not a uuid, so it proved nothing about either. The real API
+             * answers `merchant_oid alfanumerik olmalidir, ozel karakter
+             * iceremez` — every live get-token call was refused while this suite
+             * stayed green against a mock that accepts anything.
+             */
+            ->and($request['merchant_oid'])->toBe('39a87919589f46f8836cd4e6bd691f06')
             // Test mode travels as PayTR's own flag, not as a boolean.
             ->and($request['test_mode'])->toBe('1');
 
@@ -81,7 +90,7 @@ it('builds the get-token hash over PayTR’s documented fields, in order', funct
     Http::fake(['*' => Http::response(['status' => 'success', 'token' => 't'])]);
 
     gateway()->initiate(new PaymentIntentDTO(
-        reference: 'oid-1',
+        reference: '0d5b2f1a-1111-4222-8333-444455556666',
         amountMinor: 5_000,
         currencyCode: 'TRY',
         buyerEmail: 'a@b.com',
@@ -105,7 +114,9 @@ it('builds the get-token hash over PayTR’s documented fields, in order', funct
          */
         $expected = base64_encode(hash_hmac(
             'sha256',
-            '123456'.'1.2.3.4'.'oid-1'.'a@b.com'.'5000'.$request['user_basket'].'0'.'0'.'TL'.'1'.'test-salt',
+            // The hash is over what actually TRAVELS — the hyphen-free oid — or
+            // PayTR computes a different one and refuses the request.
+            '123456'.'1.2.3.4'.'0d5b2f1a111142228333444455556666'.'a@b.com'.'5000'.$request['user_basket'].'0'.'0'.'TL'.'1'.'test-salt',
             'test-key',
             true,
         ));
@@ -145,6 +156,117 @@ it('verifies a callback hash and rejects a forged one', function (): void {
      */
     expect($forged->verified)->toBeFalse()
         ->and($forged->successful)->toBeTrue();
+});
+
+it('takes PayTR’s hyphen-free oid back to the platform’s uuid', function (): void {
+    /*
+     * THE OTHER HALF OF THE 2026-08-05 FIX. `initiate` strips the hyphens because
+     * PayTR refuses them; the callback therefore names the payment in PayTR's
+     * form, and every consumer downstream looks a Payment up by `uuid`. So the
+     * translation happens once, here, at the edge — and the hash is still checked
+     * against what actually travelled.
+     */
+    $uuid = '39a87919-589f-46f8-836c-d4e6bd691f06';
+    $oid = '39a87919589f46f8836cd4e6bd691f06';
+
+    $result = gateway()->verifyCallback([
+        'merchant_oid' => $oid,
+        'status' => 'success',
+        'total_amount' => '159000',
+        'hash' => base64_encode(hash_hmac('sha256', $oid.'test-salt'.'success'.'159000', 'test-key', true)),
+    ]);
+
+    expect($result->verified)->toBeTrue()
+        ->and($result->reference)->toBe($uuid);
+});
+
+it('passes an unrecognised oid through untouched', function (): void {
+    /*
+     * A PAYMENT THAT PREDATES THE FIX carries hyphens on PayTR's side, and a
+     * callback for it must still resolve. Inventing a shape for a string this
+     * translation does not recognise would turn a legitimate callback into a
+     * lookup miss — money taken, order never confirmed.
+     */
+    $legacy = '39a87919-589f-46f8-836c-d4e6bd691f06';
+
+    $result = gateway()->verifyCallback([
+        'merchant_oid' => $legacy,
+        'status' => 'success',
+        'total_amount' => '100',
+        'hash' => base64_encode(hash_hmac('sha256', $legacy.'test-salt'.'success'.'100', 'test-key', true)),
+    ]);
+
+    expect($result->verified)->toBeTrue()
+        ->and($result->reference)->toBe($legacy);
+});
+
+it('sends the hyphen-free oid on a refund too', function (): void {
+    Http::fake(['*' => Http::response(['status' => 'success', 'islem_id' => '9'])]);
+
+    gateway()->refund(new PaymentRefundDTO(
+        reference: '39a87919-589f-46f8-836c-d4e6bd691f06',
+        amountMinor: 1_000,
+    ));
+
+    // PayTR knows the charge by ONE name, and a refund that used a different one
+    // would be refused exactly as the original get-token was.
+    Http::assertSent(fn ($request): bool => $request['merchant_oid'] === '39a87919589f46f8836cd4e6bd691f06');
+});
+
+it('writes down what PayTR refused, and puts it in the exception message', function (): void {
+    Http::fake(['*' => Http::response([
+        'status' => 'failed',
+        'reason' => 'merchant_oid alfanumerik olmalidir, ozel karakter iceremez',
+    ])]);
+
+    Log::shouldReceive('channel')->with('errors')->andReturnSelf();
+    Log::shouldReceive('error')
+        ->once()
+        ->withArgs(function (string $message, array $context): bool {
+            /*
+             * THE OBSERVABILITY GAP THIS CLOSES. `gatewayRejected` is not
+             * reportable — a PSP saying no is an answer, not an incident — so
+             * nothing about a live rejection ever reached a log file, and the
+             * first real merchant account produced a refusal nobody could read
+             * the reason for.
+             */
+            expect($message)->toBe('PayTR refused a request')
+                ->and($context['reason'])->toBe('merchant_oid alfanumerik olmalidir, ozel karakter iceremez')
+                ->and($context['operation'])->toBe('get-token');
+
+            // AND THE CREDENTIALS NEVER APPEAR. Anyone holding them can forge a
+            // "payment succeeded" this platform would believe.
+            expect(json_encode($context))->not->toContain('test-key')
+                ->and(json_encode($context))->not->toContain('test-salt');
+
+            return true;
+        });
+
+    try {
+        gateway()->initiate(new PaymentIntentDTO(
+            reference: '39a87919-589f-46f8-836c-d4e6bd691f06',
+            amountMinor: 100,
+            currencyCode: 'TRY',
+            buyerEmail: 'ayse@example.com',
+            buyerName: 'A',
+            buyerAddress: '-',
+            buyerPhone: '-',
+            buyerIp: '1.2.3.4',
+            basket: [],
+        ));
+
+        $this->fail('A refused get-token must throw.');
+    } catch (PaymentException $exception) {
+        /*
+         * TWO DIFFERENT STRINGS, DELIBERATELY. `getMessage()` is what a stack
+         * trace carries and it holds the operator's diagnosis; `userMessage()` is
+         * what the shopper reads and it stays the translation. Before the split
+         * they were the same string and the diagnosis was simply absent.
+         */
+        expect($exception->getMessage())->toContain('alfanumerik')
+            ->and($exception->userMessage())->toBe(__('payment.errors.gateway_rejected'))
+            ->and($exception->userMessage())->not->toContain('alfanumerik');
+    }
 });
 
 it('treats a missing hash as unverified rather than as a match', function (): void {
