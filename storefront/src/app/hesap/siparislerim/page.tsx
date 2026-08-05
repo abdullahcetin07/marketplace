@@ -7,7 +7,7 @@ import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
 import * as api from '@/lib/session-api';
 import { ui } from '@/lib/ui';
-import { ORDER_STATUS_LABELS, type Order, type OrderStatus } from '@/lib/types';
+import { ORDER_STATUS_LABELS, type Order, type OrderStatus, type ShipmentView } from '@/lib/types';
 
 /**
  * "Siparişlerim" (§2.2) — and the one screen where the SPLIT has to be undone
@@ -143,10 +143,103 @@ function GroupCard({ group, onCancelled }: { group: OrderGroup; onCancelled: (or
 /** The chip colour tells the state apart at a glance — green settled, amber waiting. */
 const STATUS_STYLE: Record<OrderStatus, string> = {
   paid: 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
+  delivered: 'bg-green-50 text-green-700 dark:bg-green-950/40 dark:text-green-300',
   pending: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
   awaiting_payment: 'bg-amber-50 text-amber-700 dark:bg-amber-950/40 dark:text-amber-300',
+  refunded: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
   cancelled: 'bg-ink-100 text-ink-600 dark:bg-ink-800 dark:text-ink-300',
 };
+
+/** Orders that have a shipment (created once the order is paid). */
+const SHIPPABLE: OrderStatus[] = ['paid', 'delivered', 'refunded'];
+
+/**
+ * The shipment line for one order (Shipping S5) — carrier, tracking link, and the
+ * buyer's "Teslim aldım" when the server says they may confirm.
+ *
+ * FETCHED PER ORDER, and only for one that could have a shipment: an unpaid order has
+ * none, so it is never asked for. The tracking link comes from the carrier's own URL
+ * template (built server-side), so a new carrier needs no code here.
+ */
+function ShipmentBlock({ orderId }: { orderId: string }) {
+  const [shipment, setShipment] = useState<ShipmentView | null>(null);
+  const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    let live = true;
+    void api.fetchOrderShipment(orderId).then((s) => live && setShipment(s)).catch(() => {});
+
+    return () => {
+      live = false;
+    };
+  }, [orderId]);
+
+  if (shipment === null) return null;
+
+  if (shipment.status === 'pending') {
+    return (
+      <div className="flex items-center gap-2 rounded-xl bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500 dark:bg-ink-900">
+        <TruckIcon /> Satıcı siparişinizi hazırlıyor.
+      </div>
+    );
+  }
+
+  async function confirm() {
+    setBusy(true);
+    try {
+      const updated = await api.confirmReceipt(orderId);
+      if (updated !== null) setShipment(updated);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="flex flex-wrap items-center gap-3 rounded-xl bg-ink-50 px-3.5 py-2.5 text-sm dark:bg-ink-900">
+      <TruckIcon />
+      <div className="flex min-w-0 flex-col">
+        <span className="font-bold">
+          {shipment.status_label}
+          {shipment.carrier ? <span className="font-semibold text-ink-500"> · {shipment.carrier}</span> : ''}
+        </span>
+        {shipment.tracking_number !== null &&
+          (shipment.tracking_url !== null ? (
+            <a
+              href={shipment.tracking_url}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-xs font-semibold text-brand-600 hover:underline"
+            >
+              Takip no: {shipment.tracking_number} →
+            </a>
+          ) : (
+            <span className="text-xs text-ink-500">Takip no: {shipment.tracking_number}</span>
+          ))}
+      </div>
+
+      {shipment.can_confirm_receipt && (
+        <button
+          type="button"
+          onClick={() => void confirm()}
+          disabled={busy}
+          className={`${ui.btnPrimarySm} ml-auto`}
+        >
+          {busy ? 'Kaydediliyor…' : 'Teslim aldım'}
+        </button>
+      )}
+    </div>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px] shrink-0 text-brand-500" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h11v9H3zM14 9h4l3 3v3h-7z" />
+      <circle cx="7" cy="18" r="1.6" />
+      <circle cx="17" cy="18" r="1.6" />
+    </svg>
+  );
+}
 
 function OrderRow({ order, onCancelled }: { order: Order; onCancelled: (order: Order) => void }) {
   const [busy, setBusy] = useState(false);
@@ -200,6 +293,8 @@ function OrderRow({ order, onCancelled }: { order: Order; onCancelled: (order: O
           ))}
         </ul>
       )}
+
+      {SHIPPABLE.includes(order.status) && <ShipmentBlock orderId={order.id} />}
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
         <span className="text-ink-500">KDV: {formatMoney(order.tax_total, order.currency)}</span>

@@ -134,7 +134,29 @@ export type OrderLine = {
   line_tax: string;
 };
 
-export type OrderStatus = 'pending' | 'awaiting_payment' | 'paid' | 'cancelled';
+export type OrderStatus =
+  | 'pending'
+  | 'awaiting_payment'
+  | 'paid'
+  | 'delivered'
+  | 'refunded'
+  | 'cancelled';
+
+/** A shipment for one order (Shipping, ADR-063/064). */
+export type ShipmentStatus = 'pending' | 'shipped' | 'delivered' | 'returned';
+
+export type ShipmentView = {
+  status: ShipmentStatus;
+  status_label: string;
+  carrier: string | null;
+  tracking_number: string | null;
+  tracking_url: string | null;
+  shipped_at: string | null;
+  delivered_at: string | null;
+  delivered_via: string | null;
+  /** Server-computed — the buyer may confirm receipt (do not derive on the client). */
+  can_confirm_receipt: boolean;
+};
 
 export type Order = {
   id: string;
@@ -162,6 +184,8 @@ export const ORDER_STATUS_LABELS: Record<OrderStatus, string> = {
   pending: 'Ödeme adımında',
   awaiting_payment: 'Ödeme bekliyor',
   paid: 'Hazırlanıyor',
+  delivered: 'Teslim edildi',
+  refunded: 'İade edildi',
   cancelled: 'İptal edildi',
 };
 

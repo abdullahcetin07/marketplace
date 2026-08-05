@@ -30,6 +30,7 @@ import type {
   GeoPlace,
   Order,
   PaymentView,
+  ShipmentView,
   User,
 } from './types';
 
@@ -443,5 +444,26 @@ export function cancelOrder(id: string, reason: string): Promise<Order | null> {
   return request<Order>(`/api/v1/orders/${encodeURIComponent(id)}/cancel`, {
     method: 'POST',
     body: { reason: reason === '' ? null : reason },
+  });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Shipment (Shipping, ADR-063/064)
+|------------------------------------------------------------------------------
+|
+| ONE SHIPMENT PER ORDER. `can_confirm_receipt` is the server's call, not ours — a
+| button the client conjured for a shipment the API would refuse to confirm is a
+| button that lies. `confirm` is the buyer saying the box arrived, which also starts
+| their own return clock early (ADR-064).
+*/
+
+export function fetchOrderShipment(orderId: string): Promise<ShipmentView | null> {
+  return request<ShipmentView>(`/api/v1/orders/${encodeURIComponent(orderId)}/shipment`);
+}
+
+export function confirmReceipt(orderId: string): Promise<ShipmentView | null> {
+  return request<ShipmentView>(`/api/v1/orders/${encodeURIComponent(orderId)}/shipment/confirm`, {
+    method: 'POST',
   });
 }
