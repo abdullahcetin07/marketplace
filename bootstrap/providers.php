@@ -68,6 +68,16 @@ return [
     // about contracts being bound, not about events being heard.
     App\Modules\Payment\PaymentServiceProvider::class,
 
+    /*
+    | Shipping — LAST, and after Payment for the same reason Payment sits after
+    | Order: it reads a paid order through `OrderQueryContract` and learns that
+    | money arrived by subscribing to `PaymentSucceeded` BY CLASS-STRING from its
+    | own provider. It imports no module (ADR-063), so the load order here is
+    | about contracts being bound, not about events being heard — a class-string
+    | listener is registered whichever provider boots first.
+    */
+    App\Modules\Shipping\ShippingServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

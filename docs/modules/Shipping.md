@@ -1,6 +1,8 @@
 # Shipping
 
-**Status: SPEC — not built. Approved architecture (owner, 2026-08-05); ADR-063–064.**
+**Status: S1 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
+S1 shipped the shipment aggregate, the `cargo_companies` table and the seller's
+"kargoya ver" flow — see §11. S2–S4 are not built.
 
 Shipping is the module that tracks a paid order from the seller's hands to the buyer's
 door, and turns "delivered" into the two things that wait on it: **when the seller gets
@@ -122,7 +124,8 @@ storefront can turn a tracking number into a link without hard-coding carriers.
 ## 8. Internal phases (built in order)
 
 - **S1** — Shipment aggregate + states + `cargo_companies` table + the seller "kargoya ver"
-  flow (→ `shipped`, tracking). Core Order read for the paid orders to ship.
+  flow (→ `shipped`, tracking). Core Order read for the paid orders to ship. **Built
+  2026-08-05 — see §11.**
 - **S2** — Delivery inference: the transit-period sweep job + the buyer "Teslim aldım"
   action → `delivered` + `ShipmentDelivered` event.
 - **S3** — **Payment enhancement:** consume `ShipmentDelivered` → auto-payout at
@@ -132,6 +135,32 @@ storefront can turn a tracking number into a link without hard-coding carriers.
   partial refund, Inventory restock of that quantity).
 - **S5** — **Storefront (frontend):** shipment status + tracking link + "Teslim aldım" on
   the order; the return-request UI.
+
+## 11. What S1 shipped
+
+| Area | Where |
+|---|---|
+| `Shipment` — one per paid order, UNIQUE on `order_uuid` (§2) | `Domain/Models/Shipment` |
+| `ShipmentStatus`, `DeliveredVia` — the state machine and the provenance of a delivery date (§2–3) | `Domain/Enums/*` |
+| `CargoCompany` — the operator-managed lookup + tracking-URL template (§5) | `Domain/Models/CargoCompany` |
+| The eight TR carriers, seeded idempotently on `code` | `Database\Modules\Shipping\Seeders\CargoCompanySeeder` |
+| A parcel per order on `PaymentSucceeded`, by CLASS-STRING (§1) | `Application/Listeners/CreateShipmentsOnPayment` |
+| "Kargoya ver" — carrier + tracking number → `shipped` (§6) | `Application/Actions/MarkShippedAction` |
+| The seller's shipment list, org-uuid scoped (§6) | `Presentation/Filament/Seller/Resources/ShipmentResource` |
+| The admin's carrier list (§5) | `Presentation/Filament/Resources/CargoCompanyResource` |
+| `shipping:backfill` — a parcel for orders paid before this module existed | `Presentation/Console/BackfillShipmentsCommand` |
+| `orderFulfilment()` + `paidOrders()` on the Core Order port (§10) | `app/Core/Domain/Contracts/OrderQueryContract` |
+
+**Deliberately absent in S1, and named so nobody looks for them:** nothing writes
+`delivered_at` — no action, no route, no permission — because delivery is S2's
+inference; there is no customer-facing API yet (S5's storefront reads it); and the
+`ShipmentTrackingContract` port has no implementation and no interface file, because a
+port with no adapter and no caller is a file that only documents an intention (§9).
+
+**One correction worth recording.** The first version of `ShipmentPolicy` withheld the
+Super Admin bypass from `deliver`, which cannot work — `Gate::before()` grants a Super
+Admin every ability before any policy runs — and would have contradicted §6's corrective
+admin lever anyway. The guarantee is STRUCTURAL: the operation does not exist.
 
 ## 9. Deliberately absent / follow-ups
 

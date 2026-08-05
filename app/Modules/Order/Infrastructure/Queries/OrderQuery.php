@@ -183,6 +183,51 @@ final class OrderQuery implements OrderQueryContract
     }
 
     /**
+     * Who ships it, and what it is called (Shipping.md §10).
+     *
+     * THE STATUS COMES BACK AS A STRING, not the enum — `->value` explicitly,
+     * because `status` is a cast attribute and handing back the enum is the exact
+     * mistake this class already made once (`orderStatus()`, 2026-08-04).
+     *
+     * @return array{order_number: string, selling_org_uuid: string, status: string}|null
+     */
+    public function orderFulfilment(string $orderUuid): ?array
+    {
+        $order = Order::query()->where('uuid', $orderUuid)->first();
+
+        if ($order === null) {
+            return null;
+        }
+
+        return [
+            'order_number' => $order->order_number,
+            'selling_org_uuid' => $order->selling_org_uuid,
+            'status' => $order->status->value,
+        ];
+    }
+
+    /**
+     * Paid orders, newest first — the backfill's read (Shipping.md §10).
+     *
+     * CAPPED BY CONTRACT, not by the caller's discipline. @see the port for why.
+     *
+     * @return array<int, string>
+     */
+    public function paidOrders(?string $sellerOrgUuid = null, int $limit = 500): array
+    {
+        return Order::query()
+            ->where('status', OrderStatus::Paid->value)
+            ->when(
+                $sellerOrgUuid !== null,
+                static fn ($query) => $query->where('selling_org_uuid', $sellerOrgUuid),
+            )
+            ->latest('id')
+            ->limit($limit)
+            ->pluck('uuid')
+            ->all();
+    }
+
+    /**
      * @return array{items_total_minor: int, tax_total_minor: int, grand_total_minor: int, currency_code: string}|null
      */
     public function orderTotals(string $orderUuid): ?array

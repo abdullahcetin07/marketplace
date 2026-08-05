@@ -18,5 +18,6 @@ return [
     'customers' => 'Customers',
     'store' => 'Store',
     'finance' => 'Finance',
+    'shipping' => 'Shipping',
     'system' => 'System',
 ];

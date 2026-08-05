@@ -148,6 +148,47 @@ interface OrderQueryContract
     public function orderSettlement(string $orderUuid): ?array;
 
     /**
+     * Who has to ship this order, and what to call it on a packing list; null
+     * when no such order exists.
+     *
+     * ADDED FOR SHIPPING (2026-08-05, S1). A shipment is created from a payment
+     * event that names only order uuids, and it needs the SELLER — a parcel
+     * belongs to whoever has to put it in a box. The order number comes with it
+     * because every fulfilment surface labels a parcel by the order it fulfils,
+     * and asking per row for a string that can never change (ADR-053) would be a
+     * query per row for a constant.
+     *
+     * IT IS DELIBERATELY NOT `orderSettlement()`, which already returns the
+     * seller. That method's other half is a commission, and a fulfilment caller
+     * reading a money field to find out who packs a box is the kind of reuse that
+     * makes a later change to either one break the other.
+     *
+     * THE STATUS IS A STRING for the reason `orderStatus()` gives: the enum is
+     * Order's, and typing the contract with it would make every consumer import
+     * the module this port exists to avoid importing.
+     *
+     * @return array{order_number: string, selling_org_uuid: string, status: string}|null
+     */
+    public function orderFulfilment(string $orderUuid): ?array;
+
+    /**
+     * Every order that has been PAID — optionally just one seller's.
+     *
+     * ADDED FOR SHIPPING (2026-08-05, S1). Shipping creates a parcel per paid
+     * order from an event, which covers everything paid from now on; this covers
+     * what was paid BEFORE the module existed, and any order whose event was lost.
+     * It is what `shipping:backfill` reads.
+     *
+     * NEWEST FIRST AND CAPPED, because "every paid order" grows without bound and
+     * a contract method that can return a million rows is one somebody eventually
+     * calls in a request. A backfill that has to run twice is a smaller problem
+     * than a read that cannot finish.
+     *
+     * @return array<int, string> order uuids
+     */
+    public function paidOrders(?string $sellerOrgUuid = null, int $limit = 500): array;
+
+    /**
      * What one order comes to; null when no such order exists.
      *
      * The tax total is included rather than left to be recomputed: it was

@@ -452,6 +452,56 @@ arch('no module depends on Payment')
     ]);
 
 /*
+|--------------------------------------------------------------------------
+| Shipping — the sixth module to import nothing (ADR-063, Shipping.md §1)
+|--------------------------------------------------------------------------
+|
+| It needs less than Payment did and the discipline is the same: a paid order's
+| seller and order number arrive through `OrderQueryContract`, and the fact that
+| money arrived arrives as a class-string subscription to Payment's event.
+|
+| IT DRIVES NO COMMAND PORT AT ALL. Shipping changes nothing outside itself — the
+| order's fulfilment state is Order's to move on `ShipmentDelivered` (S2), payout
+| and the return window are Payment's to open on the same event (S3). This module
+| records where a parcel is and announces when it arrived; every consequence
+| belongs to whoever owns it.
+|
+| THE CARRIER PORT POINTS OUT OF THE PLATFORM and has no implementation in v1
+| (ADR-063) — tracking is manual. When an adapter lands it lives in this module's
+| Infrastructure, the same shape `PayTrGateway` has.
+*/
+arch('Shipping imports no other module at all')
+    ->expect('App\Modules\Shipping')
+    ->not->toUse([
+        'App\Modules\Identity',
+        'App\Modules\Settings',
+        'App\Modules\Activity',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Order',
+        'App\Modules\Payment',
+    ]);
+
+/*
+| The mirror. Nothing reaches into Shipping — and in S1 nothing has any reason to:
+| Payment will learn that a parcel arrived by naming `ShipmentDelivered` as a
+| STRING (S3), never by importing it.
+*/
+arch('no module depends on Shipping')
+    ->expect('App\Modules\Shipping')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Shipping',
+        'App\Providers\Filament',
+        'Database\Modules\Shipping',
+        'Tests\Modules\Shipping',
+    ]);
+
+/*
 | The mirror of the rule above: nothing built so far may reach INTO Catalog.
 | Offer, Inventory and Search will read it through the Core contract when they
 | exist; until then the only correct number of importers is zero, and stating it
@@ -589,6 +639,17 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Store\StoreServiceProvider',
         // Catalog — non-DTO namespaces ignored so its Domain\DTOs stay covered
         // (they must carry the suffix), like the modules above.
+        // Shipping — same shape as Payment below: the non-DTO namespaces are
+        // ignored so its `Domain\DTOs` is the only place the suffix rule applies.
+        'App\Modules\Shipping\Application',
+        'App\Modules\Shipping\Domain\Models',
+        'App\Modules\Shipping\Domain\Enums',
+        'App\Modules\Shipping\Domain\Events',
+        'App\Modules\Shipping\Domain\Exceptions',
+        'App\Modules\Shipping\Infrastructure',
+        'App\Modules\Shipping\Presentation',
+        'App\Modules\Shipping\ShippingServiceProvider',
+
         // Payment — same shape: non-DTO namespaces ignored so its Domain\DTOs
         // stay covered (they must carry the suffix).
         'App\Modules\Payment\Application',

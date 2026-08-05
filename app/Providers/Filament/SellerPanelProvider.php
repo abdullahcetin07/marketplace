@@ -120,6 +120,15 @@ final class SellerPanelProvider extends PanelProvider
                 | surface a registration mistake away from a merchant.
                 */
                 \App\Modules\Order\Presentation\Filament\Seller\Resources\OrderResource::class,
+
+                /*
+                | KARGOLARIM (ADR-063). Beside the orders because it is the other
+                | half of one job: what was sold, and what still has to be put in
+                | a box. The seller's ONE lever is here — and the one they can
+                | never reach is `delivered`, which the buyer or the transit
+                | window sets (ADR-064).
+                */
+                \App\Modules\Shipping\Presentation\Filament\Seller\Resources\ShipmentResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')

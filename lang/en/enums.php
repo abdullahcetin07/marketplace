@@ -244,4 +244,16 @@ return [
         'after' => 'After the amount',
     ],
 
+    'ShipmentStatus' => [
+        'pending' => 'Preparing',
+        'shipped' => 'In transit',
+        'delivered' => 'Delivered',
+        'returned' => 'Returned',
+    ],
+
+    'DeliveredVia' => [
+        'buyer' => 'Buyer confirmed',
+        'transit_sweep' => 'Transit window elapsed',
+        'carrier' => 'Carrier reported',
+    ],
 ];

@@ -9,6 +9,7 @@ use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Modules\Organization\Seeders\OrganizationPlanSeeder;
 use Database\Modules\Payment\Seeders\CommissionRuleSeeder;
 use Database\Modules\Settings\Seeders\SettingsSeeder;
+use Database\Modules\Shipping\Seeders\CargoCompanySeeder;
 use Illuminate\Database\Seeder;
 
 /**
@@ -54,6 +55,14 @@ final class DatabaseSeeder extends Seeder
             | discovered in a month's accounts.
             */
             CommissionRuleSeeder::class,
+
+            /*
+            | The cargo carriers (ADR-063). Structural for the same reason as the
+            | KDV brackets: a seller cannot mark anything shipped without a
+            | carrier to pick, so an empty table blocks the whole fulfilment flow
+            | on a required select.
+            */
+            CargoCompanySeeder::class,
 
             // Roles and permissions, derived from PermissionRegistry.
             RolePermissionSeeder::class,

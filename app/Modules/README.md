@@ -15,6 +15,11 @@ it — Offer into Catalog, Inventory into Offer, Order into all of them, and
 Payment into Order and Inventory (it added the reservation port's fourth verb,
 `restock`).
 
+**Shipping is being built** (ADR-063–064, spec approved 2026-08-05): **S1 — the
+shipment aggregate, the `cargo_companies` table and the seller's "kargoya ver"
+flow — has landed**. S2–S4 (delivery inference, auto-payout, line-level partial
+refund) are not built.
+
 ---
 
 ## The modules
@@ -34,6 +39,7 @@ Payment into Order and Inventory (it added the reservation port's fourth verb,
 | **Inventory** | The availability authority: on-hand + reserved per (seller org, variant), `available = on_hand − reserved` read by the buy box, the append-only movement ledger, and the reserve/release/commit primitives Order calls plus the `restock` Payment added (ADR-048–051). **No cart, order, money or multi-warehouse** — *complete, not frozen* | [modules/Inventory.md](../../docs/modules/Inventory.md) |
 | **Order** | The buyer's pipeline: one multi-seller cart, the customer address book, a checkout that splits into one order per seller under a checkout group, immutable price/tax/address snapshots, the KDV breakdown, and the reserve→commit→release calls that make it Inventory's first real caller (ADR-052–056). **Stops at awaiting payment** — no money, no shipping, no commission — *complete, not frozen* | [modules/Order.md](../../docs/modules/Order.md) |
 | **Payment** | The money: one payment per checkout group through PayTR's iframe (no card data ever), a hash-verified idempotent callback, the **Inventory commit that keeps ADR-057's promise**, the commission rule engine, the append-only seller ledger, recorded payouts, and refunds that reverse money, commission and stock together (ADR-060–062). **Not the checkout** (Order owns the split and the reservation), not shipping, not invoicing — *complete, not frozen* | [modules/Payment.md](../../docs/modules/Payment.md) |
+| **Shipping** | Fulfilment: one shipment per paid order, the seller's "kargoya ver" with a carrier + tracking number, and delivery **inferred** rather than asserted — the buyer confirms or the transit window elapses (ADR-063–064). `ShipmentDelivered` is what releases payout and opens the return window. **No money** — v1 ships free, so it writes no price, KDV or commission — and no carrier API in v1 — *S1 built* | [modules/Shipping.md](../../docs/modules/Shipping.md) |
 | **Offer** | What makes the catalog sellable: a seller org's price + stock for one variant, its lifecycle, the computed buy box, the public "product + its offers" surface and the storefront product-listing contributor (ADR-042–046). **No cart, order, payment or commission** — those are later sprints — *complete, not frozen* | [modules/Offer.md](../../docs/modules/Offer.md) |
 
 Media and Notification are **infrastructure only** — the plumbing exists and is

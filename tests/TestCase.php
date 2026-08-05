@@ -12,6 +12,7 @@ use App\Models\User;
 use Database\Modules\Catalog\Seeders\TaxRateSeeder;
 use Database\Modules\Localization\Seeders\LocalizationSeeder;
 use Database\Modules\Payment\Seeders\CommissionRuleSeeder;
+use Database\Modules\Shipping\Seeders\CargoCompanySeeder;
 use Database\Seeders\RolePermissionSeeder;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Foundation\Testing\TestCase as BaseTestCase;
@@ -94,6 +95,14 @@ abstract class TestCase extends BaseTestCase
         | engine works by never exercising it.
         */
         $this->seed(CommissionRuleSeeder::class);
+
+        /*
+        | The cargo carriers (ADR-063). Structural for the same reason again: a
+        | seller cannot mark anything shipped without a carrier to pick, so an
+        | empty table blocks the whole fulfilment flow — and a suite running in
+        | that state would prove the shipping flow works by never exercising it.
+        */
+        $this->seed(CargoCompanySeeder::class);
     }
 
     /**

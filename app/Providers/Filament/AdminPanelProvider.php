@@ -20,6 +20,7 @@ use App\Modules\Organization\Presentation\Filament\Resources\StoreOpeningRequest
 use App\Modules\Payment\Presentation\Filament\Resources\CommissionRuleResource;
 use App\Modules\Payment\Presentation\Filament\Resources\PaymentAdminResource;
 use App\Modules\Payment\Presentation\Filament\Resources\PayoutResource;
+use App\Modules\Shipping\Presentation\Filament\Resources\CargoCompanyResource;
 use App\Modules\Store\Presentation\Filament\Resources\StoreResource;
 use App\Shared\Enums\UserType;
 use Filament\Http\Middleware\Authenticate;
@@ -166,6 +167,14 @@ final class AdminPanelProvider extends PanelProvider
                 | already did.
                 */
                 PaymentAdminResource::class,
+
+                /*
+                | THE CARRIER LIST (ADR-063). Operator-owned reference data, and
+                | the whole reason carriers are a table rather than an enum: a new
+                | contract or a changed tracking URL is an afternoon's work for
+                | operations, not a release.
+                */
+                CargoCompanyResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Admin/Pages'), for: 'App\\Filament\\Admin\\Pages')
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')

@@ -246,4 +246,16 @@ return [
         'after' => 'Tutardan sonra',
     ],
 
+    'ShipmentStatus' => [
+        'pending' => 'Hazırlanıyor',
+        'shipped' => 'Kargoda',
+        'delivered' => 'Teslim edildi',
+        'returned' => 'İade edildi',
+    ],
+
+    'DeliveredVia' => [
+        'buyer' => 'Alıcı onayladı',
+        'transit_sweep' => 'Kargo süresi doldu',
+        'carrier' => 'Kargo firması bildirdi',
+    ],
 ];
