@@ -14,6 +14,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -220,6 +221,26 @@ final class PayoutResource extends Resource
             ])
             ->bulkActions([])
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * Eager-load what the table reads (CLAUDE.md: on the query, never at the call
+     * site).
+     *
+     * THE SAME BUG AS `PaymentAdminResource`, FOUND BY LOOKING RATHER THAN BY
+     * CRASHING. The amount column renders `$record->currency->code`, and strict
+     * mode turns that into a `LazyLoadingViolationException` on every render — this
+     * screen had simply not been opened since it shipped, because P4's tests
+     * exercised the API and the actions, never the panel.
+     *
+     * @return Builder<Payout>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Payout> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query->with('currency');
     }
 
     /**

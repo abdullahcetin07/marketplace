@@ -15,6 +15,7 @@ use Filament\Notifications\Notification;
 use Filament\Resources\Resource;
 use Filament\Tables;
 use Filament\Tables\Table;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -186,6 +187,31 @@ final class PaymentAdminResource extends Resource
             ])
             ->bulkActions([])
             ->defaultSort('id', 'desc');
+    }
+
+    /**
+     * Eager-load what the table reads (CLAUDE.md: on the query, never at the call
+     * site).
+     *
+     * **THE AMOUNT COLUMN TOUCHES `currency`, AND STRICT MODE THROWS.**
+     * `Model::shouldBeStrict()` is on everywhere but production, so a lazy load
+     * here is not an N+1 to notice later — it is a
+     * `LazyLoadingViolationException` and a blank screen the moment an admin opens
+     * the list. It is also a real N+1 in production, where it would silently issue
+     * one query per row instead.
+     *
+     * DECLARED HERE RATHER THAN ON THE MODEL'S `$with`, which is the same choice
+     * `OrderResource` makes: the API resources read a payment one at a time and do
+     * not need the join, so the eager load belongs to the screen that does.
+     *
+     * @return Builder<Payment>
+     */
+    public static function getEloquentQuery(): Builder
+    {
+        /** @var Builder<Payment> $query */
+        $query = parent::getEloquentQuery();
+
+        return $query->with('currency');
     }
 
     /**

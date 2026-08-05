@@ -293,7 +293,11 @@ Side effects (mail, webhooks, indexing) go in `BaseAction::after()`, which runs
 ## Things that will surprise you
 
 - **Strict mode is on.** Lazy loading *throws* in development. Declare eager
-  loads on the repository's `$with`, not at the call site.
+  loads on the repository's `$with` (or the Filament resource's
+  `getEloquentQuery()`), not at the call site. **A test only catches this with
+  TWO OR MORE rows** — Laravel arms the guard in `Builder::hydrate()` behind
+  `count($items) > 1`, so a single-record fixture renders the offending column
+  happily and proves nothing.
 - **`BaseRequest::authorize()` defaults to `false`.** Override it deliberately.
 - **`BasePolicy::owns()` defaults to `false`.** Any seller- or customer-facing
   policy must override it or it denies everything.
