@@ -40,7 +40,7 @@ export function PayTrCheckout({ token }: { token: string }) {
 
   return (
     <iframe
-      src={`https://www.paytr.com/odeme/guest/${token}`}
+      src={`https://www.paytr.com/odeme/guvenli/${token}`}
       id="paytriframe"
       title="PayTR ödeme"
       frameBorder={0}
