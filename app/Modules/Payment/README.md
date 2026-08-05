@@ -26,6 +26,15 @@ callback  → hash-verified, idempotent, one transaction:
 
 ## What bites
 
+- **A balance and a payable amount are two different numbers** (S3, ADR-064). Money
+  from an order that has not been delivered long enough is OWED and not drawable —
+  a seller must not be paid for goods the buyer can still send back. `SellerBalance`
+  reports balance / on-hold / payable together so no screen can show one and
+  enforce another. An order with no delivery window is HELD; a ledger entry with no
+  order is never held.
+- **The delivery windows are frozen columns.** Editing `shipping.payout_hold_days`
+  governs the next delivery, never one already recorded.
+
 - **Money is integer kuruş, everywhere.** PayTR's unit is the platform's unit, so
   the integer travels end to end and no float is ever constructed. The only
   decimals in the module are display strings and PayTR's refund field, both built

@@ -95,16 +95,26 @@ final class PaymentException extends BaseException
      *
      * THE GUARD THAT KEEPS A BALANCE HONEST. A refund may drive a balance negative
      * afterwards (Payment.md §8) and that is allowed; paying out money the
-     * platform does not owe is not.
+     * platform does not owe is not — and since S3, neither is paying out money it
+     * owes for a parcel the buyer can still return (ADR-064).
      */
-    public static function payoutExceedsBalance(string $sellerOrgUuid, int $amountMinor, int $balanceMinor): self
-    {
+    public static function payoutExceedsBalance(
+        string $sellerOrgUuid,
+        int $amountMinor,
+        int $balanceMinor,
+        int $onHoldMinor = 0,
+    ): self {
         return self::make(__('payment.errors.payout_exceeds_balance'))
             ->withContext([
                 'reason' => 'payout_exceeds_balance',
                 'seller_org_uuid' => $sellerOrgUuid,
                 'amount_minor' => $amountMinor,
+                // What may actually be sent — not what is owed. @see
+                // `SellerBalance`.
                 'balance_minor' => $balanceMinor,
+                // Owed, delivered too recently to draw. Reported so an admin
+                // knows to wait rather than to open a ticket.
+                'on_hold_minor' => $onHoldMinor,
             ]);
     }
 

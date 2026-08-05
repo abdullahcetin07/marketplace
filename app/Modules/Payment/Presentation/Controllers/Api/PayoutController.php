@@ -8,7 +8,7 @@ use App\Core\Presentation\Controllers\BaseController;
 use App\Modules\Payment\Application\Actions\CreatePayoutAction;
 use App\Modules\Payment\Application\Actions\SettlePayoutAction;
 use App\Modules\Payment\Domain\Models\Payout;
-use App\Modules\Payment\Domain\Models\SellerLedgerEntry;
+use App\Modules\Payment\Domain\Support\SellerBalance;
 use App\Modules\Payment\Presentation\Requests\CreatePayoutRequest;
 use App\Modules\Payment\Presentation\Requests\SettlePayoutRequest;
 use App\Modules\Payment\Presentation\Resources\PayoutResource;
@@ -116,8 +116,9 @@ final class PayoutController extends BaseController
     /**
      * GET /api/v1/admin/sellers/{seller}/balance
      *
-     * The number a payout is checked against — exposed so an admin can see what
-     * they may send before trying to send it.
+     * The numbers a payout is checked against — exposed so an admin can see what
+     * they may send before trying to send it, and why the rest is not available
+     * yet.
      */
     public function balance(string $seller): JsonResponse
     {
@@ -127,10 +128,21 @@ final class PayoutController extends BaseController
             throw new NotFoundHttpException;
         }
 
+        $balance = SellerBalance::for($seller);
+
         return $this->ok([
             'seller_id' => $seller,
             // A SUM, computed on read — there is no balance column (ADR-062).
-            'balance_minor' => SellerLedgerEntry::balanceFor($seller),
+            'balance_minor' => $balance->balanceMinor,
+            /*
+            | THE TWO NUMBERS S3 SPLIT IT INTO (ADR-064). What is OWED and what is
+            | PAYABLE stopped being the same figure when payout started waiting on
+            | delivery: money from a parcel the buyer can still send back is real
+            | and not yet drawable. Reported together so a screen cannot show one
+            | and enforce the other.
+            */
+            'on_hold_minor' => $balance->onHoldMinor,
+            'payable_minor' => $balance->payableMinor,
         ]);
     }
 }

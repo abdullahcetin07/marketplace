@@ -64,6 +64,7 @@ final class Payout extends Model
 
     /** @use HasFactory<PayoutFactory> */
     use HasFactory;
+
     use HasUuid;
 
     /**

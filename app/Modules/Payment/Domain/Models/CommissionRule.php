@@ -44,6 +44,7 @@ final class CommissionRule extends Model
 
     /** @use HasFactory<CommissionRuleFactory> */
     use HasFactory;
+
     use HasUuid;
 
     protected $table = 'commission_rules';

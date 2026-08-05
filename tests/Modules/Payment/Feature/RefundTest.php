@@ -26,6 +26,7 @@ use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Payment\Application\Actions\CreatePayoutAction;
 use App\Modules\Payment\Application\Actions\RefundPaymentAction;
 use App\Modules\Payment\Application\Actions\SettlePaymentCallbackAction;
+use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\DTOs\RefundRequestDTO;
 use App\Modules\Payment\Domain\Enums\LedgerEntryType;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
@@ -435,6 +436,26 @@ it('drives a paid-out balance negative and blocks the next payout until it is wh
     $fixture = refundFixture([12_000]);
     $seller = $fixture['sellers'][0];
     $admin = refundAdmin();
+
+    /*
+     * THE PARCEL HAS TO ARRIVE FIRST, SINCE S3 (ADR-064). A payout no longer draws
+     * on the whole balance — money from an order that has not been delivered long
+     * enough is owed and not payable — so this test now delivers the order and
+     * waits out the hold before it can reach the case it is actually about.
+     *
+     * That is the point of the change rather than a nuisance of it: the platform
+     * pays the seller, and THEN the buyer returns the goods. Before S3 that could
+     * happen the moment the card cleared; now it takes a delivery and a fortnight,
+     * which is exactly how much rarer the hazard is meant to be.
+     */
+    app(OpenSettlementWindows::class)->handle((object) [
+        'orderUuid' => $fixture['orders'][0]->uuid,
+        'sellerOrgUuid' => $seller,
+        'deliveredAt' => now()->toIso8601String(),
+        'deliveredVia' => 'buyer',
+    ]);
+
+    $this->travel(15)->days();
 
     // The platform pays the seller what it owed — before the buyer sends the
     // parcel back.

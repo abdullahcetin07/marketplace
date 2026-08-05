@@ -449,6 +449,43 @@ never reads PayTR's operator-facing words.
 - **restocks** through Inventory (the mirror of the commit in §5),
 - moves the Payment/order to `refunded` / `partially_refunded`.
 
+> **As built (S3, 2026-08-05): payout waits on DELIVERY, not on payment.**
+>
+> This is what ADR-060 deferred when it left payout manual-only. Payment subscribes
+> to Shipping's `ShipmentDelivered` **by class-string** — neither module names the
+> other — and freezes two dates in a `settlement_windows` row keyed on the order:
+> `payout_eligible_at = delivered_at + settings('shipping.payout_hold_days')` and
+> `return_window_ends_at = delivered_at + settings('shipping.return_days')`.
+>
+> **A BALANCE AND A PAYABLE AMOUNT STOPPED BEING THE SAME NUMBER.** `SellerBalance`
+> reports three: the balance (Σ of the ledger, unchanged), what is **on hold**
+> (the net of orders not yet delivered long enough), and what is **payable** —
+> which is now the ceiling `CreatePayoutAction` enforces. A seller must not be paid
+> for goods the buyer can still send back, or the platform is recovering money it
+> has already handed over.
+>
+> **An order with no window is HELD, not payable.** That is the conservative half
+> and the important one: an order paid but never delivered has no row at all, and
+> reading "no window" as payable would pay the seller the moment the card cleared —
+> exactly what ADR-064 exists to prevent. The mirror rule: a ledger entry with **no
+> `order_uuid`** is never held, because an adjustment cannot be tied to a parcel and
+> holding it would freeze money with nothing that could ever release it.
+>
+> **The dates are frozen, not derived on read.** An operator shortening the hold
+> must not make last month's deliveries retroactively payable, nor lengthening it
+> withdraw a payout a seller was already promised — the same discipline as an order
+> line's price (ADR-053).
+>
+> **`delivered_at` comes off the EVENT**, never the consuming clock: a listener
+> running an hour behind must not push a seller's payday an hour out.
+>
+> **The manual payout stays.** Nothing auto-creates a `Payout` row — a payout is a
+> bank transfer a human actually makes, and auto-creating one per delivered order
+> would fragment a seller's money into dozens of tiny transfers. What automation
+> gives is ELIGIBILITY: the admin's batch screen and the balance endpoint report
+> `payable_minor` beside `on_hold_minor`, so the decision is informed rather than
+> made for them.
+
 **Refund vs payout is the ordering hazard** and the ledger is what makes it safe:
 because balance is a sum of entries, a refund after a payout simply drives the balance
 negative and blocks the next payout until it is made whole — the money is never lost

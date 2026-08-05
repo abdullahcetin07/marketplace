@@ -68,6 +68,7 @@ final class Payment extends Model
 
     /** @use HasFactory<PaymentFactory> */
     use HasFactory;
+
     use HasUuid;
 
     protected $table = 'payments';

@@ -7,7 +7,7 @@ namespace App\Modules\Payment\Presentation\Filament\Resources;
 use App\Modules\Payment\Application\Actions\SettlePayoutAction;
 use App\Modules\Payment\Domain\Enums\PayoutStatus;
 use App\Modules\Payment\Domain\Models\Payout;
-use App\Modules\Payment\Domain\Models\SellerLedgerEntry;
+use App\Modules\Payment\Domain\Support\SellerBalance;
 use App\Modules\Payment\Presentation\Filament\Resources\PayoutResource\Pages;
 use Filament\Forms;
 use Filament\Notifications\Notification;
@@ -34,6 +34,11 @@ use Illuminate\Database\Eloquent\Model;
  * admin guessing and being refused. It is read live in the form rather than
  * carried on the row: a balance is a `SUM()` of the ledger (ADR-062) and there is
  * no column to display.
+ *
+ * SINCE S3 IT SHOWS TWO NUMBERS (ADR-064): what is PAYABLE and what is still on
+ * HOLD because the parcel has not been delivered long enough. A seller must not be
+ * paid for goods the buyer can still send back, and an admin who saw only the
+ * total would type it and be refused.
  *
  * NO EDIT PAGE AND NO DELETE. The money fields of a payout are immutable — the
  * ledger already debited them — and the only permitted write is the settlement,
@@ -105,13 +110,31 @@ final class PayoutResource extends Resource
                 ->uuid()
                 ->required()
                 ->live(onBlur: true)
-                // THE BALANCE, READ LIVE. A `SUM()` of the ledger — there is no
-                // column to bind to (ADR-062) — so an admin sees what they may
-                // send before typing an amount that would be refused.
-                ->hint(fn (?string $state): ?string => $state === null || $state === ''
-                    ? null
-                    : __('payment.payout.available').': '
-                        .number_format(SellerLedgerEntry::balanceFor($state) / 100, 2, ',', '.').' ₺'),
+                /*
+                | THE BALANCE, READ LIVE, AND SPLIT IN TWO SINCE S3 (ADR-064). A
+                | `SUM()` of the ledger — there is no column to bind to (ADR-062)
+                | — minus what is still on hold because the parcel has not been
+                | delivered long enough. The admin sees what they may actually
+                | send, and how much more is coming, before typing an amount that
+                | would be refused.
+                */
+                ->hint(function (?string $state): ?string {
+                    if ($state === null || $state === '') {
+                        return null;
+                    }
+
+                    $balance = SellerBalance::for($state);
+
+                    $hint = __('payment.payout.available').': '
+                        .number_format($balance->payableMinor / 100, 2, ',', '.').' ₺';
+
+                    if ($balance->onHoldMinor > 0) {
+                        $hint .= ' · '.__('payment.payout.on_hold').': '
+                            .number_format($balance->onHoldMinor / 100, 2, ',', '.').' ₺';
+                    }
+
+                    return $hint;
+                }),
 
             /*
             | ENTERED IN LIRA, STORED IN KURUŞ — the same boundary conversion the

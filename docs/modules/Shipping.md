@@ -1,9 +1,10 @@
 # Shipping
 
-**Status: S1–S2 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
+**Status: S1–S3 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
 S1 shipped the shipment aggregate, the `cargo_companies` table and the seller's
-"kargoya ver" flow; S2 shipped delivery inference and `ShipmentDelivered` — see §11.
-S3–S4 (the Payment enhancements) are not built.
+"kargoya ver" flow; S2 shipped delivery inference and `ShipmentDelivered`; S3 is the
+Payment enhancement that consumes it — the payout hold and the return window (see
+Payment.md §8). S4 (line-level partial refund) is not built.
 
 Shipping is the module that tracks a paid order from the seller's hands to the buyer's
 door, and turns "delivered" into the two things that wait on it: **when the seller gets
@@ -129,8 +130,10 @@ storefront can turn a tracking number into a link without hard-coding carriers.
   2026-08-05 — see §11.**
 - **S2** — Delivery inference: the transit-period sweep job + the buyer "Teslim aldım"
   action → `delivered` + `ShipmentDelivered` event. **Built 2026-08-05 — see §11.**
-- **S3** — **Payment enhancement:** consume `ShipmentDelivered` → auto-payout at
-  `delivered_at + payout_hold_days`; open the return window.
+- **S3** — **Payment enhancement:** consume `ShipmentDelivered` → payout becomes
+  ELIGIBLE at `delivered_at + payout_hold_days`; open the return window. **Built
+  2026-08-05 — it lives in Payment, see Payment.md §8. Nothing here changed:**
+  Shipping still emits one event and knows nothing about what it unlocks.
 - **S4** — **Payment enhancement:** buyer-initiated return + **line-level partial refund**
   (refund a quantity of an order line: proportional commission + KDV reversal, PayTR
   partial refund, Inventory restock of that quantity).

@@ -11,6 +11,7 @@ use App\Modules\Payment\Domain\Enums\PayoutStatus;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payout;
 use App\Modules\Payment\Domain\Models\SellerLedgerEntry;
+use App\Modules\Payment\Domain\Support\SellerBalance;
 
 /**
  * Record that the platform is sending a seller their money (ADR-062,
@@ -37,9 +38,16 @@ use App\Modules\Payment\Domain\Models\SellerLedgerEntry;
  * why the guard is also asserted through the balance itself rather than through
  * timing.
  *
- * A PAYOUT MAY NEVER EXCEED THE BALANCE. Refunds can drive a balance negative
- * afterwards (Payment.md §8) and that is allowed; what is not allowed is the
- * platform paying out money it does not owe.
+ * A PAYOUT MAY NEVER EXCEED THE **PAYABLE** BALANCE — which stopped being the
+ * whole balance when Shipping arrived (S3, ADR-064). A seller must not be paid for
+ * goods the buyer can still send back, so money from an order that has not been
+ * delivered long enough is ON HOLD: real, owed, and not yet drawable. @see
+ * `SellerBalance` for the three figures and why an entry with no order is never
+ * held.
+ *
+ * Refunds can still drive a balance negative afterwards (Payment.md §8) and that
+ * is allowed; what is not allowed is the platform paying out money it does not
+ * owe, or money it owes for a parcel the buyer may yet return.
  *
  * @see docs/modules/Payment.md §8
  */
@@ -75,10 +83,21 @@ final class CreatePayoutAction extends BaseAction
             ->lockForUpdate()
             ->get(['id']);
 
-        $balance = SellerLedgerEntry::balanceFor($sellerOrgUuid);
+        $balance = SellerBalance::for($sellerOrgUuid);
 
-        if ($amountMinor > $balance) {
-            throw PaymentException::payoutExceedsBalance($sellerOrgUuid, $amountMinor, $balance);
+        if ($amountMinor > $balance->payableMinor) {
+            /*
+            | THE REFUSAL REPORTS WHAT IS PAYABLE, not what is owed. An admin told
+            | "you have 12.000" who is then refused 12.000 learns nothing; one told
+            | "8.000 payable, 4.000 still on hold" knows to wait rather than to
+            | open a support ticket.
+            */
+            throw PaymentException::payoutExceedsBalance(
+                $sellerOrgUuid,
+                $amountMinor,
+                $balance->payableMinor,
+                $balance->onHoldMinor,
+            );
         }
 
         $payout = Payout::query()->create([

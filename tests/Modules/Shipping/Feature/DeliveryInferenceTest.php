@@ -283,6 +283,37 @@ it('moves the order to delivered, from Order’s own listener', function (): voi
 
 /*
 |--------------------------------------------------------------------------
+| What the delivery unlocks
+|--------------------------------------------------------------------------
+*/
+
+it('opens Payment’s two clocks, without either module naming the other', function (): void {
+    $fixture = inTransitFixture();
+
+    app(ConfirmReceiptAction::class)->run($fixture['order']->uuid, $fixture['customer']->getKey());
+
+    /*
+     * THE PAYOFF, END TO END AND THROUGH THE REAL EVENT. Shipping emits;
+     * Payment's `OpenSettlementWindows` subscribes BY CLASS-STRING and freezes the
+     * seller's payout hold and the buyer's return window. Neither module imports
+     * the other — `LayeringTest` fails the build if one ever does — and this test
+     * is what bounds the cost of that: a rename would break the wiring at runtime,
+     * so something has to drive it for real.
+     */
+    $window = App\Modules\Payment\Domain\Models\SettlementWindow::query()
+        ->where('order_uuid', $fixture['order']->uuid)
+        ->firstOrFail();
+
+    expect($window->seller_org_uuid)->toBe($fixture['org']->uuid)
+        ->and($window->delivered_via)->toBe('buyer')
+        // Both windows measured from the delivery, 14 days by default.
+        ->and($window->payout_eligible_at->toDateString())->toBe(now()->addDays(14)->toDateString())
+        ->and($window->isReturnOpen())->toBeTrue()
+        ->and($window->isPayoutEligible())->toBeFalse();
+});
+
+/*
+|--------------------------------------------------------------------------
 | The third source that does not exist
 |--------------------------------------------------------------------------
 */

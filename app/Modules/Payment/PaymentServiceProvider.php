@@ -6,6 +6,7 @@ namespace App\Modules\Payment;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
 use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
+use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Models\CommissionRule;
@@ -110,6 +111,21 @@ final class PaymentServiceProvider extends ServiceProvider
         | the common path works.
         */
         Event::listen(PaymentSucceeded::class, [CreditSellerLedger::class, 'handle']);
+
+        /*
+        | THE PARCEL ARRIVED, SO TWO CLOCKS START (ADR-064, Shipping.md §4) — the
+        | seller's payout hold and the buyer's return window.
+        |
+        | BY CLASS-STRING, so Payment imports nothing from Shipping and Shipping
+        | names nothing here: neither module knows the other exists. This is what
+        | ADR-060 deferred when it left payout manual-only and what P5 deferred
+        | when it left the customer refund admin-only — both were waiting for a
+        | notion of delivery, and this is it arriving.
+        */
+        Event::listen(
+            'App\Modules\Shipping\Domain\Events\ShipmentDelivered',
+            [OpenSettlementWindows::class, 'handle'],
+        );
     }
 
     /**
