@@ -130,7 +130,8 @@ Order (already): checkout split the basket into one order per seller under a
           hash = HMAC over the fields with merchant_key + merchant_salt
       → returns the iframe token
 2. Storefront embeds PayTR's iframe with that token. Card + 3DS happen there.
-3. PayTR → our CALLBACK url (server-to-server, NOT the browser):
+3. PayTR → our CALLBACK url (server-to-server, NOT the browser; the address is a
+   PANEL setting, see below):
       merchant_oid, status (success|failed), total_amount, hash
       - verifyCallback re-computes the hash and REJECTS a mismatch.
       - IDEMPOTENT: the same merchant_oid may arrive more than once (PayTR retries
@@ -170,6 +171,33 @@ pending ──▶ paid ──▶ (refunded | partially_refunded)
 transition is append-only audited (the platform already audits; money doubly so).
 Public id is the uuid; the internal id never leaves. `merchant_oid = uuid` ties our
 record to PayTR's without exposing anything internal.
+
+> **As built (2026-08-05): PayTR is told the callback address in ITS PANEL, not by
+> the API.** The iFrame API has no notification-URL parameter — `merchant_ok_url`
+> and `merchant_fail_url` only decide where the BROWSER lands afterwards. The
+> callback address is **Mağaza Paneli → Destek & Kurulum → Ayarlar → Bildirim URL**,
+> and it must be `https://<host>/api/v1/payments/paytr/callback`.
+>
+> **Getting it wrong is invisible from this application.** The money is taken, the
+> buyer sees the success page, and the order stays `awaiting_payment` forever
+> because the callback — not the redirect — is what settles it. Nothing is logged
+> here, because nothing arrives here. The evidence is in nginx: PayTR retries
+> roughly once a minute, from its own IP, against whatever wrong path is
+> configured. `config('payment.paytr.notification_url')` records the correct value
+> so it is reviewable in the repository, and `php artisan payment:diagnose` prints
+> it beside the credential check and the count of payments stuck pending.
+>
+> **The route is CSRF-exempt** (`bootstrap/app.php`), because a PSP cannot carry a
+> token: it posts from its own network with no browser and no session. That is not
+> a hole — the endpoint authenticates the SENDER by recomputing PayTR's HMAC with
+> the merchant key, which is strictly stronger than a token any cookie-bearing
+> browser would have supplied. Sanctum's stateful shortcut happens to skip CSRF for
+> a request without an Origin/Referer, so PayTR was never blocked in practice — but
+> that is a header a third party controls, and settlement must not depend on it.
+> `tests/Feature/Payment/CallbackCsrfTest.php` pins both the exemption and the fact
+> that it is one path and not a wildcard; it drives the middleware directly, because
+> `ValidateCsrfToken` disables itself for the whole test suite and a feature test
+> asserting a 200 here proves nothing.
 
 > **As built (2026-08-05): the uuid travels WITHOUT ITS HYPHENS.** The real API answers
 > `merchant_oid alfanumerik olmalidir, ozel karakter iceremez` — a uuid's hyphens are

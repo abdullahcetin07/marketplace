@@ -13,6 +13,7 @@ use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\Payout;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
+use App\Modules\Payment\Presentation\Console\DiagnosePaymentCommand;
 use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
 use App\Modules\Payment\Presentation\Policies\PaymentPolicy;
 use App\Modules\Payment\Presentation\Policies\PayoutPolicy;
@@ -82,6 +83,15 @@ final class PaymentServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Payment/migrations'));
+
+        /*
+        | REGISTERED EXPLICITLY, because Laravel only auto-discovers commands in
+        | `app/Console/Commands` and a module's CLI belongs to the module. Console
+        | is a delivery mechanism like HTTP, hence `Presentation/Console`.
+        */
+        if ($this->app->runningInConsole()) {
+            $this->commands([DiagnosePaymentCommand::class]);
+        }
 
         Gate::policy(CommissionRule::class, CommissionRulePolicy::class);
         Gate::policy(Payout::class, PayoutPolicy::class);

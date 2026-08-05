@@ -98,6 +98,43 @@ TRUSTED_PROXIES=10.0.0.0/8      # the balancer's CIDR, not '*'
 `APP_KEY` rotation invalidates every encrypted column — 2FA secrets and recovery
 codes. Use `APP_PREVIOUS_KEYS` to decrypt during a rotation window.
 
+### PayTR — one setting lives in THEIR panel, not in this repository
+
+`PAYTR_MERCHANT_ID`, `PAYTR_MERCHANT_KEY`, `PAYTR_MERCHANT_SALT` and
+`PAYTR_TEST_MODE` come from the environment like everything else. **The
+notification URL does not** — the iFrame API has no parameter for it (the
+get-token request takes `merchant_ok_url` and `merchant_fail_url`, which are only
+where the BROWSER is sent afterwards). It is a merchant-panel setting:
+
+> **PayTR Mağaza Paneli → Destek & Kurulum → Ayarlar → Bildirim URL**
+
+and it must be set to this application's callback route, per environment:
+
+```
+https://<host>/api/v1/payments/paytr/callback
+```
+
+**GETTING THIS WRONG LOOKS EXACTLY LIKE THE INTEGRATION BEING BROKEN, and it is
+silent on our side.** A payment succeeds, the buyer is redirected to the success
+page, the money is really taken — and the order stays `awaiting_payment` forever,
+because the callback is what settles it (Payment.md §3: the redirect is not the
+source of truth). PayTR retries the notification roughly once a minute until it
+receives `"OK"`, so the symptom in **nginx**, not in the application log, is a
+stream of POSTs to whatever wrong path is configured:
+
+```bash
+grep -c "payments/paytr/callback" /var/log/nginx/*access.log   # should be > 0
+awk '$1 == "212.252.97.250"' /var/log/nginx/*access.log | tail # PayTR's own IP
+```
+
+A 404 there means the panel points somewhere else; a 419 would mean the CSRF
+exemption in `bootstrap/app.php` no longer matches the route (there is a test
+pinning that — `tests/Feature/Payment/CallbackCsrfTest.php`).
+
+Because PayTR keeps retrying, correcting the panel URL settles the outstanding
+payments by itself. If the retries have already stopped, the notification can be
+re-sent per transaction from the panel.
+
 ---
 
 ## Health checks

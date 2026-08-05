@@ -47,6 +47,24 @@ return [
         'refund_url' => env('PAYTR_REFUND_URL', 'https://www.paytr.com/odeme/iade'),
 
         /*
+        | WHERE PAYTR MUST BE TOLD TO POST THE RESULT — and the one setting this
+        | file cannot actually apply. The iFrame API has NO notification-URL
+        | parameter (`merchant_ok_url`/`merchant_fail_url` only decide where the
+        | BROWSER lands); the callback address is configured in
+        | **PayTR Mağaza Paneli → Destek & Kurulum → Ayarlar → Bildirim URL**.
+        |
+        | IT IS RECORDED HERE ANYWAY, because a value that lives only in a third
+        | party's web form is a value nobody can review, diff or check against a
+        | deploy. `payment:diagnose` prints it; the deploy run-book tells an
+        | operator to paste it into that form.
+        |
+        | GETTING IT WRONG IS SILENT ON OUR SIDE: the money is taken, the buyer
+        | sees the success page, and the order stays `awaiting_payment` because
+        | the callback — not the redirect — is what settles it (Payment.md §3).
+        */
+        'notification_url' => env('PAYTR_NOTIFICATION_URL', env('APP_URL').'/api/v1/payments/paytr/callback'),
+
+        /*
         | How long PayTR keeps the iframe session alive, in minutes. The buyer's
         | stock stays RESERVED for this long on a payment nobody completes, so it
         | is a stock decision as much as a payment one — kept in step with

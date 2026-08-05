@@ -67,9 +67,30 @@ return Application::configure(basePath: dirname(__DIR__))
         | CSRF is on for every web route. The API routes are exempt only where
         | they are genuinely token-authenticated; Sanctum's stateful requests
         | still validate the token.
+        |
+        | A PSP CALLBACK IS THE ONE THING THAT CANNOT CARRY A CSRF TOKEN, and it
+        | is exempted for a reason that has nothing to do with convenience: PayTR
+        | posts server-to-server, from its own network, with no browser and no
+        | session, and it retries until it is answered `"OK"`. A 419 there means
+        | money collected and an order never confirmed — the one state on this
+        | platform that nothing later can repair.
+        |
+        | IT IS NOT UNPROTECTED. What CSRF defends is a browser being tricked into
+        | using a session it already holds; this endpoint has no session to abuse
+        | and authenticates the SENDER instead, by recomputing PayTR's HMAC over
+        | the posted fields with the merchant key (Payment.md §3). A forged POST
+        | without that key changes nothing, which is a stronger guarantee than a
+        | token a cookie-bearing browser would have supplied anyway.
+        |
+        | THE STATEFUL SHORTCUT IS NOT A DEFENCE. Sanctum only promotes a request
+        | to the session stack when its Origin/Referer names a stateful domain, so
+        | PayTR's callback happens not to be checked today — but that is a header
+        | a third party controls, and "our payment settlement works because the
+        | PSP does not send a Referer" is not a property to rely on.
         */
         $middleware->validateCsrfTokens(except: [
             'webhooks/*',
+            'api/v1/payments/paytr/callback',
         ]);
 
         $middleware->alias([
