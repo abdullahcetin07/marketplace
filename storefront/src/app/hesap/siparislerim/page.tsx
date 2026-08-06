@@ -306,8 +306,6 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
       {SHIPPABLE.includes(order.status) && <ShipmentBlock orderId={order.id} />}
 
       <div className="flex flex-wrap items-center gap-4 text-sm">
-        <span className="text-ink-500">KDV: {formatMoney(order.tax_total, order.currency)}</span>
-
         {order.cancellation_reason !== null && (
           <span className="text-ink-500">Gerekçe: {order.cancellation_reason}</span>
         )}
