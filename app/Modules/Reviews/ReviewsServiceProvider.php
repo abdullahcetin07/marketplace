@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Reviews;
 
+use App\Modules\Reviews\Domain\Contracts\ReviewRepositoryContract;
+use App\Modules\Reviews\Infrastructure\Repositories\ReviewRepository;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\ServiceProvider;
@@ -38,6 +40,8 @@ final class ReviewsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(ReviewRepositoryContract::class, ReviewRepository::class);
+
         $this->registerPermissions();
     }
 
