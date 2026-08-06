@@ -101,6 +101,10 @@ return [
         'outcome_failed' => 'Havale reddedildi (bakiye iade edilir)',
         'detail_hint' => 'Bankanın verdiği referans ya da ret gerekçesi.',
         'settled' => 'Ödemenin sonucu kaydedildi.',
+        'decided_by' => 'Kararı veren',
+        'decided_by_any' => 'Hepsi',
+        'automatic' => 'Otomatik',
+        'manual' => 'Elle',
         'never_deleted' => 'Satıcı ödemeleri silinmez; başarısız olarak işaretlenir.',
     ],
 

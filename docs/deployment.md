@@ -98,6 +98,20 @@ TRUSTED_PROXIES=10.0.0.0/8      # the balancer's CIDR, not '*'
 `APP_KEY` rotation invalidates every encrypted column — 2FA secrets and recovery
 codes. Use `APP_PREVIOUS_KEYS` to decrypt during a rotation window.
 
+### The scheduler is load-bearing for money
+
+`php artisan schedule:run` must be in cron (or the container's supervisor). It is
+housekeeping for most of this platform and **operational for fulfilment and
+payouts**:
+
+| Task | Cadence | What stops without it |
+|---|---|---|
+| `sweep-transit-deliveries` | hourly | No delivery is ever inferred for a buyer who does not press "Teslim aldım" — which is most of them. Nothing then opens a payout hold or a return window, so **no seller is ever paid** (ADR-064). |
+| `create-due-payouts` | daily 07:00 | No payout is ever proposed. An admin can still create every one by hand, so this degrades rather than breaks — but silently. |
+
+Both are idempotent and bounded, so a missed night costs a night and nothing else.
+Verify with `php artisan schedule:list`.
+
 ### PayTR — one setting lives in THEIR panel, not in this repository
 
 `PAYTR_MERCHANT_ID`, `PAYTR_MERCHANT_KEY`, `PAYTR_MERCHANT_SALT` and

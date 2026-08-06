@@ -61,8 +61,15 @@ final class CreatePayoutAction extends BaseAction
         $sellerOrgUuid = $arguments[0];
         /** @var int $amountMinor */
         $amountMinor = $arguments[1];
-        /** @var int $createdBy */
-        $createdBy = $arguments[2];
+        /*
+        | NULL MEANS THE SCHEDULE DECIDED, not an admin (owner decision,
+        | 2026-08-06). @see `CreateDuePayoutsJob` and the migration that made the
+        | column nullable — an absent actor rather than a synthetic "system" user,
+        | because an account nobody owns with the authority to move money is an
+        | account somebody eventually logs into.
+        */
+        /** @var int|null $createdBy */
+        $createdBy = $arguments[2] ?? null;
         /** @var string|null $note */
         $note = $arguments[3] ?? null;
 

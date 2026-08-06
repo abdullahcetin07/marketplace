@@ -101,6 +101,10 @@ return [
         'outcome_failed' => 'Transfer rejected (the balance is returned)',
         'detail_hint' => 'The reference the bank gave, or why it refused.',
         'settled' => 'The payout outcome was recorded.',
+        'decided_by' => 'Decided by',
+        'decided_by_any' => 'Any',
+        'automatic' => 'Automatic',
+        'manual' => 'By hand',
         'never_deleted' => 'Payouts are never deleted; mark them failed instead.',
     ],
 

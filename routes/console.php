@@ -91,6 +91,25 @@ Schedule::job(new App\Modules\Shipping\Application\Jobs\SweepTransitDeliveriesJo
     ->onOneServer();
 
 /*
+| AUTOMATIC PAYOUTS (owner decision, 2026-08-06). One pending payout per seller
+| for everything whose delivery hold has expired — the DECISION is automated, the
+| bank is not: a human still makes the transfer and marks it paid.
+|
+| DAILY, AND AT AN HOUR A FINANCE TEAM STARTS RATHER THAN ONE THE SERVER LIKES.
+| The batch is what somebody works through in the morning, so it should be waiting
+| for them rather than landing halfway through their day. Nothing about the
+| arithmetic cares when it runs — a payout that waits an extra night is a payout
+| that waits an extra night — but the person reading it does.
+|
+| Idempotent: a seller with a pending payout is skipped, and creating one debits
+| the balance so the next run finds nothing.
+*/
+Schedule::job(new App\Modules\Payment\Application\Jobs\CreateDuePayoutsJob)
+    ->name('create-due-payouts')
+    ->dailyAt('07:00')
+    ->onOneServer();
+
+/*
 | Horizon retains metrics snapshots indefinitely otherwise.
 */
 Schedule::command('horizon:snapshot')

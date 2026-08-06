@@ -41,6 +41,12 @@ use Illuminate\Support\Carbon;
  * permitted because `app/Models/User` sits above the modules (001 §6). The only
  * relation is `currency()`, Localization being the platform-wide exception.
  *
+ * `created_by` IS NULL WHEN THE SCHEDULE DECIDED IT (owner decision, 2026-08-06).
+ * The nightly job proposes one payout per seller for whatever has become payable;
+ * `isAutomatic()` is how a screen tells that apart from a transfer a person chose.
+ * Automating the DECISION does not automate the bank — a human still makes the
+ * transfer and marks it paid.
+ *
  * @property int $id
  * @property string $uuid
  * @property string $seller_org_uuid
@@ -50,7 +56,7 @@ use Illuminate\Support\Carbon;
  * @property string|null $external_reference
  * @property string|null $failure_reason
  * @property string|null $note
- * @property int $created_by
+ * @property int|null $created_by
  * @property int|null $settled_by
  * @property Carbon|null $paid_at
  * @property Carbon|null $failed_at
@@ -108,6 +114,18 @@ final class Payout extends Model
     public function currency(): BelongsTo
     {
         return $this->belongsTo(Currency::class);
+    }
+
+    /**
+     * Whether the schedule proposed this payout rather than a person.
+     *
+     * An operator reconciling a batch needs to know which transfers somebody chose
+     * and which the platform did — asked here so the panel, a report and any
+     * future export cannot answer it three different ways.
+     */
+    public function isAutomatic(): bool
+    {
+        return $this->created_by === null;
     }
 
     /**

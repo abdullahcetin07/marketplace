@@ -34,6 +34,10 @@ callback  → hash-verified, idempotent, one transaction:
   order is never held.
 - **The delivery windows are frozen columns.** Editing `shipping.payout_hold_days`
   governs the next delivery, never one already recorded.
+- **Payouts are proposed automatically, daily, one per seller** — and a human still
+  makes the bank transfer. `created_by` null means the schedule decided.
+  **The scheduler must be running** or no payout is ever proposed and, worse, no
+  delivery is ever inferred upstream.
 
 - **Money is integer kuruş, everywhere.** PayTR's unit is the platform's unit, so
   the integer travels end to end and no float is ever constructed. The only

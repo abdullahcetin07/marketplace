@@ -183,6 +183,20 @@ final class PayoutResource extends Resource
                     ->state(fn (Payout $record): string => $record->status->label())
                     ->color(fn (Payout $record): string => $record->status->color()),
 
+                /*
+                | WHO DECIDED IT. An operator working through the morning batch
+                | needs to know which transfers a person chose and which the
+                | schedule proposed — the two carry different confidence and, when
+                | one looks wrong, different places to go and look.
+                */
+                Tables\Columns\TextColumn::make('created_by')
+                    ->label(__('payment.payout.decided_by'))
+                    ->badge()
+                    ->state(fn (Payout $record): string => $record->isAutomatic()
+                        ? __('payment.payout.automatic')
+                        : __('payment.payout.manual'))
+                    ->color(fn (Payout $record): string => $record->isAutomatic() ? 'gray' : 'info'),
+
                 Tables\Columns\TextColumn::make('external_reference')
                     ->label(__('payment.payout.reference'))
                     ->placeholder('—'),
@@ -198,6 +212,19 @@ final class PayoutResource extends Resource
                     ->options(fn (): array => collect(PayoutStatus::cases())
                         ->mapWithKeys(fn (PayoutStatus $s): array => [$s->value => $s->label()])
                         ->all()),
+
+                // "Show me what the schedule proposed overnight" — the morning's
+                // work, separated from what colleagues decided by hand.
+                Tables\Filters\TernaryFilter::make('created_by')
+                    ->label(__('payment.payout.decided_by'))
+                    ->placeholder(__('payment.payout.decided_by_any'))
+                    ->trueLabel(__('payment.payout.manual'))
+                    ->falseLabel(__('payment.payout.automatic'))
+                    ->queries(
+                        true: fn ($query) => $query->whereNotNull('created_by'),
+                        false: fn ($query) => $query->whereNull('created_by'),
+                        blank: fn ($query) => $query,
+                    ),
             ])
             ->actions([
                 /*

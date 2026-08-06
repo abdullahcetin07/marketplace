@@ -479,12 +479,37 @@ never reads PayTR's operator-facing words.
 > **`delivered_at` comes off the EVENT**, never the consuming clock: a listener
 > running an hour behind must not push a seller's payday an hour out.
 >
-> **The manual payout stays.** Nothing auto-creates a `Payout` row — a payout is a
-> bank transfer a human actually makes, and auto-creating one per delivered order
-> would fragment a seller's money into dozens of tiny transfers. What automation
-> gives is ELIGIBILITY: the admin's batch screen and the balance endpoint report
-> `payable_minor` beside `on_hold_minor`, so the decision is informed rather than
-> made for them.
+> **The manual payout stays**, and it is now joined by an automatic one.
+>
+> **As built (owner decision, 2026-08-06): the DECISION is automated too.**
+> `CreateDuePayoutsJob` runs daily and proposes **one pending payout per seller**
+> for their whole payable balance — every order whose hold has expired, summed by
+> the ledger. S3 had shipped eligibility only and left the decision to an admin;
+> the owner chose to automate it.
+>
+> **ONE PER SELLER, NOT ONE PER ORDER.** A payout is a bank transfer somebody
+> executes by hand, so per-order would make the finance team's work proportional to
+> the platform's order count.
+>
+> **THE BANK IS STILL NOT AUTOMATED.** The job writes a `pending` row; a human
+> makes the transfer and marks it paid through the existing settle flow. ADR-062's
+> "the software moves no money" is untouched.
+>
+> **`created_by` IS NULL WHEN THE SCHEDULE DECIDED IT** — an absent actor rather
+> than a synthetic "system" user, because an account nobody owns with the authority
+> to move money is an account somebody eventually logs into. `Payout::isAutomatic()`
+> is how the panel tells the two apart, and the payout table filters on it.
+>
+> **THREE THINGS STOP A DOUBLE PAYOUT**, only the first of which is the job's own:
+> a seller with a PENDING payout is skipped (two open transfers for one seller is a
+> reconciliation problem whatever the arithmetic says); creating a payout appends
+> `payout_debit` immediately, so the payable balance falls to zero; and the action's
+> row lock serialises overlapping runs. Running the job more often than daily is
+> harmless, because somebody eventually will.
+>
+> It writes no rows of its own — it calls `CreatePayoutAction`, so the lock, the
+> payable ceiling and the debit are the same code a manual payout uses. A job that
+> inserted `payouts` directly would be a second, quieter path to moving money.
 
 **Refund vs payout is the ordering hazard** and the ledger is what makes it safe:
 because balance is a sum of entries, a refund after a payout simply drives the balance
