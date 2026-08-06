@@ -48,7 +48,17 @@ Version: 1.0 — **COMPLETE & FROZEN (2026-07-24). ADR-032–036 ratified.**
 > (§2.6), a free-form `jsonb` column no seller-facing form writes yet — so the read
 > is defensive about the shape, and the field ships now so the public payload does
 > not change shape again the day that form does. **Giving sellers a way to fill the
-> contact block in is the open follow-up this created.**
+> contact block in is the open follow-up this created.
+>
+> **`slug` joined that read (2026-08-06)** — the third change the freeze has granted,
+> and the smallest. A name lets a caller SAY where something was sold; the slug lets
+> it LINK there, because the store page is path-addressed at `/magaza/{slug}`
+> (ADR-035). Two surfaces wanted it: Offer's buy box and Order's customer order
+> list, both of which hold a store uuid and render its name. **It inherits the
+> live-only filter, deliberately** — a suspended shop that may not be named in a
+> public payload certainly may not be linked from one, and keeping the filter in the
+> query rather than in each caller is what makes that true for callers that have not
+> been written yet. No new column: `stores.slug` has existed since ADR-035.**
 
 Sprint: **Store-0 (specification)**. This document is the architecture-review
 artifact `CLAUDE.md` requires *before* any Store code, migration, model,

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Order\Presentation\Controllers\Api;
 
+use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
 use App\Models\User;
 use App\Modules\Order\Application\Actions\CancelOrderAction;
@@ -47,6 +48,7 @@ final class CustomerOrderController extends BaseController
         private readonly CheckoutAction $checkout,
         private readonly PlaceOrderAction $place,
         private readonly CancelOrderAction $cancel,
+        private readonly StoreQueryContract $stores,
     ) {}
 
     /**
@@ -66,10 +68,10 @@ final class CustomerOrderController extends BaseController
         );
 
         return $this->created(
-            OrderResource::collection(array_map(
+            OrderResource::collection($this->withStore(array_map(
                 fn (Order $order): Order => $order->load(['lines', 'currency']),
                 $orders,
-            )),
+            ))),
             null,
             // The handle the client needs for the very next call. Stated in the
             // envelope rather than left to be read off the first row.
@@ -96,7 +98,7 @@ final class CustomerOrderController extends BaseController
         $this->place->run($group);
 
         return $this->ok(OrderResource::collection(
-            $this->orders->forCheckoutGroup($group),
+            $this->withStore($this->orders->forCheckoutGroup($group)->all()),
         ));
     }
 
@@ -111,7 +113,7 @@ final class CustomerOrderController extends BaseController
             ->orderByDesc('id')
             ->paginate($this->perPage());
 
-        return $this->paginated($orders, OrderResource::collection($orders->items()));
+        return $this->paginated($orders, OrderResource::collection($this->withStore($orders->items())));
     }
 
     /**
@@ -122,6 +124,8 @@ final class CustomerOrderController extends BaseController
         $model = $this->find($order);
 
         $this->authorize('view', $model);
+
+        $this->withStore([$model]);
 
         return $this->ok(new OrderResource($model));
     }
@@ -148,7 +152,11 @@ final class CustomerOrderController extends BaseController
             reason: $request->validated('reason'),
         ));
 
-        return $this->ok(new OrderResource($model->fresh()->load(['lines', 'currency'])));
+        $fresh = $model->fresh()->load(['lines', 'currency']);
+
+        $this->withStore([$fresh]);
+
+        return $this->ok(new OrderResource($fresh));
     }
 
     /**
@@ -169,6 +177,54 @@ final class CustomerOrderController extends BaseController
      * Scoped to the customer, so another customer's order uuid is a 404 rather
      * than a 403 — the difference would confirm the order exists.
      */
+    /**
+     * Stamp each order with its shop's public name and slug (2026-08-06).
+     *
+     * **BATCHED, AND THAT IS THE WHOLE REASON IT IS A HELPER.** "Siparişlerim" is
+     * a page of orders from many sellers; resolving the shop per row is a query
+     * per row on a list a customer opens all the time. One call answers the page.
+     *
+     * **THROUGH THE CORE CONTRACT, because Order imports no module** — the same
+     * `StoreQueryContract` the seller panel's tenancy wall already goes through.
+     * The store crosses as a name and a slug; its internal id never leaves
+     * (non-negotiable #7).
+     *
+     * A TRANSIENT ATTRIBUTE, NOT A COLUMN. Nothing is persisted and nothing is
+     * cast: it exists for the length of one response, which is what a joined-in
+     * display field should do. The resource reads it out of the raw attribute bag
+     * so an order that never passed through here renders `store: null` rather
+     * than tripping strict mode's missing-attribute guard.
+     *
+     * **A SUSPENDED SHOP IS SIMPLY ABSENT.** The profile read is live-only, so a
+     * suspended seller's orders carry no name and no slug — the storefront shows
+     * the order without a link rather than linking to a page that will not load.
+     *
+     * @param array<int, Order> $orders
+     *
+     * @return array<int, Order>
+     */
+    private function withStore(array $orders): array
+    {
+        if ($orders === []) {
+            return $orders;
+        }
+
+        $profiles = $this->stores->publicProfilesFor(array_values(array_unique(
+            array_map(static fn (Order $order): string => (string) $order->store_uuid, $orders),
+        )));
+
+        foreach ($orders as $order) {
+            $profile = $profiles[$order->store_uuid] ?? null;
+
+            $order->setAttribute('store_profile', $profile === null ? null : [
+                'name' => $profile['name'],
+                'slug' => $profile['slug'],
+            ]);
+        }
+
+        return $orders;
+    }
+
     private function find(string $uuid): Order
     {
         $order = Order::query()

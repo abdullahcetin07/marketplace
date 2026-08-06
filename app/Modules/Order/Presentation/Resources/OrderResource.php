@@ -50,6 +50,19 @@ final class OrderResource extends JsonResource
             'status' => $this->status->value,
             'seller_id' => $this->selling_org_uuid,
             'store_id' => $this->store_uuid,
+            /*
+            | THE SHOP, NAMED AND LINKABLE (2026-08-06). `store_id` alone can only
+            | be shown; this can be followed — the store page is path-addressed at
+            | `/magaza/{slug}` (ADR-035).
+            |
+            | NULL WHEN THE SHOP IS NOT LIVE, because the profile read behind it is
+            | live-only: a suspended seller's order is shown without a link rather
+            | than linking to a page that will not load. Null also when the order
+            | did not pass through the controller's batch resolver, which is why
+            | this reads the RAW attribute bag — strict mode throws on a missing
+            | attribute, and a resource is the wrong place to discover that.
+            */
+            'store' => $this->resource->getAttributes()['store_profile'] ?? null,
 
             'items_total' => MoneyString::from($this->items_total_minor, $decimals),
             'tax_total' => MoneyString::from($this->tax_total_minor, $decimals),

@@ -178,7 +178,45 @@ it('names the shop a buyer is buying from, through the Store contract', function
         // every store today. Asserted rather than skipped, so the day one does the
         // failure points at this line instead of at a frontend that shows nothing.
         'city' => null,
+        /*
+         * THE SLUG IS WHAT MAKES THE NAME A LINK (2026-08-06). The store page is
+         * path-addressed at `/magaza/{slug}` (ADR-035 — custom domains are cut
+         * from v1), and this payload is the only place the buy box could learn
+         * it: Offer holds a store UUID and may not import Store.
+         */
+        'slug' => $named->slug,
     ]);
+});
+
+it('never links to a shop the platform has suspended', function (): void {
+    $fixture = publiclyOfferedProduct();
+
+    $live = Store::factory()->create(['status' => StoreStatus::Active, 'name' => 'Açık Dükkan']);
+
+    Offer::factory()->priced(9_990)->forVariant('v-1', $fixture['product']->uuid)
+        ->forStore($live->uuid)->create();
+
+    $featured = $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
+        ->json('data.featured');
+
+    expect($featured['store']['slug'])->toBe($live->slug);
+
+    /*
+     * **AND THE FILTER IS THE QUERY'S, NOT THE CALLER'S.** Suspending the shop
+     * removes it from the profile read entirely, so the name AND the slug both
+     * go — a surface that forgot to check cannot leak either. Rendering null
+     * rather than dropping the offer keeps a race (a shop suspended between the
+     * two reads) as a missing label instead of a vanishing seller.
+     */
+    $live->forceFill(['status' => StoreStatus::Suspended])->save();
+
+    $suspended = $this->getJson(offersUrl($fixture['product']->uuid))->assertOk()
+        ->json('data.featured');
+
+    expect($suspended['store']['slug'])->toBeNull()
+        ->and($suspended['store']['name'])->toBeNull()
+        // The uuid is the offer's own and stays: it identifies, it does not link.
+        ->and($suspended['store']['id'])->toBe($live->uuid);
 });
 
 it('shows the seller’s city once the store holds one', function (): void {

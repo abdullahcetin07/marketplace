@@ -78,9 +78,14 @@ final class StoreQuery implements StoreQueryContract
      * held". A cast or an undefined-index notice reaching a public product page
      * would be a 500 caused by one seller's malformed profile.
      *
+     * `slug` RIDES THE SAME QUERY (2026-08-06), which is the point rather than a
+     * convenience: it is what lets a caller LINK to the shop instead of only
+     * naming it, and it must inherit the live-only filter — a slug that escaped
+     * without it would point a shopper at a suspended store's page.
+     *
      * @param array<int, string> $storeUuids
      *
-     * @return array<string, array{name: string, city: string|null}>
+     * @return array<string, array{name: string, city: string|null, slug: string}>
      */
     public function publicProfilesFor(array $storeUuids): array
     {
@@ -107,6 +112,11 @@ final class StoreQuery implements StoreQueryContract
             $profiles[$store->uuid] = [
                 'name' => $store->name,
                 'city' => is_string($city) && trim($city) !== '' ? trim($city) : null,
+                // The public page's address (2026-08-06). It rides the SAME
+                // live-only query as the name deliberately: a slug that could
+                // leave here without the name's filter would link to a shop the
+                // platform has suspended.
+                'slug' => $store->slug,
             ];
         }
 

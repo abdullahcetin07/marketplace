@@ -362,6 +362,61 @@ it('shows an order with its lines, its tax breakdown and its group', function ()
         ->assertJsonPath('data.shipping_address.city', 'İstanbul');
 });
 
+it('carries the shop a customer bought from, named and linkable', function (): void {
+    $this->actingAsCustomer();
+    $fixture = apiOffer(priceMinor: 12_000);
+
+    /** @var Store $store */
+    $store = Store::query()->where('organization_id', $fixture['org']->getKey())->firstOrFail();
+
+    $this->postJson('/api/v1/cart/items', ['offer_id' => $fixture['offer']->uuid, 'quantity' => 1]);
+    $address = $this->postJson('/api/v1/addresses', apiAddressPayload())->json('data.id');
+
+    $order = $this->postJson('/api/v1/checkout', [
+        'shipping_address_id' => $address,
+        'billing_address_id' => $address,
+    ])->json('data.0');
+
+    /*
+     * **THE ORDER CARRIES A STORE UUID AND NOTHING ELSE**, so "Siparişlerim"
+     * could show a customer where they bought something only as a uuid. The name
+     * and the slug arrive through `StoreQueryContract` — Order imports no module
+     * — and the slug is what makes the name a LINK to `/magaza/{slug}`
+     * (ADR-035).
+     *
+     * ASSERTED ON EVERY SHAPE THE RESOURCE COMES OUT OF, because the field is
+     * stamped by the controller rather than read off a column: a surface that
+     * forgot the batch resolver would silently render `null` forever.
+     */
+    expect($order['store'])->toBe(['name' => $store->name, 'slug' => $store->slug]);
+
+    $this->getJson("/api/v1/orders/{$order['id']}")
+        ->assertOk()
+        ->assertJsonPath('data.store.slug', $store->slug);
+
+    $this->getJson('/api/v1/orders')
+        ->assertOk()
+        ->assertJsonPath('data.0.store.name', $store->name)
+        ->assertJsonPath('data.0.store.slug', $store->slug);
+
+    $this->postJson("/api/v1/checkout/{$order['checkout_group_id']}/place")
+        ->assertOk()
+        ->assertJsonPath('data.0.store.slug', $store->slug);
+
+    /*
+     * **A SUSPENDED SHOP IS ABSENT, NOT NAMED.** The profile read is live-only,
+     * so the whole object goes rather than the slug alone — the storefront shows
+     * the order without a link instead of linking somewhere that will not load.
+     * `store_id` stays: it identifies the row, it does not invite a click.
+     */
+    $store->forceFill(['status' => StoreStatus::Suspended])->save();
+
+    $this->getJson('/api/v1/orders')
+        ->assertOk()
+        ->assertJsonPath('data.0.store', null)
+        ->assertJsonPath('data.0.store_id', $store->uuid);
+});
+
 it('lists only the acting customer’s orders', function (): void {
     $other = Customer::factory()->create();
 

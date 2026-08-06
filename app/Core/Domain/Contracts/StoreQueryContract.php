@@ -99,13 +99,25 @@ interface StoreQueryContract
      * The read is here so the surface is complete the day that form ships, rather
      * than the API changing shape again then.
      *
+     * `slug` JOINED IT (2026-08-06), and the difference from `name` is the whole
+     * reason: a caller with a name can only SAY where something was bought, while
+     * a caller with a slug can LINK to it. The storefront's store page is
+     * path-addressed at `/magaza/{slug}` (ADR-035 — custom domains are cut from
+     * v1), and the two surfaces that hold a store uuid and render its name — the
+     * buy box and the customer's own order list — both wanted to be links.
+     *
+     * IT IS LIVE-ONLY FOR THE SAME SAFETY REASON `name` IS, and here it matters
+     * more: a suspended shop that must not be NAMED in a public payload certainly
+     * must not be LINKED from one. The filter is the query's, not the caller's,
+     * so a surface that forgets cannot leak either field.
+     *
      * NO OTHER PROFILE FIELDS. Logo, banner, announcement and support hours are a
      * public READ SURFACE (ADR-034), not a downstream contract — a module that
      * needs them is asking for the store page, which already exists.
      *
      * @param array<int, string> $storeUuids
      *
-     * @return array<string, array{name: string, city: string|null}>
+     * @return array<string, array{name: string, city: string|null, slug: string}>
      */
     public function publicProfilesFor(array $storeUuids): array;
 

@@ -48,7 +48,7 @@ final class PublicProductOffersResource extends JsonResource
     /**
      * @param array{uuid: string, title: string, brand: string|null, category: string}|null $product
      * @param array<int, array<string, mixed>> $offers
-     * @param array<string, array{name: string, city: string|null}> $stores keyed by store uuid
+     * @param array<string, array{name: string, city: string|null, slug: string}> $stores keyed by store uuid
      */
     public function __construct(
         private readonly ?array $product,
@@ -109,11 +109,17 @@ final class PublicProductOffersResource extends JsonResource
             | `city` is null on every store today: it is read from the store's
             | contact address, and no seller-facing form writes one yet. The field
             | is here so the shape does not change again the day that form ships.
+            |
+            | `slug` (2026-08-06) is what turns the name into a LINK — the store
+            | page is path-addressed at `/magaza/{slug}` (ADR-035). Null on the
+            | same race as `name` and for the same reason, and the storefront
+            | renders plain text rather than a dead link when it is.
             */
             'store' => [
                 'id' => $storeUuid,
                 'name' => $store['name'] ?? null,
                 'city' => $store['city'] ?? null,
+                'slug' => $store['slug'] ?? null,
             ],
             'price' => MoneyString::from((int) $offer['price_minor'], $this->currencyDecimals),
             'list_price' => $offer['list_price_minor'] === null
