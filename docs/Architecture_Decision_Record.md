@@ -1409,7 +1409,27 @@ ledger whose value is that each row says exactly what happened. Both accepted as
 of the ledger continuing to answer that question. **This closes Order.md §12.5 follow-up
 #1.**
 
-Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.4.
+**Amendment (2026-08-06, Shipping S4): `restock` takes a QUANTITY.** P5's refund was
+whole-order, so its restock was whole-reservation and its idempotence could be a status
+check — "has this already been restocked?". ADR-064's return window made a refund
+LINE-LEVEL: a buyer sends back one of the two they bought, and the question becomes "how
+many of these units are still out there?".
+
+`restock($reference, ?int $quantity = null)`. **Null still means all of it**, so no P5
+caller changed. Idempotence moved from the status to arithmetic against a new
+`stock_reservations.restocked_quantity`, and the reservation stays `committed` until the
+last unit is home — a partly returned sale is still partly a sale. **Asking for more than
+is still out there returns what is left, never more**: an inflated restock invents stock
+that does not physically exist, and the seller oversells it to somebody.
+
+Cost: the reservation's terminal state is no longer reachable in one write, so "was this
+restocked?" is two facts (a status and a count) where it was one — and a caller reading
+only the status of a partly returned reservation gets `committed`, which is true but
+incomplete. Accepted: the alternative is a reservation per unit, which would multiply the
+ledger by every quantity anyone ever buys.
+
+Full specification: [docs/modules/Inventory.md](modules/Inventory.md) §0.4,
+[docs/modules/Payment.md](modules/Payment.md) §8.
 
 ---
 

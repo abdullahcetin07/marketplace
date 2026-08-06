@@ -161,6 +161,21 @@ final class PaymentException extends BaseException
     }
 
     /**
+     * The buyer may no longer send it back (S4).
+     *
+     * ONE ANSWER FOR "never delivered" AND "too late", because they are the same
+     * answer to the buyer — this is not yours to return right now — and telling
+     * them apart would let anyone learn whether a parcel arrived by watching which
+     * error comes back.
+     */
+    public static function returnWindowClosed(string $orderUuid): self
+    {
+        return self::make(__('payment.errors.return_window_closed'))
+            ->withContext(['reason' => 'return_window_closed', 'order' => $orderUuid])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * The PSP could not be reached, or answered something unusable.
      *
      * REPORTABLE, unlike everything else here — see the class docblock. The

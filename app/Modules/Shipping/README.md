@@ -23,6 +23,12 @@ seller (panel) → pick carrier + tracking number → shipped   (shipped_at)
                     Order (now): status → delivered, by class-string
              Payment (S3): payout eligible at delivered_at + payout_hold_days
                            return window until delivered_at + return_days
+                                                       │
+                    buyer returns lines within the window (Payment S4)
+                                                       │
+                                                 PaymentRefunded
+                                                       │
+      Shipment → returned, by class-string — ONLY when the whole order came back
 ```
 
 ## What bites

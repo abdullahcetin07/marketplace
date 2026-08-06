@@ -73,8 +73,8 @@ final class InventoryReservation implements InventoryReservationContract
         $this->commit->run($reference);
     }
 
-    public function restock(string $reference): void
+    public function restock(string $reference, ?int $quantity = null): void
     {
-        $this->restock->run($reference);
+        $this->restock->run($reference, $quantity);
     }
 }

@@ -154,15 +154,26 @@ deviation from the spec, awaiting ratification: its signatures are Payment's own
 MODULE can ask ANOTHER a question; this one points *out of the platform*.
 
 **Payment imports NO module** — Core contracts + class-string events + the gateway port
-only. **A refund names ORDERS, never an amount**: "partially refunded" means some of the
-sellers' orders in one basket. **It is NOT frozen** and two things await the owner:
-`LedgerEntryType::PayoutReversalCredit` (a sixth type ADR-062 does not list, required
-because an append-only ledger cannot delete a rejected payout's debit) and a
-customer-facing refund, which waits for Shipping to give it a fulfilment state to judge
-by (see Payment.md §11).
+only. **A refund names ORDERS OR LINES, never an amount** — "partially refunded" means
+some of the sellers' orders in one basket, and since S4 a refund may go one level finer
+and name a quantity of a specific line. **It is NOT frozen** and one thing still awaits
+the owner: `LedgerEntryType::PayoutReversalCredit` (a sixth type ADR-062 does not list,
+required because an append-only ledger cannot delete a rejected payout's debit). The
+customer-facing refund it was also waiting on **landed in S4** (2026-08-06) once Shipping
+supplied a fulfilment state.
 
-**Shipping is APPROVED and SPEC'd (2026-08-05; ADR-063–064,
-[docs/modules/Shipping.md](docs/modules/Shipping.md)) — building next, phased S1–S5.** It
+**Refund idempotency is no longer a database constraint** (S4). `payment_refunds` and
+`seller_ledger_entries` lost their unique indexes so one order could legitimately be
+refunded twice — one shoe today, the other next week — and the guarantee moved to a SUM
+of `payment_refund_lines` against the line's original quantity, checked in
+`RefundableLines` and nowhere else. **A constraint cannot be forgotten and a sum can.**
+If you are touching anything about refunds, read Payment.md §8's S4 note first.
+
+**Shipping is BUILT through S4 (2026-08-05/06; ADR-063–064,
+[docs/modules/Shipping.md](docs/modules/Shipping.md)); only S5, the storefront, remains.**
+S3 and S4 are **Payment enhancements** driven by Shipping's event and live in Payment —
+Shipping still emits one event and knows nothing about what it unlocks, except the parcel's
+own final transition to `returned`. It
 supplies the **delivery date** Payment's two follow-ups needed. **Seller-fulfilled with
 manual tracking** (cargo company from a `cargo_companies` lookup + tracking number; a
 provider-agnostic `ShipmentTrackingContract` for a future carrier API, no implementation in

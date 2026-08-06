@@ -28,10 +28,19 @@ use Illuminate\Support\Carbon;
  * (ADR-062): a stored total can disagree with the rows it summarises, and nothing
  * can then say which one is right.
  *
- * ONE ROW PER (PAYMENT, ORDER), enforced by a unique index rather than by this
- * class. A refund is the one operation here a human triggers by clicking, so it
- * will be clicked twice; the database is the only guard that holds when two
- * requests arrive at once.
+ * **IT WAS ONE ROW PER (PAYMENT, ORDER) UNTIL S4, AND THAT IS NO LONGER TRUE.**
+ * P5 held it with a unique index, because a refund was whole-order and a human
+ * clicking twice had to meet the database rather than a race in application code.
+ * S4 made a refund LINE-LEVEL — one shoe today, the other next week — so a second
+ * refund of one order became legitimate and the index had to go.
+ *
+ * THE GUARANTEE MOVED RATHER THAN DISAPPEARED, and moved to something weaker,
+ * which is worth saying plainly: it is now a SUM of `payment_refund_lines`
+ * against the line's original quantity, checked in `RefundableLines` and nowhere
+ * else. A constraint cannot be forgotten and a sum can. What did NOT change is
+ * that nothing may be refunded twice — only what enforces it.
+ *
+ * @see App\Modules\Payment\Domain\Models\PaymentRefundLine
  *
  * IT IMPORTS NO MODULE. The order and the seller are uuids; the actor is a
  * `users` id, permitted because `app/Models` sits above the modules (001 §6).

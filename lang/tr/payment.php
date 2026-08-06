@@ -37,6 +37,7 @@ return [
         'payout_already_settled' => 'Bu ödemenin sonucu zaten kaydedilmiş.',
         'not_refundable' => 'Bu ödemede iade edilecek bir tahsilat yok.',
         'nothing_to_refund' => 'Bu siparişlerin iadesi zaten yapılmış.',
+        'return_window_closed' => 'Bu sipariş için iade süresi dolmuş ya da henüz teslim edilmemiş.',
     ],
 
     'commission' => [

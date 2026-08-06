@@ -560,6 +560,84 @@ track of, which a mutable balance column could not promise.
 > action is the refund — the only button in the panel that sends money out, and the only
 > one behind a confirmation that says so.
 
+> **As built (S4, 2026-08-06): the buyer's own return, and a refund that names LINES.**
+>
+> P5 refunded whole orders and said what it was waiting for: a fulfilment state to
+> judge a customer-initiated refund by. Shipping supplied one — a delivery date and a
+> return window (ADR-064, S3) — and S4 is both halves of what that unlocked. **It
+> closes §11's "customer-facing refund" and "partial refund of a single order"
+> follow-ups.**
+>
+> **A refund still names no amount. It names LINES AND QUANTITIES.** P5's rule one
+> level down: the buyer says what is going back in the box — one of the two shoes —
+> and the platform prices it from the frozen line snapshot. A lira figure from a
+> client would be a client deciding what its own return is worth.
+>
+> **The KDV needs no separate term, and that is the part worth reading.** Turkish
+> retail prices are KDV-INCLUSIVE (ADR-055), so `unit_price_minor` already contains
+> the tax and refunding `unit_price × qty` refunds the tax with it, in exactly the
+> proportion it was charged. A "proportional KDV" line on top would give the buyer
+> the tax twice.
+>
+> **The commission is the FROZEN figure SCALED, never the rules re-resolved**
+> (ADR-061) — `commission_minor × qty ÷ line quantity`, half-up, in integer
+> arithmetic with no float constructed anywhere (ADR-005). Re-running the resolver
+> would apply today's rates to last month's sale, and charge and reversal would
+> disagree by a kuruş on exactly the orders somebody checked.
+>
+> **THE LAST UNIT OF A LINE TAKES THE REMAINDER.** A refund that empties a line is
+> billed as "everything not yet refunded" rather than as a multiplication, because
+> `line_total` is not always `unit_price × quantity` to the kuruş once a rounding has
+> happened upstream — and without this a fully returned line would strand a kuruş
+> forever. Same trick a well-behaved instalment plan uses for its final payment.
+>
+> **P5'S UNIQUE INDEX HAD TO GO, AND THE GUARANTEE GOT WEAKER.** `payment_refunds`
+> was UNIQUE on `(payment_id, order_uuid)` and `seller_ledger_entries` on
+> `(payment_uuid, order_uuid, type)`; a line-level refund makes a SECOND refund of one
+> order legitimate — one shoe today, the other next week — so both were dropped for
+> non-unique indexes. What replaced them is arithmetic: a line may go back up to its
+> REMAINING quantity, summed from `payment_refund_lines`. **A constraint cannot be
+> forgotten and a sum can.** Stated rather than glossed: the check lives in exactly one
+> place (`RefundableLines`) and the compensating cover is the idempotent
+> double-callback case in `PaymentCollectionTest`, which still asserts one credit after
+> two callbacks. Asking for three of two is a REFUSAL, not a clamp.
+>
+> **Inventory's `restock` became quantity-aware** (amends ADR-049 a second time, after
+> P5 added the verb). `restock($reference, $quantity)` puts back the units that came
+> back; `null` still means all of it, so P5's callers are unchanged. Idempotence stopped
+> being a status check and became `restocked_quantity` against the reservation — the
+> reservation stays `committed` until the last unit is home. Asking for more than is
+> still out there returns what is left, never more: an inflated restock invents stock
+> that does not physically exist and the seller sells it to somebody.
+>
+> **A parcel becomes `returned` only when the ORDER is fully back.** `PaymentRefunded`
+> names the order exactly when every unit of every line has gone back, and Shipping's
+> class-string listener moves the shipment. A buyer who kept one of two shoes has a
+> parcel that was still delivered. Payment does not touch a shipment, any more than it
+> touches an order's status.
+>
+> **Two doors to one machine.** `RequestReturnAction` is the buyer's — it checks
+> ownership through the Core Order port, that a settlement window exists (only a
+> delivery creates one), and that it is still open — and then calls
+> `RefundLinesAction`, which is the money. An admin gets the same action without those
+> three checks, because a refund outside the window is exactly the judgement call the
+> window hands back to a human. One implementation of the arithmetic, or the two
+> disagree the day either changes. **Every refusal answers the same** — "not yours",
+> "never delivered", "too late", "no such order" — or the error itself tells a prober
+> which one it was.
+>
+> **The admin needed the line path too, and that is S4 cleaning up after itself.** The
+> whole-order path SKIPS an order that already has a refund row — correctly, or it
+> would refund the returned unit twice — so an order a buyer partly returned would have
+> been stuck partly refunded forever.
+>
+> `GET /orders/{uuid}/return` (what may still go back, until when, and what the
+> platform will pay for it), `POST /orders/{uuid}/return` (lines + quantities +
+> reason), and `order_id` + `lines` on the existing
+> `POST /admin/payments/{uuid}/refund`. The GET exists because a storefront
+> multiplying `unit_price × quantity` itself would disagree with the last unit's
+> remainder.
+
 ---
 
 ## 9. Boundaries & non-negotiables (Payment-specific)
@@ -592,6 +670,16 @@ track of, which a mutable balance column could not promise.
   *Complete 2026-08-04 — see the "As built (P5)" note in §8. The module's build order
   is finished; what remains is listed in §11.*
 
+Two later phases belong to **Shipping's** work order (BUILD_SHIPPING.md) but were built
+here, because what they needed was a delivery date this module could not produce for
+itself:
+
+- **S3 — Settlement windows + automatic payout.** `ShipmentDelivered` (class-string)
+  opens the payout hold and the return window. *Complete 2026-08-05/06 — §8.*
+- **S4 — Buyer return + line-level partial refund.** *Complete 2026-08-06 — §8. It
+  closes two of §11's follow-ups and drops two unique indexes; read the note before
+  changing anything about refund idempotency.*
+
 ## 11. Deliberately absent / follow-ups
 
 - **Submerchant/marketplace settlement** — the licensing-clean model; a future ADR
@@ -606,18 +694,44 @@ track of, which a mutable balance column could not promise.
   transfer's debit cannot be deleted from an append-only ledger and none of ADR-062's
   five types means "that payout did not happen". **Still awaiting the owner's
   ratification** of ADR-062.
-- **A customer-facing refund/cancel** — §8's "customer-cancel that the policy allows"
-  waits for a fulfilment state to judge it by (Shipping). The seam is
-  `PaymentPolicy::refund()`; nothing else changes.
-- **Partial refund of a single order** (some lines, or some of the money) — v1 refunds
-  whole orders, because that is the unit the ledger, the commission and the stock are
-  all keyed on. A line-level refund needs its own ruling on how a frozen commission
-  splits.
+- ~~**A customer-facing refund/cancel**~~ — **closed by S4 (2026-08-06).** It waited
+  for a fulfilment state to judge it by; Shipping's delivery date and return window
+  (ADR-064) supplied one. It did not attach at `PaymentPolicy::refund()` as P5
+  predicted: ownership, delivery and a clock are questions about an ORDER and its
+  parcel, not about a payment, so they live in `RequestReturnAction` and that ability
+  still means "reverse a charge without any of them holding".
+- ~~**Partial refund of a single order**~~ — **closed by S4 (2026-08-06),** at LINE +
+  QUANTITY granularity. The ruling P5 said it needed: the frozen commission is SCALED
+  by the refunded share, half-up, in integer arithmetic; the last unit of a line takes
+  whatever rounding remains. @see §8's S4 note.
+- **A return is not a request — it is the refund.** There is no approval step, no
+  "iade talebi" queue and no state between asking and the money moving: the window IS
+  the approval. If the platform ever wants a human to inspect goods before paying,
+  that is a new aggregate and a new ADR, not a flag on `payment_refunds`.
+- **Nothing checks that the goods actually came back.** A buyer inside the window is
+  refunded and the stock is restocked on their word; the seller's recourse is the
+  return window's length and, eventually, a dispute process nobody has specified. The
+  honest statement of v1's risk, not an oversight.
+- **`payment_refunds` and `seller_ledger_entries` lost their unique indexes** to make
+  line-level refunds possible (§8). The remaining-quantity check in `RefundableLines`
+  is the only thing standing between a double-click and a double refund. A
+  `(payment_refund_id, order_line_uuid)` unique index would add back some of what was
+  lost and is worth doing if refunds ever stop being rare.
 
 ## 12. What this requires of other modules (read-only, contract-level)
 
 - **Order** — Core read of a checkout_group's orders + their line snapshots (amounts,
   KDV, seller), and the existing reservation-commit command port. No Order import.
+  **S4 added three things to `OrderQueryContract`, all read-only and all Order's own
+  data:** `id` and `commission_minor` on `orderLines()` (a return names a LINE, and
+  reversing a commission proportionally means reading the figure that was frozen), and
+  `checkoutGroupFor()` — the inverse of `ordersForCheckoutGroup()`. The last one
+  replaced a derivation that worked: Payment could find an order's group by walking its
+  own settled payments, and did, until it was noticed that this is a scan of every
+  settled payment plus a query per payment on an endpoint a customer taps.
+- **Inventory** — `restock()` on the command port became `restock($reference,
+  ?$quantity)` in S4 (amends ADR-049; P5 added the verb). `null` means all of it, so no
+  existing caller changed.
 - **Catalog** — the line already carries product/brand/category ids for commission
   resolution (snapshotted at order time); Payment reads them off the order, not the
   live catalogue.

@@ -90,6 +90,7 @@ final class Order extends Model
 
     /** @use HasFactory<OrderFactory> */
     use HasFactory;
+
     use HasUuid;
 
     protected $table = 'orders';

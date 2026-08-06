@@ -136,7 +136,10 @@ storefront can turn a tracking number into a link without hard-coding carriers.
   Shipping still emits one event and knows nothing about what it unlocks.
 - **S4** — **Payment enhancement:** buyer-initiated return + **line-level partial refund**
   (refund a quantity of an order line: proportional commission + KDV reversal, PayTR
-  partial refund, Inventory restock of that quantity).
+  partial refund, Inventory restock of that quantity). **Built 2026-08-06 — it lives in
+  Payment, see Payment.md §8.** One thing landed here: the parcel becomes `returned`,
+  moved by a class-string listener on `PaymentRefunded` and **only when the whole order
+  has gone back** — a buyer who kept one of two shoes still has a delivered parcel.
 - **S5** — **Storefront (frontend):** shipment status + tracking link + "Teslim aldım" on
   the order; the return-request UI.
 
@@ -190,6 +193,25 @@ port with no adapter and no caller is a file that only documents an intention (�
 Super Admin bypass from `deliver`, which cannot work — `Gate::before()` grants a Super
 Admin every ability before any policy runs — and would have contradicted §6's corrective
 admin lever anyway. The guarantee is STRUCTURAL: the operation does not exist.
+
+### S4 — the goods come back
+
+| Area | Where |
+|---|---|
+| `returned` — the one transition this module does not originate (§2) | `Application/Listeners/MarkShipmentsReturned` |
+
+**Everything else about a return is Payment's**, and that division is the same one
+Order keeps for `PaymentSucceeded`: another module announces a fact about money, and
+the module that OWNS the state moves it. Payment does not touch a shipment; Shipping
+does not know what a refund is worth.
+
+**It moves only on a FULLY returned order.** `PaymentRefunded` carries the order uuid
+exactly when every unit of every line has gone back — Payment sums that, because it
+holds the line quantities and Shipping does not. A partial return arrives here as an
+empty list and is silence.
+
+**Idempotent by the transition table**, not by a flag: only a `delivered` shipment may
+become `returned`, so a replayed event finds nothing to do.
 
 ## 9. Deliberately absent / follow-ups
 

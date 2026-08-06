@@ -4,9 +4,12 @@ declare(strict_types=1);
 
 namespace App\Modules\Payment\Presentation\Controllers\Api;
 
+use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
+use App\Modules\Payment\Application\Actions\RefundLinesAction;
 use App\Modules\Payment\Application\Actions\RefundPaymentAction;
 use App\Modules\Payment\Domain\DTOs\RefundRequestDTO;
+use App\Modules\Payment\Domain\DTOs\ReturnRequestDTO;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\PaymentRefund;
 use App\Modules\Payment\Presentation\Requests\RefundPaymentRequest;
@@ -25,8 +28,16 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  * send money back. Hence: admin-only, ability-gated, uuid-shape-guarded, and
  * idempotent at the database.
  *
- * IT TAKES ORDERS, NOT AN AMOUNT. @see `RefundRequestDTO` — "partially refunded"
- * on this platform means some of the sellers' orders in the basket.
+ * IT TAKES ORDERS OR LINES, AND NEVER AN AMOUNT. @see `RefundRequestDTO` —
+ * "partially refunded" meant "some of the sellers' orders in the basket" in P5,
+ * and S4 added a second granularity below it: `order_id` + `lines` refunds a
+ * QUANTITY of specific lines through the same machinery the buyer's own return
+ * uses. Neither shape has a field that could carry a lira figure.
+ *
+ * THE LINE PATH EXISTS BECAUSE S4 CREATED SOMETHING ONLY IT CAN FIX: an order
+ * with a partial return is skipped by the whole-order path (refunding it again
+ * would refund the returned unit twice), so without this it would be stuck partly
+ * refunded with no way to finish it.
  *
  * THE RESPONSE IS THE PAYMENT PLUS ITS REFUNDS, because the interesting fact is
  * the pair: the payment's new status says whether anything is left, and the rows
@@ -36,7 +47,11 @@ use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
  */
 final class RefundController extends BaseController
 {
-    public function __construct(private readonly RefundPaymentAction $refund) {}
+    public function __construct(
+        private readonly RefundPaymentAction $refund,
+        private readonly RefundLinesAction $refundLines,
+        private readonly OrderQueryContract $orders,
+    ) {}
 
     /**
      * POST /api/v1/admin/payments/{payment}/refund
@@ -48,17 +63,25 @@ final class RefundController extends BaseController
         $this->authorize('refund', $model);
 
         $actor = current_actor();
+        $actorId = $actor?->getKey() === null ? null : (int) $actor->getKey();
 
-        $refunded = $this->refund->run(new RefundRequestDTO(
-            paymentUuid: $model->uuid,
-            orderUuids: $request->orderUuids(),
-            reason: $request->reason(),
-            actorId: $actor?->getKey() === null ? null : (int) $actor->getKey(),
-        ));
+        $quantities = $request->quantities();
+
+        if ($quantities !== []) {
+            $this->refundLines($model, $request, $quantities, $actorId);
+            $model = $model->fresh()->load('currency');
+        } else {
+            $model = $this->refund->run(new RefundRequestDTO(
+                paymentUuid: $model->uuid,
+                orderUuids: $request->orderUuids(),
+                reason: $request->reason(),
+                actorId: $actorId,
+            ));
+        }
 
         return $this->ok([
-            'payment' => new PaymentResource($refunded->load('currency')),
-            'refunds' => PaymentRefundResource::collection($this->refundsFor($refunded)),
+            'payment' => new PaymentResource($model->load('currency')),
+            'refunds' => PaymentRefundResource::collection($this->refundsFor($model)),
         ]);
     }
 
@@ -72,6 +95,40 @@ final class RefundController extends BaseController
         $this->authorize('view', $model);
 
         return $this->ok(PaymentRefundResource::collection($this->refundsFor($model)));
+    }
+
+    /**
+     * The S4 half — this many of these lines, on ONE order of this payment.
+     *
+     * IT IS THE BUYER'S MACHINERY WITH THE BUYER'S GUARDS REMOVED, which is the
+     * whole point of the split: an admin refunding the same lines must produce
+     * byte-identical rows, so there is one implementation of the money and two
+     * ways in. What an admin skips is ownership and the return window — a refund
+     * outside the window is exactly the judgement call the window hands back to a
+     * human.
+     *
+     * THE ORDER MUST BE IN THIS PAYMENT'S GROUP. Without that check the route
+     * parameter would be decoration and an admin could refund any order through
+     * any payment, which the ledger would record under the wrong charge.
+     *
+     * @param array<string, int> $quantities
+     */
+    private function refundLines(Payment $payment, RefundPaymentRequest $request, array $quantities, ?int $actorId): void
+    {
+        $orderUuid = (string) $request->orderUuid();
+
+        if (! in_array($orderUuid, $this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid), true)) {
+            // The same answer "no such order" gets. An admin who mistyped an
+            // order uuid learns nothing about whose it was.
+            throw new NotFoundHttpException;
+        }
+
+        $this->refundLines->run(new ReturnRequestDTO(
+            orderUuid: $orderUuid,
+            quantities: $quantities,
+            reason: $request->reason(),
+            actorId: $actorId,
+        ));
     }
 
     /**

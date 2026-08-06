@@ -34,6 +34,21 @@ callback  → hash-verified, idempotent, one transaction:
   order is never held.
 - **The delivery windows are frozen columns.** Editing `shipping.payout_hold_days`
   governs the next delivery, never one already recorded.
+- **A refund names lines, and nothing at the database stops a double one** (S4).
+  `payment_refunds` and `seller_ledger_entries` lost their unique indexes so one
+  order could legitimately be refunded twice — one shoe today, the other next
+  week. What replaced them is a SUM of `payment_refund_lines` against the line's
+  original quantity, in `RefundableLines` and nowhere else. A constraint cannot be
+  forgotten and a sum can; read Payment.md §8 before touching it.
+- **Refunding one of two units needs no separate KDV term.** Prices are
+  KDV-inclusive (ADR-055), so the unit price carries the tax in exactly the
+  proportion it was charged. The commission is the FROZEN figure scaled, never the
+  rules resolved again — and the last unit of a line takes whatever kuruş the
+  rounding left, or a fully returned line strands it forever.
+- **The buyer's return is a second door, not a relaxed policy.** `payment.refund`
+  still means "reverse a charge with no window justifying it".
+  `RequestReturnAction` checks ownership, delivery and the clock and then calls the
+  same action an admin does.
 - **Payouts are proposed automatically, daily, one per seller** — and a human still
   makes the bank transfer. `created_by` null means the schedule decided.
   **The scheduler must be running** or no payout is ever proposed and, worse, no

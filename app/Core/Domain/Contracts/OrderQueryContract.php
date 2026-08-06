@@ -74,6 +74,28 @@ interface OrderQueryContract
     public function ordersForCheckoutGroup(string $checkoutGroupUuid): array;
 
     /**
+     * Which checkout group one order belongs to; null when no such order exists.
+     *
+     * ADDED FOR S4 (2026-08-06), AND IT IS THE INVERSE OF THE METHOD ABOVE. A
+     * buyer returning an item names their ORDER — that is what "Siparişlerim"
+     * shows them — while a refund is made against the PAYMENT, which is keyed to
+     * the group (ADR-052/060). Something has to cross that gap.
+     *
+     * IT EXISTS BECAUSE THE DERIVATION WAS TOO EXPENSIVE TO KEEP. Payment can in
+     * principle find the group by walking `ordersForCheckoutGroup()` over its own
+     * settled payments until the order appears — and did, briefly — but that is a
+     * scan of every settled payment on the platform plus a query per payment, on
+     * an endpoint the customer taps. "Derivable from what the port already
+     * exposes" stopped being an argument for not adding it once the derivation
+     * cost that.
+     *
+     * THE COLUMN IS ORDER'S OWN. No new fact crosses the boundary: the group uuid
+     * is already on the order and already leaves through `ordersForCheckoutGroup()`
+     * in the other direction.
+     */
+    public function checkoutGroupFor(string $orderUuid): ?string;
+
+    /**
      * The paying customer behind a checkout group, as the ADR-040 id/uuid pair;
      * null when the group does not exist.
      *
@@ -99,7 +121,13 @@ interface OrderQueryContract
      * is what the customer agreed to; asking the Catalog again would answer a
      * different question.
      *
-     * @return array<int, array{variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string}>
+     * `id` AND `commission_minor` JOINED IN S4 (2026-08-06), when a refund became
+     * line-level: a return names a LINE and a quantity, and reversing the
+     * commission proportionally means reading the figure that was frozen rather
+     * than resolving the rules again. `commission_minor` is null until payment
+     * settles it, and a caller must treat that as "not settled" rather than zero.
+     *
+     * @return array<int, array{id: string, variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string, commission_minor: int|null}>
      */
     public function orderLines(string $orderUuid): array;
 

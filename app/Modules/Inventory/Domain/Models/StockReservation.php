@@ -36,6 +36,7 @@ use Illuminate\Database\Eloquent\Relations\BelongsTo;
  * @property string $reference
  * @property int $stock_item_id
  * @property int $quantity
+ * @property int $restocked_quantity
  * @property ReservationStatus $status
  * @property \Illuminate\Support\Carbon|null $released_at
  * @property \Illuminate\Support\Carbon|null $committed_at
@@ -57,6 +58,7 @@ final class StockReservation extends Model
         'reference',
         'stock_item_id',
         'quantity',
+        'restocked_quantity',
         'status',
         'released_at',
         'committed_at',
@@ -86,6 +88,19 @@ final class StockReservation extends Model
     }
 
     /**
+     * How many of the sold units are still out there.
+     *
+     * THE ARITHMETIC THAT REPLACED A BOOLEAN (S4). A refund became line- and
+     * quantity-level — a buyer returns one of the two they bought — so
+     * "already restocked?" stopped being answerable with a status. Clamped at
+     * zero: a reservation can never owe negative units back.
+     */
+    public function remainingToRestock(): int
+    {
+        return max(0, $this->quantity - $this->restocked_quantity);
+    }
+
+    /**
      * @param Builder<self> $query
      *
      * @return Builder<self>
@@ -107,6 +122,7 @@ final class StockReservation extends Model
     {
         return [
             'quantity' => 'integer',
+            'restocked_quantity' => 'integer',
             'status' => ReservationStatus::class,
             'released_at' => 'datetime',
             'committed_at' => 'datetime',

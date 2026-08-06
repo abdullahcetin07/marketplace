@@ -86,8 +86,11 @@ it; this sprint it is exercised by tests, not by a real checkout.
   `reserved`.
 - **commit**(referenceUuid) — a completed sale: lower **both** `on_hand` and `reserved` by
   the reserved qty (the units truly leave).
-- **restock**(reference) — *added 2026-08-04 by Payment P5, amending this ADR.* A sale was
-  UNDONE: raise `on_hand` and leave `reserved` alone. The hold ended when the sale
+- **restock**(reference, quantity?) — *added 2026-08-04 by Payment P5 and made
+  QUANTITY-AWARE on 2026-08-06 by Shipping S4, amending this ADR twice.* A sale was
+  UNDONE: raise `on_hand` and leave `reserved` alone. `quantity` null means all of it, so
+  P5's callers were unchanged; a line-level refund passes the units that actually came
+  back, and asking for more than is still out there returns what is left, never more. The hold ended when the sale
   completed and does not come back, so the units are simply sellable again; restoring
   `reserved` too would hold stock for an order that has been refunded. A no-op on any
   reference that is not `committed` — the guarantee that stops a retried refund inventing
@@ -226,6 +229,10 @@ reserved together; `release` lowers reserved only. `restock` (P5) acts only on a
 `Committed` reservation, raises on_hand only, and is likewise idempotent — a repeated
 restock is a no-op, which matters more here than anywhere else in this module: a double
 restock would invent stock that does not exist, and the seller would sell it to somebody.
+**S4 changed how that idempotence is expressed, not whether it holds:** a partial return
+made "already restocked?" unanswerable by a status, so it became `restocked_quantity`
+against the reservation's own quantity, and the terminal `Restocked` state is reached only
+when the last unit is home.
 
 ## 3.3 Low-stock signal (v1)
 When a movement leaves `available ≤ low_stock_threshold` (and a threshold is set), emit
@@ -260,7 +267,8 @@ Used by Offer's buy box (in-stock test) and any downstream. Returns plain scalar
 - `reserve(string $sellingOrgUuid, string $variantUuid, int $qty, string $referenceUuid): bool`
 - `release(string $referenceUuid): void`
 - `commit(string $referenceUuid): void`
-- `restock(string $reference): void` — P5, Payment is its only caller.
+- `restock(string $reference, ?int $quantity = null): void` — P5; `$quantity` added by S4
+  (null = all of it). Payment is its only caller.
 The only sanctioned way another module mutates stock. Order is its first (later) caller.
 
 ---
@@ -444,6 +452,14 @@ plus `StockMovementType::Restocked`, `ReservationStatus::Restocked`,
 
 **Nothing about the mirror changed**, and that is worth saying: `on_hand` still moves only
 from the seller's Offer form and from a reservation verb. A refund is a reservation verb.
+
+**Shipping S4 (2026-08-06) amended that verb again: it takes a QUANTITY.** A buyer may now
+return one of the two they bought, so `restock($reference, $quantity)` puts back the units
+that came back rather than the whole hold, and `stock_reservations.restocked_quantity`
+records the running total. Null still means all of it. The one behavioural consequence
+worth knowing about: a partly returned reservation stays `Committed`, so code reading only
+the STATUS to decide whether a sale was reversed now gets an answer that is true but
+incomplete — read the quantity.
 
 **One consequence is left open, deliberately:** a restock raises Inventory's `on_hand`
 without raising the Offer's own `stock_quantity`, exactly as a commit lowers Inventory's

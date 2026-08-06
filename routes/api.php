@@ -33,6 +33,7 @@ use App\Modules\Payment\Presentation\Controllers\Api\PaymentController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
+use App\Modules\Payment\Presentation\Controllers\Api\ReturnController;
 use App\Modules\Shipping\Presentation\Controllers\Api\ShipmentController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
@@ -484,6 +485,27 @@ Route::prefix('v1')
                 ->name('orders.shipment');
             Route::post('/orders/{order}/shipment/confirm', [ShipmentController::class, 'confirm'])
                 ->name('orders.shipment.confirm');
+
+            /*
+            | SENDING IT BACK (S4, Payment.md §8). Keyed on the order for the same
+            | reason the two routes above are, and sitting beside them on purpose:
+            | the return window opens when that `confirm` fires, so the button the
+            | buyer presses second is next to the one they pressed first.
+            |
+            | THE GET IS NOT DECORATION. It answers whether the window is still
+            | open, how many of each line have already gone back, and what the
+            | platform will pay for the rest — the last of which a storefront
+            | cannot compute, because the final unit of a line carries whatever
+            | kuruş the rounding left.
+            |
+            | THE POST TAKES LINES AND QUANTITIES AND NO AMOUNT, which is P5's
+            | rule one level down: the buyer says what is in the box and the
+            | platform prices it from the frozen snapshot.
+            */
+            Route::get('/orders/{order}/return', [ReturnController::class, 'show'])
+                ->name('orders.return.show');
+            Route::post('/orders/{order}/return', [ReturnController::class, 'store'])
+                ->name('orders.return.store');
         });
 
         /*

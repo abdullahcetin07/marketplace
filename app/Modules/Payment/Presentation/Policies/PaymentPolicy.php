@@ -22,18 +22,21 @@ use Illuminate\Auth\Access\Response;
  * a record of what somebody typed. The refund is not an edit — it is a new fact,
  * with its own ability and its own rows.
  *
- * REFUND IS ADMIN-ONLY IN V1, AND THAT IS A NARROWING OF THE SPEC — reported,
- * not decided quietly. Payment.md §8 allows "admin, or a customer-cancel that the
- * policy allows", and this policy allows only the admin. The reason is that the
- * second half cannot be evaluated yet: whether a customer may reverse their own
- * purchase depends on whether it has SHIPPED, and there is no fulfilment state on
- * this platform — Shipping does not exist. A self-serve refund button that cannot
- * tell "cancel before dispatch" from "return after delivery" would be granting a
- * business rule nobody has written down.
+ * **`refund` IS STILL ADMIN-ONLY, AND SINCE S4 THAT NO LONGER MEANS A CUSTOMER
+ * CANNOT RETURN ANYTHING.** P5 narrowed Payment.md §8 to admins and said why:
+ * whether a buyer may reverse their own purchase depends on whether it SHIPPED,
+ * and there was no fulfilment state to ask. Shipping wrote one — a delivery date
+ * and a return window (ADR-064) — and S4 opened the buyer's door on top of it.
  *
- * The seam is left in the right place: `RefundPaymentAction` takes an actor id and
- * does not care what type of user it is, so when Shipping ships, only this method
- * changes.
+ * IT DID NOT OPEN IT HERE, WHICH IS THE PART WORTH READING. A buyer's return is
+ * not "the admin refund, permitted to a customer": it is bounded by ownership,
+ * by delivery and by a clock, and none of those are questions about a PAYMENT —
+ * they are questions about an ORDER and its parcel. So they live in
+ * `RequestReturnAction`, which reads them through the Core Order port, and this
+ * ability keeps meaning exactly what it meant: who may reverse a charge WITHOUT
+ * those conditions holding.
+ *
+ * Two doors to one machine, deliberately. @see `RefundLinesAction`.
  *
  * @see docs/modules/Payment.md §8
  */
@@ -66,8 +69,8 @@ final class PaymentPolicy
     }
 
     /**
-     * Sending the money back. @see the class docblock for why this is admin-only
-     * in v1 and where the customer path will attach.
+     * Sending the money back WITHOUT a window to justify it. @see the class
+     * docblock for why the buyer's own return is not this ability relaxed.
      */
     public function refund(User $user, Payment $payment): Response
     {

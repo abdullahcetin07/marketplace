@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Shipping;
 
 use App\Modules\Shipping\Application\Listeners\CreateShipmentsOnPayment;
+use App\Modules\Shipping\Application\Listeners\MarkShipmentsReturned;
 use App\Modules\Shipping\Domain\Models\CargoCompany;
 use App\Modules\Shipping\Domain\Models\Shipment;
 use App\Modules\Shipping\Presentation\Console\BackfillShipmentsCommand;
@@ -75,6 +76,20 @@ final class ShippingServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Payment\Domain\Events\PaymentSucceeded',
             [CreateShipmentsOnPayment::class, 'handle'],
+        );
+
+        /*
+        | THE GOODS CAME BACK (S4). Payment refunds; the parcel's state is this
+        | module's to move, so it moves it here rather than Payment reaching in —
+        | the same division as Order's status on `PaymentSucceeded`.
+        |
+        | ONLY WHEN THE ORDER IS FULLY RETURNED. Payment names the order on the
+        | event exactly when every unit of every line has gone back; a partly
+        | returned parcel is still a delivered parcel.
+        */
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentRefunded',
+            [MarkShipmentsReturned::class, 'handle'],
         );
     }
 

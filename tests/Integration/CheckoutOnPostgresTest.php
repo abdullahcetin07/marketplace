@@ -416,6 +416,77 @@ it('keeps a non-uuid payment away from the refund endpoint', function (): void {
         ->not->toThrow(\Throwable::class);
 });
 
+it('keeps a non-uuid order away from the buyer return endpoint', function (): void {
+    /*
+     * THE ELEVENTH WATCH (Payment.md §8, S4). The return routes take an ORDER
+     * uuid straight off the URL, and the chain behind them touches three native
+     * uuid columns on this engine — `settlement_windows.order_uuid`,
+     * `payment_refunds.order_uuid` and now `payment_refund_lines.order_line_uuid`.
+     * On SQLite all three are text and the guard cannot be seen to work.
+     *
+     * IT IS A CUSTOMER-FACING SURFACE, which is what raises the stakes over the
+     * admin refund route beside it: this is a button in "Siparişlerim", tapped by
+     * people who did not type the uuid themselves.
+     */
+    $this->actingAs(Customer::factory()->create(), 'customer');
+
+    foreach (['not-a-uuid', 'siparis'] as $order) {
+        $this->getJson("/api/v1/orders/{$order}/return")->assertNotFound();
+        $this->postJson("/api/v1/orders/{$order}/return", [
+            'lines' => [['id' => (string) Str::uuid(), 'quantity' => 1]],
+        ])->assertNotFound();
+    }
+
+    // A well-formed uuid nobody owns is a miss, not an error — the same answer,
+    // so nothing distinguishes "does not exist" from "not yours".
+    $this->getJson('/api/v1/orders/'.Str::uuid()->toString().'/return')->assertNotFound();
+
+    /*
+     * AND THE S4 TABLE ITSELF, on the engine that enforces the type. The refunded
+     * quantity is summed by `order_line_uuid` on every return — that read has to
+     * be safe with a well-formed uuid and the column has to actually be one.
+     */
+    expect(static fn (): mixed => DB::connection('pgsql')
+        ->table('payment_refund_lines')
+        ->where('order_line_uuid', (string) Str::uuid())
+        ->sum('quantity'))
+        ->not->toThrow(\Throwable::class);
+});
+
+it('lets one order be refunded twice, which the dropped indexes forbade', function (): void {
+    /*
+     * THE MIGRATION, VERIFIED ON THE ENGINE THAT HELD THE CONSTRAINT. S4 dropped
+     * a UNIQUE on `payment_refunds (payment_id, order_uuid)` and another on
+     * `seller_ledger_entries (payment_uuid, order_uuid, type)` so a line-level
+     * refund could append a second pair for one order. SQLite would happily
+     * accept both rows whether the migration ran or not — only PostgreSQL can
+     * say the indexes are genuinely gone.
+     */
+    $payment = DB::connection('pgsql')->table('payments')->first();
+
+    if ($payment === null) {
+        $this->markTestSkipped('No payment exists on this database to append against.');
+    }
+
+    $orderUuid = (string) Str::uuid();
+
+    $insert = static fn (): int => (int) DB::connection('pgsql')->table('payment_refunds')->insertGetId([
+        'uuid' => (string) Str::uuid(),
+        'payment_id' => $payment->id,
+        'payment_uuid' => $payment->uuid,
+        'order_uuid' => $orderUuid,
+        'seller_org_uuid' => (string) Str::uuid(),
+        'amount_minor' => 1_200,
+        'currency_id' => $payment->currency_id,
+        'created_at' => now(),
+    ]);
+
+    // One shoe today, the other next week. Two rows, one order — and the
+    // transaction rolls the whole thing back afterwards.
+    expect($insert())->toBeGreaterThan(0)
+        ->and($insert())->toBeGreaterThan(0);
+});
+
 it('resolves a real slug to its type on PostgreSQL', function (): void {
     $row = DB::connection('pgsql')->table('slugs')->where('is_canonical', true)->first();
 

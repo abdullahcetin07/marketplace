@@ -29,14 +29,24 @@ final class RefundPaymentRequest extends BaseRequest
 {
     public function authorize(): bool
     {
-        // Admin-only in v1 — see `PaymentPolicy::refund()` for why the customer
-        // half of the spec is deliberately not wired yet. The policy is still
-        // checked in the controller; this only keeps other user types off the
-        // endpoint entirely.
+        // ADMIN-ONLY, AND STILL SO AFTER S4. The buyer's own return is a
+        // different endpoint with different guards (`RequestReturnRequest`),
+        // not this one relaxed. The policy is still checked in the controller;
+        // this only keeps other user types off the endpoint entirely.
         return $this->actor()?->type === UserType::Admin;
     }
 
     /**
+     * `order_id` + `lines` ARE THE S4 HALF, and they are mutually exclusive with
+     * `order_ids` by meaning rather than by a validation rule: naming lines is
+     * naming ONE order, so the singular field is what carries it.
+     *
+     * WHY AN ADMIN NEEDS THEM AT ALL. S4 let a buyer send back one of two shoes.
+     * An order with a partial return can no longer be whole-refunded — the
+     * whole-order path skips it, correctly, because refunding it again would
+     * refund the returned shoe twice. Without a line-level admin path, that order
+     * would be stuck partly refunded forever with no way to finish it.
+     *
      * @return array<string, mixed>
      */
     public function rules(): array
@@ -44,8 +54,44 @@ final class RefundPaymentRequest extends BaseRequest
         return [
             'order_ids' => ['sometimes', 'array'],
             'order_ids.*' => ['uuid'],
+            'order_id' => ['required_with:lines', 'uuid'],
+            'lines' => ['sometimes', 'array', 'min:1'],
+            'lines.*.id' => ['required', 'uuid'],
+            'lines.*.quantity' => ['required', 'integer', 'min:1'],
             'reason' => ['nullable', 'string', 'max:500'],
         ];
+    }
+
+    /**
+     * The single order a line-level refund is against; null for the whole-order
+     * path.
+     */
+    public function orderUuid(): ?string
+    {
+        $order = $this->validated('order_id');
+
+        return is_string($order) ? $order : null;
+    }
+
+    /**
+     * Order line uuid => how many units come back; empty for the whole-order
+     * path. Duplicates are summed — @see `RequestReturnRequest::quantities()`.
+     *
+     * @return array<string, int>
+     */
+    public function quantities(): array
+    {
+        /** @var array<int, array{id: string, quantity: int}> $lines */
+        $lines = $this->validated('lines') ?? [];
+
+        $quantities = [];
+
+        foreach ($lines as $line) {
+            $id = (string) $line['id'];
+            $quantities[$id] = ($quantities[$id] ?? 0) + (int) $line['quantity'];
+        }
+
+        return $quantities;
     }
 
     /**

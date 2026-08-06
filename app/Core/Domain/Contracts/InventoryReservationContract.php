@@ -49,7 +49,8 @@ namespace App\Core\Domain\Contracts;
  *   release  — `reserved` down. The hold is given back (cancelled, expired).
  *   commit   — BOTH down. The sale completed and the units truly left.
  *   restock  — `on_hand` up, `reserved` untouched. The sale was UNDONE and the
- *              units came back (a refund). Added by Payment P5.
+ *              units came back (a refund). Added by Payment P5; made
+ *              QUANTITY-AWARE by Shipping's S4, when a refund became line-level.
  *
  * WHY RESTOCK IS A FOURTH VERB AND NOT `release` CALLED LATE. Order.md §12.5
  * recorded this as an open follow-up and answered it in advance: Inventory "has
@@ -127,7 +128,14 @@ interface InventoryReservationContract
      * A reference that is still active or was released is also a no-op: the
      * units never left, so there is nothing to give back.
      *
+     * `$quantity` NULL MEANS ALL OF IT (S4 amendment, 2026-08-06). P5's refund was
+     * whole-order and so was this verb; a LINE-LEVEL refund returns a quantity —
+     * a buyer sends back one of the two they bought — so idempotence stopped
+     * being a status check and became arithmetic against `restocked_quantity`.
+     * Asking for more than is still out there returns what is left, never more:
+     * an inflated restock invents stock that does not physically exist.
+     *
      * Throws when no reservation exists under this reference.
      */
-    public function restock(string $reference): void;
+    public function restock(string $reference, ?int $quantity = null): void;
 }

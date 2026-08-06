@@ -518,10 +518,10 @@ it('refuses the refund endpoint to a customer, and 404s a non-uuid payment', fun
     $this->actingAs($customer, 'customer');
 
     /*
-     * ADMIN-ONLY IN V1, and that is a stated narrowing of Payment.md §8 rather
-     * than an oversight: whether a customer may reverse their own purchase
-     * depends on whether it has SHIPPED, and there is no fulfilment state on this
-     * platform yet. @see `PaymentPolicy::refund()`.
+     * ADMIN-ONLY, AND STILL SO AFTER S4. A customer got a way to send goods back
+     * — `POST /orders/{order}/return`, bounded by ownership, delivery and the
+     * return window — but not this endpoint, which reverses a charge with none of
+     * those conditions holding. @see `PaymentPolicy::refund()`.
      */
     $this->postJson('/api/v1/admin/payments/'.Str::uuid().'/refund')->assertForbidden();
 

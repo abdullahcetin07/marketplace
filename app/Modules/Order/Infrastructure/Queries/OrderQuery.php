@@ -61,6 +61,18 @@ final class OrderQuery implements OrderQueryContract
     }
 
     /**
+     * Added for S4 (2026-08-06) — the inverse of `ordersForCheckoutGroup()`, so a
+     * buyer's return can find the payment its order was charged on without
+     * scanning every settled payment. @see the contract.
+     */
+    public function checkoutGroupFor(string $orderUuid): ?string
+    {
+        $group = Order::query()->where('uuid', $orderUuid)->value('checkout_group_uuid');
+
+        return is_string($group) ? $group : null;
+    }
+
+    /**
      * Added for Payment (2026-08-04) — see the contract for why a Payment row
      * keyed to a GROUP still has to know whose money it is.
      *
@@ -97,7 +109,9 @@ final class OrderQuery implements OrderQueryContract
      * Added for Payment (2026-08-04) — the PSP basket, and from P2 the commission
      * resolver's input.
      *
-     * @return array<int, array{variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string}>
+     * `id` AND `commission_minor` JOINED IN S4 (2026-08-06) — see the contract.
+     *
+     * @return array<int, array{id: string, variant_uuid: string, product_uuid: string, title: string, quantity: int, unit_price_minor: int, line_total_minor: int, tax_rate: string, commission_minor: int|null}>
      */
     public function orderLines(string $orderUuid): array
     {
@@ -109,6 +123,10 @@ final class OrderQuery implements OrderQueryContract
 
         return $order->lines
             ->map(static fn (OrderLine $line): array => [
+                // The line's PUBLIC id — what a return names. Added by S4: a
+                // partial refund is "this line, this many", and the caller needs
+                // a handle for the line that is not its position in an array.
+                'id' => $line->uuid,
                 'variant_uuid' => $line->variant_uuid,
                 'product_uuid' => $line->product_uuid,
                 // The title AS BOUGHT (ADR-053), which is what belongs on a
@@ -119,6 +137,13 @@ final class OrderQuery implements OrderQueryContract
                 'unit_price_minor' => $line->unit_price_minor,
                 'line_total_minor' => $line->line_total_minor,
                 'tax_rate' => $line->tax_rate,
+                /*
+                | THE FROZEN COMMISSION, null until payment settles it (ADR-061).
+                | A partial refund reverses it PROPORTIONALLY — the frozen figure
+                | scaled by the refunded share — so the caller must read what was
+                | actually taken rather than resolving the rules a second time.
+                */
+                'commission_minor' => $line->commission_minor,
             ])
             ->values()
             ->all();

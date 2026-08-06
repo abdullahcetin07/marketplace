@@ -77,6 +77,7 @@ final class CustomerAddress extends Model
 
     /** @use HasFactory<CustomerAddressFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
 
