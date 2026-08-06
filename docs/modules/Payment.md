@@ -729,6 +729,11 @@ itself:
   replaced a derivation that worked: Payment could find an order's group by walking its
   own settled payments, and did, until it was noticed that this is a scan of every
   settled payment plus a query per payment on an endpoint a customer taps.
+  **`reservationReferencesFor()` is now KEYED BY VARIANT UUID** for the same class of
+  reason: a line-level restock needs one reference, and a caller that cannot look one up
+  assembles `{order_uuid}:{variant_uuid}` itself — which is precisely the drift that
+  method exists to prevent. A `foreach` over the values is unaffected, so P5's caller
+  did not change.
 - **Inventory** — `restock()` on the command port became `restock($reference,
   ?$quantity)` in S4 (amends ADR-049; P5 added the verb). `null` means all of it, so no
   existing caller changed.

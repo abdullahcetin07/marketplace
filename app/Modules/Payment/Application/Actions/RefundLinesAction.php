@@ -282,8 +282,16 @@ final class RefundLinesAction extends BaseAction
      * Put back exactly the units that came back.
      *
      * PER QUANTITY, which is the S4 amendment to the command port: P5 restocked a
-     * whole reservation because a refund was whole-order. The reference is still
-     * Order's `{order_uuid}:{variant_uuid}` string (ADR-049).
+     * whole reservation because a refund was whole-order.
+     *
+     * **THE REFERENCE IS LOOKED UP, NEVER BUILT HERE.** ADR-049's key is
+     * `{order_uuid}:{variant_uuid}` and the format belongs to Order — this module
+     * writing that colon is exactly the drift `reservationReferencesFor()` exists
+     * to prevent, and the two would part company the day the scheme changed. S4
+     * keyed that method by variant so a line-level refund can ask for one.
+     *
+     * A LINE WITH NO RESERVATION IS SKIPPED, not guessed at: an order placed
+     * before reservations existed has no hold to give back.
      *
      * A FAILED RESTOCK DOES NOT UNDO A REFUND. The money has left; refusing the
      * whole operation would leave the buyer refunded at the PSP and not here,
@@ -293,8 +301,14 @@ final class RefundLinesAction extends BaseAction
      */
     private function restock(Payment $payment, string $orderUuid, array $priced): void
     {
+        $references = $this->orders->reservationReferencesFor($orderUuid);
+
         foreach ($priced as $line) {
-            $reference = "{$orderUuid}:{$line->variantUuid}";
+            $reference = $references[$line->variantUuid] ?? null;
+
+            if ($reference === null) {
+                continue;
+            }
 
             try {
                 $this->reservations->restock($reference, $line->quantity);

@@ -145,7 +145,15 @@ interface OrderQueryContract
      *
      * Empty for an order with no lines, and for one that never reserved.
      *
-     * @return array<int, string>
+     * **KEYED BY VARIANT UUID SINCE S4 (2026-08-06).** P5's refund was whole-order
+     * and wanted every reference, so a list was enough. A line-level refund needs
+     * the reference for ONE variant — and a caller that cannot look one up builds
+     * `{order_uuid}:{variant_uuid}` itself, which is exactly the drift the
+     * paragraph above exists to prevent. A `foreach` over the values is
+     * unaffected, which is why the shape changed rather than a second method
+     * being added.
+     *
+     * @return array<string, string> variant uuid => reservation reference
      */
     public function reservationReferencesFor(string $orderUuid): array;
 

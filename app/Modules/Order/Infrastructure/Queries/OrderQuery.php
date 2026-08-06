@@ -158,7 +158,7 @@ final class OrderQuery implements OrderQueryContract
      * reason this method exists is so nothing outside Order ever writes that
      * colon.
      *
-     * @return array<int, string>
+     * @return array<string, string>
      */
     public function reservationReferencesFor(string $orderUuid): array
     {
@@ -168,9 +168,17 @@ final class OrderQuery implements OrderQueryContract
             return [];
         }
 
+        /*
+        | KEYED BY VARIANT SINCE S4 (2026-08-06). P5 refunded whole orders and
+        | wanted every reference; a line-level refund needs ONE of them, and
+        | without the key its caller has to build `{order}:{variant}` itself —
+        | which is precisely the drift this method exists to prevent. A foreach
+        | over the values is unaffected.
+        */
         return $order->lines
-            ->map(static fn (OrderLine $line): string => $order->reservationReferenceFor($line->variant_uuid))
-            ->values()
+            ->mapWithKeys(static fn (OrderLine $line): array => [
+                $line->variant_uuid => $order->reservationReferenceFor($line->variant_uuid),
+            ])
             ->all();
     }
 
