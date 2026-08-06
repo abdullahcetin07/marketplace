@@ -232,6 +232,44 @@ interface OrderQueryContract
     public function paidOrders(?string $sellerOrgUuid = null, int $limit = 500): array;
 
     /**
+     * The delivered lines a customer holds for one product — the review gate
+     * (ADR-067, Reviews.md §5).
+     *
+     * **IT RETURNS LINES, NOT A BOOLEAN**, and that is the shape the aggregate
+     * forces: a review binds to ONE delivered order line, so the buyer's
+     * "Değerlendir" screen has to show WHICH purchase it is offering to review,
+     * and the seller tag the review will be stamped with comes from here. A
+     * yes/no could not answer either question.
+     *
+     * **KEYED ON (CUSTOMER, PRODUCT)**, which no existing method on this port
+     * answered — every other one is order-uuid-centric, because every earlier
+     * consumer already knew which order it meant. Reviews starts from a product
+     * page and a session.
+     *
+     * **DELIVERED ONLY.** The gate is delivery, not payment (ADR-067): "kullandım,
+     * şöyleymiş" is the honesty a review promises, and a paid-but-unshipped order
+     * has no experience to report yet. Empty when the buyer has none.
+     *
+     * TWO DEVIATIONS FROM Reviews.md §5, BOTH DELIBERATE AND BOTH RECORDED IN THE
+     * AMENDMENT LOG:
+     *
+     *   THE CUSTOMER IS A UUID, not the internal id the spec sketched. `orders`
+     *   carries and indexes `customer_uuid`, the caller (Reviews) stores both, and
+     *   a port that can be satisfied without an internal id should be.
+     *
+     *   `purchased_at`, NOT `delivered_at`. There IS no `delivered_at` on an
+     *   order: delivery is the status alone, and the timestamp lives on Shipping's
+     *   `shipments` — a table Order must not read and Reviews may not either. The
+     *   order's `placed_at` is the honest date this port can supply, and it is
+     *   what a "purchases from the last N days" window would measure if v1 ever
+     *   grows one. Naming it after what it IS avoids a caller trusting a delivery
+     *   date that is really a purchase date.
+     *
+     * @return array<int, array{order_line_uuid: string, store_uuid: string, selling_org_uuid: string, variant_uuid: string|null, variant_label: string|null, product_title: string, purchased_at: string|null}>
+     */
+    public function deliveredPurchaseLines(string $customerUuid, string $productUuid): array;
+
+    /**
      * What one order comes to; null when no such order exists.
      *
      * The tax total is included rather than left to be recomputed: it was

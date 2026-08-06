@@ -183,6 +183,49 @@ final class OrderQuery implements OrderQueryContract
     }
 
     /**
+     * Added for Reviews (2026-08-06, ADR-067) — the review gate. See the contract
+     * for why it returns lines rather than a boolean, and for the two recorded
+     * deviations from the module spec's sketch.
+     *
+     * THE LINES ARE CONSTRAINED IN THE EAGER LOAD, not filtered afterwards: an
+     * order of thirty items where one is this product should fetch one line, not
+     * thirty. Orders with no matching line survive the load and contribute
+     * nothing, which `flatMap` drops for free.
+     *
+     * @return array<int, array{order_line_uuid: string, store_uuid: string, selling_org_uuid: string, variant_uuid: string|null, variant_label: string|null, product_title: string, purchased_at: string|null}>
+     */
+    public function deliveredPurchaseLines(string $customerUuid, string $productUuid): array
+    {
+        return Order::query()
+            ->where('customer_uuid', $customerUuid)
+            // DELIVERED, NOT PAID (ADR-067). A parcel that has not arrived has
+            // nothing to report.
+            ->where('status', OrderStatus::Delivered->value)
+            ->with(['lines' => fn ($query) => $query->where('product_uuid', $productUuid)])
+            ->get()
+            ->flatMap(static fn (Order $order): array => $order->lines
+                ->map(static fn (OrderLine $line): array => [
+                    'order_line_uuid' => $line->uuid,
+                    // THE SELLER TAG (ADR-066) — copied from the order, so a
+                    // review can never be attributed to a shop the buyer did not
+                    // buy from.
+                    'store_uuid' => $order->store_uuid,
+                    'selling_org_uuid' => $order->selling_org_uuid,
+                    'variant_uuid' => $line->variant_uuid,
+                    'variant_label' => $line->variant_label,
+                    // The title AS BOUGHT (ADR-053), so the screen offering the
+                    // review names what the customer actually received.
+                    'product_title' => $line->product_title,
+                    // @see the contract: this is the ORDER date, and it is named
+                    // after what it is because no delivery date exists here.
+                    'purchased_at' => $order->placed_at?->toIso8601String(),
+                ])
+                ->all())
+            ->values()
+            ->all();
+    }
+
+    /**
      * Added for Payment's seller ledger (2026-08-04) — see the contract for why
      * this reads the frozen snapshot rather than recomputing.
      *
