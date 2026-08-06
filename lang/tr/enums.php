@@ -254,6 +254,12 @@ return [
         'rejected' => 'Reddedildi',
     ],
 
+    'ReviewStatus' => [
+        'pending_review' => 'Onay bekliyor',
+        'published' => 'Yayında',
+        'rejected' => 'Reddedildi',
+    ],
+
     'ShipmentStatus' => [
         'pending' => 'Hazırlanıyor',
         'shipped' => 'Kargoda',
