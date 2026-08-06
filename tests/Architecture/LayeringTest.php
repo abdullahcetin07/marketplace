@@ -501,6 +501,38 @@ arch('no module depends on Shipping')
         'Tests\Modules\Shipping',
     ]);
 
+arch('Reviews imports no other module')
+    ->expect('App\Modules\Reviews')
+    ->not->toUse([
+        'App\Modules\Catalog',
+        'App\Modules\Order',
+        'App\Modules\Store',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Payment',
+        'App\Modules\Shipping',
+        'App\Modules\Organization',
+        'App\Modules\Media',
+        'App\Modules\Identity',
+        'App\Modules\Notification',
+    ]);
+
+/*
+| MEDIA IS ON THAT LIST AND THE PHOTOS STILL WORK, which is the entry worth
+| pausing on. A review's images ride `App\Shared\Traits\HasMedia` — the same
+| shared trait Catalog's product images use — not the Media MODULE. `app/Shared`
+| sits below the modules (001 §6), so a trait is not a dependency; importing the
+| module would be.
+*/
+arch('no module depends on Reviews')
+    ->expect('App\Modules\Reviews')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Reviews',
+        'App\Providers\Filament',
+        'Database\Modules\Reviews',
+        'Tests\Modules\Reviews',
+    ]);
+
 /*
 | The mirror of the rule above: nothing built so far may reach INTO Catalog.
 | Offer, Inventory and Search will read it through the Core contract when they
@@ -565,6 +597,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Offer\Domain',
         'App\Modules\Inventory\Domain',
         'App\Modules\Order\Domain',
+        'App\Modules\Reviews\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -695,6 +728,19 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Inventory\Infrastructure',
         'App\Modules\Inventory\Presentation',
         'App\Modules\Inventory\InventoryServiceProvider',
+        // Reviews — same shape as the modules above: every namespace EXCEPT
+        // `Domain\DTOs` is ignored, so the suffix rule applies to exactly the
+        // place ADR-021 means it to and a new DTO is covered without editing
+        // this list.
+        'App\Modules\Reviews\Application',
+        'App\Modules\Reviews\Domain\Models',
+        'App\Modules\Reviews\Domain\Enums',
+        'App\Modules\Reviews\Domain\Events',
+        'App\Modules\Reviews\Domain\Contracts',
+        'App\Modules\Reviews\Domain\Exceptions',
+        'App\Modules\Reviews\Infrastructure',
+        'App\Modules\Reviews\Presentation',
+        'App\Modules\Reviews\ReviewsServiceProvider',
         // Order — non-DTO namespaces ignored so its Domain\DTOs stay covered
         // (they must carry the suffix), like the modules above.
         'App\Modules\Order\Application',

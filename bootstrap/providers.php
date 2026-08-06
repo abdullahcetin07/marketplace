@@ -78,6 +78,15 @@ return [
     */
     App\Modules\Shipping\ShippingServiceProvider::class,
 
+    /*
+    | Reviews — after everything it reads, though the order matters less here
+    | than anywhere above: it binds no contract another module resolves and
+    | subscribes to nothing. It READS Catalog and Order through their Core
+    | contracts and asks Store for shop names, so it needs those bindings to
+    | exist by the time a request is served, not by the time it registers.
+    */
+    App\Modules\Reviews\ReviewsServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,
