@@ -1912,4 +1912,52 @@ Full specification: [docs/modules/Shipping.md](modules/Shipping.md) §3–4, §8
 
 ---
 
+# ADR-065 Pre-Shipment Cancellation: Seller Line-Level Cancel + Buyer Cancel-Request (Seller-Approved), Both Refunding Through the Return Machinery
+
+**Decision.** While a shipment is still `pending` (not yet shipped), a paid order can be
+cancelled two ways — and both reuse the **line-level refund** ADR-064/S4 built
+(proportional commission + KDV reversal, PayTR partial refund, Inventory restock):
+
+1. **Seller line-level cancel** — immediate, no approval. A seller who cannot fulfil part
+   of an order cancels a **quantity of a line**; that quantity is refunded to the buyer and
+   restocked. Cancelling every line's every unit cancels the order and its shipment.
+2. **Buyer cancel-request** — approval-gated. The buyer requests cancellation of the whole
+   unshipped order (with a reason); the seller **approves** (→ full refund + restock + order
+   cancelled) or **rejects** (→ the order proceeds). The buyer **cannot** cancel a paid
+   order unilaterally — the seller may already be preparing it — so it is a `pending`
+   **request**, not an act.
+
+**The gate is the shipment state, not the return window.** Once a shipment is `shipped`,
+cancellation is gone and ADR-064's post-delivery **return** takes over. Pre-shipment there
+is no return window: a paid-but-unshipped order is always cancellable (seller) or
+request-cancellable (buyer). This is the mirror of the return — the same refund, on the
+other side of "shipped".
+
+**Reuse, not reinvention.** The refund is `RefundLinesAction` unchanged — same kuruş
+arithmetic, same restock, same ledger reversal. The only new things are the **triggers**
+(seller cancel; buyer request + seller approve) and the **shipment-`pending` gate**.
+
+**Placement.** The refund-triggering actions live in Payment (where the refund is), reading
+the order's lines and its shipment state through Core contracts, exactly as
+`RequestReturnAction` does; the `CancellationRequest` aggregate + the seller's approval
+inbox sit with the order lifecycle. The server resolves the module boundary under
+`LayeringTest` (and reports it, ADR-018) — no module imports another.
+
+**No seller penalty yet.** A cancellation-rate penalty on the seller is a future ADR; v1
+just refunds and restocks.
+
+Rationale: the platform could reverse a sale **after** delivery (return) but not **before**
+shipment (cancel) — the near half of the lifecycle. The seller can shed a line it cannot
+fill; the buyer can back out before it ships, with the seller's consent so a half-prepared
+order is not yanked out from under them.
+
+Cost: two more refund triggers and a request/approval workflow, each reading the shipment
+state; the buyer's cancel is a **request**, not instant, so the storefront must say so
+("satıcı onayında") rather than confirm a cancellation that has not happened yet.
+
+Full specification: amends Order's ADR-057 cancellation and extends Payment §8 / Shipping;
+recorded in those module docs as the build lands.
+
+---
+
 END OF FILE

@@ -187,6 +187,16 @@ and a **line-level partial refund**. Windows are `settings()`. **Shipping import
 module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
 build ahead of the phased work order or change these decisions without an ADR amendment.
 
+**Pre-shipment cancellation is APPROVED (2026-08-06; ADR-065) — building next.** The mirror
+of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
+S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
+Inventory restock) — **seller line-level cancel** (immediate; a quantity of a line the
+seller can't fulfil) and **buyer cancel-request → seller approve/reject** (full order; the
+buyer can't cancel a paid order unilaterally, the seller may be preparing it). **The gate is
+the shipment state, not the return window** — once `shipped`, ADR-064's return takes over.
+Only the triggers + the shipment-`pending` gate are new; the refund is `RefundLinesAction`
+unchanged. No seller penalty in v1 (future ADR). See `BUILD_CANCELLATION.md`.
+
 ---
 
 ## The rule that outranks everything else
