@@ -47,6 +47,7 @@ final class OrganizationDocument extends Model implements HasMediaContract
 
     /** @use HasFactory<OrganizationDocumentFactory> */
     use HasFactory;
+
     use HasMedia;
     use HasUuid;
     use SoftDeletes;

@@ -52,6 +52,24 @@ return [
         'total' => 'Line total',
     ],
 
+    'cancellation' => [
+        'singular' => 'Cancellation request',
+        'plural' => 'Cancellation requests',
+        'requested_at' => 'Requested',
+        'buyer_reason' => "Buyer's reason",
+        'approve' => 'Approve',
+        'approve_confirm' => 'The whole order is refunded to the buyer, the commission is reversed, the stock returns to you and the shipment is closed. This cannot be undone.',
+        'approve_button' => 'Approve and refund',
+        'approved_notice' => 'Cancellation approved',
+        'approved_body' => 'The buyer has been refunded and the stock is back.',
+        'reject' => 'Reject',
+        'reject_button' => 'Reject',
+        'rejected_notice' => 'Request rejected',
+        'decision_reason' => 'Reason for refusing',
+        'decision_reason_hint' => 'The buyer will be shown this.',
+        'empty' => 'No cancellation requests waiting.',
+    ],
+
     'action' => [
         'cancel' => 'Cancel order',
         'cancel_confirm' => 'The order will be cancelled and the reserved stock released. This cannot be undone.',

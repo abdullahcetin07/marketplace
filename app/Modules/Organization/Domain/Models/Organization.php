@@ -54,6 +54,7 @@ final class Organization extends Model
 
     /** @use HasFactory<OrganizationFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
 

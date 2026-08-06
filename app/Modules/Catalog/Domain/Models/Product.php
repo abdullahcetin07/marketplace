@@ -89,6 +89,7 @@ final class Product extends Model implements HasMediaContract
 
     /** @use HasFactory<ProductFactory> */
     use HasFactory;
+
     use HasLocalizedText;
     use HasMedia;
     use HasRegisteredSlug;

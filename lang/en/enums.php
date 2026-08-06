@@ -246,6 +246,12 @@ return [
         'after' => 'After the amount',
     ],
 
+    'CancellationRequestStatus' => [
+        'pending' => 'Awaiting answer',
+        'approved' => 'Approved',
+        'rejected' => 'Rejected',
+    ],
+
     'ShipmentStatus' => [
         'pending' => 'Preparing',
         'shipped' => 'In transit',

@@ -187,7 +187,7 @@ and a **line-level partial refund**. Windows are `settings()`. **Shipping import
 module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
 build ahead of the phased work order or change these decisions without an ADR amendment.
 
-**Pre-shipment cancellation: C1 is BUILT (2026-08-06; ADR-065); C2 is next.** The mirror
+**Pre-shipment cancellation is COMPLETE (2026-08-06; ADR-065, C1+C2).** The mirror
 of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
 S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
 Inventory restock) — **seller line-level cancel** (immediate; a quantity of a line the
@@ -215,6 +215,13 @@ because the transition did not exist. Both it and `OrderPolicy::cancel()` now re
 `OrderStatus::isCancellableWithoutRefund()`. **A paid order is cancelled by refunding it, or
 not at all** — if you are reaching for the transition table to decide this, you want that
 method.
+
+**C2's `CancellationRequest` lives in ORDER and holds no money** — no amount, no quantity, no
+line. It records that a buyer asked and what the seller answered; the refund is C1's port.
+**An approved request is not where the cancellation lives**: the ORDER is cancelled, by
+`PaymentRefunded`'s cause like every other one. One OPEN request per order (partial UNIQUE on
+`pending`, pgsql, plus the action's own check) — a rejected one must not block asking again.
+**The buyer's POST does not cancel anything**; the storefront says "satıcı onayında".
 
 ---
 

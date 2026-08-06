@@ -127,6 +127,44 @@ final class OrderPolicy
     }
 
     /**
+     * ASKING the seller to cancel a paid order (ADR-065, C2).
+     *
+     * **CUSTOMERS ONLY, AND SEPARATE FROM `cancel` FOR THE OPPOSITE REASON
+     * `cancelLines` IS.** That one is the seller's lever and this is the buyer's,
+     * and neither is `cancel` widened: `cancel` ENDS an order, while this one
+     * only asks somebody else to. A buyer who could reach `cancel` on a paid
+     * order would be cancelling a sale the seller may be halfway through packing,
+     * which is the exact thing ADR-065 refuses.
+     *
+     * IT CHECKS OWNERSHIP AND NOTHING ELSE. Whether the order is paid, whether
+     * the parcel has left and whether a request is already open are all the
+     * ACTION's, asked once where they cannot be forgotten — a policy that also
+     * asked would be a second copy of three rules, and the copy is what goes
+     * stale.
+     */
+    public function requestCancellation(User $user, Order $order): Response
+    {
+        return $user->type === UserType::Customer
+            ? $this->owns($user, $order)
+            : Response::deny(__('errors.forbidden'));
+    }
+
+    /**
+     * Answering one — the seller's side of the same exchange (ADR-065, C2).
+     *
+     * SELLERS ONLY. An admin reversing a paid order has Payment's refund surface,
+     * which is ability-gated and audited as the money operation it is; deciding
+     * whether a merchant can spare the goods is the merchant's call.
+     */
+    public function decideCancellation(User $user, Order $order): Response
+    {
+        return match ($user->type) {
+            UserType::Admin, UserType::Customer => Response::deny(__('errors.forbidden')),
+            default => $this->sells($user, $order),
+        };
+    }
+
+    /**
      * Shedding a line of a PAID order the seller cannot fulfil (ADR-065, C1).
      *
      * **A SEPARATE ABILITY FROM `cancel`, NOT A WIDENING OF IT.** They read alike

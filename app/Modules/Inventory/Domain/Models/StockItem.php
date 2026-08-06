@@ -59,6 +59,7 @@ final class StockItem extends Model
 
     /** @use HasFactory<StockItemFactory> */
     use HasFactory;
+
     use HasUuid;
 
     protected $table = 'stock_items';

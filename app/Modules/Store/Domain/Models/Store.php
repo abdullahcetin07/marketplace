@@ -63,6 +63,7 @@ final class Store extends Model
 
     /** @use HasFactory<StoreFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
 

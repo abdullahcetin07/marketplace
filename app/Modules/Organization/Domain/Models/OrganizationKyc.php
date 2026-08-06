@@ -43,6 +43,7 @@ final class OrganizationKyc extends Model
 
     /** @use HasFactory<OrganizationKycFactory> */
     use HasFactory;
+
     use HasUuid;
 
     protected $table = 'organization_kyc';

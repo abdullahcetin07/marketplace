@@ -275,8 +275,37 @@ Offer consumes it **by class-string** and writes 0 through its own `UpdateOfferS
 and the existing Offer→Inventory mirror (ADR-048) carries it to `on_hand`. Three modules,
 no imports. Another seller's offer for the same variant is untouched.
 
-**Post-payment restock (returns/RMA) is still out of scope** — that needs an Inventory
-restock primitive and is the Returns sprint.
+~~**Post-payment restock (returns/RMA) is still out of scope**~~ — **closed.** Inventory grew
+the restock primitive (Payment P5, ADR-049 amendment) and it became quantity-aware in S4.
+
+### Cancelling a PAID order (ADR-065, built 2026-08-06)
+
+Everything above is about an order nobody has paid for. A paid one is a different operation
+and the table above does not apply to it: the stock is committed, the money is collected,
+and "cancel" means **refund**. Two paths reach it, both while the parcel is still `pending`:
+
+- **The seller sheds lines (C1).** Immediate, per line and per quantity. Payment's
+  `CancelOrderLinesAction`, reached from the seller's order screen through the Core
+  `OrderCancellationContract`.
+- **The buyer asks and the seller answers (C2).** `CancellationRequest` — `pending →
+  approved | rejected`, one open per order — because a paid order may already be picked and
+  packed, and the party not doing that work does not get to undo it alone.
+
+**The buyer's request moves nothing.** No money, no stock, no order status; the storefront
+must say "satıcı onayında" rather than confirm a cancellation that has not happened. Approval
+refunds the whole remaining order through the same port C1 uses — one implementation of the
+money — and the order reaches `Cancelled` the way every cancellation does, on
+`PaymentRefunded`'s `cause`. Rejection changes only the request; the sale proceeds, and the
+buyer may ask again while the item still has not shipped.
+
+**`OrderStatus: Paid → Cancelled` is legal and `CancelOrderAction` may not use it.** That
+lever releases a hold and zeroes a seller's declared stock, which on a paid order would
+cancel a purchase with the money still taken; it and `OrderPolicy::cancel()` refuse on
+`isCancellableWithoutRefund()`. **A paid order is cancelled by refunding it, or not at all.**
+
+The seller-zero above does NOT happen on either path, deliberately: a seller cancelling a
+paid line has already been paid for it and is being debited, and the units are RESTOCKED
+rather than zeroed. Zeroing there would punish a merchant twice for one shortage.
 
 ## 3.4 Tax (KDV)
 Prices are **KDV-included** (ADR-042). Per line the included KDV is extracted with the
@@ -469,6 +498,7 @@ implements**. All are recorded in the `001_Architecture.md` amendment log.
 | Payment P5 | `OrderStatus::Refunded`; `Paid` stops being terminal; `isCancellableByCustomer()` names the two live states instead of delegating to `isTerminal()`; `SettleOrdersOnPayment::onRefunded()` | The case the `Paid` docblock reserved for P5. A refund moves a paid order and its stock, so "terminal" and "cancellable" stopped coinciding and had to be asked separately |
 | Shipping S2 | `OrderStatus::Delivered`; `orderFulfilment()` + `paidOrders()` on the Core port; `SettleOrdersOnPayment::onDelivered()` | Where a parcel IS stays Shipping's (`Preparing`/`Shipped` are still absent). `Delivered` is different: it is when the ORDER is complete from the customer's side, and what the payout clock and return window measure from |
 | Shipping S4 | `id` + `commission_minor` on `orderLines()`; `checkoutGroupFor()`; `reservationReferencesFor()` keyed by variant | A line-level refund names a LINE and reverses a FROZEN commission proportionally. `checkoutGroupFor()` replaced a derivation that worked but scanned every settled payment on an endpoint a customer taps |
+| **Cancellation C2** (ADR-065) | `CancellationRequest` + `CancellationRequestStatus`; `RequestOrderCancellationAction` / `ApproveCancellationAction` / `RejectCancellationAction`; `OrderPolicy::requestCancellation()` + `decideCancellation()`; the buyer's two routes and the seller's Filament inbox | The aggregate is Order's because it holds no money — no amount, no quantity, no line. It records that somebody asked and what came of it; the refund is C1's port. **An approved request is not where the cancellation lives**: the order is cancelled by `PaymentRefunded`'s cause, like every other one |
 | **Cancellation C1** (ADR-065) | `OrderStatus: Paid → Cancelled`; **`isCancellableWithoutRefund()`**, and `CancelOrderAction` + `OrderPolicy::cancel()` re-guarded on it; `onRefunded()` branches on the event's `cause` and stamps `cancelled_at`/`cancellation_reason`; `OrderPolicy::cancelLines()`; the seller panel's second cancel button, driving a Core **command** port Payment implements | A pre-shipment cancellation has to name its outcome honestly — a parcel nobody packed did not come back. **And the edge armed the plain lever**: `CancelOrderAction` releases a hold and zeroes a seller's stock, and it had been safe on a paid order only because the transition did not exist. A transition table is the wrong place to keep a rule once two legitimate paths reach one state |
 
 ## 12.5 Follow-ups

@@ -73,6 +73,7 @@ final class Offer extends Model
 
     /** @use HasFactory<OfferFactory> */
     use HasFactory;
+
     use HasUuid;
     use Searchable;
     use SoftDeletes;

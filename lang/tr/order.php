@@ -52,6 +52,24 @@ return [
         'total' => 'Satır toplamı',
     ],
 
+    'cancellation' => [
+        'singular' => 'İptal talebi',
+        'plural' => 'İptal talepleri',
+        'requested_at' => 'Talep tarihi',
+        'buyer_reason' => 'Alıcının gerekçesi',
+        'approve' => 'Onayla',
+        'approve_confirm' => 'Siparişin tamamı alıcıya iade edilir, komisyon geri döner, stok size geri eklenir ve kargo kaydı kapatılır. Bu işlem geri alınamaz.',
+        'approve_button' => 'Onayla ve iade et',
+        'approved_notice' => 'İptal onaylandı',
+        'approved_body' => 'Alıcıya iade yapıldı ve stok geri eklendi.',
+        'reject' => 'Reddet',
+        'reject_button' => 'Reddet',
+        'rejected_notice' => 'Talep reddedildi',
+        'decision_reason' => 'Ret gerekçesi',
+        'decision_reason_hint' => 'Alıcı bu açıklamayı görecek.',
+        'empty' => 'Bekleyen iptal talebi yok.',
+    ],
+
     'action' => [
         'cancel' => 'Siparişi iptal et',
         'cancel_confirm' => 'Sipariş iptal edilecek ve ayrılan stok serbest bırakılacak. Bu işlem geri alınamaz.',

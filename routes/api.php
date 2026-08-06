@@ -18,6 +18,7 @@ use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
+use App\Modules\Order\Presentation\Controllers\Api\CancellationRequestController;
 use App\Modules\Order\Presentation\Controllers\Api\CartController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
@@ -506,6 +507,26 @@ Route::prefix('v1')
                 ->name('orders.return.show');
             Route::post('/orders/{order}/return', [ReturnController::class, 'store'])
                 ->name('orders.return.store');
+
+            /*
+            | ASKING TO CANCEL BEFORE IT SHIPS (ADR-065, C2) — the near half of
+            | the lifecycle, where the return above is the far half.
+            |
+            | **THE POST DOES NOT CANCEL ANYTHING.** It creates a `pending`
+            | request and the order does not move: a paid order may already be
+            | picked and packed, and the buyer does not get to yank it out from
+            | under the person doing that work. The storefront must say "satıcı
+            | onayında" rather than confirm a cancellation that has not happened
+            | — ADR-065 names that as this feature's cost.
+            |
+            | The seller's approve/reject is the panel inbox, deliberately not a
+            | branch on these routes: they are two halves of an argument, and one
+            | surface serving both is one where either can act as the other.
+            */
+            Route::post('/orders/{order}/cancellation-request', [CancellationRequestController::class, 'store'])
+                ->name('orders.cancellation-request.store');
+            Route::get('/orders/{order}/cancellation-request', [CancellationRequestController::class, 'show'])
+                ->name('orders.cancellation-request.show');
         });
 
         /*

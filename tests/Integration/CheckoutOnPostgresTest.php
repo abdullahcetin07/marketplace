@@ -29,6 +29,7 @@ use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Shipping\Domain\Enums\ShipmentStatus;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
@@ -547,6 +548,54 @@ it('stores a cancelled shipment on the engine that has the enum column', functio
 
     expect($row?->status)->toBe(ShipmentStatus::Cancelled->value)
         ->and($row?->cancelled_at)->not->toBeNull();
+});
+
+it('holds "one open cancellation request per order" at the database', function (): void {
+    /*
+     * **THE HALF OF THE RULE THE REST OF THE SUITE CANNOT SEE.** The partial
+     * unique index is created on PostgreSQL only — the same choice
+     * `customer_addresses`' default-address indexes made — so on SQLite the
+     * guarantee is the action's check alone, and a double-click racing two
+     * requests through it would go unnoticed. Here the database refuses.
+     *
+     * AND IT IS PARTIAL ON PURPOSE: a REJECTED request must not block asking
+     * again, because circumstances change while an item still has not shipped.
+     * Both halves are asserted, because an unconditional unique would pass the
+     * first and fail the second.
+     */
+    $orderUuid = (string) Str::uuid();
+
+    $insert = static fn (string $status): int => (int) DB::connection('pgsql')
+        ->table('cancellation_requests')
+        ->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'order_uuid' => $orderUuid,
+            'requested_by' => 1,
+            'status' => $status,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+    expect($insert('pending'))->toBeGreaterThan(0);
+
+    /*
+     * A SECOND OPEN REQUEST IS REFUSED BY THE INDEX, not by luck.
+     *
+     * WRAPPED IN A NESTED TRANSACTION so the failure rolls back to a SAVEPOINT
+     * rather than poisoning the outer one — PostgreSQL aborts a transaction on
+     * any error, and every statement after it would fail for the wrong reason.
+     * `QueryException` rather than `Throwable`, because Pest reads a non-class
+     * string as a MESSAGE substring and `Throwable` is an interface: the first
+     * version of this assertion passed the index's real violation through as a
+     * failure.
+     */
+    expect(static function () use ($insert): void {
+        DB::connection('pgsql')->transaction(static fn (): int => $insert('pending'));
+    })->toThrow(QueryException::class);
+
+    // A rejected one is fine — asking again is allowed, and must stay allowed.
+    expect($insert('rejected'))->toBeGreaterThan(0)
+        ->and($insert('rejected'))->toBeGreaterThan(0);
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {

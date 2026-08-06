@@ -122,6 +122,16 @@ final class SellerPanelProvider extends PanelProvider
                 \App\Modules\Order\Presentation\Filament\Seller\Resources\OrderResource::class,
 
                 /*
+                | "İptal talepleri" (ADR-065, C2) — an INBOX, beside the orders it
+                | is about. A buyer cannot cancel a paid order unilaterally
+                | because the seller may already be packing it, so they ASK, and
+                | this is where the seller answers. The badge counts what is
+                | WAITING: an unanswered request costs a buyer real money for as
+                | long as it sits.
+                */
+                \App\Modules\Order\Presentation\Filament\Seller\Resources\CancellationRequestResource::class,
+
+                /*
                 | KARGOLARIM (ADR-063). Beside the orders because it is the other
                 | half of one job: what was sold, and what still has to be put in
                 | a box. The seller's ONE lever is here — and the one they can

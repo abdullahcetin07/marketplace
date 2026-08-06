@@ -105,6 +105,64 @@ final class OrderException extends BaseException
     }
 
     /**
+     * The buyer may not ask for this order to be cancelled (ADR-065, C2).
+     *
+     * ONE ANSWER FOR "not paid", "already shipped" AND "no parcel on record",
+     * because they are the same answer to the buyer — this is not something you
+     * can ask for right now — and telling them apart would let anyone learn
+     * whether a stranger's parcel had left by watching which error came back.
+     *
+     * IT IS ALSO WHAT AN APPROVAL HITS when the parcel shipped while the request
+     * sat unanswered: the seller is refused for the same reason the buyer would
+     * have been, out of the same method, so the two cannot drift.
+     */
+    public static function notCancellableByRequest(string $orderUuid): self
+    {
+        return self::make('This order can no longer be cancelled — it may already be on its way.')
+            ->withContext([
+                'reason' => 'not_cancellable_by_request',
+                'order_uuid' => $orderUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * A second request while one is still in front of the seller (ADR-065, C2).
+     *
+     * A REFUSAL RATHER THAN A SILENT NO-OP returning the open row. The two are
+     * indistinguishable to the buyer and only one of them is true: their request
+     * is already waiting. Silence would read as "sent again", and a buyer who
+     * believes they have nudged somebody has been misled by the software.
+     */
+    public static function cancellationAlreadyRequested(string $orderUuid): self
+    {
+        return self::make('A cancellation request for this order is already awaiting an answer.')
+            ->withContext([
+                'reason' => 'cancellation_already_requested',
+                'order_uuid' => $orderUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * Answering a request that has already been answered (ADR-065, C2).
+     *
+     * REFUSED RATHER THAN IGNORED, because the two answers do opposite things:
+     * approving a rejected request would refund an order the seller decided to
+     * fulfil, and rejecting an approved one would claim a sale proceeds when its
+     * money has already gone back.
+     */
+    public static function cancellationAlreadyDecided(string $requestUuid): self
+    {
+        return self::make('This cancellation request has already been answered.')
+            ->withContext([
+                'reason' => 'cancellation_already_decided',
+                'request_uuid' => $requestUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * Placing a checkout group that has already been placed, or has nothing
      * placeable left in it.
      *

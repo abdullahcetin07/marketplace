@@ -63,6 +63,7 @@ final class TaxRate extends Model
 
     /** @use HasFactory<TaxRateFactory> */
     use HasFactory;
+
     use HasUuid;
 
     /**

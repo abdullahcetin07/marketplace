@@ -52,6 +52,7 @@ final class StoreOpeningRequest extends Model implements HasMediaContract
 
     /** @use HasFactory<StoreOpeningRequestFactory> */
     use HasFactory;
+
     use HasMedia;
     use HasUuid;
     use SoftDeletes;

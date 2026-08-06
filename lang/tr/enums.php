@@ -248,6 +248,12 @@ return [
         'after' => 'Tutardan sonra',
     ],
 
+    'CancellationRequestStatus' => [
+        'pending' => 'Yanıt bekliyor',
+        'approved' => 'Onaylandı',
+        'rejected' => 'Reddedildi',
+    ],
+
     'ShipmentStatus' => [
         'pending' => 'Hazırlanıyor',
         'shipped' => 'Kargoda',

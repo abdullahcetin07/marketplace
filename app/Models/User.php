@@ -103,7 +103,6 @@ class User extends Authenticatable implements MustVerifyEmail
     // (password, remember_token, two_factor_secret, two_factor_recovery_codes)
     // are on the trait's global exclusion list and never reach the trail.
     use Auditable;
-
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */

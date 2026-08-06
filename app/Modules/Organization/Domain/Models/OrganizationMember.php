@@ -43,6 +43,7 @@ final class OrganizationMember extends Model
 
     /** @use HasFactory<OrganizationMemberFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
 

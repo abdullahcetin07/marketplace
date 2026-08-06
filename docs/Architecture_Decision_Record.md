@@ -1986,6 +1986,30 @@ stopped being the only gate**: that action and `OrderPolicy::cancel()` now refus
 `OrderStatus::isCancellableWithoutRefund()`. A paid order is cancelled by refunding it, or
 not at all.
 
+**Amendment (2026-08-06, C2 as built): the aggregate is ORDER'S, and it holds no money.**
+This ADR left the placement to the server (ADR-018) and it went where the spec's own wording
+pointed — "with the order lifecycle". `CancellationRequest` records that somebody asked and
+what came of it; it has no amount, no quantity and no line, because the refund, the
+commission reversal and the restock all happen behind C1's `OrderCancellationContract`, in
+the module that owns them. An approved request is NOT where the cancellation lives: the
+ORDER is cancelled, by `PaymentRefunded`'s cause like every other cancellation on the
+platform, and this row only records the seller's yes.
+
+**"One open request per order" is `pending`-only.** A rejected request must not block asking
+again — circumstances change, and a seller who said no on Monday may say yes on Thursday
+while the item still has not shipped. Held by a partial UNIQUE index on PostgreSQL and by
+the action everywhere, the same two-sided arrangement `customer_addresses`' default-address
+indexes use, and for the same stated reason: the suite runs on SQLite.
+
+**The gate is re-asked at approval, not only when the buyer asked.** A request can sit for
+days and the parcel may leave meanwhile; the port answers "nothing cancellable" and the
+approval refuses out of the same method the buyer's own attempt would have hit.
+
+**The refund goes first and the row is stamped after** — the only ordering that fails safely.
+The reverse leaves an `approved` request beside money that never moved if the PSP refuses;
+this way a failure leaves a `pending` request beside a cancelled order, which is visibly odd
+and already correct about the money.
+
 Full specification: amends Order's ADR-057 cancellation and extends Payment §8 / Shipping;
 recorded in those module docs as the build lands.
 

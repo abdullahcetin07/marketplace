@@ -47,6 +47,7 @@ final class OrganizationBankAccount extends Model
 
     /** @use HasFactory<OrganizationBankAccountFactory> */
     use HasFactory;
+
     use HasUuid;
     use SoftDeletes;
 
