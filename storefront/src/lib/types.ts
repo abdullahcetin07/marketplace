@@ -158,6 +158,26 @@ export type ShipmentView = {
   can_confirm_receipt: boolean;
 };
 
+/** One order line as the return screen sees it (Shipping S4). */
+export type ReturnLine = {
+  id: string;
+  title: string;
+  quantity: number;
+  returned_quantity: number;
+  /** How many units are still returnable — the client never computes this. */
+  returnable_quantity: number;
+  refundable_amount_minor: number;
+  /** Decimal string, never parsed. */
+  refundable_amount: string;
+};
+
+export type OrderReturn = {
+  return_open: boolean;
+  return_window_ends_at: string | null;
+  currency: string;
+  lines: ReturnLine[];
+};
+
 export type Order = {
   id: string;
   /** The human handle a customer quotes in an email (Order §2.3). */

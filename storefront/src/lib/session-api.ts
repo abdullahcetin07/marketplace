@@ -29,6 +29,7 @@ import type {
   Country,
   GeoPlace,
   Order,
+  OrderReturn,
   PaymentView,
   ShipmentView,
   User,
@@ -465,5 +466,31 @@ export function fetchOrderShipment(orderId: string): Promise<ShipmentView | null
 export function confirmReceipt(orderId: string): Promise<ShipmentView | null> {
   return request<ShipmentView>(`/api/v1/orders/${encodeURIComponent(orderId)}/shipment/confirm`, {
     method: 'POST',
+  });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Returns (Payment S4 / Shipping)
+|------------------------------------------------------------------------------
+|
+| THE RETURNABLE QUANTITY IS THE SERVER'S, not ours: it is the line's original
+| quantity minus everything already refunded, and a client multiplying price by
+| quantity comes out wrong on exactly the orders that were partly returned before.
+| The buyer picks lines + quantities; the server prices the refund.
+*/
+
+export function fetchOrderReturn(orderId: string): Promise<OrderReturn | null> {
+  return request<OrderReturn>(`/api/v1/orders/${encodeURIComponent(orderId)}/return`);
+}
+
+export function requestReturn(
+  orderId: string,
+  lines: { id: string; quantity: number }[],
+  reason?: string,
+): Promise<Record<string, unknown> | null> {
+  return request<Record<string, unknown>>(`/api/v1/orders/${encodeURIComponent(orderId)}/return`, {
+    method: 'POST',
+    body: { lines, reason: reason === undefined || reason === '' ? null : reason },
   });
 }
