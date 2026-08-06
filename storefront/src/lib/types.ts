@@ -178,6 +178,21 @@ export type OrderReturn = {
   lines: ReturnLine[];
 };
 
+/** A buyer's request to cancel a paid, unshipped order (ADR-065). */
+export type CancellationStatus = 'pending' | 'approved' | 'rejected';
+
+export type CancellationRequest = {
+  id: string;
+  order_id: string;
+  status: CancellationStatus;
+  status_label: string;
+  reason: string | null;
+  /** The seller's reason on a rejection. */
+  decision_reason: string | null;
+  decided_at: string | null;
+  created_at: string;
+};
+
 export type Order = {
   id: string;
   /** The human handle a customer quotes in an email (Order §2.3). */

@@ -25,6 +25,7 @@
 import type {
   Address,
   AddressInput,
+  CancellationRequest,
   CartView,
   Country,
   GeoPlace,
@@ -493,4 +494,31 @@ export function requestReturn(
     method: 'POST',
     body: { lines, reason: reason === undefined || reason === '' ? null : reason },
   });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Pre-shipment cancellation request (ADR-065)
+|------------------------------------------------------------------------------
+|
+| THE BUYER ASKS, THE SELLER DECIDES. A paid order can't be cancelled by the buyer
+| unilaterally — the seller may already be preparing it — so this creates a PENDING
+| request. `201` is "istek gönderildi", not "iptal edildi"; the storefront reads the
+| status back and says "satıcı onayında".
+*/
+
+export function fetchCancellationRequest(orderId: string): Promise<CancellationRequest | null> {
+  return request<CancellationRequest>(
+    `/api/v1/orders/${encodeURIComponent(orderId)}/cancellation-request`,
+  );
+}
+
+export function requestCancellation(
+  orderId: string,
+  reason?: string,
+): Promise<CancellationRequest | null> {
+  return request<CancellationRequest>(
+    `/api/v1/orders/${encodeURIComponent(orderId)}/cancellation-request`,
+    { method: 'POST', body: { reason: reason === undefined || reason === '' ? null : reason } },
+  );
 }

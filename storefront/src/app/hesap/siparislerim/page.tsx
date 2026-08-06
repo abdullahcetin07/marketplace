@@ -10,6 +10,7 @@ import { SessionApiError } from '@/lib/session-api';
 import { ui } from '@/lib/ui';
 import {
   ORDER_STATUS_LABELS,
+  type CancellationRequest,
   type Order,
   type OrderReturn,
   type OrderStatus,
@@ -186,9 +187,13 @@ function ShipmentBlock({ orderId }: { orderId: string }) {
   if (shipment === null) return null;
 
   if (shipment.status === 'pending') {
+    // Paid but not yet shipped — the one window where the buyer may ask to cancel.
     return (
-      <div className="flex items-center gap-2 rounded-xl bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500 dark:bg-ink-900">
-        <TruckIcon /> Satıcı siparişinizi hazırlıyor.
+      <div className="flex flex-col gap-2">
+        <div className="flex items-center gap-2 rounded-xl bg-ink-50 px-3.5 py-2.5 text-xs text-ink-500 dark:bg-ink-900">
+          <TruckIcon /> Satıcı siparişinizi hazırlıyor.
+        </div>
+        <CancelRequestControl orderId={orderId} />
       </div>
     );
   }
@@ -247,6 +252,111 @@ function TruckIcon() {
       <circle cx="7" cy="18" r="1.6" />
       <circle cx="17" cy="18" r="1.6" />
     </svg>
+  );
+}
+
+/**
+ * The buyer's cancel request for a paid, unshipped order (ADR-065).
+ *
+ * A REQUEST, NOT A CANCELLATION. The buyer cannot cancel a paid order — the seller may
+ * be preparing it — so this asks, and the screen says "satıcı onayında" rather than
+ * confirming something that has not happened. An existing request is shown by its
+ * status; a rejection carries the seller's reason.
+ */
+function CancelRequestControl({ orderId }: { orderId: string }) {
+  // undefined = still loading; null = no request yet.
+  const [reqState, setReqState] = useState<CancellationRequest | null | undefined>(undefined);
+  const [open, setOpen] = useState(false);
+  const [reason, setReason] = useState('');
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let live = true;
+    void api
+      .fetchCancellationRequest(orderId)
+      .then((r) => live && setReqState(r))
+      .catch(() => live && setReqState(null));
+
+    return () => {
+      live = false;
+    };
+  }, [orderId]);
+
+  if (reqState === undefined) return null;
+
+  if (reqState !== null) {
+    if (reqState.status === 'pending') {
+      return (
+        <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-xs font-semibold text-amber-800 dark:bg-amber-950/40 dark:text-amber-300">
+          İptal talebiniz satıcının onayında.
+        </p>
+      );
+    }
+    if (reqState.status === 'rejected') {
+      return (
+        <p className="text-xs text-ink-500">
+          İptal talebiniz reddedildi.
+          {reqState.decision_reason !== null ? ` Gerekçe: ${reqState.decision_reason}` : ''}
+        </p>
+      );
+    }
+    return <p className="text-xs text-ink-500">İptal talebiniz onaylandı.</p>;
+  }
+
+  async function submit() {
+    setBusy(true);
+    setError(null);
+
+    try {
+      const created = await api.requestCancellation(orderId, reason);
+      if (created !== null) setReqState(created);
+      else setError('İptal talebi oluşturulamadı.');
+    } catch (caught) {
+      setError(caught instanceof SessionApiError ? caught.message : 'İptal talebi oluşturulamadı.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  if (!open) {
+    return (
+      <button
+        type="button"
+        onClick={() => setOpen(true)}
+        className="self-start text-xs font-bold text-ink-500 hover:text-red-600"
+      >
+        Siparişi iptal et
+      </button>
+    );
+  }
+
+  return (
+    <div className="flex flex-col gap-2 rounded-xl border border-ink-100 p-3.5 dark:border-ink-800">
+      <p className="text-xs text-ink-500">
+        İptal talebiniz satıcının onayına gönderilir. Onaylanırsa ücret iadesi yapılır.
+      </p>
+      <textarea
+        placeholder="İptal gerekçesi (isteğe bağlı)"
+        value={reason}
+        onChange={(event) => setReason(event.target.value)}
+        rows={2}
+        className={ui.field}
+      />
+      {error !== null && <p className="text-xs text-red-600">{error}</p>}
+      <div className="flex gap-2">
+        <button type="button" onClick={() => void submit()} disabled={busy} className={ui.btnPrimarySm}>
+          {busy ? 'Gönderiliyor…' : 'İptal talebi gönder'}
+        </button>
+        <button
+          type="button"
+          onClick={() => setOpen(false)}
+          className="rounded-xl border-2 border-ink-200 px-4 py-2 text-sm font-bold text-ink-600 transition hover:border-ink-300 dark:border-ink-700 dark:text-ink-200"
+        >
+          Vazgeç
+        </button>
+      </div>
+    </div>
   );
 }
 
