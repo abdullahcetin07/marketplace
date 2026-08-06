@@ -1,0 +1,195 @@
+import type { Metadata } from 'next';
+import Link from 'next/link';
+import { notFound } from 'next/navigation';
+import { getStore, type StoreProduct } from '@/lib/api';
+import { formatMoney } from '@/lib/money';
+import { absoluteUrl } from '@/lib/site';
+
+/**
+ * A seller's public storefront (ADR-034/035) — `/magaza/{slug}`.
+ *
+ * IT IS A COMPOSED READ, like the product page. Store owns the core — name,
+ * branding, SEO, contact — and Offer contributes what the shop SELLS under the
+ * `products` key of `extensions` (ADR-046). This page renders both without
+ * knowing either module: it reads one endpoint that the server already composes.
+ *
+ * A MISSING OR SUSPENDED STORE IS A 404, not an empty page: the API returns the
+ * same 404 for "no such store" and "not live" so existence never leaks, and
+ * `getStore` turns that into `notFound()` here.
+ *
+ * PRICES RIDE THROUGH AS THE DECIMAL STRINGS THEY ARE — `formatMoney`, never
+ * `Number()` — the same discipline as every other listing (005 §28).
+ */
+export const dynamic = 'force-dynamic';
+
+type Props = { params: Promise<{ slug: string }> };
+
+export async function generateMetadata({ params }: Props): Promise<Metadata> {
+  const { slug } = await params;
+  const store = await getStore(slug);
+
+  if (store === null) return { title: 'Mağaza bulunamadı' };
+
+  return {
+    title: store.seo.meta_title ?? store.name,
+    description: store.seo.meta_description ?? `${store.name} — onaylı satıcının tüm ürünleri.`,
+    alternates: { canonical: store.seo.canonical_url ?? absoluteUrl(`/magaza/${store.slug}`) },
+    robots: store.seo.robots ?? 'index,follow',
+    openGraph: {
+      title: store.name,
+      type: 'website',
+      images: store.branding.logo ? [store.branding.logo] : undefined,
+    },
+  };
+}
+
+export default async function StorePage({ params }: Props) {
+  const { slug } = await params;
+  const store = await getStore(slug);
+
+  if (store === null) notFound();
+
+  const products = store.extensions.products?.items ?? [];
+  const total = store.extensions.products?.total ?? 0;
+  const contactEmail = store.contact.email;
+  const contactPhone = store.contact.phone;
+
+  const storeLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Store',
+    name: store.name,
+    url: absoluteUrl(`/magaza/${store.slug}`),
+    image: store.branding.logo ?? undefined,
+    email: contactEmail ?? undefined,
+    telephone: contactPhone ?? undefined,
+  };
+
+  return (
+    <div className="flex flex-col gap-6">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeLd) }} />
+
+      {/* Hero — banner with the logo and identity laid over it. */}
+      <header className="overflow-hidden rounded-2xl border border-ink-100 bg-white dark:border-ink-800 dark:bg-ink-900">
+        <div className="relative h-36 w-full bg-gradient-to-br from-brand-500/15 to-brand-500/5 sm:h-48">
+          {store.branding.banner !== null && (
+            <img
+              src={store.branding.banner}
+              alt={`${store.name} kapak görseli`}
+              className="absolute inset-0 h-full w-full object-cover"
+            />
+          )}
+        </div>
+
+        <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-end sm:gap-5 sm:p-6">
+          <div className="-mt-16 grid h-24 w-24 shrink-0 place-items-center overflow-hidden rounded-2xl border-4 border-white bg-brand-50 text-2xl font-extrabold text-brand-700 shadow-sm dark:border-ink-900 dark:bg-brand-500/15 sm:-mt-20">
+            {store.branding.logo !== null ? (
+              <img src={store.branding.logo} alt={store.name} className="h-full w-full object-cover" />
+            ) : (
+              initials(store.name)
+            )}
+          </div>
+
+          <div className="min-w-0 flex-1">
+            <h1 className="text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[1.9rem]">
+              {store.name}
+            </h1>
+            <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
+              <span className="flex items-center gap-1 font-bold text-green-600">✓ Onaylı satıcı</span>
+              <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
+              <span>
+                <span className="font-bold text-ink-700 dark:text-ink-200">{total}</span> ürün
+              </span>
+            </div>
+          </div>
+
+          {(contactEmail !== null || contactPhone !== null) && (
+            <dl className="flex flex-col gap-1 text-[.82rem] text-ink-500 sm:text-right">
+              {contactPhone !== null && (
+                <div className="flex items-center gap-1.5 sm:justify-end">
+                  <span>📞</span>
+                  <a href={`tel:${contactPhone}`} className="font-bold text-ink-700 hover:text-brand-600 dark:text-ink-200">
+                    {contactPhone}
+                  </a>
+                </div>
+              )}
+              {contactEmail !== null && (
+                <div className="flex items-center gap-1.5 sm:justify-end">
+                  <span>✉️</span>
+                  <a href={`mailto:${contactEmail}`} className="font-bold text-ink-700 hover:text-brand-600 dark:text-ink-200">
+                    {contactEmail}
+                  </a>
+                </div>
+              )}
+            </dl>
+          )}
+        </div>
+      </header>
+
+      {/* What the store sells (Offer's contributor, ADR-046). */}
+      <section className="flex flex-col gap-4">
+        <h2 className="text-lg font-extrabold tracking-tight">Ürünler</h2>
+
+        {products.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-ink-200 bg-white px-6 py-12 text-center dark:border-ink-700 dark:bg-ink-900">
+            <p className="text-sm font-semibold text-ink-500">Bu mağaza henüz ürün listelemedi.</p>
+          </div>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 lg:grid-cols-4">
+              {products.map((item) => (
+                <StoreProductCard key={item.id} product={item} />
+              ))}
+            </div>
+            {total > products.length && (
+              <p className="text-center text-[.82rem] text-ink-500">
+                En çok satan {products.length} ürün gösteriliyor.
+              </p>
+            )}
+          </>
+        )}
+      </section>
+    </div>
+  );
+}
+
+/**
+ * One product on the store page. Links by product uuid: the storefront
+ * contributor carries no slug, and `/urun/{id}` 301s to the canonical one.
+ */
+function StoreProductCard({ product }: { product: StoreProduct }) {
+  return (
+    <Link
+      href={`/urun/${product.product_id}`}
+      className="group flex flex-col rounded-2xl border border-ink-100 bg-white p-3.5 transition hover:border-brand-300 hover:shadow-sm dark:border-ink-800 dark:bg-ink-900"
+    >
+      {product.brand !== null && (
+        <span className="text-[.72rem] font-extrabold uppercase tracking-wide text-brand-600">{product.brand}</span>
+      )}
+      <span className="mt-0.5 line-clamp-2 min-h-[2.6em] text-[.9rem] font-bold leading-snug group-hover:text-brand-600">
+        {product.title}
+      </span>
+
+      <div className="mt-auto pt-3">
+        {product.list_price !== null && (
+          <span className="mr-1.5 text-[.78rem] text-ink-400 line-through">
+            {formatMoney(product.list_price, product.currency)}
+          </span>
+        )}
+        <span className="text-[1.05rem] font-extrabold tracking-tight text-brand-600">
+          {formatMoney(product.price, product.currency)}
+        </span>
+        <div className="mt-1 text-[.74rem] font-bold">
+          {product.in_stock ? (
+            <span className="text-green-600">✓ Stokta</span>
+          ) : (
+            <span className="text-ink-400">Tükendi</span>
+          )}
+        </div>
+      </div>
+    </Link>
+  );
+}
+
+function initials(name: string): string {
+  return name.trim().slice(0, 2).toUpperCase();
+}

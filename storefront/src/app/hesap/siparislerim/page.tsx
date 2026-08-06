@@ -384,6 +384,14 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex flex-col">
           <span className="font-mono text-sm">{order.number}</span>
+          {order.store != null && order.store.slug !== '' && (
+            <Link
+              href={`/magaza/${order.store.slug}`}
+              className="text-xs font-bold text-brand-600 hover:underline"
+            >
+              {order.store.name} →
+            </Link>
+          )}
           <span className="text-xs text-ink-500">
             {order.shipping_address.city ?? ''} · {order.lines?.length ?? 0} ürün
           </span>

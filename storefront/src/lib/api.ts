@@ -117,7 +117,12 @@ export type OfferRow = {
   list_price: string | null;
   currency: string;
   in_stock: boolean;
-  store: { id: string; name: string | null; city: string | null } | null;
+  /**
+   * `slug` is OPTIONAL: the offer references its store by uuid, and the public
+   * store page is slug-addressed — the buy box renders the name as a link to
+   * `/magaza/{slug}` only when the offer API carries it, plain text before then.
+   */
+  store: { id: string; name: string | null; city: string | null; slug?: string | null } | null;
 };
 
 export type ProductOffers = {
@@ -125,6 +130,67 @@ export type ProductOffers = {
   featured: OfferRow | null;
   other_sellers: OfferRow[];
   offer_count: number;
+};
+
+/**
+ * One listing on a store's own page (Offer's storefront contributor, ADR-046).
+ *
+ * NOT a `ProductCard`: it comes from the store's `extensions.products`, so it
+ * carries the price already (the contributor priced it) but no image and no
+ * product slug — the card links by the product uuid, which `/urun/{id}` 301s to
+ * the canonical slug (ADR-059).
+ */
+export type StoreProduct = {
+  /** The offer uuid. */
+  id: string;
+  product_id: string;
+  variant_id: string;
+  title: string;
+  brand: string | null;
+  price: string;
+  list_price: string | null;
+  currency: string;
+  in_stock: boolean;
+};
+
+/**
+ * A store's public storefront (ADR-034/036) — `GET /store/{slug}`.
+ *
+ * A STRICT ALLOW-LIST from the server: identity, branding, SEO and public
+ * contact, plus `extensions` where other modules' sections land under their own
+ * keys (Offer's `products` today). `contact.address` / `support_hours` are jsonb
+ * the seller UI does not yet write, so they are usually null — rendered
+ * defensively, never assumed a string.
+ */
+export type StoreDetail = {
+  id: string;
+  slug: string;
+  name: string;
+  locale: { language: string | null; currency: string | null; timezone: string | null };
+  branding: {
+    logo: string | null;
+    banner: string | null;
+    favicon: string | null;
+    primary_color: string | null;
+    accent_color: string | null;
+    theme: string | null;
+  };
+  seo: {
+    meta_title: string | null;
+    meta_description: string | null;
+    meta_keywords: string[];
+    canonical_url: string | null;
+    robots: string | null;
+  };
+  contact: {
+    email: string | null;
+    phone: string | null;
+    address: Record<string, unknown> | null;
+    support_hours: Record<string, unknown> | null;
+  };
+  extensions: {
+    products?: { items: StoreProduct[]; total: number };
+  };
 };
 
 export type ProductSort = 'newest' | 'price_asc' | 'price_desc';
@@ -289,6 +355,19 @@ export async function fetchBrands(): Promise<Brand[]> {
 
 export function getBrand(slug: string): Promise<Brand | null> {
   return publicJson<Brand>(`/api/v1/brands/${encodeURIComponent(slug)}`);
+}
+
+/**
+ * A seller's public storefront by slug (ADR-034/035) — the page behind a
+ * "Mağazayı ziyaret et" link.
+ *
+ * `store` is the canonical API segment even though the user-facing route is the
+ * localised `/magaza/{slug}`; the backend registers both, and building the read
+ * on the canonical one keeps a single cache key. Returns null on 404 — a missing
+ * or non-live store looks identical, so existence never leaks (Store.md §12).
+ */
+export function getStore(slug: string): Promise<StoreDetail | null> {
+  return publicJson<StoreDetail>(`/api/v1/store/${encodeURIComponent(slug)}`);
 }
 
 /**

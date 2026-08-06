@@ -202,6 +202,15 @@ export type Order = {
   status: OrderStatus;
   seller_id: string;
   store_id: string;
+  /**
+   * The seller's store, for a "Mağazayı ziyaret et" link (ADR-034/035).
+   *
+   * OPTIONAL, on purpose: the order carries a `store_id` uuid but the public
+   * store page is slug-addressed, so a link needs the name + slug the order API
+   * surfaces separately. Rendered as a link only when present — absent before the
+   * backend adds it, and a plain row until then.
+   */
+  store?: { name: string; slug: string } | null;
   items_total: string;
   tax_total: string;
   grand_total: string;

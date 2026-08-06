@@ -165,7 +165,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                     {initials(featured.store?.name ?? 'Mağaza')}
                   </div>
                   <div>
-                    <div className="text-[.92rem] font-extrabold">{featured.store?.name ?? 'Mağaza'}</div>
+                    <StoreLabel store={featured.store} className="text-[.92rem] font-extrabold" />
                     <div className="text-[.76rem] text-ink-500">
                       {featured.store?.city ? `${featured.store.city} · ` : ''}Onaylı satıcı
                     </div>
@@ -208,7 +208,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                     <div className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-ink-50 text-[.74rem] font-extrabold text-ink-500 dark:bg-ink-800">
                       {initials(offer.store?.name ?? 'Mağaza')}
                     </div>
-                    <span className="min-w-0 flex-1 truncate text-[.85rem] font-bold">{offer.store?.name ?? 'Mağaza'}</span>
+                    <StoreLabel store={offer.store} className="min-w-0 flex-1 truncate text-[.85rem] font-bold" />
+
                     <span className="whitespace-nowrap text-[1.02rem] font-extrabold text-brand-600">
                       {formatMoney(offer.price, offer.currency)}
                     </span>
@@ -226,4 +227,32 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
 function initials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
+}
+
+/**
+ * A seller's name — a link to its storefront when the offer carries the store
+ * slug, plain text otherwise.
+ *
+ * The slug is optional on the offer (api.ts): a merchant page is slug-addressed
+ * and the buy box may not have it yet, so this degrades to a label rather than a
+ * dead link. "Mağaza" is the fallback when even the name is missing.
+ */
+function StoreLabel({
+  store,
+  className,
+}: {
+  store: { name: string | null; slug?: string | null } | null;
+  className?: string;
+}) {
+  const name = store?.name ?? 'Mağaza';
+
+  if (store?.slug) {
+    return (
+      <Link href={`/magaza/${store.slug}`} className={`${className ?? ''} hover:text-brand-600 hover:underline`}>
+        {name}
+      </Link>
+    );
+  }
+
+  return <span className={className}>{name}</span>;
 }
