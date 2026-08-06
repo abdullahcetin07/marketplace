@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Reviews;
 
 use App\Modules\Reviews\Domain\Contracts\ReviewRepositoryContract;
+use App\Modules\Reviews\Domain\Models\Review;
 use App\Modules\Reviews\Infrastructure\Repositories\ReviewRepository;
+use App\Modules\Reviews\Presentation\Policies\ReviewPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -48,6 +51,8 @@ final class ReviewsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Reviews/migrations'));
+
+        Gate::policy(Review::class, ReviewPolicy::class);
     }
 
     /**
