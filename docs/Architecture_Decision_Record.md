@@ -2015,4 +2015,121 @@ recorded in those module docs as the build lands.
 
 ---
 
+# ADR-066 A Review Is About the Shared Product and Carries the Seller It Was Bought From as an Authoritative Tag
+
+**Status:** Accepted (2026-08-06). Spec: `docs/modules/Reviews.md`.
+
+The catalogue is shared — one product, many sellers (ADR-037) — so a customer review had
+two honest homes: the product, or the seller. **It is the product's**, and it carries the
+seller it was purchased from as a **tag copied from the order**, never chosen by the buyer.
+
+A shopper reading a product page wants "what did people who bought this think", across every
+merchant who sells it; splitting reviews per seller would fragment one product's reputation
+into N thin, mostly-empty lists and answer a question nobody asked. So the rating average is
+the **product's**, computed over every published review, and "bu satıcıdan alanlar ne demiş"
+is a **filter** on that one set — the seller filter the owner asked for — not a separate set.
+
+**The tag is authoritative because it comes from the delivered order line, not a form
+field.** A buyer cannot attribute their review to a merchant they did not buy from, and a
+merchant cannot be praised or blamed for a sale that was never theirs. That is only possible
+because the review binds to a real purchase (ADR-067).
+
+**Cost:** a standalone seller/store score — "this merchant ships fast, packs well" — is a
+different thing this does not provide, and some buyers will want it. It is a **future
+module**; conflating it with product reviews now would put two rating systems in one table.
+Questions ("Satıcıya Sor") are likewise a **separate module** (owner decision), built after
+Reviews, sharing its patterns and none of its tables.
+
+# ADR-067 A Review Binds to One Delivered Order Line; the Gate Is Delivery, and a Repeat Purchase Earns a Repeat Review
+
+**Status:** Accepted (2026-08-06). Spec: `docs/modules/Reviews.md` §3, §5.
+
+Only a buyer **delivered** a product may review it, and the review binds to the specific
+**delivered order line** — `order_line_uuid` UNIQUE.
+
+**Delivery, not payment.** A review promises "I used it" honesty; a paid-but-unshipped order
+has no experience to report. Delivery already exists as `OrderStatus::Delivered`, inferred
+rather than seller-asserted (ADR-064), so the gate rides a state the platform already trusts.
+
+**Uniqueness on the LINE, not on `(customer, product)`.** A buyer who bought the same product
+in two separate orders lived two purchase experiences and may write two reviews — the owner's
+choice, and the Trendyol model — while a second review of the *same* line is still refused.
+`(customer, product)` uniqueness would have forbidden the legitimate second review to prevent
+the illegitimate one; line-uniqueness draws the boundary where it belongs.
+
+**Reviews imports no module, so it cannot read `order_lines`.** `OrderQueryContract` gains
+`deliveredPurchaseLines(customerId, productUuid)` returning the delivered lines (with seller
+tag, variant and `delivered_at`), and Reviews subtracts the lines it has already reviewed.
+The method returns lines rather than a boolean precisely because the aggregate is per-line: the
+"Değerlendir" screen must show *which* purchase, and the seller tag it stamps comes from here.
+Recorded in the `001_Architecture.md` amendment log as a read a later module required — the
+same footing as the reads Offer and the store-page work added to `StoreQueryContract`.
+
+**Cost:** the seller tag, variant and purchase date are **snapshotted** at creation, so a
+later store rename or re-pricing never rewrites a past review — the order-line discipline
+(ADR-053) applied one module further out. A review window (only review within N days of
+delivery) is not enforced in v1; `delivered_at` is carried so it becomes a `settings()` tweak,
+not a migration.
+
+# ADR-068 Reviews Are Pre-Moderated: Published Only After Approval by Admin or Editor, Never the Seller; Photos Moderate With the Review
+
+**Status:** Accepted (2026-08-06). Spec: `docs/modules/Reviews.md` §4, §6.
+
+A review appears **only after it is approved**, and the approver is **never the seller**
+(owner's hard requirement). So this is pre-moderation — the opposite of Offers' publish-then-
+reactively-suspend (ADR-044) — because a defamatory or fraudulent review does its damage the
+instant it is visible, and a seller moderating reviews of their own product is the fox guarding
+the henhouse.
+
+It reuses Catalog's product-moderation pattern verbatim: **status on the entity**
+(`ReviewStatus: PendingReview → Published | Rejected`), a **read-and-decide Filament queue**
+(`ReviewModerationResource`, the shape of `ProductModerationResource`), verdict actions
+emitting events. **No `NeedsRevision`** — a buyer does not iterate on a review the way a seller
+iterates on a listing; it publishes or it does not.
+
+**The moderators are Admin + Editor**, via a dedicated `review.moderate` ability (Super Admin
+bypasses already). Editor is the platform's content role, and review text and photos are
+content. The seller has no lever — not approve, not hide, not reject.
+
+**Photos moderate as PART of the review, not separately.** The Media service validates only
+type and size and has no approve/reject flow (Media findings); a review with its photos is held
+as one unit in `PendingReview` and published or rejected whole. Per-photo moderation is a real
+feature and explicitly **not v1** — the one place the design does less than it could, stated so
+it is a decision.
+
+**Cost:** pre-moderation puts a **human in the path of every review**, so reviews appear with a
+lag and the queue is real operational work — the price of never showing an unvetted stranger's
+words and pictures on a public product page. The reject `reason` is kept for the internal record
+but not shown to the buyer in v1.
+
+# ADR-069 Reviews Compose the Product Page Through Dedicated Public Endpoints; the Rating Summary Is Computed on Read
+
+**Status:** Accepted (2026-08-06). Spec: `docs/modules/Reviews.md` §7.
+
+The public **product page has no server-side assembler** — the Next.js storefront composes it
+from separate endpoints (content, offers, prices), which is the composition ADR-058 chose, and
+the `StorefrontContributorContract` seam is **store-page** level, not product-page level. So
+Reviews adds **its own endpoints**, the way Offer added the buy box, rather than contributing to
+a page assembler that does not exist:
+
+- `GET /products/{idOrSlug}/reviews` → published reviews + a `summary` (average, count,
+  distribution, with-images count), filterable by seller and image-only (the two filters the
+  owner asked for). Slug-or-uuid resolved through `CatalogBrowseContract` before any column is
+  touched — the 22P02 slug-into-uuid trap the platform keeps re-learning.
+- `POST /products/ratings` → a batch `{productUuid: {average, count}}` for listing-card star
+  badges, mirroring `POST /offers/prices`: one call for a whole grid, not a query per card on
+  the busiest anonymous route. An unreviewed product is absent, never `0.0`.
+
+**The average and distribution are computed on READ, not stored** — the same discipline as the
+buy box (ADR-045): a stored aggregate is a second source of truth that drifts the first time a
+review is deleted or a moderation reverses. If these reads ever get hot, a denormalised counter
+is a later optimisation **behind the same endpoints** — the public shape does not change.
+
+**Cost:** computing the summary per request costs a `GROUP BY` on the product's published
+reviews on a hot anonymous path; accepted for v1 at expected volumes, with the denormalisation
+escape hatch named above so reaching for it later is a change of implementation, not of
+contract.
+
+---
+
 END OF FILE
