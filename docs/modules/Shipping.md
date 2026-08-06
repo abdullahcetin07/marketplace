@@ -1,10 +1,12 @@
 # Shipping
 
-**Status: S1–S3 BUILT (2026-08-05). Approved architecture (owner, 2026-08-05); ADR-063–064.**
-S1 shipped the shipment aggregate, the `cargo_companies` table and the seller's
-"kargoya ver" flow; S2 shipped delivery inference and `ShipmentDelivered`; S3 is the
-Payment enhancement that consumes it — the payout hold and the return window (see
-Payment.md §8). S4 (line-level partial refund) is not built.
+**Status: S1–S4 BUILT (2026-08-05/06); only S5, the storefront, remains. ADR-063–064,
+extended by ADR-065.** S1 shipped the shipment aggregate, the `cargo_companies` table and
+the seller's "kargoya ver" flow; S2 shipped delivery inference and `ShipmentDelivered`; S3
+and S4 are **Payment enhancements** that consume it — the payout hold, the return window,
+and the buyer's return with a line-level partial refund (Payment.md §8). **ADR-065's
+pre-shipment cancellation (C1) landed here too**, as the parcel's `cancelled` state and the
+Core read port the whole cancellation gate turns on (§11).
 
 Shipping is the module that tracks a paid order from the seller's hands to the buyer's
 door, and turns "delivered" into the two things that wait on it: **when the seller gets
@@ -213,6 +215,34 @@ empty list and is silence.
 **Idempotent by the transition table**, not by a flag: only a `delivered` shipment may
 become `returned`, so a replayed event finds nothing to do.
 
+### C1 — the parcel that never left (ADR-065)
+
+| Area | Where |
+|---|---|
+| `ShipmentStatus::Cancelled` + `shipments.cancelled_at` (§2) | `Domain/Enums/ShipmentStatus` |
+| `cancelled`, moved by Payment's refund exactly as `returned` is | `Application/Listeners/CancelShipmentsOnCancellation` |
+| The cancellation GATE, answered for Payment (§10) | `Infrastructure/Queries/ShipmentQuery` + `Core\Domain\Contracts\ShipmentQueryContract` |
+
+**The gate is this module's fact, and Payment could not have it any other way.**
+ADR-065 lets a paid order be cancelled while its parcel is `pending` and not after —
+so the whole feature turns on a state Shipping owns. It answers through a Core read
+port, the first this module has published; Payment imports nothing.
+
+**A missing shipment answers FALSE, not "probably fine".** An order with no row
+cannot vouch for itself, and reading the absence as "not shipped yet" refunds a
+parcel that may already be with a carrier. `shipping:backfill` is the fix.
+
+**`Cancelled` and `Returned` are kept apart on purpose.** Both are terminal, both
+are driven by a refund, and collapsing them into one "reversed" case would lose the
+only distinction a future cancellation-rate penalty (ADR-065 defers it) could
+count: a returned parcel was packed, handed over and carried; a cancelled one cost
+the seller nothing but the buyer's time.
+
+**Two listeners on one event, not one with a branch.** `MarkShipmentsReturned` and
+`CancelShipmentsOnCancellation` both subscribe to `PaymentRefunded` and each reads
+its `cause`. The transition table would already refuse a mix-up — a `pending` parcel
+cannot become `returned` — but enforcing a rule by coincidence is not enforcing it.
+
 ## 9. Deliberately absent / follow-ups
 
 - **Cargo-carrier API / label printing / auto-tracking** — the provider-agnostic port is
@@ -229,7 +259,10 @@ become `returned`, so a replayed event finds nothing to do.
   state on delivery. No Order import.
 - **Payment** — consumes `ShipmentDelivered` (class-string) for auto-payout + the return
   window (S3), and gains buyer-initiated + line-level partial refund (S4). Payment names no
-  Shipping class; Shipping names no Payment class.
+  Shipping class; Shipping names no Payment class. Since ADR-065/C1 it also READS this
+  module through `ShipmentQueryContract` — the cancellation gate — and announces a
+  cancellation on `PaymentRefunded` with `cause = cancellation`, which this module's own
+  listener turns into a `cancelled` parcel.
 - **Inventory** — the partial refund (S4) restocks a returned quantity through the same
   reservation/movement port Payment's refund already uses.
 

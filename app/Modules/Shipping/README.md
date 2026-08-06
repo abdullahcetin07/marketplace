@@ -29,6 +29,12 @@ seller (panel) → pick carrier + tracking number → shipped   (shipped_at)
                                                  PaymentRefunded
                                                        │
       Shipment → returned, by class-string — ONLY when the whole order came back
+
+seller cannot fulfil, parcel still pending (ADR-065 C1) → Payment refunds
+                                                       │
+                                                 PaymentRefunded (cause=cancellation)
+                                                       │
+                       Shipment → cancelled, by class-string — never packed
 ```
 
 ## What bites
@@ -53,6 +59,10 @@ seller (panel) → pick carrier + tracking number → shipped   (shipped_at)
 - **`delivered_via` is provenance, not decoration.** An inferred delivery date and
   a buyer-confirmed one are worth different amounts in a dispute, and a single
   timestamp could not say which it was.
+- **A missing shipment is a REFUSAL, not a shrug** (ADR-065). Cancellation is gated
+  on this module saying the parcel is still `pending`, and an order with no shipment
+  row cannot say that — reading the absence as "not shipped yet" refunds a parcel
+  that may already be with a carrier. `shipping:backfill` is the fix.
 - **It imports no module.** Orders arrive through `OrderQueryContract`; the
   payment event arrives as a class-string. `LayeringTest` fails the build on any
   import, both directions.

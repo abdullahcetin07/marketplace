@@ -66,6 +66,11 @@ return [
         'cancel_reason_hint' => 'Shown to the customer. Write something short and clear, like "out of stock".',
         'zero_seller_stock' => 'Seller fault: zero their stock too',
         'zero_seller_stock_hint' => 'Tick this when the seller genuinely has none of this product. By default only the reservation is released and the product stays on sale.',
+        'cancel_lines' => 'Cannot fulfil',
+        'cancel_lines_confirm' => 'The units you choose are refunded to the buyer, the commission is reversed and the stock returns to you. This is impossible once the parcel is with a carrier.',
+        'cancel_lines_button' => 'Cancel and refund',
+        'cancel_lines_remaining' => 'Remaining: :count',
+        'cancel_lines_reason_hint' => 'The buyer will be shown this.',
     ],
 
     /*
@@ -83,6 +88,9 @@ return [
     'notice' => [
         'cancelled' => 'Order cancelled.',
         'stock_zeroed' => 'Your stock for this product has been set to zero. Enter a new quantity on the offer form to sell it again.',
+        'lines_cancelled' => 'Lines cancelled',
+        'lines_cancelled_body' => 'The buyer has been refunded and the stock is back.',
+        'nothing_cancelled' => 'No quantity was chosen.',
     ],
 
     'empty' => [
@@ -92,6 +100,7 @@ return [
 
     'errors' => [
         'already_cancelled' => 'This order has already been cancelled.',
+        'paid_needs_refund' => 'A paid order is cancelled by refunding it, not by this action.',
         'not_cancellable' => 'This order can no longer be cancelled.',
     ],
 

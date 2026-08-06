@@ -45,6 +45,11 @@ callback  → hash-verified, idempotent, one transaction:
   proportion it was charged. The commission is the FROZEN figure scaled, never the
   rules resolved again — and the last unit of a line takes whatever kuruş the
   rounding left, or a fully returned line strands it forever.
+- **A cancellation is the same refund with one word different** (ADR-065, C1). While
+  the parcel is still `pending` a seller sheds a line they cannot fill, and the money
+  is `RefundLinesAction` untouched. `PaymentRefunded.cause` is the whole difference —
+  it decides whether the order ends `cancelled` or `refunded`. The gate is a shipment
+  STATE read through Core, and **a missing shipment refuses**.
 - **The buyer's return is a second door, not a relaxed policy.** `payment.refund`
   still means "reverse a charge with no window justifying it".
   `RequestReturnAction` checks ownership, delivery and the clock and then calls the

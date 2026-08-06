@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Order\Presentation\Filament\Seller\Resources;
 
+use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Core\Presentation\Support\MoneyString;
@@ -58,6 +59,13 @@ use Illuminate\Database\Eloquent\Model;
  */
 final class OrderResource extends Resource
 {
+    /**
+     * A form field cannot be named by a bare uuid — Filament reads dots and
+     * dashes as nesting — so each line's input is prefixed and the prefix is
+     * stripped back off when the quantities are collected.
+     */
+    private const LINE_FIELD_PREFIX = 'line_';
+
     protected static ?string $model = Order::class;
 
     protected static ?string $navigationIcon = 'heroicon-o-shopping-bag';
@@ -216,6 +224,7 @@ final class OrderResource extends Resource
             ->actions([
                 Tables\Actions\ViewAction::make(),
                 self::cancelAction(),
+                self::cancelLinesAction(),
             ])
             // Refusing somebody's order is a decision with a reason attached.
             // There is no version of it that belongs on a checkbox.
@@ -335,6 +344,133 @@ final class OrderResource extends Resource
                     ->success()
                     ->send();
             });
+    }
+
+    /**
+     * "Gönderemiyorum" — shedding lines of a PAID, unshipped order (ADR-065, C1).
+     *
+     * **THE SECOND CANCEL BUTTON ON THIS SCREEN, AND THEY MUST NEVER BOTH SHOW.**
+     * The one above releases a HOLD on an unpaid order and zeroes the seller's
+     * declared stock; this one sends real money back, reverses the commission and
+     * RESTOCKS. `OrderStatus` decides which is which — `isCancellableWithoutRefund()`
+     * gates the first, `Paid` gates this — so a seller never sees a choice between
+     * two things that look identical and are not.
+     *
+     * **IT DRIVES A CORE COMMAND PORT, WHICH IS WHY IT CAN EXIST HERE AT ALL.**
+     * The seller cancels from the screen where they see their orders, and that
+     * screen is Order's; the refund is Payment's. Neither module may import the
+     * other, so `OrderCancellationContract` sits between them — and it is a
+     * command port rather than an event because the seller has to be TOLD, now,
+     * that they asked for three of two or that the parcel already shipped.
+     *
+     * THE FORM IS BUILT FROM PAYMENT'S ANSWER, not from the order's own lines: a
+     * line partly cancelled last week has fewer units left, and only Payment has
+     * subtracted them. An order with nothing left — or one whose parcel has gone —
+     * yields an empty list, and the button hides itself rather than opening onto a
+     * form that can only fail.
+     *
+     * A REASON IS REQUIRED, as it is on the lever above and for the same reason:
+     * the buyer is about to be refunded for something they chose to buy, and
+     * "why" is the first thing they will ask.
+     */
+    private static function cancelLinesAction(): Tables\Actions\Action
+    {
+        return Tables\Actions\Action::make('cancelLines')
+            ->label(__('order.action.cancel_lines'))
+            ->icon('heroicon-o-receipt-refund')
+            ->color('danger')
+            ->modalHeading(__('order.action.cancel_lines'))
+            ->modalDescription(__('order.action.cancel_lines_confirm'))
+            ->modalSubmitActionLabel(__('order.action.cancel_lines_button'))
+            ->visible(fn (Order $record): bool => $record->status === OrderStatus::Paid
+                && auth()->user()?->can('cancelLines', $record) === true
+                && self::cancellableLines($record) !== [])
+            ->form(fn (Order $record): array => self::cancelLinesForm($record))
+            ->action(function (Order $record, array $data): void {
+                $quantities = [];
+
+                foreach (self::cancellableLines($record) as $lineUuid => $remaining) {
+                    $wanted = (int) ($data[self::LINE_FIELD_PREFIX.$lineUuid] ?? 0);
+
+                    if ($wanted > 0) {
+                        $quantities[$lineUuid] = $wanted;
+                    }
+                }
+
+                if ($quantities === []) {
+                    Notification::make()
+                        ->title(__('order.notice.nothing_cancelled'))
+                        ->warning()
+                        ->send();
+
+                    return;
+                }
+
+                app(OrderCancellationContract::class)->cancelLinesBySeller(
+                    orderUuid: $record->uuid,
+                    // THE ORDER'S OWN COLUMN, not the actor's organization: the
+                    // port re-checks that the two match, so passing the record's
+                    // value makes a mis-scoped panel query a refusal rather than a
+                    // cancellation of somebody else's sale.
+                    sellerOrgUuid: $record->selling_org_uuid,
+                    quantities: $quantities,
+                    reason: (string) $data['reason'],
+                    actorId: (int) auth()->id(),
+                );
+
+                Notification::make()
+                    ->title(__('order.notice.lines_cancelled'))
+                    ->body(__('order.notice.lines_cancelled_body'))
+                    ->success()
+                    ->send();
+            });
+    }
+
+    /**
+     * One numeric input per line that still has units, capped at what is left.
+     *
+     * @return array<int, Forms\Components\Component>
+     */
+    private static function cancelLinesForm(Order $record): array
+    {
+        $fields = [];
+        $remaining = self::cancellableLines($record);
+
+        foreach ($record->lines as $line) {
+            if (! isset($remaining[$line->uuid])) {
+                continue;
+            }
+
+            $fields[] = Forms\Components\TextInput::make(self::LINE_FIELD_PREFIX.$line->uuid)
+                ->label($line->product_title)
+                // The cap is a HINT, not the guard: `RefundableLines` re-checks it
+                // behind the port, because two people can hold this screen open.
+                ->helperText(__('order.action.cancel_lines_remaining', ['count' => $remaining[$line->uuid]]))
+                ->numeric()
+                ->minValue(0)
+                ->maxValue($remaining[$line->uuid])
+                ->default(0)
+                ->required();
+        }
+
+        $fields[] = Forms\Components\Textarea::make('reason')
+            ->label(__('order.field.reason'))
+            ->helperText(__('order.action.cancel_lines_reason_hint'))
+            ->required()
+            ->maxLength(500);
+
+        return $fields;
+    }
+
+    /**
+     * What Payment says may still be cancelled — line uuid => units.
+     *
+     * @return array<string, int>
+     */
+    private static function cancellableLines(Order $record): array
+    {
+        return app(OrderCancellationContract::class)
+            ->cancellableQuantities($record->uuid, $record->selling_org_uuid);
     }
 
     /**

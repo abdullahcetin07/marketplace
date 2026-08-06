@@ -16,11 +16,23 @@ use App\Modules\Shipping\Domain\Enums\ShipmentStatus;
 |
 */
 
-it('lets a pending parcel be shipped, and nothing else', function (): void {
-    expect(ShipmentStatus::Pending->transitions())->toBe([ShipmentStatus::Shipped])
+it('lets a pending parcel be shipped or cancelled, and nothing else', function (): void {
+    /*
+     * `Cancelled` JOINED THIS ROW IN ADR-065 (2026-08-06) and it is the gate
+     * itself: a paid order may be cancelled while the parcel is still here and
+     * never after, so `Shipped` deliberately has no way back. A missing edge
+     * cannot be forgotten the way a status check somewhere else can.
+     */
+    expect(ShipmentStatus::Pending->transitions())
+        ->toBe([ShipmentStatus::Shipped, ShipmentStatus::Cancelled])
         // Not straight to delivered: a parcel nobody handed to a carrier cannot
         // have arrived.
-        ->and(ShipmentStatus::Pending->canTransitionTo(ShipmentStatus::Delivered))->toBeFalse();
+        ->and(ShipmentStatus::Pending->canTransitionTo(ShipmentStatus::Delivered))->toBeFalse()
+        // AND THE GATE, FROM THE OTHER SIDE: once it is with a carrier the
+        // seller has spent the effort, and the buyer's route is the return.
+        ->and(ShipmentStatus::Shipped->canTransitionTo(ShipmentStatus::Cancelled))->toBeFalse()
+        ->and(ShipmentStatus::Delivered->canTransitionTo(ShipmentStatus::Cancelled))->toBeFalse()
+        ->and(ShipmentStatus::Cancelled->transitions())->toBe([]);
 });
 
 it('lets a shipped parcel only be delivered', function (): void {
@@ -67,12 +79,12 @@ it('has exactly the cases the platform can reach', function (): void {
      * phase makes it not, has to be corrected rather than extended.
      */
     expect(array_map(fn (ShipmentStatus $s): string => $s->value, ShipmentStatus::cases()))
-        ->toBe(['pending', 'shipped', 'delivered', 'returned']);
+        ->toBe(['pending', 'shipped', 'delivered', 'returned', 'cancelled']);
 });
 
 it('gives every case a colour for the panels', function (): void {
     foreach (ShipmentStatus::cases() as $status) {
-        expect($status->color())->toBeIn(['warning', 'info', 'success', 'danger']);
+        expect($status->color())->toBeIn(['warning', 'info', 'success', 'danger', 'gray']);
     }
 
     foreach (DeliveredVia::cases() as $via) {

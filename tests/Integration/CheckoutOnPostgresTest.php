@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Models\Admin;
 use App\Models\Customer;
 use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
@@ -24,6 +25,8 @@ use App\Modules\Order\Domain\DTOs\CancelOrderDTO;
 use App\Modules\Order\Domain\DTOs\CheckoutDTO;
 use App\Modules\Order\Domain\DTOs\CustomerAddressDTO;
 use App\Modules\Organization\Domain\Models\Organization;
+use App\Modules\Payment\Domain\Exceptions\PaymentException;
+use App\Modules\Shipping\Domain\Enums\ShipmentStatus;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
 use Illuminate\Foundation\Testing\DatabaseTransactions;
@@ -485,6 +488,65 @@ it('lets one order be refunded twice, which the dropped indexes forbade', functi
     // transaction rolls the whole thing back afterwards.
     expect($insert())->toBeGreaterThan(0)
         ->and($insert())->toBeGreaterThan(0);
+});
+
+it('keeps a non-uuid order away from the cancellation port', function (): void {
+    /*
+     * THE TWELFTH WATCH (ADR-065, C1). The cancellation port takes an order uuid
+     * straight off a panel record and asks Shipping whether the parcel has left —
+     * `shipments.order_uuid` is a native uuid column on this engine, so a
+     * malformed value would be SQLSTATE[22P02] rather than a miss. On SQLite it is
+     * text and the shape guard cannot be seen to work.
+     *
+     * BOTH HALVES OF THE PORT, because they have separate guards: the command
+     * refuses and the read answers empty, and neither may reach the database with
+     * something the column cannot hold.
+     */
+    $port = app(OrderCancellationContract::class);
+    $seller = (string) Str::uuid();
+
+    foreach (['not-a-uuid', 'siparis'] as $order) {
+        expect($port->cancellableQuantities($order, $seller))->toBe([]);
+
+        expect(function () use ($port, $order, $seller): void {
+            $port->cancelLinesBySeller($order, $seller, ['x' => 1]);
+        })->toThrow(PaymentException::class);
+    }
+
+    // A well-formed uuid nobody sold is the same refusal, and it is allowed to
+    // reach the query — which is what proves the column takes it.
+    expect(function () use ($port, $seller): void {
+        $port->cancelLinesBySeller((string) Str::uuid(), $seller, []);
+    })->toThrow(PaymentException::class);
+
+    expect(static fn (): mixed => DB::connection('pgsql')
+        ->table('shipments')
+        ->where('order_uuid', (string) Str::uuid())
+        ->value('status'))
+        ->not->toThrow(\Throwable::class);
+});
+
+it('stores a cancelled shipment on the engine that has the enum column', function (): void {
+    /*
+     * THE MIGRATION, ON THE DATABASE THAT ENFORCES THE COLUMN. `cancelled` is a
+     * new `ShipmentStatus` value and `cancelled_at` a new column; SQLite would
+     * accept both whether the migration ran or not.
+     */
+    $shipment = DB::connection('pgsql')->table('shipments')->first();
+
+    if ($shipment === null) {
+        $this->markTestSkipped('No shipment exists on this database to move.');
+    }
+
+    DB::connection('pgsql')->table('shipments')->where('id', $shipment->id)->update([
+        'status' => ShipmentStatus::Cancelled->value,
+        'cancelled_at' => now(),
+    ]);
+
+    $row = DB::connection('pgsql')->table('shipments')->where('id', $shipment->id)->first();
+
+    expect($row?->status)->toBe(ShipmentStatus::Cancelled->value)
+        ->and($row?->cancelled_at)->not->toBeNull();
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {

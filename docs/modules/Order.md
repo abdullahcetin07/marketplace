@@ -456,8 +456,10 @@ Recorded in the `001_Architecture.md` amendment log.
 
 ## 12.4b Later changes to this module
 
-Order is complete but not frozen, and Payment reached into it twice as its spec said it
-would. Both are recorded in the `001_Architecture.md` amendment log.
+Order is complete but not frozen, and three later modules have reached into it — Payment as
+its spec said they would, Shipping through the same Core port, and ADR-065's cancellation in
+the one direction nobody had used before: **Order's panel CALLING a port another module
+implements**. All are recorded in the `001_Architecture.md` amendment log.
 
 | Phase | Change | Why |
 |---|---|---|
@@ -465,6 +467,9 @@ would. Both are recorded in the `001_Architecture.md` amendment log.
 | Payment P2 | `order_lines` gains `brand_uuid`, `category_uuid`, `category_path_uuids` (classification, frozen at checkout) and `commission_rate`, `commission_minor`, `commission_resolved_at` (frozen at payment), with `OrderLine`'s one narrow immutability hole | ADR-061. Payment computes the commission through a Core contract; ORDER writes its own table |
 | Payment P3 | `OrderQueryContract::orderSettlement()` | The seller ledger needs the seller and the FROZEN commission — read, never recomputed |
 | Payment P5 | `OrderStatus::Refunded`; `Paid` stops being terminal; `isCancellableByCustomer()` names the two live states instead of delegating to `isTerminal()`; `SettleOrdersOnPayment::onRefunded()` | The case the `Paid` docblock reserved for P5. A refund moves a paid order and its stock, so "terminal" and "cancellable" stopped coinciding and had to be asked separately |
+| Shipping S2 | `OrderStatus::Delivered`; `orderFulfilment()` + `paidOrders()` on the Core port; `SettleOrdersOnPayment::onDelivered()` | Where a parcel IS stays Shipping's (`Preparing`/`Shipped` are still absent). `Delivered` is different: it is when the ORDER is complete from the customer's side, and what the payout clock and return window measure from |
+| Shipping S4 | `id` + `commission_minor` on `orderLines()`; `checkoutGroupFor()`; `reservationReferencesFor()` keyed by variant | A line-level refund names a LINE and reverses a FROZEN commission proportionally. `checkoutGroupFor()` replaced a derivation that worked but scanned every settled payment on an endpoint a customer taps |
+| **Cancellation C1** (ADR-065) | `OrderStatus: Paid → Cancelled`; **`isCancellableWithoutRefund()`**, and `CancelOrderAction` + `OrderPolicy::cancel()` re-guarded on it; `onRefunded()` branches on the event's `cause` and stamps `cancelled_at`/`cancellation_reason`; `OrderPolicy::cancelLines()`; the seller panel's second cancel button, driving a Core **command** port Payment implements | A pre-shipment cancellation has to name its outcome honestly — a parcel nobody packed did not come back. **And the edge armed the plain lever**: `CancelOrderAction` releases a hold and zeroes a seller's stock, and it had been safe on a paid order only because the transition did not exist. A transition table is the wrong place to keep a rule once two legitimate paths reach one state |
 
 ## 12.5 Follow-ups
 

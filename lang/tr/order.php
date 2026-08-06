@@ -65,6 +65,11 @@ return [
         'cancel_reason_hint' => 'Müşteriye gösterilir. "Stokta kalmadı" gibi kısa ve açık bir gerekçe yazın.',
         'zero_seller_stock' => 'Satıcı kaynaklı: stoğu da sıfırla',
         'zero_seller_stock_hint' => 'Satıcının o üründe gerçekten stoğu yoksa işaretleyin. Varsayılan olarak yalnızca ayrılan stok serbest bırakılır ve ürün satışta kalır.',
+        'cancel_lines' => 'Gönderemiyorum',
+        'cancel_lines_confirm' => 'Seçtiğiniz adetlerin ücreti alıcıya iade edilir, komisyon geri döner ve stok size geri eklenir. Kargoya verdikten sonra bu işlem yapılamaz.',
+        'cancel_lines_button' => 'İptal et ve iade başlat',
+        'cancel_lines_remaining' => 'Kalan adet: :count',
+        'cancel_lines_reason_hint' => 'Alıcı bu açıklamayı görecek.',
     ],
 
     /*
@@ -82,6 +87,9 @@ return [
     'notice' => [
         'cancelled' => 'Sipariş iptal edildi.',
         'stock_zeroed' => 'Bu ürün için stoğunuz sıfırlandı. Satışa devam etmek için teklif formundan yeni adet girin.',
+        'lines_cancelled' => 'Satırlar iptal edildi',
+        'lines_cancelled_body' => 'Alıcıya iade yapıldı ve stok geri eklendi.',
+        'nothing_cancelled' => 'Hiçbir adet seçilmedi.',
     ],
 
     'empty' => [
@@ -91,6 +99,7 @@ return [
 
     'errors' => [
         'already_cancelled' => 'Bu sipariş zaten iptal edilmiş.',
+        'paid_needs_refund' => 'Ödemesi alınmış bir sipariş iade edilerek iptal edilir, bu işlemle değil.',
         'not_cancellable' => 'Bu sipariş artık iptal edilemez.',
     ],
 

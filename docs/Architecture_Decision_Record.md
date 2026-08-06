@@ -1955,6 +1955,37 @@ Cost: two more refund triggers and a request/approval workflow, each reading the
 state; the buyer's cancel is a **request**, not instant, so the storefront must say so
 ("satıcı onayında") rather than confirm a cancellation that has not happened yet.
 
+**Amendment (2026-08-06, C1 as built): the module boundary this ADR left open, resolved.**
+It said the server would decide where the cancel trigger sits and report it (ADR-018). The
+trigger action is in **Payment** as specified — but the SELLER'S SCREEN is Order's, and
+Order imports no module, so something had to sit between the button and the refund.
+
+**It is a Core COMMAND port, `OrderCancellationContract` — the platform's second**, after
+Inventory's reservations. An event could not carry it: the seller has to be told, in the
+same request, that they asked for three of two or that the parcel already shipped, and an
+event announces a fact rather than asking a question. It also carries a READ
+(`cancellableQuantities`) because the form's per-line caps are a subtraction only Payment
+can do — the order knows what was bought and Payment knows what has already gone back.
+
+**The gate reads through a second new Core port, `ShipmentQueryContract`** — Shipping's
+first downstream read. **A missing shipment REFUSES rather than assuming "not shipped
+yet"**: that assumption refunds a parcel that may already be with a carrier, which is the
+one mistake here nothing later can undo.
+
+**`PaymentRefunded` gained a `cause` (`return` | `cancellation`) rather than a second
+event.** The money is identical at both ends of the lifecycle and the meaning is not: a
+cancelled order becomes `cancelled` with a `cancelled` parcel, a returned one `refunded`
+with a `returned` parcel. Two events would have put two listeners in Order racing to set
+different terminal states on one order, decided by registration order.
+
+**And it created a hazard worth naming.** Opening `OrderStatus: Paid → Cancelled` — needed
+so a cancellation can name its outcome honestly — made `CancelOrderAction` reachable on a
+PAID order, where it would have released an already-committed hold, zeroed the seller's
+declared stock (ADR-057) and left the buyer's money untouched. **The transition table
+stopped being the only gate**: that action and `OrderPolicy::cancel()` now refuse on
+`OrderStatus::isCancellableWithoutRefund()`. A paid order is cancelled by refunding it, or
+not at all.
+
 Full specification: amends Order's ADR-057 cancellation and extends Payment §8 / Shipping;
 recorded in those module docs as the build lands.
 

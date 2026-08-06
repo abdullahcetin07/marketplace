@@ -103,8 +103,26 @@ final class SettleOrdersOnPayment
         /** @var array<int, string> $orderUuids */
         $orderUuids = $event->orderUuids ?? [];
 
+        /*
+        | **THE SAME MONEY, TWO DIFFERENT ORDERS (ADR-065).** A refund is a refund
+        | on the ledger whichever end of the lifecycle it happened at, so the
+        | event's `cause` is the only thing that can say what it MEANS here. Goods
+        | that reached the buyer and came back leave a `refunded` order; goods
+        | that never left the seller leave a `cancelled` one — and a list showing
+        | "iade edildi" for a parcel nobody ever packed is a support ticket.
+        |
+        | ONE EVENT WITH A CAUSE, not two events. Two would put two listeners in
+        | this class racing to set different terminal states on one order, decided
+        | by registration order.
+        */
+        $target = ($event->cause ?? 'return') === 'cancellation'
+            ? OrderStatus::Cancelled
+            : OrderStatus::Refunded;
+
+        $reason = $event->reason ?? null;
+
         foreach (Order::query()->whereIn('uuid', $orderUuids)->get() as $order) {
-            $this->transition($order, OrderStatus::Refunded, (string) ($event->paymentUuid ?? ''));
+            $this->transition($order, $target, (string) ($event->paymentUuid ?? ''), is_string($reason) ? $reason : null);
         }
     }
 
@@ -198,7 +216,7 @@ final class SettleOrdersOnPayment
      * @param string $reference the payment or shipment that caused the move,
      *                          for the log when a status will not budge
      */
-    private function transition(Order $order, OrderStatus $target, string $reference): void
+    private function transition(Order $order, OrderStatus $target, string $reference, ?string $reason = null): void
     {
         if ($order->status === $target) {
             // A retried callback. Not an error — the correct response is silence.
@@ -216,6 +234,20 @@ final class SettleOrdersOnPayment
             return;
         }
 
-        $order->forceFill(['status' => $target])->save();
+        $attributes = ['status' => $target];
+
+        if ($target === OrderStatus::Cancelled) {
+            /*
+            | STAMPED HERE BECAUSE ONLY HERE KNOWS IT HAPPENED (ADR-065). A
+            | cancellation reached through a refund never touches
+            | `CancelOrderAction`, so nothing else would fill the two columns the
+            | order screen shows the buyer — and an empty "iptal" panel is worse
+            | than no panel.
+            */
+            $attributes['cancelled_at'] = now();
+            $attributes['cancellation_reason'] = $reason;
+        }
+
+        $order->forceFill($attributes)->save();
     }
 }

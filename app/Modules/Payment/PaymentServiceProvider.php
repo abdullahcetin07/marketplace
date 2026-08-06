@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Payment;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
+use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
@@ -12,6 +13,7 @@ use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Models\CommissionRule;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\Payout;
+use App\Modules\Payment\Infrastructure\Commands\OrderCancellation;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
 use App\Modules\Payment\Presentation\Console\DiagnosePaymentCommand;
@@ -77,6 +79,18 @@ final class PaymentServiceProvider extends ServiceProvider
         | the rules answer through Core and Order writes its own table.
         */
         $this->app->singleton(CommissionQueryContract::class, CommissionQuery::class);
+
+        /*
+        | THE CANCELLATION COMMAND PORT (ADR-065, C1) — the platform's SECOND
+        | command port, after Inventory's reservations.
+        |
+        | IT EXISTS BECAUSE A SELLER CANCELS FROM THE ORDER SCREEN, which belongs
+        | to Order, while the refund belongs here — and neither module may import
+        | the other. An event could not carry it: the seller has to be told
+        | immediately that they asked for three of two, or that the parcel already
+        | shipped, and an event announces a fact rather than asking a question.
+        */
+        $this->app->singleton(OrderCancellationContract::class, OrderCancellation::class);
 
         $this->registerPermissions();
     }

@@ -36,6 +36,17 @@ final class MarkShipmentsReturned
      */
     public function handle(object $event): void
     {
+        if (($event->cause ?? 'return') !== 'return') {
+            /*
+            | A PRE-SHIPMENT CANCELLATION (ADR-065). Same event, opposite end of
+            | the lifecycle — `CancelShipmentsOnCancellation` owns it. The
+            | transition table would refuse this anyway (a `pending` parcel cannot
+            | become `returned`), but relying on that would be relying on a
+            | coincidence to enforce a rule.
+            */
+            return;
+        }
+
         /** @var array<int, string> $orderUuids */
         $orderUuids = $event->orderUuids ?? [];
 

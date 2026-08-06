@@ -7,6 +7,7 @@ namespace App\Modules\Order\Presentation\Policies;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Models\User;
+use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Shared\Enums\UserType;
 use Illuminate\Auth\Access\HandlesAuthorization;
@@ -92,6 +93,18 @@ final class OrderPolicy
             return Response::deny(__('order.errors.already_cancelled'));
         }
 
+        if (! $order->status->isCancellableWithoutRefund()) {
+            /*
+            | A PAID ORDER IS NOT THIS BUTTON'S (ADR-065). It is cancelled by
+            | REFUNDING it — Payment's `CancelOrderLinesAction`, reached through
+            | the Core command port — which returns the money, reverses the
+            | commission and restocks before the order reaches `Cancelled`.
+            | Denied here so the plain lever disappears from every surface rather
+            | than throwing when somebody presses it.
+            */
+            return Response::deny(__('order.errors.paid_needs_refund'));
+        }
+
         return match ($user->type) {
             UserType::Admin => $this->adminAbility($user, 'order.cancel'),
             UserType::Customer => $this->customerMayCancel($user, $order),
@@ -111,6 +124,38 @@ final class OrderPolicy
         return $user->type === UserType::Customer
             ? $this->owns($user, $order)
             : Response::deny(__('errors.forbidden'));
+    }
+
+    /**
+     * Shedding a line of a PAID order the seller cannot fulfil (ADR-065, C1).
+     *
+     * **A SEPARATE ABILITY FROM `cancel`, NOT A WIDENING OF IT.** They read alike
+     * and mean opposite things: `cancel` gives back a HOLD and zeroes the seller's
+     * declared stock; this one sends real money back to a buyer, reverses a
+     * commission and RESTOCKS. One ability covering both would mean the day
+     * somebody adjusted the rules for one, they adjusted them for the other
+     * without noticing.
+     *
+     * SELLERS ONLY, and deliberately not admins. An admin who needs to reverse a
+     * paid order has the refund surface (Payment.md §8), which is ability-gated
+     * and audited as the money operation it is; this is the merchant saying "I do
+     * not have it", and it is theirs to say.
+     *
+     * IT DOES NOT CHECK THE PARCEL. Whether the shipment has left is Shipping's
+     * fact and Payment's gate — asked once, behind the command port, where it
+     * cannot be forgotten. A policy that also asked would be a second copy of the
+     * rule, and the copy would be the one that went stale.
+     */
+    public function cancelLines(User $user, Order $order): Response
+    {
+        if ($order->status !== OrderStatus::Paid) {
+            return Response::deny(__('errors.forbidden'));
+        }
+
+        return match ($user->type) {
+            UserType::Admin, UserType::Customer => Response::deny(__('errors.forbidden')),
+            default => $this->sells($user, $order),
+        };
     }
 
     /**

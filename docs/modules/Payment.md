@@ -638,6 +638,54 @@ track of, which a mutable balance column could not promise.
 > multiplying `unit_price × quantity` itself would disagree with the last unit's
 > remainder.
 
+> **As built (Cancellation C1, 2026-08-06): the other side of "shipped".**
+>
+> ADR-065 is the mirror of the return, and the point is how little is new. A paid
+> order whose parcel has NOT LEFT can be cancelled by the seller, per line and per
+> quantity, and the money is `RefundLinesAction` **unchanged** — same kuruş, same
+> proportional commission, same restock, same `refund_debit` +
+> `refund_commission_credit`. What C1 adds is a trigger, a gate and a word.
+>
+> **The gate is a shipment STATE, not a time window.** While the parcel is
+> `pending` the seller may shed a line they cannot fill; once it is `shipped` the
+> effort is spent and the buyer's route is the return (ADR-064). Payment reads that
+> through a new Core port, `ShipmentQueryContract`, and imports no Shipping class.
+> **A missing shipment REFUSES**, because reading the absence of a row as "not
+> shipped yet" refunds a parcel that may already be with a carrier — the one
+> mistake here nothing later can undo.
+>
+> **`CancelOrderLinesAction` is the mirror of `RequestReturnAction`**, deliberately
+> the same shape: check who is asking and whether the moment is right, then hand
+> the same action the same DTO. Ownership is verified behind the port even though
+> the seller's panel already scoped its query — a panel's tenancy is a query
+> somebody can get wrong. The quantity guard is `RefundableLines`, untouched:
+> asking for three of two is a refusal, not a clamp.
+>
+> **`PaymentRefunded` gained a `cause`** (`return` | `cancellation`) and it is the
+> only thing separating the two once the money has moved. A fully cancelled order
+> becomes `cancelled` with a `cancelled` parcel; a fully returned one `refunded`
+> with a `returned` parcel. A second event was the obvious alternative and is the
+> wrong one — two listeners in Order would race to set different terminal states on
+> one order, decided by registration order. It also carries the `reason`, so the
+> sentence a seller owes the buyer reaches the order screen rather than sitting in
+> an admin-only refund row.
+>
+> **The seller's lever lives on Order's own screen, driven through a Core COMMAND
+> port** (`OrderCancellationContract`) — the platform's second, after Inventory's
+> reservations. @see §12 and the ADR-065 amendment for why an event could not carry
+> it and why the port also answers `cancellableQuantities()`.
+>
+> **What it broke on the way, recorded because it is the interesting part.** Making
+> `OrderStatus: Paid → Cancelled` legal — needed so a cancellation can name its
+> outcome honestly — armed `CancelOrderAction`, which releases a hold and zeroes a
+> seller's declared stock, on a PAID order. It had been safe only because the
+> transition did not exist. Both it and `OrderPolicy::cancel()` now refuse on
+> `isCancellableWithoutRefund()`: a paid order is cancelled by refunding it, or not
+> at all.
+>
+> No API surface. C1 is a seller-panel operation; C2 adds the buyer's request
+> endpoints.
+
 ---
 
 ## 9. Boundaries & non-negotiables (Payment-specific)
@@ -737,6 +785,14 @@ itself:
 - **Inventory** — `restock()` on the command port became `restock($reference,
   ?$quantity)` in S4 (amends ADR-049; P5 added the verb). `null` means all of it, so no
   existing caller changed.
+- **Shipping** — a Core READ of the order's shipment state (`ShipmentQueryContract`,
+  ADR-065/C1), which is the whole cancellation gate. No Shipping import; Shipping learns a
+  cancellation happened from `PaymentRefunded`'s `cause` and closes its own parcel.
+- **Order** — and here the direction reverses for the first time: `OrderCancellationContract`
+  is a Core **command** port Payment IMPLEMENTS and Order's seller panel CALLS. Every other
+  entry on this list is Payment asking; this is Payment answering. It exists because the
+  seller's cancel button belongs on the order screen and the refund belongs here, and an
+  event cannot tell somebody *now* that they asked for three of two.
 - **Catalog** — the line already carries product/brand/category ids for commission
   resolution (snapshotted at order time); Payment reads them off the order, not the
   live catalogue.

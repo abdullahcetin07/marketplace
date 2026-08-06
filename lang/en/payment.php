@@ -38,6 +38,7 @@ return [
         'not_refundable' => 'This payment collected nothing that could be refunded.',
         'nothing_to_refund' => 'These orders have already been refunded.',
         'return_window_closed' => 'This order cannot be returned — it has not arrived, or the window has closed.',
+        'not_cancellable' => 'This order can no longer be cancelled — it has already been handed to a carrier, or it is not yours.',
     ],
 
     'commission' => [

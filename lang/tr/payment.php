@@ -38,6 +38,7 @@ return [
         'not_refundable' => 'Bu ödemede iade edilecek bir tahsilat yok.',
         'nothing_to_refund' => 'Bu siparişlerin iadesi zaten yapılmış.',
         'return_window_closed' => 'Bu sipariş için iade süresi dolmuş ya da henüz teslim edilmemiş.',
+        'not_cancellable' => 'Bu sipariş artık iptal edilemez — kargoya verilmiş ya da size ait değil.',
     ],
 
     'commission' => [

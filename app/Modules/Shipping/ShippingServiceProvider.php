@@ -4,10 +4,13 @@ declare(strict_types=1);
 
 namespace App\Modules\Shipping;
 
+use App\Core\Domain\Contracts\ShipmentQueryContract;
+use App\Modules\Shipping\Application\Listeners\CancelShipmentsOnCancellation;
 use App\Modules\Shipping\Application\Listeners\CreateShipmentsOnPayment;
 use App\Modules\Shipping\Application\Listeners\MarkShipmentsReturned;
 use App\Modules\Shipping\Domain\Models\CargoCompany;
 use App\Modules\Shipping\Domain\Models\Shipment;
+use App\Modules\Shipping\Infrastructure\Queries\ShipmentQuery;
 use App\Modules\Shipping\Presentation\Console\BackfillShipmentsCommand;
 use App\Modules\Shipping\Presentation\Policies\CargoCompanyPolicy;
 use App\Modules\Shipping\Presentation\Policies\ShipmentPolicy;
@@ -45,6 +48,14 @@ final class ShippingServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+        | THE READ PORT CANCELLATION IS GATED ON (ADR-065). Payment has to know
+        | whether a parcel has left before it refunds one, and Payment imports no
+        | module — so the answer comes through Core, exactly as Shipping asks
+        | about orders through `OrderQueryContract`.
+        */
+        $this->app->singleton(ShipmentQueryContract::class, ShipmentQuery::class);
+
         $this->registerPermissions();
     }
 
@@ -90,6 +101,21 @@ final class ShippingServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Payment\Domain\Events\PaymentRefunded',
             [MarkShipmentsReturned::class, 'handle'],
+        );
+
+        /*
+        | THE GOODS NEVER LEFT (ADR-065, C1). The same event, the opposite end of
+        | the lifecycle: a seller cancelled a paid order before handover, so the
+        | parcel is closed rather than sent.
+        |
+        | A SECOND LISTENER RATHER THAN A BRANCH IN THE ONE ABOVE, because the two
+        | transitions start from different states and guard on different things —
+        | @see the listener for why the event's `cause` is read even though the
+        | transition table would already refuse a mix-up.
+        */
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentRefunded',
+            [CancelShipmentsOnCancellation::class, 'handle'],
         );
     }
 

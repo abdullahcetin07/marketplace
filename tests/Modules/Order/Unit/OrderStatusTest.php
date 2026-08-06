@@ -89,18 +89,32 @@ it('says neither live state is finished with stock', function (): void {
         ->and(OrderStatus::Refunded->isTerminal())->toBeTrue();
 });
 
-it('lets a paid order be delivered or refunded, and nothing else', function (): void {
+it('lets a paid order be delivered, refunded or cancelled — the last only through a refund', function (): void {
     /*
-     * "CANCEL" AFTER PAYMENT MEANS REFUND, which is a different operation with a
-     * PSP call behind it — so `Cancelled` is not reachable from here, whatever
-     * else is.
+     * "CANCEL" AFTER PAYMENT STILL MEANS REFUND. That has not changed; what
+     * changed is where the rule is kept.
      *
      * `Delivered` JOINED IT (Shipping S2, 2026-08-05). Order does not decide it:
      * Shipping infers delivery and announces it, and this module's own listener
      * moves the state.
+     *
+     * **`Cancelled` REJOINED IT (ADR-065, 2026-08-06)** so a pre-shipment
+     * cancellation can name its outcome honestly — a parcel nobody ever packed
+     * did not "come back". The edge is legal; reaching it without returning the
+     * money is not, and this pair of assertions is the whole distinction:
+     * `isCancellableWithoutRefund()` is what `CancelOrderAction` and
+     * `OrderPolicy::cancel()` ask now, precisely because the transition table
+     * stopped being able to answer it.
      */
-    expect(OrderStatus::Paid->transitions())->toBe([OrderStatus::Delivered, OrderStatus::Refunded])
-        ->and(OrderStatus::Paid->canTransitionTo(OrderStatus::Cancelled))->toBeFalse();
+    expect(OrderStatus::Paid->transitions())
+        ->toBe([OrderStatus::Delivered, OrderStatus::Refunded, OrderStatus::Cancelled])
+        ->and(OrderStatus::Paid->canTransitionTo(OrderStatus::Cancelled))->toBeTrue()
+        // THE GUARD THAT REPLACED THE MISSING EDGE. Removing it re-arms a lever
+        // that zeroes a seller's stock on an order the buyer has paid for.
+        ->and(OrderStatus::Paid->isCancellableWithoutRefund())->toBeFalse()
+        ->and(OrderStatus::Pending->isCancellableWithoutRefund())->toBeTrue()
+        ->and(OrderStatus::AwaitingPayment->isCancellableWithoutRefund())->toBeTrue()
+        ->and(OrderStatus::Delivered->isCancellableWithoutRefund())->toBeFalse();
 
     /*
      * A DELIVERED ORDER STAYS REFUNDABLE, which is the whole point of the return

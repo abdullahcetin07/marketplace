@@ -52,6 +52,7 @@ use Illuminate\Support\Carbon;
  * @property Carbon|null $delivered_at
  * @property DeliveredVia|null $delivered_via
  * @property Carbon|null $returned_at
+ * @property Carbon|null $cancelled_at
  * @property-read CargoCompany|null $cargoCompany
  *
  * @see docs/modules/Shipping.md §2
@@ -78,6 +79,7 @@ final class Shipment extends Model
         'delivered_at',
         'delivered_via',
         'returned_at',
+        'cancelled_at',
     ];
 
     /**
@@ -158,6 +160,7 @@ final class Shipment extends Model
             'shipped_at' => 'datetime',
             'delivered_at' => 'datetime',
             'returned_at' => 'datetime',
+            'cancelled_at' => 'datetime',
         ];
     }
 }

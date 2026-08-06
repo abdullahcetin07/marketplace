@@ -251,6 +251,7 @@ return [
         'shipped' => 'In transit',
         'delivered' => 'Delivered',
         'returned' => 'Returned',
+        'cancelled' => 'Cancelled',
     ],
 
     'DeliveredVia' => [

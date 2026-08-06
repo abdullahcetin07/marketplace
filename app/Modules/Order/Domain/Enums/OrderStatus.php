@@ -69,6 +69,14 @@ enum OrderStatus: string
      * money, shipped nothing back into stock until now, and returned it. The two
      * look alike in a list and are entirely different in a ledger, which is where
      * an argument about an order is actually settled.
+     *
+     * **ADR-065 BLURRED THAT AND THEN SHARPENED IT SOMEWHERE ELSE.** A
+     * pre-shipment cancellation also takes money back, so the distinction stopped
+     * being "did money move". What separates them now is WHERE IN THE LIFECYCLE:
+     * `Refunded` means goods reached the buyer and came back (or were paid for
+     * and returned); `Cancelled` means they never left the seller. The ledger
+     * reads the same; the parcel does not, and a future cancellation-rate penalty
+     * would count one and not the other.
      */
     /**
      * The parcel reached the buyer (Shipping.md §4, added 2026-08-05 by S2).
@@ -115,12 +123,26 @@ enum OrderStatus: string
             | (Preparing/Shipped/Delivered) still belong to Shipping and are still
             | absent — this enum does not carry cases nothing can set.
             |
-            | It is NOT cancellable: the stock is committed and the money is
-            | collected, so "cancel" now means REFUND, which is a different
-            | operation with a different actor and a PSP call behind it. That
-            | operation is this transition.
+            | It is NOT cancellable BY THE PLAIN LEVER: the stock is committed
+            | and the money is collected, so "cancel" now means REFUND, which is a
+            | different operation with a different actor and a PSP call behind it.
+            |
+            | **`Cancelled` REJOINED THIS ROW IN ADR-065 (2026-08-06), AND THE
+            | SENTENCE ABOVE IS STILL TRUE.** A paid order CAN end up cancelled —
+            | the seller cannot fulfil it and the parcel has not left — but only
+            | ever through the refund: the money goes back, the commission
+            | reverses and the units are restocked before this transition
+            | happens. The edge exists so the OUTCOME can be named honestly; it is
+            | not permission to skip the refund.
+            |
+            | **AND THE TRANSITION TABLE IS NO LONGER THE ONLY GATE**, which is
+            | the cost of adding it. `CancelOrderAction` — the plain lever that
+            | releases a hold and zeroes a seller's stock — would have become
+            | reachable on a paid order the moment this edge appeared, cancelling
+            | a paid purchase with no money returned. It now refuses on
+            | `isCancellableWithoutRefund()` instead of on this table alone.
             */
-            self::Paid => [self::Delivered, self::Refunded],
+            self::Paid => [self::Delivered, self::Refunded, self::Cancelled],
             /*
             | A DELIVERED ORDER CAN STILL BE REFUNDED, and that edge is the whole
             | point of the return window: the buyer has the goods and a limited
@@ -193,6 +215,24 @@ enum OrderStatus: string
         | return window is open behind it.
         */
         return $this === self::Cancelled || $this === self::Refunded;
+    }
+
+    /**
+     * Whether the PLAIN cancel lever may touch this order (ADR-065).
+     *
+     * **THE GUARD THAT HAD TO EXIST THE MOMENT `Paid → Cancelled` DID.**
+     * `CancelOrderAction` releases a hold and, for a seller, zeroes their
+     * declared stock; on a paid order that would cancel a purchase with the money
+     * still taken and the units still gone. It used to be impossible because the
+     * transition table said so — and a table is exactly the wrong place to keep a
+     * rule once a legitimate second path to the same state exists.
+     *
+     * A PAID ORDER IS CANCELLED THROUGH THE REFUND, or not at all
+     * (`CancelOrderLinesAction`, Payment).
+     */
+    public function isCancellableWithoutRefund(): bool
+    {
+        return $this === self::Pending || $this === self::AwaitingPayment;
     }
 
     /**

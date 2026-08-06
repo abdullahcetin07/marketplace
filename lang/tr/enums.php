@@ -253,6 +253,7 @@ return [
         'shipped' => 'Kargoda',
         'delivered' => 'Teslim edildi',
         'returned' => 'İade edildi',
+        'cancelled' => 'İptal edildi',
     ],
 
     'DeliveredVia' => [

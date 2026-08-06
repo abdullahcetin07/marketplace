@@ -187,7 +187,7 @@ and a **line-level partial refund**. Windows are `settings()`. **Shipping import
 module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
 build ahead of the phased work order or change these decisions without an ADR amendment.
 
-**Pre-shipment cancellation is APPROVED (2026-08-06; ADR-065) — building next.** The mirror
+**Pre-shipment cancellation: C1 is BUILT (2026-08-06; ADR-065); C2 is next.** The mirror
 of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
 S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
 Inventory restock) — **seller line-level cancel** (immediate; a quantity of a line the
@@ -196,6 +196,25 @@ buyer can't cancel a paid order unilaterally, the seller may be preparing it). *
 the shipment state, not the return window** — once `shipped`, ADR-064's return takes over.
 Only the triggers + the shipment-`pending` gate are new; the refund is `RefundLinesAction`
 unchanged. No seller penalty in v1 (future ADR). See `BUILD_CANCELLATION.md`.
+
+**C1 added the platform's SECOND Core command port** — `OrderCancellationContract`, which
+Payment implements and **Order's seller panel calls**. Every other Core contract has one
+module ASKING another; this is the first where the module that owns the operation ANSWERS.
+It is a command rather than an event because a seller pressing a button must be told, in
+that request, that they asked for three of two or that the parcel already shipped. The gate
+reads `ShipmentQueryContract` (also new), and **a missing shipment REFUSES** — reading its
+absence as "not shipped yet" would refund a parcel already with a carrier.
+
+**`PaymentRefunded` now carries a `cause`** (`return` | `cancellation`). The money is
+identical at both ends of the lifecycle; the meaning is not, and it is what decides whether
+an order ends `refunded` or `cancelled` and its parcel `returned` or `cancelled`.
+
+**`OrderStatus: Paid → Cancelled` is legal but `CancelOrderAction` may not use it.** That
+lever releases a hold and zeroes a seller's declared stock; it was safe on a paid order only
+because the transition did not exist. Both it and `OrderPolicy::cancel()` now refuse on
+`OrderStatus::isCancellableWithoutRefund()`. **A paid order is cancelled by refunding it, or
+not at all** — if you are reaching for the transition table to decide this, you want that
+method.
 
 ---
 

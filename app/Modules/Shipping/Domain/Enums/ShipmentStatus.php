@@ -14,6 +14,14 @@ use App\Shared\Enums\Concerns\HasEnumHelpers;
  *   Delivered — it arrived. `delivered_at` is what payout and the return window
  *               key off (ADR-064).
  *   Returned  — it came back, driven by Payment's refund (S4), never by Shipping.
+ *   Cancelled — it never left. The order was cancelled before handover (ADR-065),
+ *               driven by Payment's refund exactly as `Returned` is.
+ *
+ * **`Returned` AND `Cancelled` ARE THE TWO SIDES OF "SHIPPED"**, and keeping them
+ * apart is the point of having both. A parcel that came back was packed, handed
+ * over, carried and delivered — the seller spent all of that. One that was
+ * cancelled cost them nothing. A single "reversed" case would collapse the one
+ * distinction a future cancellation-rate penalty (ADR-065 defers it) would need.
  *
  * **THERE IS NO CASE THE SELLER CAN SET FOR `Delivered`**, and that is the one
  * rule that keeps payout honest (ADR-064): the seller is paid on delivery, so a
@@ -40,6 +48,7 @@ enum ShipmentStatus: string
     case Shipped = 'shipped';
     case Delivered = 'delivered';
     case Returned = 'returned';
+    case Cancelled = 'cancelled';
 
     /**
      * The states this one may still move to.
@@ -49,14 +58,22 @@ enum ShipmentStatus: string
     public function transitions(): array
     {
         return match ($this) {
-            self::Pending => [self::Shipped],
+            /*
+            | CANCELLABLE ONLY HERE (ADR-065). Once the parcel is with a carrier
+            | the seller has spent the effort and the buyer's route is the return
+            | (ADR-064), so `Shipped` deliberately has no way back to this row.
+            | That asymmetry IS the gate — a status check somewhere else could be
+            | forgotten; a missing edge cannot.
+            */
+            self::Pending => [self::Shipped, self::Cancelled],
             // Delivery is INFERRED (S2), never asserted — see the class docblock.
             self::Shipped => [self::Delivered],
             // A return is Payment's refund reaching back here (S4), not a lever in
             // this module.
             self::Delivered => [self::Returned],
-            // Terminal: a returned parcel that ships again is a new order.
-            self::Returned => [],
+            // Terminal: a returned parcel that ships again is a new order, and a
+            // cancelled one was never a parcel.
+            self::Returned, self::Cancelled => [],
         };
     }
 
@@ -92,6 +109,7 @@ enum ShipmentStatus: string
             self::Shipped => 'info',
             self::Delivered => 'success',
             self::Returned => 'danger',
+            self::Cancelled => 'gray',
         };
     }
 

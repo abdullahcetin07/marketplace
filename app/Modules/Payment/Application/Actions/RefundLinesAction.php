@@ -12,6 +12,7 @@ use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
 use App\Modules\Payment\Domain\DTOs\ReturnRequestDTO;
 use App\Modules\Payment\Domain\Enums\LedgerEntryType;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
+use App\Modules\Payment\Domain\Enums\RefundCause;
 use App\Modules\Payment\Domain\Events\PaymentRefunded;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payment;
@@ -59,6 +60,10 @@ final class RefundLinesAction extends BaseAction
 
     private ?string $providerReference = null;
 
+    private RefundCause $cause = RefundCause::Return;
+
+    private ?string $reason = null;
+
     public function __construct(
         private readonly PaymentGatewayContract $gateway,
         private readonly OrderQueryContract $orders,
@@ -69,6 +74,9 @@ final class RefundLinesAction extends BaseAction
     {
         /** @var ReturnRequestDTO $request */
         $request = $arguments[0];
+
+        $this->cause = $request->cause;
+        $this->reason = $request->reason;
 
         $payment = $this->payment($request->orderUuid);
         $priced = $this->price($request);
@@ -353,6 +361,10 @@ final class RefundLinesAction extends BaseAction
             currencyCode: $payment->currency->code,
             orderUuids: $this->fullyReturned($orderUuid) ? [$orderUuid] : [],
             fullyRefunded: $fully,
+            // WHY, which is the only thing separating a return from a
+            // cancellation once the money has moved (ADR-065).
+            cause: $this->cause->value,
+            reason: $this->reason,
         );
     }
 

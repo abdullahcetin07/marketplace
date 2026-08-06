@@ -93,7 +93,21 @@ final class CancelOrderAction extends BaseAction
             return $order;
         }
 
-        if (! $order->status->canTransitionTo(OrderStatus::Cancelled)) {
+        /*
+        | **NOT THE TRANSITION TABLE, SINCE ADR-065 (2026-08-06).** `Paid →
+        | Cancelled` became a legal edge so that a pre-shipment cancellation could
+        | name its outcome honestly — and that edge, read from here, would have
+        | let this action cancel a PAID order: releasing a hold that was already
+        | committed, zeroing the seller's stock, and leaving the buyer's money
+        | exactly where it was.
+        |
+        | This lever undoes an order that was never paid for. A paid one is
+        | undone by refunding it (Payment's `CancelOrderLinesAction`), which
+        | reaches `Cancelled` through the same edge with the money actually
+        | returned. Asking `isCancellableWithoutRefund()` says which of the two
+        | this is.
+        */
+        if (! $order->status->isCancellableWithoutRefund()) {
             throw OrderException::invalidTransition($order->status, OrderStatus::Cancelled);
         }
 

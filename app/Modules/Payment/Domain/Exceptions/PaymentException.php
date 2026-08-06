@@ -176,6 +176,21 @@ final class PaymentException extends BaseException
     }
 
     /**
+     * The seller may not cancel it (ADR-065, C1).
+     *
+     * ONE ANSWER FOR "not yours", "already shipped" AND "no such order", because
+     * they are the same answer to the seller — this is not yours to cancel right
+     * now — and telling them apart would let anyone map the platform's order
+     * uuids by watching which error comes back.
+     */
+    public static function notCancellable(string $orderUuid): self
+    {
+        return self::make(__('payment.errors.not_cancellable'))
+            ->withContext(['reason' => 'not_cancellable', 'order' => $orderUuid])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * The PSP could not be reached, or answered something unusable.
      *
      * REPORTABLE, unlike everything else here — see the class docblock. The

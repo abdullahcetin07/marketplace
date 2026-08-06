@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Payment\Domain\DTOs;
 
 use App\Core\Domain\DataTransferObjects\BaseDTO;
+use App\Modules\Payment\Domain\Enums\RefundCause;
 
 /**
  * "Bunu geri göndereceğim" — which items, and how many of each (S4).
@@ -29,5 +30,14 @@ final class ReturnRequestDTO extends BaseDTO
         public readonly array $quantities,
         public readonly ?string $reason = null,
         public readonly ?int $actorId = null,
+        /**
+         * Why these units are going back (ADR-065, C1).
+         *
+         * THE ONE FIELD A CANCELLATION ADDS. Everything else about undoing a sale
+         * is identical — the amounts, the commission share, the restock, the two
+         * ledger entries — so a cancellation is this DTO with a different cause
+         * rather than a second refund implementation. @see `RefundCause`.
+         */
+        public readonly RefundCause $cause = RefundCause::Return,
     ) {}
 }
