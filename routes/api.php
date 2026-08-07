@@ -35,6 +35,8 @@ use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
 use App\Modules\Payment\Presentation\Controllers\Api\ReturnController;
+use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\ProductRatingsController;
+use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\PublicProductReviewController;
 use App\Modules\Shipping\Presentation\Controllers\Api\ShipmentController;
 use App\Modules\Store\Presentation\Controllers\Api\Admin\StoreController as AdminStoreController;
 use App\Modules\Store\Presentation\Controllers\Api\StoreController;
@@ -178,6 +180,23 @@ Route::prefix('v1')
             | deliberately: `{product}` would otherwise swallow the more specific
             | path and the buy box would 404.
             */
+            /*
+            | A PRODUCT'S PUBLISHED REVIEWS AND ITS STARS (ADR-069, Reviews §7).
+            |
+            | DECLARED BEFORE `products/{product}` for the reason stated above:
+            | the catch-all would otherwise swallow `/reviews` and the section
+            | would 404 — the same trap `/offers` sits in front of.
+            |
+            | `data` is the reviews so pagination means what it says; the
+            | SUMMARY rides in `meta`, where it is not paginated and cannot be
+            | mistaken for a page of results. It describes the WHOLE product, not
+            | the filtered page: a shopper narrowing to one seller still sees the
+            | product's real average, because the filter narrows what they read
+            | rather than what the product is.
+            */
+            Route::get('products/{product}/reviews', [PublicProductReviewController::class, 'index'])
+                ->name('storefront.product.reviews');
+
             Route::get('products', [PublicProductController::class, 'index'])
                 ->name('storefront.products.index');
             Route::get('products/{product}', [PublicProductController::class, 'show'])
@@ -196,6 +215,19 @@ Route::prefix('v1')
             */
             Route::post('offers/prices', [PublicBuyBoxPriceController::class, 'index'])
                 ->name('storefront.offers.prices');
+
+            /*
+            | THE STAR HALF OF THE SAME GRID (ADR-069) — the exact mirror of the
+            | price call above, and a POST for the same reason: forty uuids do
+            | not belong in a query string.
+            |
+            | AN UNREVIEWED PRODUCT IS ABSENT FROM THE ANSWER, never `"0.0"`. A
+            | card handed a zero renders "★ 0.0", which reads as "rated badly"
+            | rather than "not rated yet" — the client's own no-rating branch is
+            | the correct rendering, and omission is what triggers it.
+            */
+            Route::post('products/ratings', [ProductRatingsController::class, 'batch'])
+                ->name('storefront.products.ratings');
 
             /*
             | THE FLAT URL SCHEME'S KEYSTONE (ADR-059). The storefront addresses
