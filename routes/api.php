@@ -35,6 +35,7 @@ use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
 use App\Modules\Payment\Presentation\Controllers\Api\ReturnController;
+use App\Modules\Reviews\Presentation\Controllers\Api\CustomerReviewController;
 use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\ProductRatingsController;
 use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\PublicProductReviewController;
 use App\Modules\Shipping\Presentation\Controllers\Api\ShipmentController;
@@ -555,6 +556,33 @@ Route::prefix('v1')
             | branch on these routes: they are two halves of an argument, and one
             | surface serving both is one where either can act as the other.
             */
+            /*
+            | THE BUYER'S OWN REVIEWS (ADR-067/068, Reviews §8).
+            |
+            | `eligible` DRAWS THE FORM; IT DOES NOT AUTHORISE IT. It answers
+            | which delivered purchases are still unreviewed, so the screen can
+            | name WHICH one it is offering — a shopper who bought the same thing
+            | twice needs to know. `POST /reviews` re-verifies every line
+            | server-side against the Core Order port, so the two disagreeing
+            | means the form was wrong, never that the gate was.
+            |
+            | THE 201 SAYS `pending_review`. Nothing a buyer writes is visible to
+            | anybody else until a moderator publishes it, and the UI has to say
+            | "onay bekliyor" rather than congratulate them.
+            |
+            | THERE IS NO PATCH. A review is deleted and rewritten (§8) — an
+            | editable one lets somebody earn credibility with five stars and
+            | then rewrite it, with every earlier reader none the wiser.
+            */
+            Route::get('/reviews/eligible', [CustomerReviewController::class, 'eligible'])
+                ->name('reviews.eligible');
+            Route::get('/reviews/mine', [CustomerReviewController::class, 'mine'])
+                ->name('reviews.mine');
+            Route::post('/reviews', [CustomerReviewController::class, 'store'])
+                ->name('reviews.store');
+            Route::delete('/reviews/{review}', [CustomerReviewController::class, 'destroy'])
+                ->name('reviews.destroy');
+
             Route::post('/orders/{order}/cancellation-request', [CancellationRequestController::class, 'store'])
                 ->name('orders.cancellation-request.store');
             Route::get('/orders/{order}/cancellation-request', [CancellationRequestController::class, 'show'])
