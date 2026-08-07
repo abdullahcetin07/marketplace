@@ -252,6 +252,11 @@ return [
         'rejected' => 'Rejected',
     ],
 
+    'QuestionStatus' => [
+        'pending' => 'Awaiting answer',
+        'answered' => 'Answered',
+    ],
+
     'ReviewStatus' => [
         'pending_review' => 'Awaiting approval',
         'published' => 'Published',
