@@ -119,6 +119,16 @@ final class AdminPanelProvider extends PanelProvider
                 */
                 \App\Modules\Reviews\Presentation\Filament\Resources\ReviewModerationResource::class,
 
+                /*
+                | The Q&A moderation screen (ADR-071), beside the review queue —
+                | and NOT the same job despite the neighbourhood. A review waits
+                | for staff before anybody sees it; a question waits for the
+                | MERCHANT, and staff arrive only when something is wrong. There
+                | is no answer action here: the platform speaking in a seller's
+                | place is a promise the seller did not make.
+                */
+                \App\Modules\Questions\Presentation\Filament\Resources\QuestionModerationResource::class,
+
                 CategoryResource::class,
                 AttributeResource::class,
                 BrandResource::class,

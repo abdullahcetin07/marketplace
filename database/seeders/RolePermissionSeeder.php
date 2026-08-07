@@ -114,6 +114,15 @@ final class RolePermissionSeeder extends Seeder
             */
             ...PermissionRegistry::forResource('review', ['view_any', 'view']),
             'review.moderate',
+            /*
+            | AND THE Q&A, for the same reason (ADR-071): a shopper's question
+            | and a merchant's answer are user text, which is the content role's
+            | business. `question.moderate` is a HIDE and nothing more — the
+            | Editor cannot answer, because no admin-guard user holds
+            | `question.answer` at all.
+            */
+            ...PermissionRegistry::forResource('question', ['view_any', 'view']),
+            'question.moderate',
         ]);
 
         /*
