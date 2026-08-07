@@ -591,14 +591,21 @@ export function fetchMyReviews(): Promise<MyReview[] | null> {
 /**
  * Submit a review for one delivered order line. Photos are optional; the rating
  * is not. Multipart, because of the photos — see `requestMultipart`.
+ *
+ * `product` (a uuid or slug) is REQUIRED by the API: the gate is keyed on
+ * (customer, product), so the server needs it to locate which delivered line this
+ * is — it never reads `order_lines` to derive it. It is not trusted (a wrong one
+ * just yields no eligible line and a refusal); the storefront already holds it.
  */
 export function submitReview(input: {
+  product: string;
   orderLineUuid: string;
   rating: number;
   body: string;
   photos: File[];
 }): Promise<MyReview | null> {
   const form = new FormData();
+  form.set('product', input.product);
   form.set('order_line_uuid', input.orderLineUuid);
   form.set('rating', String(input.rating));
   if (input.body.trim() !== '') form.set('body', input.body.trim());

@@ -84,7 +84,7 @@ function ReviewLineForm({ line, onDone }: { line: OrderLine; onDone: () => void 
     setBusy(true);
     setError(null);
     try {
-      await submitReview({ orderLineUuid: line.id, rating, body, photos });
+      await submitReview({ product: line.product_id, orderLineUuid: line.id, rating, body, photos });
       onDone();
     } catch (e) {
       setError(e instanceof SessionApiError ? e.message : 'Değerlendirme gönderilemedi.');
