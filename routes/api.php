@@ -35,6 +35,7 @@ use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
 use App\Modules\Payment\Presentation\Controllers\Api\ReturnController;
+use App\Modules\Questions\Presentation\Controllers\Api\CustomerQuestionController;
 use App\Modules\Questions\Presentation\Controllers\Api\Storefront\PublicProductQuestionController;
 use App\Modules\Reviews\Presentation\Controllers\Api\CustomerReviewController;
 use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\ProductRatingsController;
@@ -589,6 +590,29 @@ Route::prefix('v1')
             | editable one lets somebody earn credibility with five stars and
             | then rewrite it, with every earlier reader none the wiser.
             */
+            /*
+            | "SATICIYA SOR" (ADR-070, Questions §8).
+            |
+            | THERE IS NO `eligible` ROUTE HERE, and the absence is the module:
+            | Reviews needs one because a review binds to a delivered purchase
+            | and the form must name which. A question needs no purchase at all —
+            | the shopper is standing on the product page, so posting the product
+            | is the whole flow.
+            |
+            | THE 201 SAYS `pending`. Only the merchant's answer publishes it, so
+            | the UI says "sorunuz satıcıya iletildi" rather than showing it live.
+            |
+            | AND NO SELLER FIELD: the target is the buy-box winner, read and
+            | frozen on the server, so a hostile question cannot be aimed at a
+            | merchant who never sold the thing.
+            */
+            Route::get('/questions/mine', [CustomerQuestionController::class, 'mine'])
+                ->name('questions.mine');
+            Route::post('/questions', [CustomerQuestionController::class, 'store'])
+                ->name('questions.store');
+            Route::delete('/questions/{question}', [CustomerQuestionController::class, 'destroy'])
+                ->name('questions.destroy');
+
             Route::get('/reviews/eligible', [CustomerReviewController::class, 'eligible'])
                 ->name('reviews.eligible');
             Route::get('/reviews/mine', [CustomerReviewController::class, 'mine'])
