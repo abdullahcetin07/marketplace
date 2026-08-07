@@ -2,7 +2,8 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import { ProductGallery } from '@/components/ProductGallery';
-import { getProduct, getProductOffers } from '@/lib/api';
+import { ProductReviews } from '@/components/ProductReviews';
+import { getProduct, getProductOffers, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
 
@@ -29,8 +30,13 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
   // Offers are keyed by the product's uuid — fetch them with the resolved id, not
   // the incoming slug. (The offers route only resolves the uuid; passing a slug is
-  // the uuid-cast 500. Using the id is also just the correct key.)
-  const offers = await getProductOffers(product.id);
+  // the uuid-cast 500. Using the id is also just the correct key.) Reviews ride
+  // along in the same round of fetches, and degrade to empty rather than break the
+  // page if they fail.
+  const [offers, reviews] = await Promise.all([
+    getProductOffers(product.id),
+    getProductReviews(product.id),
+  ]);
 
   const featured = offers?.featured ?? null;
 
@@ -58,6 +64,16 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
     sku: product.id,
     gtin: product.gtin ?? undefined,
     brand: product.brand ? { '@type': 'Brand', name: product.brand.name } : undefined,
+    // The average is the decimal string the API sent — schema.org accepts it as-is,
+    // and it never becomes a float on the way through.
+    aggregateRating:
+      reviews.summary.count > 0
+        ? {
+            '@type': 'AggregateRating',
+            ratingValue: reviews.summary.average,
+            reviewCount: reviews.summary.count,
+          }
+        : undefined,
     // Price stays the decimal string the API sent — schema.org accepts it as-is.
     offers:
       featured === null
@@ -221,6 +237,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           )}
         </aside>
       </div>
+
+      <ProductReviews productId={product.id} initial={reviews} />
     </div>
   );
 }

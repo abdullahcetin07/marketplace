@@ -193,6 +193,31 @@ export type CancellationRequest = {
   created_at: string;
 };
 
+/** A review's moderation state (Reviews, ADR-068). */
+export type ReviewModerationStatus = 'pending_review' | 'published' | 'rejected';
+
+/** A delivered order line the buyer can still review (Reviews, ADR-067). */
+export type EligibleReviewLine = {
+  /** The order line uuid — what a review is submitted against. */
+  order_line_uuid: string;
+  seller: { id: string; name: string | null };
+  variant_label: string | null;
+  product_title: string;
+  purchased_at: string | null;
+};
+
+/** The buyer's own review, any status — for the account area. */
+export type MyReview = {
+  id: string;
+  product_uuid: string;
+  product_title: string;
+  rating: number;
+  body: string | null;
+  status: ReviewModerationStatus;
+  images: { thumb: string; preview: string; large: string }[];
+  created_at: string;
+};
+
 export type Order = {
   id: string;
   /** The human handle a customer quotes in an email (Order §2.3). */

@@ -28,7 +28,9 @@ import type {
   CancellationRequest,
   CartView,
   Country,
+  EligibleReviewLine,
   GeoPlace,
+  MyReview,
   Order,
   OrderReturn,
   PaymentView,
@@ -113,6 +115,46 @@ async function request<T>(path: string, options: RequestOptions = {}): Promise<T
   });
 
   if (response.status === 204) return null;
+  if (response.status === 401) return null;
+
+  const payload = (await response.json().catch(() => null)) as
+    | (Envelope<T> & { errors?: Record<string, string[]> })
+    | null;
+
+  if (!response.ok) {
+    throw new SessionApiError(
+      payload?.message ?? 'Bir şeyler ters gitti.',
+      response.status,
+      payload?.errors ?? {},
+    );
+  }
+
+  return payload?.data ?? null;
+}
+
+/**
+ * One session-carrying request with a `multipart/form-data` body (file uploads).
+ *
+ * The SAME auth as `request`, but it must NOT set `Content-Type` — the browser
+ * writes it with the multipart boundary itself, and overriding that is the
+ * classic "the server saw no files" bug. Otherwise identical: CSRF cookie first,
+ * cookies included, 401 → null.
+ */
+async function requestMultipart<T>(path: string, form: FormData): Promise<T | null> {
+  await ensureCsrfCookie();
+  const token = readCookie('XSRF-TOKEN');
+
+  const response = await fetch(path, {
+    method: 'POST',
+    credentials: 'include',
+    cache: 'no-store',
+    headers: {
+      Accept: 'application/json',
+      ...(token === undefined ? {} : { 'X-XSRF-TOKEN': decodeURIComponent(token) }),
+    },
+    body: form,
+  });
+
   if (response.status === 401) return null;
 
   const payload = (await response.json().catch(() => null)) as
@@ -521,4 +563,51 @@ export function requestCancellation(
     `/api/v1/orders/${encodeURIComponent(orderId)}/cancellation-request`,
     { method: 'POST', body: { reason: reason === undefined || reason === '' ? null : reason } },
   );
+}
+
+/*
+|------------------------------------------------------------------------------
+| Reviews — the buyer side (Reviews, ADR-067)
+|------------------------------------------------------------------------------
+|
+| ONLY A DELIVERED PURCHASE CAN BE REVIEWED, and the server is the authority: the
+| eligible read lists the buyer's delivered, not-yet-reviewed order lines for a
+| product, and `submitReview` is re-verified server-side against exactly that. A
+| review is born PENDING — `201` means "onaya gönderildi", never "yayınlandı".
+*/
+
+/** Delivered, not-yet-reviewed lines for a product (empty array when none). */
+export function fetchEligibleReviews(productIdOrSlug: string): Promise<EligibleReviewLine[] | null> {
+  return request<EligibleReviewLine[]>(
+    `/api/v1/reviews/eligible?product=${encodeURIComponent(productIdOrSlug)}`,
+  );
+}
+
+/** The buyer's own reviews across every status (so a pending one is visible). */
+export function fetchMyReviews(): Promise<MyReview[] | null> {
+  return request<MyReview[]>('/api/v1/reviews/mine');
+}
+
+/**
+ * Submit a review for one delivered order line. Photos are optional; the rating
+ * is not. Multipart, because of the photos — see `requestMultipart`.
+ */
+export function submitReview(input: {
+  orderLineUuid: string;
+  rating: number;
+  body: string;
+  photos: File[];
+}): Promise<MyReview | null> {
+  const form = new FormData();
+  form.set('order_line_uuid', input.orderLineUuid);
+  form.set('rating', String(input.rating));
+  if (input.body.trim() !== '') form.set('body', input.body.trim());
+  input.photos.forEach((file) => form.append('photos[]', file));
+
+  return requestMultipart<MyReview>('/api/v1/reviews', form);
+}
+
+/** A buyer may delete their own review (hard delete — the line becomes reviewable again). */
+export function deleteReview(reviewId: string): Promise<null> {
+  return request<null>(`/api/v1/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
 }

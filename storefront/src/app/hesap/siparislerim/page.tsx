@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { OrderReviewControl } from '@/components/OrderReviewControl';
 import { useSession } from '@/components/SessionProvider';
 import { SignInPrompt } from '@/components/SignInPrompt';
 import { formatMoney } from '@/lib/money';
@@ -441,6 +442,10 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
       </div>
 
       {order.status === 'delivered' && <ReturnControl orderId={order.id} onDone={onChanged} />}
+
+      {order.status === 'delivered' && order.lines !== undefined && order.lines.length > 0 && (
+        <OrderReviewControl lines={order.lines} />
+      )}
     </li>
   );
 }

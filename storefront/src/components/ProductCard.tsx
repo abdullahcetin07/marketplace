@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import type { BuyBoxPrices, ProductCard as Card } from '@/lib/api';
+import type { BuyBoxPrices, ProductCard as Card, ProductRatings } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 
 /**
@@ -18,8 +18,17 @@ import { formatMoney } from '@/lib/money';
  * a quiet state rather than an error, for the seconds between a seller's last
  * unit going and the cache catching up.
  */
-export function ProductCard({ product, prices }: { product: Card; prices: BuyBoxPrices }) {
+export function ProductCard({
+  product,
+  prices,
+  ratings,
+}: {
+  product: Card;
+  prices: BuyBoxPrices;
+  ratings?: ProductRatings;
+}) {
   const price = prices[product.id];
+  const rating = ratings?.[product.id];
 
   return (
     <Link
@@ -54,6 +63,16 @@ export function ProductCard({ product, prices }: { product: Card; prices: BuyBox
         <h3 className="line-clamp-2 min-h-[2.4em] text-sm leading-snug text-ink-600 dark:text-ink-300">
           {product.title}
         </h3>
+
+        {rating !== undefined && rating.count > 0 && (
+          <span className="flex items-center gap-1 text-[.72rem] font-bold text-ink-500">
+            <svg viewBox="0 0 20 20" className="h-3.5 w-3.5 text-amber-400" fill="currentColor">
+              <path d="M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.2l-4.95 2.6.94-5.5-4-3.9 5.53-.8z" />
+            </svg>
+            <span className="tabular-nums text-ink-700 dark:text-ink-200">{rating.average}</span>
+            <span className="text-ink-400">({rating.count})</span>
+          </span>
+        )}
 
         {price !== undefined && price.seller_count > 1 && (
           <span className="text-[.72rem] font-bold text-green-600">{price.seller_count} satıcı</span>

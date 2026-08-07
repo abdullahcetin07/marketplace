@@ -193,6 +193,56 @@ export type StoreDetail = {
   };
 };
 
+/**
+ * One published review on a product page (Reviews, ADR-066/069).
+ *
+ * NO buyer id and NO order-line id — those are private. `author_name` is already
+ * masked server-side ("Abdullah Ç."). `seller` is the store the reviewer bought
+ * from (the authoritative tag), which the seller filter reads.
+ */
+export type ProductReview = {
+  id: string;
+  rating: number;
+  body: string | null;
+  author_name: string;
+  seller: { id: string; name: string | null };
+  variant_label: string | null;
+  images: { thumb: string; preview: string; large: string }[];
+  created_at: string;
+};
+
+/** The rating rollup for a product — computed on read, never stored (ADR-069). */
+export type ReviewSummary = {
+  /** Decimal string ("4.3"); never parsed to a number (005 §28). */
+  average: string;
+  count: number;
+  distribution: Record<'5' | '4' | '3' | '2' | '1', number>;
+  with_images_count: number;
+  /** Sellers who have reviews, for the "bu satıcıdan alanlar" filter. */
+  sellers: { id: string; name: string | null; count: number }[];
+};
+
+export type ProductReviewsPage = {
+  reviews: ProductReview[];
+  summary: ReviewSummary;
+  page: number;
+  lastPage: number;
+  total: number;
+};
+
+export type ReviewFilters = { seller?: string; withImages?: boolean; rating?: number; page?: number };
+
+/** Batch card badges: product uuid → its average + count. Absent = unreviewed. */
+export type ProductRatings = Record<string, { average: string; count: number }>;
+
+const EMPTY_SUMMARY: ReviewSummary = {
+  average: '0.0',
+  count: 0,
+  distribution: { '5': 0, '4': 0, '3': 0, '2': 0, '1': 0 },
+  with_images_count: 0,
+  sellers: [],
+};
+
 export type ProductSort = 'newest' | 'price_asc' | 'price_desc';
 
 export type BrowseParams = {
@@ -380,4 +430,82 @@ export async function getBuyBoxPrices(productIds: string[]): Promise<BuyBoxPrice
   if (productIds.length === 0) return {};
 
   return publicPost<BuyBoxPrices>('/api/v1/offers/prices', { product_ids: productIds });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Reviews (Reviews module, ADR-066/069)
+|------------------------------------------------------------------------------
+*/
+
+/**
+ * A product's published reviews + rating summary.
+ *
+ * IT DEGRADES RATHER THAN THROWS. A broken or empty reviews read must never take
+ * down the product page it hangs off — the same resilience the storefront
+ * contributor promises server-side (ADR-036) — so a non-OK response returns an
+ * empty page, not an error. The summary rides in `meta` (the average is a decimal
+ * string and stays one; no `Number()` on a rating either).
+ */
+export async function getProductReviews(
+  idOrSlug: string,
+  filters: ReviewFilters = {},
+): Promise<ProductReviewsPage> {
+  const query = new URLSearchParams();
+  if (filters.seller) query.set('seller', filters.seller);
+  if (filters.withImages) query.set('with_images', '1');
+  if (filters.rating) query.set('rating', String(filters.rating));
+  if (filters.page && filters.page > 1) query.set('page', String(filters.page));
+  const suffix = query.toString() === '' ? '' : `?${query.toString()}`;
+
+  const empty: ProductReviewsPage = { reviews: [], summary: EMPTY_SUMMARY, page: 1, lastPage: 1, total: 0 };
+
+  try {
+    const response = await fetch(apiUrl(`/api/v1/products/${encodeURIComponent(idOrSlug)}/reviews${suffix}`), {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) return empty;
+
+    const envelope = (await response.json()) as Envelope<ProductReview[]> & {
+      meta?: {
+        current_page?: number;
+        last_page?: number;
+        total?: number;
+        summary?: ReviewSummary;
+      };
+    };
+    const meta = envelope.meta ?? {};
+
+    return {
+      reviews: envelope.data ?? [],
+      summary: meta.summary ?? EMPTY_SUMMARY,
+      page: Number(meta.current_page ?? 1),
+      lastPage: Number(meta.last_page ?? 1),
+      total: Number(meta.total ?? 0),
+    };
+  } catch {
+    return empty;
+  }
+}
+
+/**
+ * Rating badges for a whole listing in one call (mirrors `getBuyBoxPrices`).
+ *
+ * Degrades to `{}` — a missing star badge must never break a grid. An unreviewed
+ * product is simply absent from the map (never `"0.0"`, which reads as "rated
+ * zero"). The API returns `[]` for an all-empty batch; that normalises to `{}`.
+ */
+export async function getProductRatings(productIds: string[]): Promise<ProductRatings> {
+  if (productIds.length === 0) return {};
+
+  try {
+    const data = await publicPost<{ ratings: ProductRatings | unknown[] }>('/api/v1/products/ratings', {
+      product_ids: productIds,
+    });
+
+    return Array.isArray(data.ratings) ? {} : data.ratings;
+  } catch {
+    return {};
+  }
 }
