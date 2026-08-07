@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Models\Customer;
+use App\Models\User;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Order\Domain\Enums\OrderStatus;
@@ -40,7 +41,7 @@ beforeEach(function (): void {
  *
  * @return array{product: Product, order: Order, line: OrderLine, store: Store}
  */
-function buyerReviewFixture(Customer $customer, string $storeName = 'Deniz Kozmetik'): array
+function buyerReviewFixture(User $customer, string $storeName = 'Deniz Kozmetik'): array
 {
     $category = Category::factory()->childOf(Category::factory()->create())->create();
     $product = Product::factory()->for($category, 'category')->published()
@@ -207,8 +208,12 @@ it('lists a buyer’s own reviews in every status, and nobody else’s', functio
      */
     $response->assertJsonCount(2, 'data');
 
-    expect(collect($response->json('data'))->pluck('status')->sort()->values()->all())
-        ->toBe(['pending_review', 'rejected']);
+    /** @var array<int, array<string, mixed>> $rows */
+    $rows = $response->json('data');
+    $statuses = array_map(static fn (array $row): string => (string) $row['status'], $rows);
+    sort($statuses);
+
+    expect($statuses)->toBe(['pending_review', 'rejected']);
 });
 
 it('will not let one customer delete another’s review', function (): void {

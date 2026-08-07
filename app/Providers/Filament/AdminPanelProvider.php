@@ -109,6 +109,16 @@ final class AdminPanelProvider extends PanelProvider
                 // Catalog (ADR-037–041). The moderation queue first: it is the
                 // Category Manager's daily surface, the taxonomy is maintenance.
                 ProductModerationResource::class,
+
+                /*
+                | The review queue (ADR-068), beside the product one because it
+                | is the same job on different content — and the only other
+                | place on this platform where staff decide whether something
+                | somebody else wrote becomes public. The SELLER is absent from
+                | it by design: the party a review judges gets no lever over it.
+                */
+                \App\Modules\Reviews\Presentation\Filament\Resources\ReviewModerationResource::class,
+
                 CategoryResource::class,
                 AttributeResource::class,
                 BrandResource::class,

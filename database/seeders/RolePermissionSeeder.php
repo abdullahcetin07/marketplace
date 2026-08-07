@@ -100,6 +100,20 @@ final class RolePermissionSeeder extends Seeder
             ...PermissionRegistry::forResource('user', ['view_any', 'view']),
             ...PermissionRegistry::forResource('translation', ['view_any', 'view', 'update']),
             ...PermissionRegistry::forResource('setting', ['view_any', 'view']),
+            /*
+            | REVIEW MODERATION IS THE EDITOR'S (ADR-068) — and the exception to
+            | the line above about not moderating. That line is about the
+            | CATALOGUE, where a rejection sends a seller's listing back for
+            | revision and belongs with the Category Manager who owns the
+            | taxonomy. A review is neither taxonomy nor a listing: it is user
+            | text and photographs, which is exactly what the content role reads
+            | all day.
+            |
+            | Admin holds these too, from its own broad grant — no `review.*` is
+            | in the excluded list above.
+            */
+            ...PermissionRegistry::forResource('review', ['view_any', 'view']),
+            'review.moderate',
         ]);
 
         /*
