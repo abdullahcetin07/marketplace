@@ -139,6 +139,17 @@ final class SellerPanelProvider extends PanelProvider
                 | window sets (ADR-064).
                 */
                 \App\Modules\Shipping\Presentation\Filament\Seller\Resources\ShipmentResource::class,
+
+                /*
+                | "SATICIYA SOR" (ADR-071) — the questions shoppers aimed at this
+                | merchant, and the one seller-panel surface whose action puts
+                | text on a PUBLIC page. There is no draft and no moderator
+                | afterwards: answering is publishing.
+                |
+                | Scoped by the `store_uuid` the question was snapshotted with,
+                | so a merchant sees only what was asked of their own shops.
+                */
+                \App\Modules\Questions\Presentation\Filament\Seller\Resources\QuestionResource::class,
             ])
             ->discoverPages(in: app_path('Filament/Seller/Pages'), for: 'App\\Filament\\Seller\\Pages')
             ->discoverWidgets(in: app_path('Filament/Seller/Widgets'), for: 'App\\Filament\\Seller\\Widgets')

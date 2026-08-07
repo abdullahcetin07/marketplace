@@ -249,6 +249,16 @@ final class RolePermissionSeeder extends Seeder
             'catalog.products.create',
             'catalog.products.author',
             ...PermissionRegistry::forResource('session', ['view_any', 'view', 'delete']),
+            /*
+            | ANSWERING BUYER QUESTIONS IS DELEGABLE STAFF WORK (ADR-071), like
+            | product authoring above it: a shopper waiting on "kutusundan kablo
+            | çıkıyor mu?" should not wait for the owner personally. It is still
+            | confined to the organization's own stores — `QuestionPolicy::answer()`
+            | checks the question's target against the actor's live stores, exactly
+            | as it does for the owner.
+            */
+            ...PermissionRegistry::forResource('question', ['view_any', 'view']),
+            'question.answer',
         ]);
     }
 
