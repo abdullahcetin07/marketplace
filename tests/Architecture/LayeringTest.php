@@ -524,6 +524,39 @@ arch('Reviews imports no other module')
 | sits below the modules (001 §6), so a trait is not a dependency; importing the
 | module would be.
 */
+arch('Questions imports no other module')
+    ->expect('App\Modules\Questions')
+    ->not->toUse([
+        'App\Modules\Catalog',
+        'App\Modules\Order',
+        'App\Modules\Store',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Payment',
+        'App\Modules\Shipping',
+        'App\Modules\Organization',
+        'App\Modules\Reviews',
+        'App\Modules\Media',
+        'App\Modules\Identity',
+        'App\Modules\Notification',
+    ]);
+
+/*
+| REVIEWS IS ON THAT LIST, and it is the entry worth pausing on. Questions is
+| deliberately built to Reviews' SHAPE — same layers, same masked author, same
+| Core reads — and shares none of its tables or classes. "Mirrors" is a
+| description of the design, never a dependency: the moment one of them imports
+| the other, changing either breaks both.
+*/
+arch('no module depends on Questions')
+    ->expect('App\Modules\Questions')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Questions',
+        'App\Providers\Filament',
+        'Database\Modules\Questions',
+        'Tests\Modules\Questions',
+    ]);
+
 arch('no module depends on Reviews')
     ->expect('App\Modules\Reviews')
     ->toOnlyBeUsedIn([
@@ -598,6 +631,7 @@ arch('no forbidden infrastructure helpers in any Domain layer')
         'App\Modules\Inventory\Domain',
         'App\Modules\Order\Domain',
         'App\Modules\Reviews\Domain',
+        'App\Modules\Questions\Domain',
     ]);
 
 arch('no encryption Facades in any Domain layer')
@@ -741,6 +775,16 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Reviews\Infrastructure',
         'App\Modules\Reviews\Presentation',
         'App\Modules\Reviews\ReviewsServiceProvider',
+        // Questions — same shape: every namespace except `Domain\DTOs`.
+        'App\Modules\Questions\Application',
+        'App\Modules\Questions\Domain\Models',
+        'App\Modules\Questions\Domain\Enums',
+        'App\Modules\Questions\Domain\Events',
+        'App\Modules\Questions\Domain\Contracts',
+        'App\Modules\Questions\Domain\Exceptions',
+        'App\Modules\Questions\Infrastructure',
+        'App\Modules\Questions\Presentation',
+        'App\Modules\Questions\QuestionsServiceProvider',
         // Order — non-DTO namespaces ignored so its Domain\DTOs stay covered
         // (they must carry the suffix), like the modules above.
         'App\Modules\Order\Application',

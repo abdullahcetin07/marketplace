@@ -87,6 +87,15 @@ return [
     */
     App\Modules\Reviews\ReviewsServiceProvider::class,
 
+    /*
+    | Questions — the sibling of Reviews, and in the same slot for the same
+    | reason: it binds no contract another module resolves and subscribes to
+    | nothing. It READS Catalog, Offer, Store and Organization through their Core
+    | contracts, so it needs those bindings by the time a request is served, not
+    | by the time it registers.
+    */
+    App\Modules\Questions\QuestionsServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,
