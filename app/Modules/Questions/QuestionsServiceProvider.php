@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Modules\Questions;
 
+use App\Modules\Questions\Domain\Contracts\QuestionRepositoryContract;
+use App\Modules\Questions\Infrastructure\Repositories\QuestionRepository;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\ServiceProvider;
@@ -40,6 +42,8 @@ final class QuestionsServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        $this->app->singleton(QuestionRepositoryContract::class, QuestionRepository::class);
+
         $this->registerPermissions();
     }
 
