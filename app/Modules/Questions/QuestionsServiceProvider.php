@@ -5,9 +5,12 @@ declare(strict_types=1);
 namespace App\Modules\Questions;
 
 use App\Modules\Questions\Domain\Contracts\QuestionRepositoryContract;
+use App\Modules\Questions\Domain\Models\Question;
 use App\Modules\Questions\Infrastructure\Repositories\QuestionRepository;
+use App\Modules\Questions\Presentation\Policies\QuestionPolicy;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
+use Illuminate\Support\Facades\Gate;
 use Illuminate\Support\ServiceProvider;
 
 /**
@@ -50,6 +53,8 @@ final class QuestionsServiceProvider extends ServiceProvider
     public function boot(): void
     {
         $this->loadMigrationsFrom(database_path('Modules/Questions/migrations'));
+
+        Gate::policy(Question::class, QuestionPolicy::class);
     }
 
     /**
