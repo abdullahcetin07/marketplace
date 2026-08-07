@@ -1,7 +1,9 @@
 # Reviews
 
-**Status: SPEC (2026-08-06; ADR-066–069). Not yet built.** The design below is
-approved; the phased work order is `BUILD_REVIEWS.md`. Reviews is the platform's
+**Status: COMPLETE (2026-08-07; ADR-066–069, built R0–R8).** The design below is
+what shipped; §13 records where the build deviated from it and why. The phased
+work order was `BUILD_REVIEWS.md`. **Not frozen** — the storefront (§9) is still
+to come, and Questions will reuse these patterns. Reviews is the platform's
 first module built purely to carry **user-generated content about the catalogue**,
 and the first whose records a stranger reads on a public page.
 
@@ -100,10 +102,15 @@ Order owns orders and the delivered state, so the read lives on **its** existing
 Core port rather than a new one:
 
 ```
-OrderQueryContract::deliveredPurchaseLines(int $customerId, string $productUuid): array
-    // → list of {order_line_uuid, store_uuid, selling_org_uuid, variant_uuid, delivered_at}
+OrderQueryContract::deliveredPurchaseLines(string $customerUuid, string $productUuid): array
+    // → list of {order_line_uuid, store_uuid, selling_org_uuid, variant_uuid,
+    //            variant_label, product_title, purchased_at}
     // Delivered lines only. Empty when the buyer has none.
 ```
+
+> **As built:** the customer crosses as a **uuid**, not an internal id, and the
+> date is **`purchased_at`**, not `delivered_at` — there is no such column on an
+> order. Both are recorded in §13 and in the `001_Architecture.md` amendment log.
 
 - **Keyed by (customer, product)** — the question Reviews actually asks, which no
   existing method answered (every current `OrderQueryContract` method is
@@ -112,8 +119,11 @@ OrderQueryContract::deliveredPurchaseLines(int $customerId, string $productUuid)
 - **Returns lines, not a boolean**, precisely because the aggregate is per-line
   (§3): the eligibility screen has to show a buyer *which* purchase it is offering
   to review, and the seller tag it will stamp comes from here.
-- **`delivered_at` rides along** so a "you can review purchases from the last N days"
-  window is a later `settings()` tweak, not a schema change. v1 sets no expiry.
+- **A purchase date rides along** so a "you can review purchases from the last N
+  days" window is a later `settings()` tweak, not a schema change. v1 sets no
+  expiry. It is the ORDER's `placed_at`: delivery on an order is a status and
+  nothing more, and the delivery timestamp lives on Shipping's `shipments`, which
+  neither Order nor Reviews may read. The field is named after what it is (§13).
 
 This is a **read added to a frozen-by-convention contract a later module requires** —
 recorded in the `001_Architecture.md` amendment log, the same footing as the reads
@@ -261,7 +271,72 @@ initial. The buyer's identity is never a public field.
 
 ---
 
-## 12. ADRs
+## 12. What shipped, and where to look
+
+| Area | Where |
+|---|---|
+| `ReviewStatus` — three cases, no `NeedsRevision` (§6) | `Domain/Enums/ReviewStatus` |
+| The aggregate — snapshot tag, masked author, `has_photos` flag (§3) | `Domain/Models/Review` |
+| `order_line_uuid` UNIQUE — the whole integrity model (ADR-067) | `database/Modules/Reviews/migrations/*_create_reviews_table` |
+| The read model: computed average, distribution, batch summaries (§7) | `Infrastructure/Repositories/ReviewRepository` |
+| The purchase gate on the Core Order port (§5) | `Core\Domain\Contracts\OrderQueryContract::deliveredPurchaseLines` |
+| Delivered-minus-already-reviewed, in one place (§8) | `Application/Services/ReviewEligibilityService` |
+| The gate closed server-side + the seller tag copied (ADR-066) | `Application/Actions/CreateReviewAction` |
+| The two verdicts (§6) | `Application/Actions/{Publish,Reject}ReviewAction` |
+| Delete-and-rewrite, hard (§8) | `Application/Actions/DeleteReviewAction` |
+| Ownership-only delete, seller-free moderation (§6) | `Presentation/Policies/ReviewPolicy` |
+| `GET /products/{idOrSlug}/reviews` + `POST /products/ratings` (§7) | `Presentation/Controllers/Api/Storefront/*` |
+| `GET /reviews/eligible`, `POST /reviews`, `GET /reviews/mine`, `DELETE /reviews/{uuid}` (§8) | `Presentation/Controllers/Api/CustomerReviewController` |
+| The queue, oldest-first, photos on screen (§6) | `Presentation/Filament/Resources/ReviewModerationResource` |
+
+**Tests:** `ReviewStatusTest` (the enum's absent fourth case), `ReviewRepositoryTest`
+(published-only arithmetic), `DeliveredPurchaseLinesTest` (Order's side of the gate),
+`ReviewGateTest` (the action against a faked port), `PublicReviewApiTest`,
+`CustomerReviewApiTest` (end to end through the real port),
+`ReviewModerationAccessTest` (the seller has no lever), and **`ReviewGateSecurityTest`**
+— the adversarial pass, over HTTP, that a forged line, a forged seller tag, a forged
+status and a forged author name all fail.
+
+---
+
+## 13. Deviations from this specification, recorded
+
+Three, all reported rather than taken silently (ADR-018).
+
+**1. `deliveredPurchaseLines()` takes a customer UUID, not an internal id** (§5).
+`orders` carries and indexes `customer_uuid`, Reviews stores both halves of the
+ADR-040 pair, and a port satisfiable without an internal id should be. This does
+not make `OrderQueryContract` uuid-only in general — `orderFulfilment()` returns a
+`customer_id` deliberately, to be compared against the authenticated actor.
+
+**2. It returns `purchased_at`, not `delivered_at`** (§5). There is no
+`delivered_at` on an order: delivery is the STATUS alone, and the timestamp lives
+on Shipping's `shipments` — a table Order must not read and Reviews may not
+either. The field carries the order's `placed_at` and is **named after what it
+is**, because a caller told "delivered_at" would eventually build a review window
+on a date that is really a purchase date. v1 has no window, so nothing depends on
+the difference yet — which is the only comfortable moment to get the name right.
+
+**3. `POST /api/v1/reviews` also requires `product`** (§8, and `BUILD_REVIEWS.md`
+§R9's contract sketch omits it). The gate is keyed on (customer, PRODUCT) by
+ADR-067's own design: `deliveredPurchaseLines()` cannot be asked "which purchase
+is this line?", and Reviews may not read `order_lines` to find out — so the server
+literally cannot locate the line without it. It weakens nothing: the product is
+not trusted, it only selects which of the buyer's delivered lines to check, and a
+forged one yields no match and a refusal. The storefront is standing on the
+product page when it renders the form.
+
+**One further note, not a deviation:** `ReviewPolicy::delete()` overrides
+`BasePolicy`, which checks a permission before ownership. That is right for
+admin-scoped resources and exactly wrong here — the only actor who may delete a
+review is the customer who wrote it, and customers hold no `review.*` permission
+at all. So the check is ownership alone. A consequence worth stating: **removing a
+PUBLISHED review is not a v1 operation for anybody but its author** (rejection is
+only open while it is pending).
+
+---
+
+## 14. ADRs
 
 - **ADR-066** — Reviews are product-attributed with a seller tag; the tag is copied
   from the delivered order line, never chosen by the buyer; rating aggregates to the

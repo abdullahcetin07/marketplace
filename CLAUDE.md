@@ -187,6 +187,31 @@ and a **line-level partial refund**. Windows are `settings()`. **Shipping import
 module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
 build ahead of the phased work order or change these decisions without an ADR amendment.
 
+**Reviews is COMPLETE (2026-08-07; ADR-066–069, built R0–R8,
+[docs/modules/Reviews.md](docs/modules/Reviews.md)) — the newest module, and the first
+built to carry USER-GENERATED CONTENT about the catalogue.** A review is one buyer's
+rating (1–5) + optional text + optional photos of a product they were **delivered**,
+published **only after Admin/Editor moderation** (ADR-068). The catalogue is shared, so
+a review is about the **PRODUCT** and carries the **seller it was bought from** as a tag
+copied from the delivered order line, never chosen by the buyer (ADR-066) — one product
+accumulates every seller's buyers' reviews, and "bu satıcıdan alanlar ne demiş" is a
+FILTER on that one set.
+
+**It binds to ONE delivered order line** (`order_line_uuid` UNIQUE, ADR-067): buying the
+same product twice earns two reviews, a second review of the *same* purchase is refused
+by the database. **The gate is DELIVERY, not payment**, read through
+`OrderQueryContract::deliveredPurchaseLines()` — the one Core change it required. The
+rating average is **computed on read** (ADR-069), so a deleted review changes the next
+read with nothing to invalidate.
+
+**Reviews imports NO module** — Catalog and Order through Core contracts, store names
+through `StoreQueryContract`, and **photos through the shared `HasMedia` trait, not the
+Media module**, which stays on the forbidden list. **The seller has no lever over a
+review**: not approve, not reject, not hide, and the ability does not exist rather than
+being denied. **It is NOT frozen** — the storefront (Reviews.md §9) is still to come, and
+**Questions ("Satıcıya Sor") is a separate module** that will reuse these patterns and
+none of these tables. Three recorded deviations from the spec live in Reviews.md §13.
+
 **Pre-shipment cancellation is COMPLETE (2026-08-06; ADR-065, C1+C2).** The mirror
 of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
 S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
