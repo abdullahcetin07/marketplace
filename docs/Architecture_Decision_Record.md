@@ -2132,4 +2132,73 @@ contract.
 
 ---
 
+# ADR-070 Questions Are Product Q&A Directed at the Buy-Box Seller; Anyone May Ask; Moderation Is Reactive, Not Pre-Publication
+
+**Status:** Accepted (2026-08-07). Spec: `docs/modules/Questions.md`.
+
+"Satıcıya Sor" is a product question a shopper asks a seller and the seller answers, in
+public. Three decisions define it, and each is the mirror image of a Reviews decision
+(ADR-066/067/068), on purpose.
+
+**It is about the PRODUCT and directed at ONE seller — the buy-box winner, snapshotted
+by the server.** The catalogue is shared, so a question, like a review, is the product's;
+but unlike a review it needs a specific merchant to answer, and the honest one is the
+seller the shopper is looking at. The server reads `OfferQueryContract::featuredOfferForProduct`
+and snapshots its `store_uuid` + `selling_org_uuid` at ask time. The client sends no
+target and so cannot forge one; a product nobody sells has no seller to ask and the
+request is refused.
+
+**Anyone signed in may ask — there is NO purchase gate.** A review reports an experience,
+so ADR-067 gates it on a delivered purchase; a question is asked *to decide whether to
+buy*, so the same gate would defeat it. A signed-in customer is the only requirement —
+enough to attribute the question and let the asker find the answer.
+
+**Moderation is REACTIVE: the seller's answer publishes the pair; an admin hides after
+the fact.** Reviews are pre-moderated (ADR-068) because a stranger's unvetted words and
+photos do their damage the instant they are visible. A question is different: it is not
+public until the *seller* chooses to answer it, and that answer is itself the seller
+vouching for the exchange — so a human in front of every question would be a queue with
+no payoff. An admin hides an unacceptable one (pending or answered) reactively, with a
+reversible flag rather than a status, because the same lever must work at both ends of
+the lifecycle and must be undoable.
+
+**Cost:** reactive moderation means an abusive *unanswered* question is visible to the
+target seller before an admin can act — accepted, because it reaches only the seller and
+the admin, never the public, until answered. A standalone "report this question" surface
+for shoppers is a future addition; v1's admin finds them through the queue.
+
+# ADR-071 The Target Seller Owns the Answer; Seller-Panel Tenancy by Store; the Admin's Only Lever Is a Reversible Hide
+
+**Status:** Accepted (2026-08-07). Spec: `docs/modules/Questions.md` §6–7.
+
+The seller a question was aimed at is the one who answers it, and they do it from the
+**seller panel** — not the platform on their behalf.
+
+**Tenancy is per-resource query scope, not a Filament tenant** (ADR-030, as every seller
+surface). The seller `QuestionResource` scopes `whereIn('store_uuid', $sellerStoreUuids)`,
+resolving the seller's stores through `OrganizationAuthorizationContract::organizationIdsForUser`
+→ `StoreQueryContract::liveStoresForOrganization` — the exact path Order's seller resource
+walks. A seller sees only questions aimed at their own stores; the snapshotted `store_uuid`
+(ADR-070) is what makes that a single `whereIn`.
+
+**Only the target seller — and the Seller Employee role — may answer.** The seller role
+gets `question.answer` from its guard automatically; the employee allow-list gains it
+deliberately, because answering buyer questions is delegable staff work like product
+authoring. The answer is the publish event: `AnswerQuestionAction` moves `Pending →
+Answered`, stamps `answered_by`/`answered_at`, and emits `QuestionAnswered`.
+
+**The admin does not answer — the only admin lever is a reversible hide.** A platform that
+answered in a seller's place would be making a promise the seller did not make and
+speaking for a merchant it does not control. So `QuestionModerationResource` (a separate
+class from the seller resource, platform-wide, `question.moderate` = Admin + Editor) can
+hide or un-hide, and nothing else. Hiding is a `hidden_at` flag, not a terminal status,
+so it applies to a pending abusive question and an answered one alike, and can be undone.
+
+**Cost:** a seller who never answers leaves a question pending forever, invisible to the
+public — there is no SLA and no escalation in v1. That is the accepted price of letting
+the seller, not the platform, own the answer; a future ADR can add a "no answer in N
+days" nudge without changing this ownership.
+
+---
+
 END OF FILE
