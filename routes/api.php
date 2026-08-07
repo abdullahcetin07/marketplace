@@ -35,6 +35,7 @@ use App\Modules\Payment\Presentation\Controllers\Api\PayoutController;
 use App\Modules\Payment\Presentation\Controllers\Api\PayTrCallbackController;
 use App\Modules\Payment\Presentation\Controllers\Api\RefundController;
 use App\Modules\Payment\Presentation\Controllers\Api\ReturnController;
+use App\Modules\Questions\Presentation\Controllers\Api\Storefront\PublicProductQuestionController;
 use App\Modules\Reviews\Presentation\Controllers\Api\CustomerReviewController;
 use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\ProductRatingsController;
 use App\Modules\Reviews\Presentation\Controllers\Api\Storefront\PublicProductReviewController;
@@ -197,6 +198,20 @@ Route::prefix('v1')
             */
             Route::get('products/{product}/reviews', [PublicProductReviewController::class, 'index'])
                 ->name('storefront.product.reviews');
+
+            /*
+            | A PRODUCT'S ANSWERED Q&A (ADR-070, Questions §8). Declared before
+            | the `products/{product}` catch-all for the reason `/offers` and
+            | `/reviews` are.
+            |
+            | NO SUMMARY IN `meta`, unlike the reviews endpoint beside it: a
+            | question has no rating to roll up, so `data` is the Q&A and the
+            | only meta is pagination. An UNANSWERED question is never here —
+            | publishing one early would put a shopper's words on a page before
+            | the merchant they were aimed at had seen them.
+            */
+            Route::get('products/{product}/questions', [PublicProductQuestionController::class, 'index'])
+                ->name('storefront.product.questions');
 
             Route::get('products', [PublicProductController::class, 'index'])
                 ->name('storefront.products.index');
