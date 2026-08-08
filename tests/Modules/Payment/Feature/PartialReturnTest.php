@@ -25,7 +25,6 @@ use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Payment\Application\Actions\CreatePayoutAction;
 use App\Modules\Payment\Application\Actions\RefundLinesAction;
-use App\Modules\Payment\Application\Actions\RequestReturnAction;
 use App\Modules\Payment\Application\Actions\SettlePaymentCallbackAction;
 use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\DTOs\ReturnRequestDTO;
@@ -430,51 +429,25 @@ it('marks the parcel returned only once every unit is back', function (): void {
 
 /*
 |--------------------------------------------------------------------------
-| The buyer's own button
+| The buyer's own button — MOVED (ADR-073)
 |--------------------------------------------------------------------------
+|
+| **FOUR TESTS USED TO LIVE HERE AND THEY TESTED A BUTTON THAT NO LONGER EXISTS.**
+| S4 refunded on the buyer's request; ADR-073 makes the request a REQUEST and moves
+| the refund to the seller's confirmation. The gates they pinned did not disappear
+| with the endpoint — they moved, and so did their tests:
+|
+|   delivered / in-window / quantities  → `ReturnRequestFlowTest` (the buyer's ask)
+|   seller ownership / in-window        → `CompleteReturnPortTest` (the refund)
+|   "not yours" over HTTP               → `ReturnRequestApiTest`
+|
+| What stays here is the one assertion none of those make, because it is about
+| this file's subject rather than the return flow's: the machinery still works
+| without any of those guards, which is what an ADMIN refund is.
+|
 */
 
-it('lets the buyer send it back inside the window', function (): void {
-    $customer = Customer::factory()->create();
-    $fixture = returnFixture(quantity: 2, customer: $customer);
-    deliverParcel($fixture['order']->uuid, $fixture['seller']);
-    returnGatewayAgrees();
-
-    $refund = app(RequestReturnAction::class)->run(
-        new ReturnRequestDTO(
-            orderUuid: $fixture['order']->uuid,
-            quantities: [$fixture['lines'][0]['id'] => 1],
-            reason: 'Numara küçük geldi',
-        ),
-        (int) $customer->getKey(),
-    );
-
-    expect($refund->amount_minor)->toBe(12_000)
-        ->and($refund->reason)->toBe('Numara küçük geldi');
-});
-
-it('refuses a return of a parcel that never arrived', function (): void {
-    $customer = Customer::factory()->create();
-    $fixture = returnFixture(quantity: 2, customer: $customer);
-    returnGatewayAgrees();
-
-    /*
-     * NO WINDOW MEANS NOT DELIVERED — only a delivery opens one (S3). A buyer
-     * whose parcel is still in transit is asking to CANCEL, which has different
-     * consequences for the seller's stock and is a different button.
-     */
-    expect(fn () => app(RequestReturnAction::class)->run(
-        new ReturnRequestDTO(
-            orderUuid: $fixture['order']->uuid,
-            quantities: [$fixture['lines'][0]['id'] => 1],
-        ),
-        (int) $customer->getKey(),
-    ))->toThrow(PaymentException::class);
-
-    expect(PaymentRefund::query()->count())->toBe(0);
-});
-
-it('refuses a return once the window has closed', function (): void {
+it('lets an admin refund after the buyer window has closed', function (): void {
     $customer = Customer::factory()->create();
     $fixture = returnFixture(quantity: 2, customer: $customer);
     deliverParcel($fixture['order']->uuid, $fixture['seller']);
@@ -483,20 +456,11 @@ it('refuses a return once the window has closed', function (): void {
     // `return_days` defaults to 14, and the window is frozen at delivery.
     $this->travel(15)->days();
 
-    expect(fn () => app(RequestReturnAction::class)->run(
-        new ReturnRequestDTO(
-            orderUuid: $fixture['order']->uuid,
-            quantities: [$fixture['lines'][0]['id'] => 1],
-        ),
-        (int) $customer->getKey(),
-    ))->toThrow(PaymentException::class);
-
-    expect(PaymentRefund::query()->count())->toBe(0);
-
     /*
-     * AND AN ADMIN STILL CAN, which is the point of the window rather than an
-     * exception to it: after it closes, a refund is a human's judgement call
-     * again — the same machinery, without the buyer's guards.
+     * **THE POINT OF A WINDOW RATHER THAN AN EXCEPTION TO IT.** After it closes
+     * the buyer has no self-serve route and the seller has nothing to complete —
+     * a refund becomes a human's judgement call again, on the same machinery,
+     * without the guards.
      */
     app(RefundLinesAction::class)->run(new ReturnRequestDTO(
         orderUuid: $fixture['order']->uuid,
@@ -504,31 +468,6 @@ it('refuses a return once the window has closed', function (): void {
     ));
 
     expect(PaymentRefund::query()->count())->toBe(1);
-});
-
-it('will not let one customer return another customer order', function (): void {
-    $customer = Customer::factory()->create();
-    $stranger = Customer::factory()->create();
-    $fixture = returnFixture(quantity: 2, customer: $customer);
-    deliverParcel($fixture['order']->uuid, $fixture['seller']);
-    returnGatewayAgrees();
-
-    expect(fn () => app(RequestReturnAction::class)->run(
-        new ReturnRequestDTO(
-            orderUuid: $fixture['order']->uuid,
-            quantities: [$fixture['lines'][0]['id'] => 1],
-        ),
-        (int) $stranger->getKey(),
-    ))->toThrow(PaymentException::class);
-
-    // AND THE SAME ANSWER for an order uuid that is not even a uuid — the shape
-    // guard, before PostgreSQL turns it into a 500 (ADR-059).
-    expect(fn () => app(RequestReturnAction::class)->run(
-        new ReturnRequestDTO(orderUuid: 'not-a-uuid', quantities: []),
-        (int) $customer->getKey(),
-    ))->toThrow(PaymentException::class);
-
-    expect(PaymentRefund::query()->count())->toBe(0);
 });
 
 /*
@@ -563,23 +502,6 @@ it('tells the storefront what may still go back, and until when', function (): v
          */
         ->assertJsonPath('data.lines.0.refundable_amount_minor', 12_000)
         ->assertJsonPath('data.lines.0.refundable_amount', '120.00');
-});
-
-it('takes the return request from the buyer over HTTP', function (): void {
-    $customer = $this->actingAsCustomer();
-    $fixture = returnFixture(quantity: 2, customer: $customer);
-    deliverParcel($fixture['order']->uuid, $fixture['seller']);
-    returnGatewayAgrees();
-
-    $response = $this->postJson("/api/v1/orders/{$fixture['order']->uuid}/return", [
-        'lines' => [['id' => $fixture['lines'][0]['id'], 'quantity' => 1]],
-        'reason' => 'Beğenmedim',
-    ]);
-
-    $response->assertCreated()
-        ->assertJsonPath('data.amount_minor', 12_000);
-
-    expect(PaymentRefundLine::refundedQuantityFor($fixture['lines'][0]['id']))->toBe(1);
 });
 
 it('answers a stranger and an unknown order the same way', function (): void {

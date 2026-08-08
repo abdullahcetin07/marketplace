@@ -22,6 +22,7 @@ use App\Modules\Order\Presentation\Controllers\Api\CancellationRequestController
 use App\Modules\Order\Presentation\Controllers\Api\CartController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerAddressController;
 use App\Modules\Order\Presentation\Controllers\Api\CustomerOrderController;
+use App\Modules\Order\Presentation\Controllers\Api\ReturnRequestController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\OrganizationController as AdminOrganizationController;
 use App\Modules\Organization\Presentation\Controllers\Api\Admin\StoreRequestController as AdminStoreRequestController;
 use App\Modules\Organization\Presentation\Controllers\Api\BankAccountController;
@@ -548,14 +549,19 @@ Route::prefix('v1')
             | cannot compute, because the final unit of a line carries whatever
             | kuruş the rounding left.
             |
-            | THE POST TAKES LINES AND QUANTITIES AND NO AMOUNT, which is P5's
-            | rule one level down: the buyer says what is in the box and the
-            | platform prices it from the frozen snapshot.
+            | **THE POST THAT USED TO SIT HERE IS GONE (ADR-073).** It refunded on
+            | the spot, because ADR-064 treated the window as the approval — for
+            | physical goods that is paying out on trust. The buyer's write is now
+            | `POST /orders/{order}/return-request` further down, which moves no
+            | money; the refund fires when the SELLER confirms the parcel is back.
+            |
+            | THE GET SURVIVES UNCHANGED and is what that request form is built
+            | from. The two are not redundant: this one answers "what may still go
+            | back, priced, and until when", and the request endpoint answers "what
+            | did I ask for and what came of it".
             */
             Route::get('/orders/{order}/return', [ReturnController::class, 'show'])
                 ->name('orders.return.show');
-            Route::post('/orders/{order}/return', [ReturnController::class, 'store'])
-                ->name('orders.return.store');
 
             /*
             | ASKING TO CANCEL BEFORE IT SHIPS (ADR-065, C2) — the near half of
@@ -626,6 +632,18 @@ Route::prefix('v1')
                 ->name('orders.cancellation-request.store');
             Route::get('/orders/{order}/cancellation-request', [CancellationRequestController::class, 'show'])
                 ->name('orders.cancellation-request.show');
+
+            /*
+            | ASKING TO SEND IT BACK AFTER DELIVERY (ADR-073) — the far half of
+            | the lifecycle, and now the same SHAPE as the near half: the buyer
+            | asks, the seller answers, and only the seller's confirmation moves
+            | money. **The 201 is "talep alındı", not "iade edildi"**; the
+            | storefront says "satıcı onayında".
+            */
+            Route::post('/orders/{order}/return-request', [ReturnRequestController::class, 'store'])
+                ->name('orders.return-request.store');
+            Route::get('/orders/{order}/return-request', [ReturnRequestController::class, 'show'])
+                ->name('orders.return-request.show');
         });
 
         /*

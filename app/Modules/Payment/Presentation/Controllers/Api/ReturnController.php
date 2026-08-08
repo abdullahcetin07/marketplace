@@ -7,22 +7,31 @@ namespace App\Modules\Payment\Presentation\Controllers\Api;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
 use App\Core\Presentation\Support\MoneyString;
-use App\Modules\Payment\Application\Actions\RequestReturnAction;
-use App\Modules\Payment\Domain\DTOs\ReturnRequestDTO;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\PaymentRefundLine;
 use App\Modules\Payment\Domain\Models\SettlementWindow;
 use App\Modules\Payment\Domain\Support\RefundableLines;
-use App\Modules\Payment\Presentation\Requests\RequestReturnRequest;
-use App\Modules\Payment\Presentation\Resources\PaymentRefundResource;
 use App\Shared\Support\PublicKey;
 use Illuminate\Http\JsonResponse;
 
 /**
- * The buyer's return surface (S4, Payment.md §8).
+ * The buyer's return surface (S4, Payment.md §8) — **now READ-ONLY (ADR-073).**
  *
- * **TWO ENDPOINTS, AND THE READ IS NOT DECORATION.** A return form has to know
+ * **THE POST THAT LIVED HERE MOVED MONEY, AND IT IS GONE.** S4 refunded on the
+ * buyer's request, because ADR-064 treated the return window as the approval. For
+ * physical goods that is refunding on trust: the seller is made whole never and
+ * the parcel may or may not come back. The buyer's write is now
+ * `POST /orders/{order}/return-request` in ORDER, which writes a request and
+ * moves nothing, and the refund fires when the SELLER confirms the goods arrived.
+ *
+ * **THE READ STAYED HERE RATHER THAN MOVING WITH IT**, and that is deliberate:
+ * every number in it — what has already gone back, what the platform will pay for
+ * the rest, the last unit's remainder — is Payment's arithmetic. Order would have
+ * had to ask for all of it through a port and then re-render it, which is a second
+ * copy of a quote nobody needs.
+ *
+ * **ONE ENDPOINT, AND IT IS NOT DECORATION.** A return form has to know
  * three things the storefront cannot work out for itself: whether the window is
  * still open, how many of each line have ALREADY gone back, and what the platform
  * will actually pay for the rest. All three live here, so the form the buyer sees
@@ -43,10 +52,7 @@ use Illuminate\Http\JsonResponse;
  */
 final class ReturnController extends BaseController
 {
-    public function __construct(
-        private readonly RequestReturnAction $return,
-        private readonly OrderQueryContract $orders,
-    ) {}
+    public function __construct(private readonly OrderQueryContract $orders) {}
 
     /**
      * GET /api/v1/orders/{order}/return — what may still go back, and until when.
@@ -96,31 +102,6 @@ final class ReturnController extends BaseController
             'currency' => $payment?->currency->code,
             'lines' => $lines,
         ]);
-    }
-
-    /**
-     * POST /api/v1/orders/{order}/return — "iade talebi".
-     *
-     * THE RESPONSE IS THE REFUND ROW, not a request-received acknowledgement.
-     * There is no approval step in v1 (Shipping.md §4): the window IS the
-     * approval, so the money moves inside this call and telling the buyer "we
-     * will look at it" would be false.
-     */
-    public function store(RequestReturnRequest $request, string $order): JsonResponse
-    {
-        $customerId = $this->customerId();
-
-        $refund = $this->return->run(
-            new ReturnRequestDTO(
-                orderUuid: $order,
-                quantities: $request->quantities(),
-                reason: $request->reason(),
-                actorId: $customerId,
-            ),
-            $customerId,
-        );
-
-        return $this->created(new PaymentRefundResource($refund->load('currency')));
     }
 
     private function customerId(): int
