@@ -73,6 +73,23 @@ enum ReservationStatus: string
         return $this === self::Committed;
     }
 
+    /**
+     * Whether this reference may be HELD AGAIN under its own name (ADR-072).
+     *
+     * **ONLY `Released`, and the exclusions are the point.** `Active` already
+     * holds the units — re-taking it would count them twice, and that is the
+     * idempotency `reserve()` has always promised a retrying caller. `Committed`
+     * and `Restocked` are sales: those units left, and a hold placed on stock
+     * that has already gone would let the same reference be commited twice.
+     *
+     * Added for Payment's late-callback recovery, where an expired order's holds
+     * were given back and the customer's 3-D Secure then succeeded.
+     */
+    public function isReclaimable(): bool
+    {
+        return $this === self::Released;
+    }
+
     public function color(): string
     {
         return match ($this) {

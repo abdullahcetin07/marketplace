@@ -70,10 +70,16 @@ final class SettleOrdersOnPayment
      * So this LOGS and leaves the orders where they are. The method exists so
      * that decision is written down somewhere a future reader will find it,
      * rather than being invisible in the absence of a listener.
+     *
+     * **IT NOW ALSO CATCHES A LATE PAYMENT THAT WAS REFUNDED (ADR-072)**, where
+     * "leaves them where they are" means `Expired` rather than `AwaitingPayment`
+     * — the customer paid, the stock was gone, and Payment gave the money back
+     * with `reason: expired_stock_unavailable`. Leaving them is still the right
+     * answer, and for the same reason: this listener does not own that decision.
      */
     public function onFailed(object $event): void
     {
-        Log::channel('errors')->info('A payment failed; its orders keep awaiting payment', [
+        Log::channel('errors')->info('A payment failed; its orders keep the status they had', [
             'payment_uuid' => $event->paymentUuid ?? null,
             'checkout_group_uuid' => $event->checkoutGroupUuid ?? null,
             'reason' => $event->reason ?? null,

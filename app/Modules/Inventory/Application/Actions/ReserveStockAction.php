@@ -43,6 +43,12 @@ final class ReserveStockAction extends BaseAction
 
     private bool $alreadyHeld = false;
 
+    /**
+     * A released hold this call is taking back rather than creating fresh
+     * (ADR-072). Null on every ordinary reservation.
+     */
+    private ?StockReservation $reclaiming = null;
+
     private StockReservation $reservation;
 
     public function __construct(
@@ -66,7 +72,7 @@ final class ReserveStockAction extends BaseAction
         */
         $existing = $this->items->findReservation($data->reference);
 
-        if ($existing !== null) {
+        if ($existing !== null && ! $existing->isReclaimable()) {
             $this->alreadyHeld = true;
             $this->reservation = $existing;
 
@@ -77,6 +83,30 @@ final class ReserveStockAction extends BaseAction
             }
 
             return $item;
+        }
+
+        if ($existing !== null) {
+            /*
+            | **TAKING A RELEASED HOLD BACK (ADR-072, 2026-08-08).** Added for
+            | Payment's late-callback recovery: an order whose payment window ran
+            | out released its holds, and then the customer's 3-D Secure finally
+            | succeeded. Payment asks for the SAME reference back, because that
+            | string is what its commit will name.
+            |
+            | **THE IDEMPOTENCY CHECK ABOVE HAD TO LEARN THE DIFFERENCE**, and
+            | until it did this was a silent oversell: `findReservation()` matches
+            | on the reference alone, so a released row read as "already held",
+            | this action returned success WITHOUT locking the pool or checking
+            | availability, and the commit that followed found a non-active
+            | reservation and moved nothing. Money taken, `on_hand` untouched,
+            | nothing anywhere to say so.
+            |
+            | SO IT GOES THROUGH THE FULL PATH BELOW — lock, availability check,
+            | ledger entry — and is refused if somebody else took the units
+            | meanwhile. A re-hold is a new claim on stock, not a repeat of an old
+            | one, and it must be able to fail.
+            */
+            $this->reclaiming = $existing;
         }
 
         $item = $this->items->lockForUpdate($data->sellingOrgUuid, $data->variantUuid);
@@ -96,12 +126,29 @@ final class ReserveStockAction extends BaseAction
             );
         }
 
-        $this->reservation = StockReservation::query()->create([
-            'reference' => $data->reference,
-            'stock_item_id' => $item->getKey(),
-            'quantity' => $data->quantity,
-            'status' => ReservationStatus::Active,
-        ]);
+        if ($this->reclaiming !== null) {
+            /*
+            | THE SAME ROW, ACTIVE AGAIN — not a second row. `reference` is unique
+            | and it is the handle every other verb resolves by, so a released hold
+            | coming back has to be this row or `commit()` would never find it.
+            | `released_at` is cleared because it is no longer true; the ledger
+            | below keeps the history the row no longer shows.
+            */
+            $this->reclaiming->forceFill([
+                'quantity' => $data->quantity,
+                'status' => ReservationStatus::Active,
+                'released_at' => null,
+            ])->save();
+
+            $this->reservation = $this->reclaiming;
+        } else {
+            $this->reservation = StockReservation::query()->create([
+                'reference' => $data->reference,
+                'stock_item_id' => $item->getKey(),
+                'quantity' => $data->quantity,
+                'status' => ReservationStatus::Active,
+            ]);
+        }
 
         $this->recordMovement(
             $item,

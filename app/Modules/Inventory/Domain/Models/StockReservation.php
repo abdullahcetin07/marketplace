@@ -79,6 +79,15 @@ final class StockReservation extends Model
     }
 
     /**
+     * Whether this released hold may be taken back under its own reference
+     * (ADR-072) — @see `ReservationStatus::isReclaimable()`.
+     */
+    public function isReclaimable(): bool
+    {
+        return $this->status->isReclaimable();
+    }
+
+    /**
      * Whether these units left and could still come back — the one question
      * `restock` asks (Payment.md §8).
      */

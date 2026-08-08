@@ -9,6 +9,7 @@ use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\DTOs\GatewayResultDTO;
+use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
 use App\Modules\Payment\Domain\Events\PaymentFailed;
 use App\Modules\Payment\Domain\Events\PaymentSucceeded;
@@ -139,6 +140,190 @@ final class SettlePaymentCallbackAction extends BaseAction
     }
 
     /**
+     * Take the holds back for any order that expired while the customer paid
+     * (ADR-072).
+     *
+     * **ALL OR NOTHING, ACROSS THE WHOLE GROUP.** A basket is one charge
+     * (ADR-052/060), so recovering three sellers' orders and failing the fourth
+     * would leave the customer paid up and one seller unable to ship — and there
+     * is no partial refund of a payment that was never split. Either every line
+     * comes back or the charge goes back.
+     *
+     * **ANYTHING NOT `Expired` IS LEFT ALONE**, which is the ordinary case and
+     * the reason this costs nothing on a normal payment: an `AwaitingPayment`
+     * order still holds its reservation, and re-reserving it would double-count.
+     *
+     * WHAT IT RE-RESERVES, IT RELEASES ON FAILURE. A half-recovered group whose
+     * charge is about to be refunded must not keep holding somebody's stock —
+     * that would recreate, on the seller's side, exactly the leak this ADR
+     * exists to close.
+     *
+     * @param array<int, string> $orderUuids
+     */
+    private function recoverExpiredHolds(array $orderUuids): bool
+    {
+        /** @var array<int, string> $taken */
+        $taken = [];
+
+        foreach ($orderUuids as $orderUuid) {
+            /*
+            | A STRING, NOT `OrderStatus::Expired` — Payment imports no module
+            | (CLAUDE.md non-negotiable #2), so the value crosses the Core port as
+            | text and `InitiatePaymentAction` compares `'awaiting_payment'` the
+            | same way. `LayeringTest` fails the build on the tidier-looking
+            | version.
+            */
+            if ($this->orders->orderStatus($orderUuid) !== 'expired') {
+                continue;
+            }
+
+            $settlement = $this->orders->orderSettlement($orderUuid);
+            $references = $this->orders->reservationReferencesFor($orderUuid);
+
+            if ($settlement === null) {
+                $this->releaseAll($taken);
+
+                return false;
+            }
+
+            foreach ($this->orders->orderLines($orderUuid) as $line) {
+                $reference = $references[$line['variant_uuid']] ?? null;
+
+                if ($reference === null) {
+                    $this->releaseAll($taken);
+
+                    return false;
+                }
+
+                $reserved = false;
+
+                try {
+                    $reserved = $this->reservations->reserve(
+                        $settlement['selling_org_uuid'],
+                        $line['variant_uuid'],
+                        $line['quantity'],
+                        $reference,
+                    );
+                } catch (Throwable $exception) {
+                    Log::channel('errors')->warning('Could not re-reserve a line for a late payment', [
+                        'order_uuid' => $orderUuid,
+                        'reference' => $reference,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+
+                if (! $reserved) {
+                    // SOMEBODY ELSE BOUGHT IT. The only honest answer left is the
+                    // customer's money.
+                    $this->releaseAll($taken);
+
+                    return false;
+                }
+
+                $taken[] = $reference;
+            }
+        }
+
+        return true;
+    }
+
+    /**
+     * Give back every hold this attempt took. @see `recoverExpiredHolds()`.
+     *
+     * @param array<int, string> $references
+     */
+    private function releaseAll(array $references): void
+    {
+        foreach ($references as $reference) {
+            try {
+                $this->reservations->release($reference);
+            } catch (Throwable $exception) {
+                Log::channel('errors')->warning('Could not release a hold taken during a failed recovery', [
+                    'reference' => $reference,
+                    'exception' => $exception->getMessage(),
+                ]);
+            }
+        }
+    }
+
+    /**
+     * The stock is gone: give the money back and leave the orders expired
+     * (ADR-072).
+     *
+     * **NEVER OVERSELL, NEVER KEEP A PAID CUSTOMER EMPTY-HANDED** — the two
+     * halves of the rule, and this is the branch where they conflict. Somebody
+     * else bought the last unit while this customer was at their bank's 3-D
+     * Secure page; the platform cannot deliver, so the only honest outcome is a
+     * full refund.
+     *
+     * **IT DOES NOT DISPATCH `PaymentSucceeded`.** That event is what moves
+     * orders to `Paid`, and these orders cannot be fulfilled — `PaymentFailed`
+     * carries the reason instead, which Order's listener logs and acts on
+     * otherwise not at all, leaving them `Expired` where they belong.
+     *
+     * **THE PAYMENT LANDS IN A TERMINAL STATE, which is what makes the retry
+     * safe.** PayTR retries until it hears OK, and `handle()` gates on
+     * `awaitsSettlement()` — so a replayed callback finds a `Refunded` payment
+     * and does nothing rather than refunding twice.
+     *
+     * A REFUND THE PSP REFUSES IS LOGGED AND STILL TERMINAL. Retrying it here
+     * would mean holding the callback open against a provider that is already
+     * saying no; the money is a human's problem at that point, and leaving the
+     * payment settleable would be worse — it would let the next retry commit
+     * stock nobody has.
+     *
+     * @param array<int, string> $orderUuids
+     */
+    private function refundUnfulfillable(Payment $payment, GatewayResultDTO $result, array $orderUuids): bool
+    {
+        $refunded = false;
+
+        try {
+            $refunded = $this->gateway->refund(new PaymentRefundDTO(
+                // PayTR knows the charge by ONE name — the payment uuid (§4).
+                reference: $payment->merchantReference(),
+                amountMinor: $payment->amount_minor,
+            ))->successful;
+        } catch (Throwable $exception) {
+            Log::channel('errors')->error('Could not refund a payment that arrived after expiry', [
+                'payment_uuid' => $payment->uuid,
+                'exception' => $exception->getMessage(),
+            ]);
+        }
+
+        if (! $refunded) {
+            Log::channel('errors')->error('A late payment could not be fulfilled OR refunded', [
+                'payment_uuid' => $payment->uuid,
+                'amount_minor' => $payment->amount_minor,
+                'orders' => $orderUuids,
+            ]);
+        }
+
+        $payment->forceFill([
+            'status' => PaymentStatus::Refunded,
+            'provider_reference' => $result->providerReference,
+            'provider_payload' => $result->toArray(),
+            /*
+            | `paid_at` IS STAMPED EVEN THOUGH THE MONEY WENT BACK, because it
+            | did arrive — the charge is real and reconciliation against PayTR's
+            | statement needs the timestamp. `Refunded` beside it says what
+            | happened next; `failure_reason` says why.
+            */
+            'paid_at' => now(),
+            'failure_reason' => 'expired_stock_unavailable',
+        ])->save();
+
+        $this->failed = new PaymentFailed(
+            paymentUuid: $payment->uuid,
+            checkoutGroupUuid: $payment->checkout_group_uuid,
+            orderUuids: $orderUuids,
+            reason: 'expired_stock_unavailable',
+        );
+
+        return false;
+    }
+
+    /**
      * Money arrived: mark it, and turn every held reservation into a real
      * decrement (ADR-057, Payment.md §5).
      */
@@ -163,6 +348,24 @@ final class SettlePaymentCallbackAction extends BaseAction
         }
 
         $orderUuids = $this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid);
+
+        /*
+        | **THE LATE-PAYMENT RACE (ADR-072).** The payment window is five minutes
+        | and a slow 3-D Secure is longer, so a verified success can land for a
+        | group whose orders have already expired and given their stock back.
+        | Without this, the commit below would find no reservation, the Order
+        | listener would find `Expired ↛ Paid`, and the platform would have taken
+        | money for nothing.
+        |
+        | So the holds are taken back FIRST, and it is all-or-nothing: if every
+        | line can be re-reserved the settlement proceeds exactly as normal and
+        | the orders recover; if any line cannot — somebody else bought the last
+        | one meanwhile — nothing is committed and the whole payment is refunded.
+        | Half a basket is not an outcome anybody asked for.
+        */
+        if (! $this->recoverExpiredHolds($orderUuids)) {
+            return $this->refundUnfulfillable($payment, $result, $orderUuids);
+        }
 
         foreach ($orderUuids as $orderUuid) {
             foreach ($this->orders->reservationReferencesFor($orderUuid) as $reference) {
@@ -218,6 +421,14 @@ final class SettlePaymentCallbackAction extends BaseAction
     private function fail(Payment $payment, GatewayResultDTO $result): bool
     {
         $orderUuids = $this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid);
+
+        /*
+        | NO RECOVERY ATTEMPT HERE, and the asymmetry with `settle()` is the point.
+        | A declined card for an expired order has nothing to take back — the holds
+        | went back at expiry and the release below is a no-op on them. Re-reserving
+        | for a payment that FAILED would hold a seller's units for a customer who
+        | never paid, which is the leak ADR-072 exists to close, rebuilt by hand.
+        */
 
         foreach ($orderUuids as $orderUuid) {
             foreach ($this->orders->reservationReferencesFor($orderUuid) as $reference) {
