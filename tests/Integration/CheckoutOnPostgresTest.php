@@ -598,6 +598,55 @@ it('holds "one open cancellation request per order" at the database', function (
         ->and($insert('rejected'))->toBeGreaterThan(0);
 });
 
+it('holds "one open return per order" at the database, counting TWO states', function (): void {
+    /*
+     * **THE INDEX THAT IS NOT A COPY OF THE CANCELLATION'S.** That one keys on
+     * `pending` alone, because a cancellation is over the moment the seller
+     * answers. A return is not: an APPROVED return is a buyer walking to the
+     * cargo desk with the goods still in hand and the money still unmoved, and a
+     * second request for that order while it is in flight is a mistake rather
+     * than a new intention.
+     *
+     * So this asserts the difference explicitly — `approved` must block, and an
+     * index copied from `cancellation_requests_one_open` would let it through.
+     */
+    $orderUuid = (string) Str::uuid();
+
+    $insert = static fn (string $status): int => (int) DB::connection('pgsql')
+        ->table('return_requests')
+        ->insertGetId([
+            'uuid' => (string) Str::uuid(),
+            'order_uuid' => $orderUuid,
+            'requested_by' => 1,
+            'customer_id' => 1,
+            'status' => $status,
+            'line_quantities' => json_encode(['line-a' => 1]),
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
+    expect($insert('requested'))->toBeGreaterThan(0);
+
+    // NESTED TRANSACTION so the violation rolls back to a SAVEPOINT rather than
+    // poisoning the outer one, and `QueryException` rather than `Throwable` —
+    // both traps this file has already met once.
+    expect(static function () use ($insert): void {
+        DB::connection('pgsql')->transaction(static fn (): int => $insert('approved'));
+    })->toThrow(QueryException::class);
+
+    /*
+     * A COMPLETED OR REJECTED ONE DOES NOT BLOCK ASKING AGAIN, and that is not
+     * generosity — S4 made a second refund of one order legitimate (one shoe
+     * today, the other next week), so a return that finished must leave the door
+     * open behind it.
+     */
+    DB::connection('pgsql')->table('return_requests')->where('order_uuid', $orderUuid)->delete();
+
+    expect($insert('completed'))->toBeGreaterThan(0)
+        ->and($insert('rejected'))->toBeGreaterThan(0)
+        ->and($insert('requested'))->toBeGreaterThan(0);
+});
+
 it('resolves a real slug to its type on PostgreSQL', function (): void {
     $row = DB::connection('pgsql')->table('slugs')->where('is_canonical', true)->first();
 

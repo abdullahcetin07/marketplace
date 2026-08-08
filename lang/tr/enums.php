@@ -256,6 +256,13 @@ return [
         'rejected' => 'Reddedildi',
     ],
 
+    'ReturnRequestStatus' => [
+        'requested' => 'Satıcı onayında',
+        'approved' => 'Onaylandı — ürünü gönderin',
+        'rejected' => 'Reddedildi',
+        'completed' => 'Tamamlandı — ücret iade edildi',
+    ],
+
     'QuestionStatus' => [
         'pending' => 'Cevap bekliyor',
         'answered' => 'Cevaplandı',

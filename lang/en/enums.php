@@ -254,6 +254,13 @@ return [
         'rejected' => 'Rejected',
     ],
 
+    'ReturnRequestStatus' => [
+        'requested' => 'Awaiting seller approval',
+        'approved' => 'Approved — send the item back',
+        'rejected' => 'Rejected',
+        'completed' => 'Completed — refunded',
+    ],
+
     'QuestionStatus' => [
         'pending' => 'Awaiting answer',
         'answered' => 'Answered',
