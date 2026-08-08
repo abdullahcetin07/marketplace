@@ -134,3 +134,42 @@ Schedule::command('queue:prune-batches --hours=48')
 Schedule::command('debugbar:clear')
     ->daily()
     ->environments(['local']);
+
+/*
+|--------------------------------------------------------------------------
+| The payment window (ADR-072) — the sweep that keeps sellers sellable
+|--------------------------------------------------------------------------
+|
+| **THIS ONE IS NOT HOUSEKEEPING.** ADR-057 made placement HOLD a reservation and
+| Payment commit it, and until now nothing released the hold when a customer
+| closed the tab at the card form. The hold sat forever, a seller's `available`
+| fell toward zero, and their offer dropped off the buy box WHILE STILL DECLARING
+| STOCK — every abandoned checkout permanently costing that seller inventory.
+|
+| EVERY MINUTE, because the window is five: a sweep slower than the deadline it
+| enforces lets an abandoned hold outlive its own expiry by the sweep interval.
+| `onOneServer()` like the two above — one process across the fleet, or two
+| runners race to expire the same order.
+|
+| Its first run SELF-HEALS the backlog: everything stuck in `AwaitingPayment` from
+| before this shipped is past the window by definition.
+*/
+Schedule::job(new App\Modules\Order\Application\Jobs\ExpireAwaitingPaymentJob)
+    ->name('expire-awaiting-payment')
+    ->everyMinute()
+    ->onOneServer();
+
+/*
+| AND THE OTHER HALF OF THE SAME LEAK, which had been written and never
+| scheduled. `ExpireReservationsJob` sweeps the PRE-placement window — a basket
+| abandoned at the address step, 30 minutes, ending in `Cancelled` — and has
+| existed since Order shipped without ever running. Two windows, two outcomes,
+| two jobs, both on the schedule now.
+|
+| A job nobody scheduled is indistinguishable from a job with nothing to do,
+| which is precisely how this went unnoticed.
+*/
+Schedule::job(new App\Modules\Order\Application\Jobs\ExpireReservationsJob)
+    ->name('expire-pending-reservations')
+    ->everyMinute()
+    ->onOneServer();

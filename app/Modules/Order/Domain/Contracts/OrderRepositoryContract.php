@@ -55,6 +55,16 @@ interface OrderRepositoryContract
     public function expiredPending(int $limit = 100): Collection;
 
     /**
+     * Placed orders whose payment window has run out (ADR-072) — the sibling of
+     * the method above, and a different window entirely: it measures `placed_at`
+     * rather than `created_at`, sweeps `AwaitingPayment` rather than `Pending`,
+     * and ends in `Expired` rather than `Cancelled`.
+     *
+     * @return Collection<int, Order>
+     */
+    public function awaitingPaymentExpired(int $windowMinutes, int $limit = 100): Collection;
+
+    /**
      * Whether a customer already has an order for this uuid — the ownership check
      * every customer-facing read makes before it reads.
      */
