@@ -112,6 +112,28 @@ payouts**:
 Both are idempotent and bounded, so a missed night costs a night and nothing else.
 Verify with `php artisan schedule:list`.
 
+> **As deployed on the test server (2026-08-08).** Neither cron nor a container
+> supervisor: a **systemd unit**, `raftabul-scheduler`, running
+> `php artisan schedule:work` as `www-data` — the same shape as
+> `raftabul-horizon` and `raftabul-storefront` beside it, so
+> `systemctl status raftabul-<x>` answers "is it alive" the same way for all
+> three. A scheduler in root's crontab would have been the one moving part with a
+> different owner, a different log and a different way to check it.
+>
+> **It had never been running.** Horizon was up, the storefront was up, and
+> nothing invoked `schedule:run` at all — so every task in the table above had
+> been silently skipped since the day it shipped, which for
+> `sweep-transit-deliveries` means no delivery was ever inferred and therefore no
+> payout hold ever opened. Nothing failed and nothing logged; a scheduler that is
+> absent looks exactly like one with nothing due. **`schedule:list` tells you what
+> WOULD run, not that anything does** — check the process, and check the log has
+> a recent line in it.
+>
+> **As `www-data`, never as root** (the run-book's rule for artisan generally): a
+> scheduled command that logs creates the file as its own user, and a root-owned
+> `laravel.log` makes every later web request that logs — an ordinary 404
+> included — 500 on "Permission denied".
+
 ### PayTR — one setting lives in THEIR panel, not in this repository
 
 `PAYTR_MERCHANT_ID`, `PAYTR_MERCHANT_KEY`, `PAYTR_MERCHANT_SALT` and
