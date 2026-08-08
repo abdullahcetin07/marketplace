@@ -32,7 +32,7 @@ use Illuminate\Auth\Access\Response;
  * not "the admin refund, permitted to a customer": it is bounded by ownership,
  * by delivery and by a clock, and none of those are questions about a PAYMENT —
  * they are questions about an ORDER and its parcel. So they live in
- * `RequestReturnAction`, which reads them through the Core Order port, and this
+ * `CompleteReturnAction`, which reads them through the Core Order port, and this
  * ability keeps meaning exactly what it meant: who may reverse a charge WITHOUT
  * those conditions holding.
  *

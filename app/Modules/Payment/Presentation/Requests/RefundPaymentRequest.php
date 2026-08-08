@@ -30,7 +30,8 @@ final class RefundPaymentRequest extends BaseRequest
     public function authorize(): bool
     {
         // ADMIN-ONLY, AND STILL SO AFTER S4. The buyer's own return is a
-        // different endpoint with different guards (`RequestReturnRequest`),
+        // different endpoint with different guards (Order's
+        // `CreateReturnRequestRequest`, ADR-073),
         // not this one relaxed. The policy is still checked in the controller;
         // this only keeps other user types off the endpoint entirely.
         return $this->actor()?->type === UserType::Admin;
@@ -75,7 +76,9 @@ final class RefundPaymentRequest extends BaseRequest
 
     /**
      * Order line uuid => how many units come back; empty for the whole-order
-     * path. Duplicates are summed — @see `RequestReturnRequest::quantities()`.
+     * path. Duplicates are summed here; Order's `CreateReturnRequestRequest`
+     * takes the last instead — a buyer's screen said one number, an admin's form
+     * is a worksheet.
      *
      * @return array<string, int>
      */

@@ -17,12 +17,15 @@ use App\Shared\Support\PublicKey;
  * "Ürünü teslim aldım" — the seller has the parcel back, so the money goes back
  * (ADR-073).
  *
- * **THE THIRD DOOR ONTO ONE MACHINE.** `RequestReturnAction` is the buyer's,
+ * **THE THIRD DOOR ONTO ONE MACHINE.** `RefundPaymentRequest` is the admin's,
  * `CancelOrderLinesAction` is the seller's before handover, and this is the
  * seller's after delivery. All three check who is asking and whether the moment is
  * right, and all three then hand the identical DTO to `RefundLinesAction`. A
  * fourth refund implementation is how four code paths for one number stop
  * agreeing.
+ *
+ * (A buyer's door existed too, `RequestReturnAction`, and ADR-073 DELETED it: the
+ * buyer now writes a request in Order and this is what honours it.)
  *
  * **IT REPLACED A TRIGGER, NOT A CALCULATION.** ADR-064 fired the refund on the
  * buyer's REQUEST — the window was the approval — which for physical goods means

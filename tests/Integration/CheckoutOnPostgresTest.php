@@ -436,14 +436,24 @@ it('keeps a non-uuid order away from the buyer return endpoint', function (): vo
 
     foreach (['not-a-uuid', 'siparis'] as $order) {
         $this->getJson("/api/v1/orders/{$order}/return")->assertNotFound();
-        $this->postJson("/api/v1/orders/{$order}/return", [
+
+        /*
+        | **THE WRITE MOVED TO ORDER (ADR-073)** and the guard had to move with
+        | it. `POST /orders/{order}/return` refunded on request and is deleted;
+        | the buyer now writes a REQUEST, and `return_requests.order_uuid` is one
+        | more native uuid column a slug must never reach.
+        */
+        $this->postJson("/api/v1/orders/{$order}/return-request", [
             'lines' => [['id' => (string) Str::uuid(), 'quantity' => 1]],
         ])->assertNotFound();
+
+        $this->getJson("/api/v1/orders/{$order}/return-request")->assertNotFound();
     }
 
     // A well-formed uuid nobody owns is a miss, not an error — the same answer,
     // so nothing distinguishes "does not exist" from "not yours".
     $this->getJson('/api/v1/orders/'.Str::uuid()->toString().'/return')->assertNotFound();
+    $this->getJson('/api/v1/orders/'.Str::uuid()->toString().'/return-request')->assertNotFound();
 
     /*
      * AND THE S4 TABLE ITSELF, on the engine that enforces the type. The refunded

@@ -601,6 +601,15 @@ track of, which a mutable balance column could not promise.
 > action is the refund — the only button in the panel that sends money out, and the only
 > one behind a confirmation that says so.
 
+> **AMENDED (ADR-073, 2026-08-08): the buyer's request no longer refunds.** S4's
+> instant refund is gone — the window is no longer the approval. A return is now a
+> REQUEST the seller approves with an iade kodu and then COMPLETES when the parcel is
+> back, and only that last step calls `RefundLinesAction`. **Nothing below this
+> paragraph changed about the money**: the same lines, the same proportional
+> commission, the same restock, the same `cause: return`. What changed is who pulls
+> the trigger and when, and it is described in the ADR-073 note that follows the S4
+> one.
+
 > **As built (S4, 2026-08-06): the buyer's own return, and a refund that names LINES.**
 >
 > P5 refunded whole orders and said what it was waiting for: a fulfilment state to
@@ -667,6 +676,60 @@ track of, which a mutable balance column could not promise.
 > "never delivered", "too late", "no such order" — or the error itself tells a prober
 > which one it was.
 >
+> **As built (ADR-073, 2026-08-08): the refund moved to the END of the return.**
+>
+> S4 refunded the moment the buyer asked, on the argument that the return window IS
+> the approval. That is wrong for physical goods and the reason is one sentence: it
+> pays out before the seller has anything back, and a marketplace cannot make sellers
+> whole on trust. The flow is now the post-delivery mirror of ADR-065's pre-shipment
+> cancellation request, plus a return code.
+>
+> **Four states on a `ReturnRequest` in ORDER** — requested → approved → completed,
+> or rejected. The buyer names lines and quantities; the seller answers with an
+> **iade kodu** and a carrier; the seller presses "İadeyi tamamla" when the parcel is
+> on the shelf. **Only that third step touches money.**
+>
+> **The money machine did not change — only its trigger.** `RefundLinesAction` is
+> byte-for-byte what it was: PSP refund, `payment_refunds` + `payment_refund_lines`,
+> the two ledger entries, the Inventory restock, `PaymentRefunded` with
+> `cause: return`. It is reached through a **new Core command port,
+> `OrderReturnContract`** — the platform's third, and C1's exact shape.
+>
+> **C1's port could NOT be reused, and the two reasons are the two halves of the
+> lifecycle.** `OrderCancellationContract` refuses a shipped parcel
+> (`assertAwaitingHandover`) — precisely the state a return begins in — and hard-codes
+> `cause: cancellation`, which is what decides whether an order ends `cancelled` or
+> `refunded` and its parcel `cancelled` or `returned`. Borrowing it would have told
+> every buyer their delivered parcel was cancelled. Same machine, opposite gate,
+> opposite meaning: two ports and one action, rather than one port with a flag.
+>
+> **Refund first, stamp second** — the ordering ADR-065 established and this keeps.
+> A PSP refusal leaves the request `Approved`, which is the truthful state and lets
+> the seller press again; the reverse would leave a `completed` return beside money
+> that never came back, with every surface claiming otherwise.
+>
+> **The quantities are re-checked behind the port, and here that matters more than
+> anywhere else.** A return request can sit for DAYS between being written and being
+> honoured, and an admin may have refunded one of its lines meanwhile. What the buyer
+> asked for is the input; `RefundableLines` has the last word.
+>
+> **`GET /orders/{order}/return` stayed in Payment; the POST left.** The read is what
+> the request form is built from — what may still go back, priced, and until when —
+> and every number in it is Payment's arithmetic. `POST /orders/{order}/return` and
+> `RequestReturnAction` are **deleted**, and a test asserts the route 405s: if it
+> comes back through a merge, buyers get their money before sellers get their goods,
+> silently.
+>
+> **`ShipmentQueryContract` gained `activeCargoCompanies()`** so the seller's approval
+> form can offer Shipping's carrier list without Order importing `CargoCompany`.
+> Active only, filtered inside the query.
+>
+> **⚠️ The PayTR sandbox refund is currently failing** ("Ödeme sağlayıcısı reddetti").
+> Completion fires the real refund, so **refund capability must be confirmed in the
+> merchant panel before this is usable in production** — the seller's button stalls
+> otherwise, with the parcel already accepted. Not solved by this work; recorded so it
+> is not discovered by a merchant.
+
 > **The admin needed the line path too, and that is S4 cleaning up after itself.** The
 > whole-order path SKIPS an order that already has a refund row — correctly, or it
 > would refund the returned unit twice — so an order a buyer partly returned would have

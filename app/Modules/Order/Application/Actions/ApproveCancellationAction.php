@@ -37,7 +37,7 @@ use App\Modules\Order\Domain\Models\CancellationRequest;
  * Wrapping this in an outer transaction would turn that commit into a savepoint
  * release, so Order and Shipping would move an order and a parcel on the strength
  * of a transaction still able to roll back. The same reasoning
- * `RequestReturnAction` states on the buyer's return.
+ * `CompleteReturnRequestAction` states on the return's own completion (ADR-073).
  *
  * @see docs/modules/Order.md §3.3
  */

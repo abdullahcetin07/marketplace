@@ -16,7 +16,7 @@ use App\Shared\Support\PublicKey;
 /**
  * "Bunu gönderemeyeceğim" — the seller sheds a line before handover (ADR-065, C1).
  *
- * **THE MIRROR OF `RequestReturnAction`, AND DELIBERATELY THE SAME SHAPE.** That
+ * **THE MIRROR OF `CompleteReturnAction`, AND DELIBERATELY THE SAME SHAPE.** That
  * one is the buyer's door onto `RefundLinesAction`, gated on ownership, delivery
  * and a clock. This is the seller's, gated on ownership and the parcel not having
  * left. Neither touches money: they check who is asking and whether the moment is
@@ -63,7 +63,7 @@ final class CancelOrderLinesAction
      * NOT A `BaseAction`, and deliberately: it owns no transaction because it
      * makes no writes. `RefundLinesAction` owns the one transaction there is, and
      * nesting a second would only obscure where the rollback boundary lies. The
-     * same reasoning `RequestReturnAction` states.
+     * same reasoning `CompleteReturnAction` states.
      *
      * @param array<string, int> $quantities order line uuid => units to cancel
      */

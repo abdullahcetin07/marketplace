@@ -355,6 +355,56 @@ the sum of its lines and are written once at placement. Reservation math is Inve
 
 ---
 
+## 3.6 The return conversation (ADR-073, 2026-08-08)
+
+**A return is a request the seller approves and then completes, not an instant refund.**
+ADR-064 treated the return window as the approval: a buyer inside it got their money the
+moment they asked. For physical goods that pays out before the seller has anything back,
+and a marketplace cannot make sellers whole on trust.
+
+`ReturnRequest` lives here, beside `CancellationRequest`, and is its post-delivery
+mirror. Four states:
+
+| | What moves |
+|---|---|
+| **Requested** | Nothing. The buyer names lines + quantities + an optional reason. Gated on the order being `Delivered` AND the return window still open, read through the Core `OrderReturnContract` |
+| **Approved** | Nothing. The seller stamps an **iade kodu** and a carrier — the instructions for sending it back |
+| **Rejected** | Nothing, with a reason the buyer is shown. Does not close the window, and does not stop them asking again |
+| **Completed** | **The refund.** The seller confirms the parcel is on the shelf; Payment's `RefundLinesAction` fires through the port with `cause: return` |
+
+**`Approved` is still OPEN**, which is the one place this differs structurally from the
+cancellation request: the buyer is walking to the cargo desk, so the partial unique index
+counts two states rather than one. A rejected or completed return does not block asking
+again — a second shoe next week is a legitimate second return.
+
+**It holds no money.** No amount, no ledger, no restock — those are all behind
+`OrderReturnContract`, in Payment. `line_quantities` is a json payload rather than a
+child table because it is never queried or joined, only handed whole to that port, which
+re-checks every number against `payment_refund_lines` before a kuruş moves.
+
+**A completed request is not where the refund lives.** The ORDER becomes `Refunded` by
+`PaymentRefunded`'s cause, like every other refund on this platform.
+
+**Refund first, stamp second.** `CompleteReturnRequestAction` is deliberately not a
+`BaseAction`: `RefundLinesAction` owns the transaction and dispatches after its commit, so
+an outer transaction would turn that into a savepoint release. A PSP refusal therefore
+leaves the request `Approved` — the truthful state — rather than `Completed` beside money
+that never came back.
+
+**Two levers, and the seller holds all three answers.** `order.decide_return` is a seller
+ability granted to Seller Employees too: receiving returns is delegable warehouse work,
+and the person who opens the parcel is the person who knows whether it may be accepted.
+An admin has no answer button — they have Payment's refund surface, which is audited as
+the money operation it is.
+
+**The buyer's API:** `POST /orders/{order}/return-request` (201 = *talep alındı*, not
+*iade edildi*) and `GET` for the outcome. `GET /orders/{order}/return` stays in Payment
+and is what the form is built from; **its POST is deleted**.
+
+---
+
+---
+
 # 4. Surfaces
 - **Customer API** (for the future storefront, no Filament): cart CRUD; address-book CRUD;
   `POST /checkout` (pick shipping+billing, reserve, split); `POST /checkout/{group}/place`

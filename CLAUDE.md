@@ -197,6 +197,21 @@ and a **line-level partial refund**. Windows are `settings()`. **Shipping import
 module** — Core contracts + class-string events + the (empty) tracking port only. Do NOT
 build ahead of the phased work order or change these decisions without an ADR amendment.
 
+**A RETURN IS A REQUEST THE SELLER APPROVES AND COMPLETES, NOT AN INSTANT REFUND**
+(ADR-073, 2026-08-08). ADR-064 treated the return window as the approval and paid out
+the moment a buyer asked — which for physical goods is refunding on trust. A
+`ReturnRequest` (in Order, mirroring `CancellationRequest`) goes **requested → approved
+with an iade kodu → completed**, and **only completion calls `RefundLinesAction`**. The
+money machine is unchanged; its trigger moved. **`Approved` is still OPEN** — the buyer
+is walking to the cargo desk — so the partial unique index counts two states where the
+cancellation's counts one. It fires through the platform's **third Core command port**,
+`OrderReturnContract`, which C1's could NOT be: that one refuses a shipped parcel and
+hard-codes `cause: cancellation`. **`POST /orders/{order}/return` is deleted** and a test
+guards its absence; the GET stays in Payment because every number in it is Payment's
+arithmetic. **⚠️ The PayTR sandbox refund is currently failing** — completion fires the
+real refund, so refund capability must be confirmed in the merchant panel before this is
+usable in production.
+
 **Reviews is COMPLETE (2026-08-07; ADR-066–069, built R0–R8,
 [docs/modules/Reviews.md](docs/modules/Reviews.md)) — the newest module, and the first
 built to carry USER-GENERATED CONTENT about the catalogue.** A review is one buyer's

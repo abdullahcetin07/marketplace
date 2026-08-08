@@ -50,10 +50,13 @@ callback  → hash-verified, idempotent, one transaction:
   is `RefundLinesAction` untouched. `PaymentRefunded.cause` is the whole difference —
   it decides whether the order ends `cancelled` or `refunded`. The gate is a shipment
   STATE read through Core, and **a missing shipment refuses**.
-- **The buyer's return is a second door, not a relaxed policy.** `payment.refund`
-  still means "reverse a charge with no window justifying it".
-  `RequestReturnAction` checks ownership, delivery and the clock and then calls the
-  same action an admin does.
+- **The buyer's return no longer refunds — the SELLER's completion does** (ADR-073).
+  A return is a request the buyer writes, the seller approves with an iade kodu, and
+  the seller completes when the parcel is on the shelf; only that last step calls
+  `RefundLinesAction`, through `OrderReturnContract` with `cause: return`. It is a
+  **separate port from C1's** because that one refuses a shipped parcel — the state a
+  return begins in — and hard-codes the other cause. `payment.refund` still means
+  "reverse a charge with no window justifying it": the admin door, unchanged.
 - **Payouts are proposed automatically, daily, one per seller** — and a human still
   makes the bank transfer. `created_by` null means the schedule decided.
   **The scheduler must be running** or no payout is ever proposed and, worse, no

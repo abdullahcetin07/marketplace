@@ -44,7 +44,7 @@ use Illuminate\Http\JsonResponse;
  * public surface would be one more thing to scope and one more thing to probe.
  *
  * ONE ANSWER FOR EVERY REFUSAL — "no such order", "not yours", "never delivered",
- * "too late". @see `RequestReturnAction`, which owns the same rule for the write.
+ * "too late". @see `CompleteReturnAction`, which owns the same rule for the write.
  * This controller's read repeats it rather than short-circuiting: a 404 here and
  * a 409 there for the same order would tell a prober which one it was.
  *
