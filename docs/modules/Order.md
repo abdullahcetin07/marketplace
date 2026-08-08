@@ -232,6 +232,11 @@ moved on. It is also what keeps every non-TR address working with the field simp
 `Cancelled`. Forward-looking states (`Paid`, `Preparing`, `Shipped`, `Delivered`,
 `Completed`, `Returned`) arrive with Payment/Shipping/Returns; not built now.
 
+**`Expired` (ADR-072, 2026-08-08).** A placed order whose payment window ran out. It is a
+separate case from `Cancelled` because a cancellation is somebody's decision and an expiry is
+the clock — and because it is **not terminal**: `Expired → Paid` is legal, the single
+transition out of it, so a payment that lands late can still recover the order (§3.3.1).
+
 ---
 
 # 3. Business Rules
@@ -267,7 +272,36 @@ what the cancellation says about the seller's shelf:
 | **Buyer** | `release` — they changed their mind; the seller has the goods |
 | **Seller** | `release` **+ zero their on-hand** for that variant. A merchant who cannot fulfil has told the platform they have none; releasing alone would send the next buyer into the same wall. The confirm dialog warns them first |
 | **Admin** | `release` by default — oversight is not a claim about anybody's stock. An explicit "seller fault" toggle also zeroes |
-| **System / expiry** | `release`. **Unplaced `Pending` checkouts only** — a placed order is not an abandoned tab and holds until paid or cancelled |
+| **System / expiry** | `release`. **Unplaced `Pending` checkouts only** — a placed order is not an abandoned tab, and expires rather than cancels (§3.3.1) |
+
+## 3.3.1 The payment window (ADR-072, 2026-08-08)
+
+**A placed order that nobody pays for expires and gives its stock back.** Until this shipped,
+nothing released the hold ADR-057 made placement keep: a shopper who closed the tab at the card
+form cost that seller some of their inventory permanently, `available = on_hand − reserved` fell
+toward zero, and their offer dropped off the buy box **while still declaring stock**.
+
+`settings('order.payment_window_minutes')`, default 5, floored at 1 in code. A minute-by-minute
+sweep (`ExpireAwaitingPaymentJob` → `ExpireOrderAction`) moves `AwaitingPayment → Expired` and
+releases every line's hold. On-hand is untouched — the units never left.
+
+**It is an expiry, not a cancellation**, and that is why it is its own action rather than a
+`CancelOrderAction` variant. Nobody decided anything; the order must stay open to a late payment;
+and zeroing a seller's declared stock because a stranger abandoned a basket would be the opposite
+of the bug being fixed. It stamps **no `cancelled_at`** and adds no column: `placed_at` plus the
+status already say when the window started and how it ended.
+
+**An expired order is hidden from `GET /orders`** but remains reachable by uuid — nothing is
+deleted. An order still *inside* its window keeps showing, so the customer can finish paying.
+
+**A payment that succeeds after expiry re-reserves or refunds.** Order cannot do this — it holds
+no Inventory port on that path — so it lives in Payment's callback (Payment.md §5.1); Order's
+only part is that `Expired → Paid` is legal. `OrderExpired` is emitted as a hook with no listener
+in v1.
+
+**This is a different window from the pre-placement one.** `ExpireReservationsJob` sweeps
+`Pending` — a basket abandoned at the address step — after 30 minutes, ending in `Cancelled`.
+That job existed and had never been scheduled; ADR-072's work scheduled it too.
 
 The seller-zero happens at the **Offer**, where the seller declares stock: Order emits
 `OrderCancelledBySeller` **per line** (it is a claim about a variant, not an order), the

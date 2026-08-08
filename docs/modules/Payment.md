@@ -229,6 +229,47 @@ the reservation it was handed, keyed by Order's `order_uuid:variant_uuid` refere
 (the string key from the reservation-uuid fix, not a uuid — the trap this platform
 has now met four times).
 
+## 5.1 The late payment — re-reserve or refund (ADR-072, 2026-08-08)
+
+**A verified success can arrive for orders that have already expired.** Order's payment
+window is five minutes (Order.md §3.3.1) and a slow 3-D Secure is longer — the bank's SMS,
+a wrong code, a second attempt. The holds are already back on the shelf by the time PayTR
+calls.
+
+Before this shipped, that money was simply taken: the commit found no active reservation,
+Order's listener found `Expired`, and nothing anywhere recorded that a customer had paid for
+an order they would never receive.
+
+So `SettlePaymentCallbackAction::settle()` **takes the holds back first**, for any order in
+the group that is no longer awaiting payment, and it is **all-or-nothing across the whole
+group**:
+
+| | |
+|---|---|
+| **Every line re-reserves** | Settlement proceeds exactly as before — commit, `PaymentSucceeded`, and the orders recover `Expired → Paid` |
+| **Any line cannot** | Nothing is committed, nothing is marked paid. Every hold taken during the attempt is **released**, the charge is **refunded in full** at the gateway, the payment goes terminal `Refunded`, and `PaymentFailed` is dispatched instead. The orders stay `Expired` |
+
+**Half a basket is not an outcome.** A basket is one charge (ADR-052/060), so recovering three
+sellers' orders and failing the fourth would leave the customer paid up and one seller unable
+to ship — with no partial refund of a payment that was never split.
+
+**A refund the PSP refuses is logged and still terminal.** Leaving the payment settleable would
+be worse than the stuck money: the next retry would commit stock nobody has.
+
+**The order status crosses as a string, not `OrderStatus::Expired`** — Payment imports no
+module, exactly as `InitiatePaymentAction` compares `'awaiting_payment'`.
+
+> **It required a change in Inventory, and that change closed a silent oversell.**
+> `ReserveStockAction` treated *any* existing reservation for a reference as "already held":
+> it returned success without locking the pool or checking availability. A released hold
+> therefore re-reserved as a no-op, and the commit that followed found a non-active
+> reservation and moved nothing — money taken, `on_hand` untouched, nothing to show for it.
+> `ReservationStatus::isReclaimable()` now separates the two: `Active` is still idempotent
+> (a retry must not take a second hold) and `Committed`/`Restocked` still refuse (those units
+> left), while a **`Released`** hold goes through the full path — lock, availability check,
+> ledger entry — and **can be refused**. A re-hold is a new claim on stock, not a repeat of
+> an old one.
+
 ---
 
 ## 6. Commission — a multi-dimensional rule engine (ADR-061)

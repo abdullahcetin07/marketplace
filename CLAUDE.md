@@ -102,6 +102,16 @@ you want `order_lines`.
 Orders stop at **awaiting payment**; the customer side is API-only (Next.js storefront
 later). Payment/Shipping/commission/payout stay out of scope.
 
+**A placed order that nobody pays for now EXPIRES and gives its stock back** (ADR-072,
+2026-08-08). ADR-057 made placement hold a reservation and nothing released it, so every
+abandoned card form permanently cost that seller inventory and quietly took their offer
+off the buy box. A minute-by-minute sweep expires `AwaitingPayment` past
+`settings('order.payment_window_minutes')` (default 5). **`Expired` is not `Cancelled`**
+— the clock decided, not a person — and it is the one non-terminal ending: a payment that
+arrives late **re-reserves every line or refunds the whole charge**, in Payment's callback,
+never in between. **The scheduler is part of the feature**: it had never run on this
+server, so eleven tasks were silently skipped, and all of this is inert without it.
+
 **It is NOT frozen**: Payment is next and moves the stock COMMIT to payment-success
 (ADR-054/057), which changes this module's placement path. **ADR-057 (2026-07-31)**
 already amended ADR-054: **placement holds the reservation, it no longer commits**
