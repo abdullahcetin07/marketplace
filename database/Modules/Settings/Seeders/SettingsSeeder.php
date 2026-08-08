@@ -101,6 +101,22 @@ final class SettingsSeeder extends Seeder
         | tells a buyer their parcel arrived while they are still waiting for it,
         | and starts their return clock running.
         */
+        /*
+        | HOW LONG A PLACED ORDER MAY GO UNPAID before its stock hold goes back
+        | (ADR-072). The number that fixes a real, live bug: without the sweep
+        | this feeds, an abandoned payment held a seller's stock forever and
+        | took their offer off the buy box while it still declared stock.
+        |
+        | FIVE MINUTES IS AGGRESSIVE ON PURPOSE — a hold that outlives the
+        | shopper's attention costs the seller every sale it blocks — and the
+        | cost is stated where the config default is: it is shorter than PayTR's
+        | own iframe session, so a slow 3-D Secure can expire mid-payment. The
+        | late-payment path re-reserves or refunds precisely because of that,
+        | and this row is `settings()` so an operator can lengthen it from the
+        | panel if support sees churn.
+        */
+        $settings->register('order.payment_window_minutes', SettingGroup::Order, SettingType::Integer, 5, 'Ödeme penceresi (dk): ödenmeyen sipariş bu süre sonunda düşer ve stok serbest kalır.');
+
         $settings->register('shipping.transit_days', SettingGroup::Shipping, SettingType::Integer, 3, 'Transit days before delivery is inferred');
         $settings->register('shipping.payout_hold_days', SettingGroup::Shipping, SettingType::Integer, 14, 'Days after delivery before a payout is eligible');
         // 14 days is the Turkish distance-selling right of withdrawal (cayma

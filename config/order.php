@@ -36,6 +36,23 @@ return [
     ],
 
     /*
+    | HOW LONG A PLACED ORDER MAY GO UNPAID (ADR-072), and it is a DIFFERENT
+    | window from the one above. `reservation.expires_after_minutes` is the
+    | PRE-placement abandonment window — a basket somebody walked away from at
+    | the address step, 30 minutes, ending in `Cancelled`. This one starts when
+    | the order is PLACED and the customer is sent to the card form, and ends in
+    | `Expired` with the hold released.
+    |
+    | FIVE MINUTES IS SHORTER THAN PayTR'S OWN IFRAME SESSION, deliberately and
+    | at a cost: a customer slow at 3-D Secure can have their order expire
+    | mid-payment. That is exactly why the late-payment path re-reserves or
+    | refunds, and why the real value lives in `settings()` — an operator
+    | lengthens it without a release if support sees churn. This is only the
+    | floor for when Settings is unreachable.
+    */
+    'payment_window_minutes' => (int) env('ORDER_PAYMENT_WINDOW_MINUTES', 5),
+
+    /*
     |--------------------------------------------------------------------------
     | Order numbers (Order.md §2.3)
     |--------------------------------------------------------------------------

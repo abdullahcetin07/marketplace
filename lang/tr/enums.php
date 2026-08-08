@@ -229,6 +229,7 @@ return [
         'performance' => 'Performans',
         'shipping' => 'Kargo',
         'system' => 'Sistem',
+        'order' => 'Sipariş',
     ],
 
     'SettingType' => [

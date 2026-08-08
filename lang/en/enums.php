@@ -227,6 +227,7 @@ return [
         'performance' => 'Performance',
         'shipping' => 'Shipping',
         'system' => 'System',
+        'order' => 'Orders',
     ],
 
     'SettingType' => [

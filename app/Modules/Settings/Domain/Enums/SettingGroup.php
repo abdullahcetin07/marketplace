@@ -41,6 +41,20 @@ enum SettingGroup: string
      */
     case Shipping = 'shipping';
 
+    /**
+     * The order lifecycle's clocks (ADR-072).
+     *
+     * ONE VALUE TODAY — how long a placed order may go unpaid before its stock
+     * hold goes back — and it is on this tab rather than under Performance for
+     * the reason `Shipping` is: it is the operations team's number, tuned from
+     * what support actually sees, not a super-admin-only lever.
+     *
+     * NOT PUBLICLY READABLE. How long a shopper has to pay is a detail of the
+     * checkout, and an unauthenticated endpoint advertising the window would be
+     * telling somebody exactly how long a hold survives.
+     */
+    case Order = 'order';
+
     case System = 'system';
 
     /**
@@ -88,6 +102,7 @@ enum SettingGroup: string
             self::Security => 'heroicon-o-shield-check',
             self::Performance => 'heroicon-o-bolt',
             self::Shipping => 'heroicon-o-truck',
+            self::Order => 'heroicon-o-shopping-bag',
             self::System => 'heroicon-o-server-stack',
         };
     }
@@ -107,7 +122,10 @@ enum SettingGroup: string
             // Beside the operational groups rather than the platform ones: it is
             // the operations team's tab, not an engineer's.
             self::Shipping => 10,
-            self::System => 11,
+            // Beside Shipping for the same reason: both are the operations
+            // team's tab rather than an engineer's.
+            self::Order => 11,
+            self::System => 12,
         };
     }
 }
