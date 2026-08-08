@@ -243,6 +243,32 @@ const EMPTY_SUMMARY: ReviewSummary = {
   sellers: [],
 };
 
+/**
+ * One published Q&A on a product page (Questions, ADR-070/071).
+ *
+ * Only ANSWERED, non-hidden questions reach this — an unanswered one is private to
+ * the seller. `asker_name` is masked server-side; `seller` is the merchant the
+ * question was directed at (the buy-box winner at ask time).
+ */
+export type PublicQuestion = {
+  id: string;
+  asker_name: string;
+  body: string;
+  answer_body: string | null;
+  seller: { id: string; name: string | null };
+  asked_at: string;
+  answered_at: string | null;
+};
+
+export type ProductQuestionsPage = {
+  questions: PublicQuestion[];
+  page: number;
+  lastPage: number;
+  total: number;
+};
+
+export type QuestionFilters = { seller?: string; page?: number };
+
 export type ProductSort = 'newest' | 'price_asc' | 'price_desc';
 
 export type BrowseParams = {
@@ -507,5 +533,51 @@ export async function getProductRatings(productIds: string[]): Promise<ProductRa
     return Array.isArray(data.ratings) ? {} : data.ratings;
   } catch {
     return {};
+  }
+}
+
+/*
+|------------------------------------------------------------------------------
+| Questions ("Satıcıya Sor", Questions module ADR-070/071)
+|------------------------------------------------------------------------------
+*/
+
+/**
+ * A product's public (answered) Q&A. No summary — there is no rating to roll up.
+ *
+ * DEGRADES to an empty page rather than throwing: a broken Q&A read must not take
+ * down the product page it hangs off, the same resilience the reviews read has.
+ */
+export async function getProductQuestions(
+  idOrSlug: string,
+  filters: QuestionFilters = {},
+): Promise<ProductQuestionsPage> {
+  const query = new URLSearchParams();
+  if (filters.seller) query.set('seller', filters.seller);
+  if (filters.page && filters.page > 1) query.set('page', String(filters.page));
+  const suffix = query.toString() === '' ? '' : `?${query.toString()}`;
+
+  const empty: ProductQuestionsPage = { questions: [], page: 1, lastPage: 1, total: 0 };
+
+  try {
+    const response = await fetch(apiUrl(`/api/v1/products/${encodeURIComponent(idOrSlug)}/questions${suffix}`), {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) return empty;
+
+    const envelope = (await response.json()) as Envelope<PublicQuestion[]> & {
+      meta?: { current_page?: number; last_page?: number; total?: number };
+    };
+    const meta = envelope.meta ?? {};
+
+    return {
+      questions: envelope.data ?? [],
+      page: Number(meta.current_page ?? 1),
+      lastPage: Number(meta.last_page ?? 1),
+      total: Number(meta.total ?? 0),
+    };
+  } catch {
+    return empty;
   }
 }

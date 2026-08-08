@@ -218,6 +218,23 @@ export type MyReview = {
   created_at: string;
 };
 
+/** A product question's state (Questions, ADR-070). */
+export type QuestionStatus = 'pending' | 'answered';
+
+/** The buyer's own question, any status — for the account area. */
+export type MyQuestion = {
+  id: string;
+  product_uuid: string;
+  product_title: string;
+  body: string;
+  status: QuestionStatus;
+  /** The seller's answer once given; null while pending. */
+  answer_body: string | null;
+  seller: { id: string; name?: string | null } | null;
+  created_at: string;
+  answered_at: string | null;
+};
+
 export type Order = {
   id: string;
   /** The human handle a customer quotes in an email (Order §2.3). */

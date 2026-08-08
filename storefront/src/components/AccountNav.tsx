@@ -21,6 +21,7 @@ import { ui } from '@/lib/ui';
 const LINKS = [
   { href: '/hesap', label: 'Hesabım', exact: true, icon: UserIcon },
   { href: '/hesap/siparislerim', label: 'Siparişlerim', icon: BoxIcon },
+  { href: '/hesap/sorularim', label: 'Sorularım', icon: ChatIcon },
   { href: '/hesap/adreslerim', label: 'Adreslerim', icon: PinIcon },
 ];
 
@@ -76,6 +77,14 @@ function BoxIcon() {
     <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
       <path d="M21 8 12 3 3 8v8l9 5 9-5V8z" />
       <path d="m3 8 9 5 9-5M12 13v8" />
+    </svg>
+  );
+}
+
+function ChatIcon() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth={1.8} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 11.5a8.38 8.38 0 0 1-8.5 8.5 8.5 8.5 0 0 1-3.8-.9L3 21l1.9-5.7a8.5 8.5 0 0 1-.9-3.8 8.38 8.38 0 0 1 8.5-8.5 8.38 8.38 0 0 1 8.5 8.5z" />
     </svg>
   );
 }

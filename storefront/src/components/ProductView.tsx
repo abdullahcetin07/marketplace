@@ -2,8 +2,9 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/AddToCartButton';
 import { ProductGallery } from '@/components/ProductGallery';
+import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductReviews } from '@/components/ProductReviews';
-import { getProduct, getProductOffers, getProductReviews } from '@/lib/api';
+import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
 
@@ -33,9 +34,10 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
   // the uuid-cast 500. Using the id is also just the correct key.) Reviews ride
   // along in the same round of fetches, and degrade to empty rather than break the
   // page if they fail.
-  const [offers, reviews] = await Promise.all([
+  const [offers, reviews, questions] = await Promise.all([
     getProductOffers(product.id),
     getProductReviews(product.id),
+    getProductQuestions(product.id),
   ]);
 
   const featured = offers?.featured ?? null;
@@ -239,6 +241,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
       </div>
 
       <ProductReviews productId={product.id} initial={reviews} />
+
+      <ProductQuestions productId={product.id} initial={questions} />
     </div>
   );
 }

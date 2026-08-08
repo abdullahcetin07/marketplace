@@ -66,6 +66,11 @@ export default function AccountPage() {
           title="Adreslerim"
           note="Teslimat ve fatura adreslerini yönet"
         />
+        <ShortcutCard
+          href="/hesap/sorularim"
+          title="Sorularım"
+          note="Satıcılara sorduğun sorular ve yanıtları"
+        />
       </div>
     </div>
   );

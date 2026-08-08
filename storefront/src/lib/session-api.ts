@@ -30,6 +30,7 @@ import type {
   Country,
   EligibleReviewLine,
   GeoPlace,
+  MyQuestion,
   MyReview,
   Order,
   OrderReturn,
@@ -617,4 +618,30 @@ export function submitReview(input: {
 /** A buyer may delete their own review (hard delete — the line becomes reviewable again). */
 export function deleteReview(reviewId: string): Promise<null> {
   return request<null>(`/api/v1/reviews/${encodeURIComponent(reviewId)}`, { method: 'DELETE' });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Questions — the buyer side ("Satıcıya Sor", ADR-070)
+|------------------------------------------------------------------------------
+|
+| ANYONE SIGNED IN MAY ASK — no purchase gate; the point is to ask before buying.
+| The server derives the target seller from the product's buy box and snapshots
+| it, so `ask` sends only the product and the text. A question is born PENDING and
+| is private until the seller answers it — `201` means "satıcıya iletildi".
+*/
+
+/** The buyer's own questions across every status (so a pending one is visible). */
+export function fetchMyQuestions(): Promise<MyQuestion[] | null> {
+  return request<MyQuestion[]>('/api/v1/questions/mine');
+}
+
+/** Ask the buy-box seller a question about a product (uuid or slug). */
+export function askQuestion(product: string, body: string): Promise<MyQuestion | null> {
+  return request<MyQuestion>('/api/v1/questions', { method: 'POST', body: { product, body } });
+}
+
+/** A buyer may delete their own question. */
+export function deleteQuestion(questionId: string): Promise<null> {
+  return request<null>(`/api/v1/questions/${encodeURIComponent(questionId)}`, { method: 'DELETE' });
 }
