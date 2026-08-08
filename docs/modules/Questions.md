@@ -1,7 +1,9 @@
 # Questions ("Satıcıya Sor")
 
-**Status: SPEC (2026-08-07; ADR-070–071). Not yet built.** The design below is
-approved; the phased work order will be `BUILD_QUESTIONS.md`. Questions is the
+**Status: COMPLETE (2026-08-08; ADR-070–071, built Q0–Q8).** The design below is
+what shipped; §13 records the one deviation and why. The phased work order was
+`BUILD_QUESTIONS.md`. **Not frozen** — the storefront (§9) is still to come.
+Questions is the
 second module built to carry user-generated content about the catalogue — the
 sibling of Reviews — and it reuses Reviews' patterns while sharing none of its
 tables.
@@ -224,7 +226,61 @@ before the `products/{product}` catch-all):
 
 ---
 
-## 12. ADRs
+## 12. What shipped, and where to look
+
+| Area | Where |
+|---|---|
+| `QuestionStatus` — two cases; hiding is a flag, not a third (§5) | `Domain/Enums/QuestionStatus` |
+| The aggregate — snapshotted target, masked asker, answer on the same row | `Domain/Models/Question` |
+| Visibility as a conjunction (`Answered` AND not hidden), in one place | `Question::isPublic()` / `scopePublic()` |
+| The target derived from the buy box and frozen (ADR-070 §4) | `Application/Actions/AskQuestionAction` |
+| The seller's answer, which publishes the pair (§6) | `Application/Actions/AnswerQuestionAction` |
+| The reversible takedown (§7) | `Application/Actions/{Hide,Unhide}QuestionAction` |
+| Both asymmetries as explicit type checks (§6, §7) | `Presentation/Policies/QuestionPolicy` |
+| `GET /products/{idOrSlug}/questions` — no summary (§8) | `Presentation/Controllers/Api/Storefront/PublicProductQuestionController` |
+| `POST /questions`, `GET /questions/mine`, `DELETE /questions/{uuid}` (§8) | `Presentation/Controllers/Api/CustomerQuestionController` |
+| The merchant's queue, store-uuid scoped (§6) | `Presentation/Filament/Seller/Resources/QuestionResource` |
+| The platform's hide/un-hide screen (§7) | `Presentation/Filament/Resources/QuestionModerationResource` |
+
+**Tests:** `QuestionStatusTest` (the absent third case, and "answered" ≠ "public"),
+`QuestionRepositoryTest` (visibility, including a hidden PENDING question),
+`QuestionActionsTest` (derivation against a faked Offer port),
+`PublicQuestionApiTest` (including the asserted ABSENCE of a summary block),
+`CustomerQuestionApiTest` (end to end — with the no-purchase-gate assertion),
+`SellerQuestionPanelTest` (store isolation; the employee may answer),
+`AdminQuestionModerationTest` (an admin cannot answer, a seller cannot hide), and
+**`QuestionTargetSecurityTest`** — the adversarial pass over HTTP.
+
+---
+
+## 13. Deviations from this specification, recorded
+
+**One, reported rather than taken silently (ADR-018).**
+
+**`QuestionModerationResource::canViewAny()` is gated on `question.moderate`, not
+on `question.view_any`** as `BUILD_QUESTIONS.md` §Q7 sketched. A test caught it:
+`question` is registered for the SELLER guard too — a merchant needs `view_any`
+for their own answer panel — so `can('viewAny', Question::class)` is **true for a
+seller**, and gating the platform-wide screen on it would have let one through
+anything that resolved the resource outside the admin panel's routing. There is
+no read-only moderator concept here, so one ability expresses both seeing every
+seller's Q&A and hiding one.
+
+**Two things the work order sketched that were not deviations but are worth
+noting**, because they are where the shape of the module shows:
+
+- **There is no navigation badge on the moderation screen**, unlike every other
+  moderation surface. A badge counts a QUEUE and reactive moderation has none:
+  nothing is waiting on staff, so the number would either count every question
+  ever asked or invent an urgency that does not exist.
+- **The seller-panel query treats `whereNull('hidden_at')` as part of the tenancy
+  wall**, not as a filter. An admin's hide removes a question from the merchant's
+  queue as well as from the public page — leaving abuse in their list would make
+  them read it anyway.
+
+---
+
+## 14. ADRs
 
 - **ADR-070** — Questions are product Q&A directed at the buy-box seller
   (server-derived + snapshotted, never client-chosen); any signed-in customer may ask

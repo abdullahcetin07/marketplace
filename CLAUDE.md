@@ -212,6 +212,28 @@ being denied. **It is NOT frozen** — the storefront (Reviews.md §9) is still 
 **Questions ("Satıcıya Sor") is a separate module** that will reuse these patterns and
 none of these tables. Three recorded deviations from the spec live in Reviews.md §13.
 
+**Questions ("Satıcıya Sor") is COMPLETE (2026-08-08; ADR-070–071, built Q0–Q8,
+[docs/modules/Questions.md](docs/modules/Questions.md)) — the newest module and the
+MIRROR-IMAGE of Reviews.** A signed-in shopper's public question about a product,
+aimed at the **buy-box winner the server derives and snapshots** (the client sends
+`{product, body}` and no seller, ADR-070), answered by **that merchant** from the
+seller panel. Every difference from Reviews is deliberate: **no purchase gate** (a
+question is asked to decide *whether* to buy), and **reactive** moderation — the
+seller's answer publishes the pair, an admin hides an unacceptable one afterwards.
+
+**Two levers, two people, neither reaching the other's** (ADR-071): a seller
+answers and cannot hide; an admin hides and **never answers** — the platform
+speaking in a merchant's place is a promise the merchant did not make. Both are
+explicit actor-TYPE checks in `QuestionPolicy`, so granting the wrong ability by
+accident still fails. A **Seller Employee** may answer (delegable staff work).
+
+**Hiding is a reversible FLAG, not a status**: an admin may take down a *pending*
+question as well as an answered one, and un-hiding restores whatever it was.
+Public = `Answered` AND `hidden_at IS NULL`, computed on read. A hidden question
+also leaves the merchant's queue. **Questions imports NO module** — Catalog, Offer,
+Store and Organization through Core contracts; no media, no money. **Not frozen**:
+the storefront (Questions.md §9) is still to come. One recorded deviation in §13.
+
 **Pre-shipment cancellation is COMPLETE (2026-08-06; ADR-065, C1+C2).** The mirror
 of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
 S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
