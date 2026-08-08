@@ -204,10 +204,23 @@ final class OrderPolicy
      */
     public function decideReturn(User $user, Order $order): Response
     {
-        return match ($user->type) {
-            UserType::Admin, UserType::Customer => Response::deny(__('errors.forbidden')),
-            default => $this->sells($user, $order),
-        };
+        if ($user->type === UserType::Admin || $user->type === UserType::Customer) {
+            return Response::deny(__('errors.forbidden'));
+        }
+
+        /*
+        | **THE PERMISSION SAYS WHO MAY; THE MEMBERSHIP SAYS WHOSE.** Both, and in
+        | this order. A Seller Employee holds `order.decide_return` because
+        | receiving returns is delegable warehouse work (ADR-073), but holding it
+        | must never reach another merchant's orders — and membership alone would
+        | let any employee of any org act the moment somebody granted them panel
+        | access.
+        */
+        if (! $user->hasPermissionTo('order.decide_return', $user->guardName())) {
+            return Response::deny(__('errors.forbidden'));
+        }
+
+        return $this->sells($user, $order);
     }
 
     /**

@@ -132,6 +132,18 @@ final class SellerPanelProvider extends PanelProvider
                 \App\Modules\Order\Presentation\Filament\Seller\Resources\CancellationRequestResource::class,
 
                 /*
+                | İADE TALEPLERİ (ADR-073). Beside the cancellation inbox because
+                | they are the same conversation at the two ends of a lifecycle —
+                | one before the parcel leaves, one after it arrives. **This one
+                | has a third button**: approving only sends the buyer a return
+                | code, and "İadeyi tamamla" is what moves the money, pressed when
+                | the goods are physically back. The badge counts everything still
+                | OPEN, approved included, because a parcel in transit is work
+                | this seller has not finished.
+                */
+                \App\Modules\Order\Presentation\Filament\Seller\Resources\ReturnRequestResource::class,
+
+                /*
                 | KARGOLARIM (ADR-063). Beside the orders because it is the other
                 | half of one job: what was sold, and what still has to be put in
                 | a box. The seller's ONE lever is here — and the one they can

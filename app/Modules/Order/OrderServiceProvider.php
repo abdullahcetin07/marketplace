@@ -159,5 +159,22 @@ final class OrderServiceProvider extends ServiceProvider
         PermissionRegistry::ability('order.view_any', [UserType::Admin]);
         PermissionRegistry::ability('order.view', [UserType::Admin]);
         PermissionRegistry::ability('order.cancel', [UserType::Admin]);
+
+        /*
+        | ANSWERING A RETURN (ADR-073) — the seller's three-step conversation:
+        | approve with a code, reject with a reason, or confirm the goods are
+        | back. **ONE ABILITY FOR ALL THREE**, because they are three steps of one
+        | exchange the same merchant holds; splitting them would invite a role
+        | that may approve a return but not complete it, which is a seller who has
+        | promised a refund they cannot deliver.
+        |
+        | A SELLER ABILITY RATHER THAN MEMBERSHIP ALONE, unlike C2's cancellation
+        | decision — the shape `question.answer` established (ADR-071), and the
+        | reason is the same: it is delegable staff work, so it has to be
+        | grantable to a Seller Employee separately from the owner's other levers.
+        | `OrderPolicy::decideReturn()` still checks membership on top; the
+        | permission says WHO MAY, the membership says WHOSE.
+        */
+        PermissionRegistry::ability('order.decide_return', [UserType::Seller]);
     }
 }

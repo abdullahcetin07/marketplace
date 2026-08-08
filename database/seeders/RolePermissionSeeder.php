@@ -268,6 +268,15 @@ final class RolePermissionSeeder extends Seeder
             */
             ...PermissionRegistry::forResource('question', ['view_any', 'view']),
             'question.answer',
+            /*
+            | RECEIVING RETURNS IS WAREHOUSE WORK (ADR-073), and the person who
+            | opens the parcel is the person who knows whether it may be accepted.
+            | Confined to the organization's own orders by
+            | `OrderPolicy::decideReturn()`, exactly as question answering is —
+            | and it carries real money, which is why it is granted explicitly
+            | here rather than inherited.
+            */
+            'order.decide_return',
         ]);
     }
 
