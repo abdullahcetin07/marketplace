@@ -55,4 +55,26 @@ interface ShipmentQueryContract
      * False for an order with no shipment, per the class docblock.
      */
     public function isAwaitingHandover(string $orderUuid): bool;
+
+    /**
+     * The carriers a seller may pick from, uuid => name, in the operator's order.
+     *
+     * **A LOOKUP LIST ON A PORT THAT OTHERWISE ANSWERS ABOUT ONE ORDER**, added
+     * for ADR-073's return code: the seller approving a return picks the carrier
+     * the buyer should send it back with, and that list is `cargo_companies` —
+     * Shipping's table, which Order may not read. The alternative was Order
+     * importing `CargoCompany`, which `LayeringTest` fails, or a second copy of
+     * the list, which would drift the day an operator disabled a carrier.
+     *
+     * **ACTIVE ONLY.** A carrier an operator has switched off must not appear in
+     * a picker; the filter belongs to the query rather than to each caller, for
+     * the reason `isAwaitingHandover()` gives — the moment two callers spell out
+     * a rule themselves is the moment they disagree.
+     *
+     * IT IS NOT ABOUT THE RETURN PARCEL'S TRACKING. v1 tracks no return shipment
+     * (ADR-063's manual philosophy); this is a name to print in an instruction.
+     *
+     * @return array<string, string>
+     */
+    public function activeCargoCompanies(): array;
 }

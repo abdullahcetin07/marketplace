@@ -6,6 +6,7 @@ namespace App\Modules\Shipping\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\ShipmentQueryContract;
 use App\Modules\Shipping\Domain\Enums\ShipmentStatus;
+use App\Modules\Shipping\Domain\Models\CargoCompany;
 use App\Modules\Shipping\Domain\Models\Shipment;
 
 /**
@@ -53,5 +54,19 @@ final class ShipmentQuery implements ShipmentQueryContract
         $status = Shipment::query()->where('order_uuid', $orderUuid)->value('status');
 
         return $status instanceof ShipmentStatus && $status->isAwaitingHandover();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function activeCargoCompanies(): array
+    {
+        /*
+        | THE SAME QUERY THE SELLER'S SHIP FORM USES — `active()->ordered()` — so a
+        | carrier disabled by an operator disappears from both pickers at once. A
+        | plain array rather than a Collection: the port promises primitives, and a
+        | Collection would tempt a caller into chaining Eloquent behind it.
+        */
+        return CargoCompany::query()->active()->ordered()->pluck('name', 'uuid')->all();
     }
 }

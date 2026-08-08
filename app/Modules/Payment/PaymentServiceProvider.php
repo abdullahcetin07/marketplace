@@ -6,6 +6,7 @@ namespace App\Modules\Payment;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
 use App\Core\Domain\Contracts\OrderCancellationContract;
+use App\Core\Domain\Contracts\OrderReturnContract;
 use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
@@ -14,6 +15,7 @@ use App\Modules\Payment\Domain\Models\CommissionRule;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\Payout;
 use App\Modules\Payment\Infrastructure\Commands\OrderCancellation;
+use App\Modules\Payment\Infrastructure\Commands\OrderReturn;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
 use App\Modules\Payment\Presentation\Console\DiagnosePaymentCommand;
@@ -91,6 +93,15 @@ final class PaymentServiceProvider extends ServiceProvider
         | shipped, and an event announces a fact rather than asking a question.
         */
         $this->app->singleton(OrderCancellationContract::class, OrderCancellation::class);
+
+        /*
+        | **THE THIRD COMMAND PORT, AND THE SIBLING C1 COULD NOT BE (ADR-073).**
+        | The cancellation port refuses a shipped parcel and hard-codes
+        | `cause: cancellation` — the two facts a return inverts. Same machine
+        | underneath (`RefundLinesAction`), different gate and different meaning,
+        | so two ports and one action rather than one port with a flag.
+        */
+        $this->app->singleton(OrderReturnContract::class, OrderReturn::class);
 
         $this->registerPermissions();
     }
