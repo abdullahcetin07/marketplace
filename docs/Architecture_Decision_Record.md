@@ -2201,4 +2201,49 @@ days" nudge without changing this ownership.
 
 ---
 
+# ADR-072 A Placed Order Expires After a Payment Window, Releasing Its Reservation; a Late Payment Re-Reserves or Refunds
+
+**Status:** Accepted (2026-08-08). Amends ADR-052/054/057 (Order lifecycle + reservations).
+Work order: `BUILD_ORDER_EXPIRY.md`.
+
+An order placed but not paid holds a stock **reservation** (ADR-057: placement holds it,
+Payment commits it). Until now nothing released that hold if the customer simply walked away
+from the payment step — the reservation sat forever, and a seller's `available` (`on_hand −
+reserved`) fell to zero while their offer still declared stock, taking their listing off the
+buy box. This ADR adds the missing release.
+
+**A placed order expires after a payment window — `settings('order.payment_window_minutes')`,
+default 5 — moving `AwaitingPayment → Expired` and RELEASING its reservation.** `Expired` is a
+new `OrderStatus`, distinct from `Cancelled`: a cancellation is somebody's decision, an expiry
+is the clock. A minute-by-minute scheduled sweep (the money-critical scheduler pattern, as the
+delivery sweep and auto-payout) finds `AwaitingPayment` orders past the window whose payment
+did not succeed and expires them. This is a **different window from the pre-placement
+abandonment** the existing `ExpireReservationsJob` handles (`Pending`, 30 min → `Cancelled`) —
+that job was also never scheduled, a latent leak this work fixes too.
+
+**An expired order is hidden from the customer's order list.** It is excluded from
+`GET /orders` — a shopper who never paid should not see a wall of dead "ödeme bekliyor" rows.
+It remains reachable by direct uuid (nothing is deleted), and an `AwaitingPayment` order still
+*within* the window keeps showing in the muted "Tamamlanmayan ödemeler" section so the customer
+can still complete payment.
+
+**A payment that succeeds AFTER expiry re-reserves or refunds — never oversells, never keeps a
+paid customer empty-handed.** The PayTR callback is the source of truth and can arrive late (a
+slow 3-D Secure). When a verified success lands for a group whose orders have expired, the
+settlement path **re-reserves every line**: if the stock is still there, the order recovers
+(`Expired → Paid`, the one transition out of `Expired`) and commits normally; if any line can
+no longer be reserved — someone else bought it in the meantime — the **whole payment is
+refunded** and the orders stay `Expired`. This lives in `SettlePaymentCallbackAction`, which
+already holds the Inventory reservation port; the Order-side listener cannot re-reserve and is
+left to transition only.
+
+**Cost, stated plainly:** a 5-minute window is shorter than PayTR's own iframe session, so a
+customer slow at 3-D Secure can have their order expired mid-payment — which is exactly why the
+re-reserve-or-refund path exists, and why the window is `settings()`-tunable rather than a
+constant: if support sees real churn, an operator lengthens it without a release. The recovery
+path is the intricate part and the one most worth its tests: the race is real money against
+real stock.
+
+---
+
 END OF FILE
