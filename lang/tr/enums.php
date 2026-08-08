@@ -134,6 +134,7 @@ return [
         'delivered' => 'Teslim edildi',
         'refunded' => 'İade edildi',
         'cancelled' => 'İptal edildi',
+        'expired' => 'Süresi doldu',
     ],
 
     /*

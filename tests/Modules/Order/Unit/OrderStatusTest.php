@@ -89,6 +89,52 @@ it('says neither live state is finished with stock', function (): void {
         ->and(OrderStatus::Refunded->isTerminal())->toBeTrue();
 });
 
+it('expires an unpaid order, and leaves exactly one way back', function (): void {
+    /*
+     * **AN EXPIRY IS THE CLOCK, NOT A DECISION** (ADR-072). That is the whole
+     * difference from `Cancelled`, which somebody chooses and which is terminal
+     * in both directions: an expired order must stay open to the payment
+     * arriving late, because PayTR's callback is the source of truth and a slow
+     * 3-D Secure outlasts a five-minute window.
+     */
+    expect(OrderStatus::AwaitingPayment->canTransitionTo(OrderStatus::Expired))->toBeTrue()
+        ->and(OrderStatus::AwaitingPayment->transitions())
+        ->toBe([OrderStatus::Paid, OrderStatus::Cancelled, OrderStatus::Expired]);
+
+    // EXACTLY ONE EDGE OUT, and it is the recovery the race needs.
+    expect(OrderStatus::Expired->transitions())->toBe([OrderStatus::Paid])
+        ->and(OrderStatus::Expired->canTransitionTo(OrderStatus::Paid))->toBeTrue()
+        /*
+         * NOT to `Cancelled`: an expired order that somebody later cancels has
+         * nothing left to cancel — the hold is already back and no money was
+         * ever taken.
+         */
+        ->and(OrderStatus::Expired->canTransitionTo(OrderStatus::Cancelled))->toBeFalse()
+        ->and(OrderStatus::Expired->canTransitionTo(OrderStatus::Delivered))->toBeFalse();
+});
+
+it('says an expired order holds no stock, and is not terminal', function (): void {
+    /*
+     * **RELEASING THE HOLD IS THE POINT OF THE STATE.** A seller's `available`
+     * was falling to zero while their offer still declared stock, taking their
+     * listing off the buy box — so by the time an order is `Expired` its
+     * reservation is already back, and it holds none.
+     */
+    expect(OrderStatus::Expired->holdsReservation())->toBeFalse()
+        // NOT terminal: it can still recover to Paid, unlike Cancelled/Refunded.
+        ->and(OrderStatus::Expired->isTerminal())->toBeFalse()
+        /*
+         * AND NOT CANCELLABLE BY THE PLAIN LEVER. There is nothing to give back
+         * and nothing to refund; the order is already released.
+         */
+        ->and(OrderStatus::Expired->isCancellableWithoutRefund())->toBeFalse()
+        ->and(OrderStatus::Expired->isCancellableByCustomer())->toBeFalse();
+
+    // The two live states are unchanged — an expiry did not widen them.
+    expect(OrderStatus::AwaitingPayment->holdsReservation())->toBeTrue()
+        ->and(OrderStatus::Pending->holdsReservation())->toBeTrue();
+});
+
 it('lets a paid order be delivered, refunded or cancelled — the last only through a refund', function (): void {
     /*
      * "CANCEL" AFTER PAYMENT STILL MEANS REFUND. That has not changed; what
@@ -168,8 +214,14 @@ it('has exactly the cases the platform can actually reach', function (): void {
      * when the ORDER is complete from the customer's side, and it is what the
      * return window and the payout clock are measured from.
      */
+    /*
+     * `expired` JOINED THEM (ADR-072), and it passes the same rule: a scheduled
+     * sweep sets it, and it landed with that sweep. It is deliberately NOT
+     * `Cancelled` — an expiry is the clock rather than somebody's decision, and
+     * unlike a cancellation it stays open to a payment that lands late.
+     */
     expect(array_map(fn (OrderStatus $s): string => $s->value, OrderStatus::cases()))
-        ->toBe(['pending', 'awaiting_payment', 'paid', 'delivered', 'refunded', 'cancelled']);
+        ->toBe(['pending', 'awaiting_payment', 'paid', 'delivered', 'refunded', 'expired', 'cancelled']);
 });
 
 it('gives every case a colour for the panels', function (): void {

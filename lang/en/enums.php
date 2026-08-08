@@ -133,6 +133,7 @@ return [
         'delivered' => 'Delivered',
         'refunded' => 'Refunded',
         'cancelled' => 'Cancelled',
+        'expired' => 'Expired',
     ],
 
     /*

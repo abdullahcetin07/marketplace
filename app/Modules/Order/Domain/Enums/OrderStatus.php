@@ -97,6 +97,21 @@ enum OrderStatus: string
 
     case Refunded = 'refunded';
 
+    /**
+     * The payment window ran out and the hold went back (ADR-072).
+     *
+     * **IT IS NOT `Cancelled`, AND THE DIFFERENCE IS WHO DECIDED.** A
+     * cancellation is somebody's choice — a buyer's, a seller's, an admin's —
+     * and it is terminal in both directions. An expiry is the CLOCK: nobody
+     * chose it, and the one thing it must stay open to is the payment arriving
+     * late, which is exactly the transition below.
+     *
+     * AN EXPIRED ORDER HOLDS NO STOCK. Releasing the reservation is the whole
+     * point of the state — a seller's `available` was falling to zero while
+     * their offer still declared stock, taking their listing off the buy box.
+     */
+    case Expired = 'expired';
+
     case Cancelled = 'cancelled';
 
     /**
@@ -117,7 +132,11 @@ enum OrderStatus: string
             // order, and rewinding to "still choosing" is not a state anyone asked
             // for.
             // Paid on a verified success callback; cancellable until then.
-            self::AwaitingPayment => [self::Paid, self::Cancelled],
+            /*
+            | `Expired` JOINED THIS ROW IN ADR-072. The sweep moves an unpaid
+            | order here when the payment window runs out, releasing its hold.
+            */
+            self::AwaitingPayment => [self::Paid, self::Cancelled, self::Expired],
             /*
             | REFUNDABLE, AND NOTHING ELSE (P5, 2026-08-04). Fulfilment states
             | (Preparing/Shipped/Delivered) still belong to Shipping and are still
@@ -150,6 +169,20 @@ enum OrderStatus: string
             | parcel that arrived cannot un-arrive.
             */
             self::Delivered => [self::Refunded],
+            /*
+            | **THE ONE WAY OUT OF `Expired`, AND IT IS THE RACE THIS STATE
+            | EXISTS TO SURVIVE** (ADR-072). PayTR's callback is the source of
+            | truth and can arrive after the sweep has run — a slow 3-D Secure
+            | is minutes, and the window is five. When it does,
+            | `SettlePaymentCallbackAction` re-reserves every line: if the stock
+            | is still there the order recovers through this edge, and if it is
+            | not, the whole payment is refunded and the order stays here.
+            |
+            | NOT to `Cancelled`: an expired order that somebody later cancels
+            | has nothing left to cancel — the hold is already back and no money
+            | was ever taken.
+            */
+            self::Expired => [self::Paid],
             // Terminal in both directions. Un-refunding would mean charging the
             // customer again, which is a new payment, not a state change.
             self::Refunded, self::Cancelled => [],
@@ -271,6 +304,7 @@ enum OrderStatus: string
             self::Paid => 'success',
             self::Delivered => 'success',
             self::Refunded => 'gray',
+            self::Expired => 'gray',
             self::Cancelled => 'danger',
         };
     }
