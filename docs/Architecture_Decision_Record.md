@@ -2246,4 +2246,52 @@ real stock.
 
 ---
 
+# ADR-073 A Return Is a Request the Seller Approves and Completes, Not an Instant Refund; the Refund Fires When the Seller Has the Goods Back
+
+**Status:** Accepted (2026-08-08). Amends ADR-064 (the return window opened an *instant*
+customer refund). Work order: `BUILD_RETURNS.md`.
+
+ADR-064 gave the customer a refund the moment they asked, within the return window — "the
+window IS the approval." That is wrong for physical goods: it refunds before the seller has
+the product back, and a marketplace cannot make sellers whole on trust. This ADR makes a
+return a **request the seller approves, then completes**, and moves the refund to the end.
+
+**The flow is the post-delivery mirror of ADR-065's pre-shipment cancellation request, plus a
+return code.** Four states on a new `ReturnRequest` (in Order, mirroring `CancellationRequest`):
+
+1. **Requested** — the customer names lines + quantities + a reason. **No money moves.** The
+   order stays `Delivered`. Gated on the return window still being open (ADR-064's
+   `SettlementWindow::isReturnOpen`, read through a Core port — Order imports no module).
+2. **Approved** — the seller approves and shares an **iade kodu** (return cargo code) and a
+   carrier, so the customer knows how to send it back. Or **Rejected**, with a reason (no money,
+   and a rejection does not block asking again).
+3. **Completed** — the seller has the parcel back and presses "İadeyi tamamla". **Only now does
+   the refund fire** — the existing `RefundLinesAction` (PSP refund + Inventory restock + ledger
+   reversal + `PaymentRefunded` with `cause: return`), unchanged. The order becomes `Refunded`.
+
+**The money machine does not change — only its trigger does.** `RefundLinesAction` is
+input-agnostic (it takes a `ReturnRequestDTO`); today `RequestReturnAction` fires it on the
+customer's request, and this moves that firing to the seller's completion. The seller triggers
+it through a **new Core command port `OrderReturnContract`** (`completeReturnBySeller` +
+`returnableQuantities` + `isReturnOpen`) — the exact C1 pattern (ADR-065), because Order owns the
+`ReturnRequest` and imports no module. C1's `OrderCancellationContract` **cannot** be reused: it
+refuses any shipped parcel (`assertAwaitingHandover`) and hard-codes `cause: cancellation`,
+whereas a return is a delivered parcel coming back with `cause: return`.
+
+**The return code is the customer's instruction to ship it back** — free-text entered by the
+seller on approval, with a carrier picked from the `cargo_companies` list (read through Shipping's
+`ShipmentQueryContract`, extended with the active-carrier list, so the Order resource needs no
+Shipping import). v1 has no return-shipment tracking; the code + carrier name is the whole
+handoff, matching Shipping v1's manual-tracking philosophy.
+
+**Cost, stated plainly:** the customer waits for the seller twice — once to approve, once to
+complete after receiving the goods — where before they had their money instantly. That is the
+correct trade for not refunding on trust, and it is the same shape buyers already accept for the
+pre-shipment cancellation. A seller who never completes leaves the refund pending; v1 has no SLA
+or auto-complete (a future ADR, like Questions' unanswered-question nudge). **The PayTR refund
+still fires at completion**, so the sandbox-refund limitation that blocks it today must be resolved
+before this is usable in production — flagged in the work order, not solved by it.
+
+---
+
 END OF FILE
