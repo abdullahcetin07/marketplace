@@ -12,6 +12,7 @@ use App\Modules\Order\Application\Actions\CheckoutAction;
 use App\Modules\Order\Application\Actions\PlaceOrderAction;
 use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
 use App\Modules\Order\Domain\DTOs\CancelOrderDTO;
+use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Requests\CancelOrderRequest;
 use App\Modules\Order\Presentation\Requests\CheckoutRequest;
@@ -110,6 +111,22 @@ final class CustomerOrderController extends BaseController
         $orders = Order::query()
             ->with(['lines', 'currency'])
             ->forCustomer($this->customerId())
+            /*
+            | **EXPIRED ORDERS ARE NOT LISTED** (ADR-072). A shopper who never
+            | paid should not open "Siparişlerim" to a wall of dead rows for
+            | things they never bought — each one an invitation to ask support
+            | why it says "ödeme bekliyor" and cannot be paid.
+            |
+            | AN `AwaitingPayment` ORDER STILL INSIDE ITS WINDOW KEEPS SHOWING,
+            | which is the whole reason this filters on `Expired` rather than on
+            | "unpaid": that one CAN still be paid, and hiding it would take the
+            | customer's last route back to the card form.
+            |
+            | NOTHING IS DELETED AND `show()` IS UNTOUCHED — an expired order
+            | stays reachable by its own uuid, so a link in an email or a support
+            | ticket still resolves. It is unlisted, not gone.
+            */
+            ->whereNot('status', OrderStatus::Expired->value)
             ->orderByDesc('id')
             ->paginate($this->perPage());
 

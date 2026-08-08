@@ -432,6 +432,40 @@ it('lists only the acting customer’s orders', function (): void {
     $this->getJson("/api/v1/orders/{$theirs->uuid}")->assertNotFound();
 });
 
+it('keeps expired orders out of the list but reachable by link', function (): void {
+    $customer = $this->actingAsCustomer();
+
+    $paid = Order::factory()->forCustomer((int) $customer->getKey(), 'benim')
+        ->create(['status' => OrderStatus::Paid]);
+    $awaiting = Order::factory()->forCustomer((int) $customer->getKey(), 'benim')
+        ->create(['status' => OrderStatus::AwaitingPayment]);
+    $expired = Order::factory()->forCustomer((int) $customer->getKey(), 'benim')
+        ->create(['status' => OrderStatus::Expired]);
+
+    $response = $this->getJson('/api/v1/orders')->assertOk();
+
+    /*
+     * **THE UNPAID ONE STILL SHOWS AND THE EXPIRED ONE DOES NOT** (ADR-072), and
+     * that pair is the whole rule. An `AwaitingPayment` order inside its window
+     * CAN still be paid — hiding it would take the customer's last route back to
+     * the card form. An expired one cannot, and a wall of dead "ödeme bekliyor"
+     * rows is an invitation to ask support why.
+     */
+    $listed = array_map(static fn (array $row): string => (string) $row['id'], $response->json('data'));
+
+    expect($listed)->toContain($paid->uuid)
+        ->and($listed)->toContain($awaiting->uuid)
+        ->and($listed)->not->toContain($expired->uuid);
+
+    /*
+     * UNLISTED, NOT GONE. Nothing is deleted and `show()` is untouched, so a link
+     * in an email or a support ticket still resolves for its owner.
+     */
+    $this->getJson("/api/v1/orders/{$expired->uuid}")
+        ->assertOk()
+        ->assertJsonPath('data.status', OrderStatus::Expired->value);
+});
+
 it('cancels one seller’s order without touching the rest of the purchase', function (): void {
     $this->actingAsCustomer();
 
