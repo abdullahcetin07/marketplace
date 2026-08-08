@@ -311,3 +311,39 @@ it('never lets an operator place somebody’s order for them', function (): void
     // The seller has none either.
     expect(SellerOrderResource::getPages())->not->toHaveKey('place');
 });
+
+it('hides plain cancel on a paid or delivered order, even from a Super Admin', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+
+    $fixture = sellerWithOrder();
+    $admin = asOrderOversightAdmin($this->actingAsAdmin(), 'super_admin');
+
+    /*
+     * **THE BUG R6 FIXES (ADR-065/073).** Super Admin bypasses
+     * `OrderPolicy::before()`, so `can('cancel')` answers true on EVERY order —
+     * and the plain lever refuses a paid one, because it releases a hold and
+     * zeroes a seller's declared stock. The button was offering an operation the
+     * domain had already forbidden, and pressing it threw.
+     *
+     * A paid or delivered order is undone by a REFUND — the return, the
+     * cancellation request, or the admin refund surface — never by this.
+     */
+    $fixture['order']->forceFill(['status' => OrderStatus::Paid])->save();
+
+    Livewire::test(AdminListOrders::class)
+        ->assertTableActionHidden('cancel', $fixture['order']->fresh());
+
+    $fixture['order']->forceFill(['status' => OrderStatus::Delivered])->save();
+
+    Livewire::test(AdminListOrders::class)
+        ->assertTableActionHidden('cancel', $fixture['order']->fresh());
+
+    // AND STILL THERE WHERE IT IS LEGITIMATE: nothing has been collected on an
+    // unpaid order, so walking away from it costs nobody anything.
+    $fixture['order']->forceFill(['status' => OrderStatus::AwaitingPayment])->save();
+
+    Livewire::test(AdminListOrders::class)
+        ->assertTableActionVisible('cancel', $fixture['order']->fresh());
+
+    expect($admin->getKey())->not->toBeNull();
+});

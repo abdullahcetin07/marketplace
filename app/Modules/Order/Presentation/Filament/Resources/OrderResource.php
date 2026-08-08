@@ -305,7 +305,20 @@ final class OrderResource extends Resource
                     ->helperText(__('order.action.zero_seller_stock_hint'))
                     ->default(false),
             ])
-            ->visible(fn (Order $record): bool => auth()->user()?->can('cancel', $record) === true)
+            /*
+            | **A PAID OR DELIVERED ORDER IS UNDONE BY A REFUND, NEVER BY THIS
+            | LEVER (ADR-065/073).** The status guard is not decoration: Super
+            | Admin bypasses `OrderPolicy::before()`, so `can('cancel')` answers
+            | true for them on every order — and pressing this on a delivered one
+            | throws out of `CancelOrderAction`, which refuses on
+            | `isCancellableWithoutRefund()`. The button was offering an operation
+            | the domain had already forbidden.
+            |
+            | ASKED OF THE STATUS FIRST, so the refusal is the absence of a button
+            | rather than an exception after a confirmation modal.
+            */
+            ->visible(fn (Order $record): bool => $record->status->isCancellableWithoutRefund()
+                && auth()->user()?->can('cancel', $record) === true)
             ->action(function (Order $record, array $data): void {
                 app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
                     cancelledBy: CancelOrderDTO::BY_ADMIN,
