@@ -163,6 +163,93 @@ final class OrderException extends BaseException
     }
 
     /**
+     * A return of something that cannot come back (ADR-073).
+     *
+     * ONE ANSWER FOR SEVERAL QUESTIONS — never delivered, nothing left on that
+     * line, three of two asked for, an empty request. The alternative lets a
+     * buyer map an order's history by watching which refusal changes, and the
+     * seller's screen is where the honest detail belongs.
+     */
+    public static function notReturnable(string $orderUuid): self
+    {
+        return self::make('These items can no longer be returned.')
+            ->withContext([
+                'reason' => 'not_returnable',
+                'order_uuid' => $orderUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * The return window has closed, or the parcel never arrived (ADR-073).
+     *
+     * DELIBERATELY ONE ANSWER FOR BOTH. Only a delivery opens a window (S3), so
+     * "not delivered" and "too late" are the same fact seen from two sides — and
+     * a buyer probing the difference learns nothing they are owed.
+     */
+    public static function returnWindowClosed(string $orderUuid): self
+    {
+        return self::make('The return period for this order has ended.')
+            ->withContext([
+                'reason' => 'return_window_closed',
+                'order_uuid' => $orderUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * A second return while one is still running (ADR-073).
+     *
+     * **"RUNNING" INCLUDES APPROVED**, which is where this differs from the
+     * cancellation's equivalent: an approved return is a buyer walking to the
+     * cargo desk with a code in hand, and a second request for that order is a
+     * mistake rather than a new intention.
+     */
+    public static function returnAlreadyRequested(string $orderUuid): self
+    {
+        return self::make('A return for this order is already in progress.')
+            ->withContext([
+                'reason' => 'return_already_requested',
+                'order_uuid' => $orderUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * Answering a return that has already been answered (ADR-073).
+     *
+     * REFUSED RATHER THAN IGNORED. Re-approving would replace a return code the
+     * buyer is holding a printout of; rejecting an approved one would withdraw
+     * permission for a parcel that may already be in transit.
+     */
+    public static function returnAlreadyDecided(string $requestUuid): self
+    {
+        return self::make('This return request has already been answered.')
+            ->withContext([
+                'reason' => 'return_already_decided',
+                'request_uuid' => $requestUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
+     * Completing a return the seller never approved (ADR-073).
+     *
+     * THE BUYER HAS NO WAY TO HAVE SENT ANYTHING BACK. Completion refunds, and
+     * refunding a parcel still in the buyer's hallway is precisely the trust
+     * ADR-073 removed from the flow.
+     */
+    public static function returnNotApproved(string $requestUuid): self
+    {
+        return self::make('This return has not been approved yet.')
+            ->withContext([
+                'reason' => 'return_not_approved',
+                'request_uuid' => $requestUuid,
+            ])
+            ->withStatus(Response::HTTP_CONFLICT);
+    }
+
+    /**
      * Placing a checkout group that has already been placed, or has nothing
      * placeable left in it.
      *

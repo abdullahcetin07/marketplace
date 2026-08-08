@@ -165,6 +165,52 @@ final class OrderPolicy
     }
 
     /**
+     * ASKING to send a delivered order back (ADR-073).
+     *
+     * **CUSTOMERS ONLY, AND IT NO LONGER MOVES MONEY.** Under ADR-064 the
+     * equivalent button refunded on the spot, so the ability guarded a payment;
+     * now it guards a REQUEST, and the seller's completion is what pays. The
+     * check is the same either way — is this your order — but what it protects
+     * has changed, which is worth knowing before anyone widens it.
+     *
+     * IT CHECKS OWNERSHIP AND NOTHING ELSE, exactly as `requestCancellation`
+     * does. Delivery, the window, the quantities and whether a return is already
+     * running are all the ACTION's, asked once where they cannot be forgotten. A
+     * policy that also asked would be a second copy of four rules.
+     */
+    public function requestReturn(User $user, Order $order): Response
+    {
+        return $user->type === UserType::Customer
+            ? $this->owns($user, $order)
+            : Response::deny(__('errors.forbidden'));
+    }
+
+    /**
+     * Answering a return — approve, reject, or confirm the goods are back
+     * (ADR-073).
+     *
+     * **SELLERS ONLY, AND ONE ABILITY FOR ALL THREE ANSWERS.** They are three
+     * steps of one conversation the same merchant holds; splitting them would
+     * invite a role that may approve a return but not complete it, which is a
+     * seller who has promised a refund they cannot deliver.
+     *
+     * NOT AN ADMIN'S. An admin who must reverse a delivered order has Payment's
+     * refund surface, ability-gated and audited as the money operation it is.
+     * Judging whether a returned parcel is acceptable is the merchant's call —
+     * they are the one holding it.
+     *
+     * **A SELLER EMPLOYEE MAY**, through `sells()` and the granted permission:
+     * receiving returns is delegable warehouse work, the same as shipping.
+     */
+    public function decideReturn(User $user, Order $order): Response
+    {
+        return match ($user->type) {
+            UserType::Admin, UserType::Customer => Response::deny(__('errors.forbidden')),
+            default => $this->sells($user, $order),
+        };
+    }
+
+    /**
      * Shedding a line of a PAID order the seller cannot fulfil (ADR-065, C1).
      *
      * **A SEPARATE ABILITY FROM `cancel`, NOT A WIDENING OF IT.** They read alike
