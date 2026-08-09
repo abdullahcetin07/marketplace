@@ -171,6 +171,26 @@ export type ReturnLine = {
   refundable_amount: string;
 };
 
+/** A buyer's return request on a delivered order (Returns, ADR-073). */
+export type ReturnRequestStatus = 'requested' | 'approved' | 'rejected' | 'completed';
+
+export type ReturnRequestView = {
+  id: string;
+  order_id: string;
+  status: ReturnRequestStatus;
+  status_label: string;
+  reason: string | null;
+  lines: { id: string; quantity: number }[];
+  /** The cargo return code the seller shares on approval (null until then). */
+  return_code: string | null;
+  cargo: { name: string } | null;
+  /** The seller's reason on a rejection. */
+  decision_reason: string | null;
+  decided_at: string | null;
+  completed_at: string | null;
+  created_at: string;
+};
+
 export type OrderReturn = {
   return_open: boolean;
   return_window_ends_at: string | null;

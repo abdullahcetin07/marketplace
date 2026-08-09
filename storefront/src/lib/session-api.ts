@@ -35,6 +35,7 @@ import type {
   Order,
   OrderReturn,
   PaymentView,
+  ReturnRequestView,
   ShipmentView,
   User,
 } from './types';
@@ -524,16 +525,27 @@ export function confirmReceipt(orderId: string): Promise<ShipmentView | null> {
 | The buyer picks lines + quantities; the server prices the refund.
 */
 
+/** Returnable lines + the window — feeds the request form (unchanged, GET only). */
 export function fetchOrderReturn(orderId: string): Promise<OrderReturn | null> {
   return request<OrderReturn>(`/api/v1/orders/${encodeURIComponent(orderId)}/return`);
 }
 
-export function requestReturn(
+/** The order's current return request, or null when none (ADR-073). */
+export function fetchOrderReturnRequest(orderId: string): Promise<ReturnRequestView | null> {
+  return request<ReturnRequestView>(`/api/v1/orders/${encodeURIComponent(orderId)}/return-request`);
+}
+
+/**
+ * Create a return REQUEST — no money moves (ADR-073). The seller approves and
+ * shares a return code, then completes it (which is when the refund fires). `201`
+ * means "talep alındı, satıcı onayında", never "iade edildi".
+ */
+export function createReturnRequest(
   orderId: string,
   lines: { id: string; quantity: number }[],
   reason?: string,
-): Promise<Record<string, unknown> | null> {
-  return request<Record<string, unknown>>(`/api/v1/orders/${encodeURIComponent(orderId)}/return`, {
+): Promise<ReturnRequestView | null> {
+  return request<ReturnRequestView>(`/api/v1/orders/${encodeURIComponent(orderId)}/return-request`, {
     method: 'POST',
     body: { lines, reason: reason === undefined || reason === '' ? null : reason },
   });

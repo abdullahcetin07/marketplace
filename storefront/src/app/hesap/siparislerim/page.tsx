@@ -15,6 +15,7 @@ import {
   type Order,
   type OrderReturn,
   type OrderStatus,
+  type ReturnRequestView,
   type ShipmentView,
 } from '@/lib/types';
 
@@ -459,13 +460,94 @@ function OrderRow({ order, onChanged }: { order: Order; onChanged: () => void })
  * never prices the refund (`unit_price × qty` would drift on a partly-returned line).
  */
 function ReturnControl({ orderId, onDone }: { orderId: string; onDone: () => void }) {
+  // undefined = loading, null = no request yet, object = an existing request.
+  const [req, setReq] = useState<ReturnRequestView | null | undefined>(undefined);
+
+  useEffect(() => {
+    let live = true;
+    void api
+      .fetchOrderReturnRequest(orderId)
+      .then((r) => live && setReq(r))
+      .catch(() => live && setReq(null));
+
+    return () => {
+      live = false;
+    };
+  }, [orderId]);
+
+  if (req === undefined) return null; // don't flash the button before we know
+
+  if (req !== null) return <ReturnStatus req={req} />;
+
+  return <NewReturnRequest orderId={orderId} onCreated={setReq} onDone={onDone} />;
+}
+
+/**
+ * The state of an existing return request (ADR-073) — the buyer asked, the seller
+ * decides. A return no longer refunds on the buyer's click: they request, the
+ * seller approves with a return code, the buyer ships it, the seller completes it,
+ * and only then is the money returned. This screen shows where in that they are.
+ */
+function ReturnStatus({ req }: { req: ReturnRequestView }) {
+  if (req.status === 'requested') {
+    return (
+      <p className="rounded-xl bg-amber-50 px-3.5 py-2.5 text-sm font-semibold text-amber-700 dark:bg-amber-950/40 dark:text-amber-300">
+        İade talebiniz satıcının onayında.
+      </p>
+    );
+  }
+
+  if (req.status === 'approved') {
+    return (
+      <div className="rounded-xl bg-brand-50 px-3.5 py-2.5 text-sm dark:bg-brand-500/15">
+        <p className="font-bold text-brand-700 dark:text-brand-200">İade talebiniz onaylandı.</p>
+        {req.return_code !== null && (
+          <p className="mt-1 text-ink-600 dark:text-ink-300">
+            İade kodu: <span className="font-mono font-bold">{req.return_code}</span>
+            {req.cargo !== null ? ` — ürünü ${req.cargo.name} ile gönderin.` : ''}
+          </p>
+        )}
+      </div>
+    );
+  }
+
+  if (req.status === 'rejected') {
+    return (
+      <p className="rounded-xl bg-ink-100 px-3.5 py-2.5 text-sm text-ink-600 dark:bg-ink-800 dark:text-ink-300">
+        İade talebiniz reddedildi.
+        {req.decision_reason !== null ? ` Gerekçe: ${req.decision_reason}` : ''}
+      </p>
+    );
+  }
+
+  // completed — the seller received the goods and the refund fired.
+  return (
+    <p className="rounded-xl bg-green-50 px-3.5 py-2.5 text-sm font-semibold text-green-700 dark:bg-green-950/40 dark:text-green-300">
+      İadeniz tamamlandı, ücret iadesi yapıldı.
+    </p>
+  );
+}
+
+/**
+ * The form that CREATES a return request — no money moves (ADR-073). The buyer picks
+ * lines + counts within the server's `returnable_quantity`; the seller prices and
+ * refunds later. "İade talebi gönder" means "satıcı onayına gönder", not "iade et".
+ */
+function NewReturnRequest({
+  orderId,
+  onCreated,
+  onDone,
+}: {
+  orderId: string;
+  onCreated: (req: ReturnRequestView) => void;
+  onDone: () => void;
+}) {
   const [open, setOpen] = useState(false);
   const [info, setInfo] = useState<OrderReturn | null>(null);
   const [loading, setLoading] = useState(false);
   const [qty, setQty] = useState<Record<string, number>>({});
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
-  const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   async function toggle() {
@@ -498,9 +580,9 @@ function ReturnControl({ orderId, onDone }: { orderId: string; onDone: () => voi
     setError(null);
 
     try {
-      const result = await api.requestReturn(orderId, lines, reason);
+      const result = await api.createReturnRequest(orderId, lines, reason);
       if (result !== null) {
-        setDone(true);
+        onCreated(result);
         onDone();
       } else {
         setError('İade talebi oluşturulamadı.');
@@ -514,14 +596,6 @@ function ReturnControl({ orderId, onDone }: { orderId: string; onDone: () => voi
     }
   }
 
-  if (done) {
-    return (
-      <p className="rounded-xl bg-green-50 px-3.5 py-2.5 text-sm font-semibold text-green-700 dark:bg-green-950/40">
-        İade talebiniz alındı. İncelendikten sonra tutar iade edilecektir.
-      </p>
-    );
-  }
-
   if (!open) {
     return (
       <button
@@ -529,7 +603,7 @@ function ReturnControl({ orderId, onDone }: { orderId: string; onDone: () => voi
         onClick={() => void toggle()}
         className="self-start text-sm font-bold text-brand-600 hover:underline"
       >
-        İade et
+        İade talebi oluştur
       </button>
     );
   }
@@ -583,7 +657,7 @@ function ReturnControl({ orderId, onDone }: { orderId: string; onDone: () => voi
 
       <div className="flex gap-2">
         <button type="button" onClick={() => void submit()} disabled={busy} className={ui.btnPrimarySm}>
-          {busy ? 'Gönderiliyor…' : 'İade talebi oluştur'}
+          {busy ? 'Gönderiliyor…' : 'İade talebi gönder'}
         </button>
         <button
           type="button"
