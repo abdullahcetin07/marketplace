@@ -724,11 +724,24 @@ track of, which a mutable balance column could not promise.
 > form can offer Shipping's carrier list without Order importing `CargoCompany`.
 > Active only, filtered inside the query.
 >
-> **⚠️ The PayTR sandbox refund is currently failing** ("Ödeme sağlayıcısı reddetti").
-> Completion fires the real refund, so **refund capability must be confirmed in the
-> merchant panel before this is usable in production** — the seller's button stalls
-> otherwise, with the parcel already accepted. Not solved by this work; recorded so it
-> is not discovered by a merchant.
+> **THE REFUND HAD NEVER WORKED, AND IT WAS NOT THE MERCHANT ACCOUNT (2026-08-09).**
+> The work order recorded the live failure as "verify refund capability/permission in
+> the PayTR panel". The `errors` log said otherwise, and it had been saying so since
+> 2026-08-07: **`err_no: 004`, "paytr_token gonderilmedi veya gecersiz"** — the token,
+> not the permission. `PayTrGateway::refund()` hashed
+> `merchant_oid + return_amount + salt`, omitting the **`merchant_id` PayTR's iade API
+> puts first** — the same leading field `tokenHash()` has always had on the way in.
+> One field, and every refund the platform ever attempted was refused.
+>
+> **A wrong hash and a disabled capability are indistinguishable from outside**, which
+> is exactly the failure `tokenHash()`'s own docblock warned about — "the request is
+> simply refused, forever, with no clue as to why" — and it cost two days of looking
+> at the wrong thing. What made it findable was S4's `logRejection()`, which writes
+> PayTR's verbatim `err_no` down; without it there would still be nothing to read.
+>
+> Fixed, with a regression test that computes the documented hash independently rather
+> than comparing to a captured string. **Still unverified against live PayTR**: proving
+> it needs one real refund on a real charge, which nobody has run yet.
 
 > **The admin needed the line path too, and that is S4 cleaning up after itself.** The
 > whole-order path SKIPS an order that already has a refund row — correctly, or it

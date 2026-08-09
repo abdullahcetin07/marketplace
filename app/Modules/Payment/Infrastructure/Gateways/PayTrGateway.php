@@ -200,10 +200,31 @@ final class PayTrGateway implements PaymentGatewayContract
 
         $response = $this->post($config['refund_url'], [
             ...$fields,
+            /*
+            | **`merchant_id` FIRST — the field this hash was missing, and the
+            | reason no refund has ever succeeded against live PayTR.** The
+            | rejection log says `err_no: 004`,
+            | "paytr_token gonderilmedi veya gecersiz": the token was computed
+            | over `merchant_oid + return_amount + salt`, while PayTR's iade API
+            | documents `merchant_id + merchant_oid + return_amount + salt` — the
+            | same leading field `tokenHash()` has always had on the way in.
+            |
+            | THIS IS THE FAILURE MODE THAT DOCBLOCK WARNS ABOUT, arrived: "the
+            | request is simply refused, forever, with no clue as to why". It was
+            | read as a merchant-account permission problem for two days, because
+            | a wrong hash and a disabled capability look identical from outside.
+            |
+            | POSITIONAL AND SEPARATOR-FREE, spelled out rather than imploded, for
+            | the reason `tokenHash()` gives: the field order is part of the
+            | protocol.
+            */
             'paytr_token' => base64_encode(hash_hmac(
                 'sha256',
-                $fields['merchant_oid'].$fields['return_amount'].$config['merchant_salt'],
-                $config['merchant_key'],
+                $fields['merchant_id']
+                    .$fields['merchant_oid']
+                    .$fields['return_amount']
+                    .$config['merchant_salt'],
+                (string) $config['merchant_key'],
                 true,
             )),
         ]);

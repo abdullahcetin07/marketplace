@@ -213,6 +213,56 @@ it('sends the hyphen-free oid on a refund too', function (): void {
     Http::assertSent(fn ($request): bool => $request['merchant_oid'] === '39a87919589f46f8836cd4e6bd691f06');
 });
 
+it('signs a refund with merchant_id FIRST — the bug that made every refund fail', function (): void {
+    Http::fake(['*' => Http::response(['status' => 'success', 'islem_id' => '9'])]);
+
+    gateway()->refund(new PaymentRefundDTO(
+        reference: '39a87919-589f-46f8-836c-d4e6bd691f06',
+        amountMinor: 1_000,
+    ));
+
+    /*
+     * **A REGRESSION TEST FOR A LIVE BUG THAT WAS MISREAD FOR TWO DAYS.** The
+     * token was hashed over `merchant_oid + return_amount + salt`, omitting the
+     * `merchant_id` that PayTR's iade API puts first — the same leading field the
+     * get-token hash has always had. Live PayTR answered `err_no: 004`,
+     * "paytr_token gonderilmedi veya gecersiz", on every refund the platform has
+     * ever attempted, and it was recorded as a merchant-account permission
+     * problem because a wrong hash and a disabled capability look identical from
+     * outside.
+     *
+     * COMPUTED HERE INDEPENDENTLY rather than compared to a captured string, so
+     * this fails if either side of the protocol is edited — which is the whole
+     * point of a positional, separator-free hash whose only failure signal is a
+     * refusal.
+     */
+    Http::assertSent(function ($request): bool {
+        $expected = base64_encode(hash_hmac(
+            'sha256',
+            (string) config('payment.paytr.merchant_id')
+                .'39a87919589f46f8836cd4e6bd691f06'
+                .'10.00'
+                .(string) config('payment.paytr.merchant_salt'),
+            (string) config('payment.paytr.merchant_key'),
+            true,
+        ));
+
+        expect($request['paytr_token'])->toBe($expected);
+
+        // AND THE OLD, WRONG ONE IS NOT WHAT WE SEND.
+        expect($request['paytr_token'])->not->toBe(base64_encode(hash_hmac(
+            'sha256',
+            '39a87919589f46f8836cd4e6bd691f06'
+                .'10.00'
+                .(string) config('payment.paytr.merchant_salt'),
+            (string) config('payment.paytr.merchant_key'),
+            true,
+        )));
+
+        return true;
+    });
+});
+
 it('writes down what PayTR refused, and puts it in the exception message', function (): void {
     Http::fake(['*' => Http::response([
         'status' => 'failed',

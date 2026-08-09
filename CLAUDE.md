@@ -208,9 +208,11 @@ cancellation's counts one. It fires through the platform's **third Core command 
 `OrderReturnContract`, which C1's could NOT be: that one refuses a shipped parcel and
 hard-codes `cause: cancellation`. **`POST /orders/{order}/return` is deleted** and a test
 guards its absence; the GET stays in Payment because every number in it is Payment's
-arithmetic. **⚠️ The PayTR sandbox refund is currently failing** — completion fires the
-real refund, so refund capability must be confirmed in the merchant panel before this is
-usable in production.
+arithmetic. **The refund had never worked against live PayTR, and it was a HASH rather than a
+merchant permission** (2026-08-09): `PayTrGateway::refund()` omitted the `merchant_id`
+that PayTR's iade API puts first in `paytr_token`, so every refund since S4 was refused
+with `err_no 004`. Fixed and pinned by a test; **still unverified against live PayTR**,
+which needs one real refund on a real charge.
 
 **Reviews is COMPLETE (2026-08-07; ADR-066–069, built R0–R8,
 [docs/modules/Reviews.md](docs/modules/Reviews.md)) — the newest module, and the first

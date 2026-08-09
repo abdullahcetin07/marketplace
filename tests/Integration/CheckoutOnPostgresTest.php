@@ -606,6 +606,19 @@ it('holds "one open cancellation request per order" at the database', function (
     // A rejected one is fine — asking again is allowed, and must stay allowed.
     expect($insert('rejected'))->toBeGreaterThan(0)
         ->and($insert('rejected'))->toBeGreaterThan(0);
+
+    /*
+    | **IT CLEANS UP AFTER ITSELF, because this file writes to the REAL DATABASE.**
+    | `RefreshDatabase` covers the default connection; these statements go straight
+    | at `pgsql` on purpose — that is the whole point of the file — and nothing
+    | rolls them back. Without this the rows accumulate on every suite run, and
+    | they did: 101 of them, all orphaned against orders that never existed.
+    |
+    | Harmless where they sat — every surface reaches these through the order, so
+    | an orphan is invisible — but a table that grows by three per test run is a
+    | table somebody eventually has to explain.
+    */
+    DB::connection('pgsql')->table('cancellation_requests')->where('order_uuid', $orderUuid)->delete();
 });
 
 it('holds "one open return per order" at the database, counting TWO states', function (): void {
@@ -655,6 +668,10 @@ it('holds "one open return per order" at the database, counting TWO states', fun
     expect($insert('completed'))->toBeGreaterThan(0)
         ->and($insert('rejected'))->toBeGreaterThan(0)
         ->and($insert('requested'))->toBeGreaterThan(0);
+
+    // Cleaned up for the reason the cancellation test above states: these rows go
+    // straight at the real `pgsql` connection and nothing rolls them back.
+    DB::connection('pgsql')->table('return_requests')->where('order_uuid', $orderUuid)->delete();
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {
