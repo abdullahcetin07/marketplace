@@ -56,31 +56,12 @@ export function ProductGallery({
 
   return (
     <>
-      <div className="flex gap-3">
-        {images.length > 1 && (
-          <div className="flex flex-col gap-2.5">
-            {images.map((src, i) => (
-              <button
-                key={src + i}
-                type="button"
-                onClick={() => setActive(i)}
-                aria-label={`Görsel ${i + 1}`}
-                className={`grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-xl border-2 bg-white p-1.5 transition dark:bg-ink-50 ${
-                  i === active ? 'border-brand-500' : 'border-ink-100 hover:border-ink-300 dark:border-ink-800'
-                }`}
-              >
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="max-h-full w-auto object-contain" loading="lazy" />
-              </button>
-            ))}
-          </div>
-        )}
-
+      <div className="flex flex-col gap-3">
         <button
           type="button"
           onClick={() => setZoomed(true)}
           aria-label="Görseli büyüt"
-          className="group relative grid aspect-square flex-1 cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-3 dark:border-ink-800 dark:bg-ink-50"
+          className="group relative grid aspect-square w-full cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-50"
         >
           {discount ? (
             <span className="absolute left-4 top-4 z-10 rounded-lg bg-red-500 px-2.5 py-1 text-[.8rem] font-extrabold text-white">
@@ -103,6 +84,25 @@ export function ProductGallery({
             </svg>
           </span>
         </button>
+
+        {images.length > 1 && (
+          <div className="flex gap-2.5 overflow-x-auto pb-1">
+            {images.map((src, i) => (
+              <button
+                key={src + i}
+                type="button"
+                onClick={() => setActive(i)}
+                aria-label={`Görsel ${i + 1}`}
+                className={`grid h-[66px] w-[66px] shrink-0 place-items-center overflow-hidden rounded-xl border-2 bg-white p-1.5 transition dark:bg-ink-50 ${
+                  i === active ? 'border-brand-500' : 'border-ink-100 hover:border-ink-300 dark:border-ink-800'
+                }`}
+              >
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src={src} alt="" className="max-h-full w-auto object-contain" loading="lazy" />
+              </button>
+            ))}
+          </div>
+        )}
       </div>
 
       {zoomed && (

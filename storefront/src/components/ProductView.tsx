@@ -107,7 +107,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         ))}
       </nav>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,0.9fr)_1fr] xl:grid-cols-[minmax(0,0.85fr)_1fr_340px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_1fr] xl:grid-cols-[minmax(0,1.2fr)_1fr_300px]">
         <ProductGallery images={product.images} alt={product.title} />
 
         <section className="flex flex-col">
@@ -190,7 +190,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         </section>
 
         <aside className="flex flex-col gap-3.5 xl:sticky xl:top-[130px]">
-          <div className="relative rounded-2xl border-2 border-brand-500 bg-white p-[18px] shadow-sm dark:bg-ink-900">
+          <div className="relative rounded-2xl border-2 border-brand-500 bg-white p-4 shadow-sm dark:bg-ink-900">
             {featured === null ? (
               <div className="flex flex-col gap-1">
                 <span className="text-lg font-extrabold">Şu an satışta yok</span>
@@ -213,11 +213,11 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                   </div>
                 </div>
                 <div className="flex items-baseline gap-2.5">
-                  <span className="text-[2rem] font-extrabold tracking-tight text-brand-600">
+                  <span className="text-[1.7rem] font-extrabold tracking-tight text-brand-600">
                     {formatMoney(featured.price, featured.currency)}
                   </span>
                   {featured.list_price !== null && (
-                    <span className="text-base text-ink-400 line-through">
+                    <span className="text-sm text-ink-400 line-through">
                       {formatMoney(featured.list_price, featured.currency)}
                     </span>
                   )}
