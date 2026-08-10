@@ -46,7 +46,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { name: 'Tüm ürünler', url: absoluteUrl('/urunler') },
+      { name: 'Ana Sayfa', url: absoluteUrl('/') },
       ...product.category.path.map((node) => ({ name: node.name, url: absoluteUrl(`/${node.slug}`) })),
       { name: product.title, url: absoluteUrl(`/${product.slug}`) },
     ].map((item, index) => ({
@@ -97,7 +97,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }} />
 
       <nav aria-label="Kategori yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
-        <Link href="/urunler" className="hover:text-brand-600">Tüm ürünler</Link>
+        <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>
         {product.category.path.map((node) => (
           <span key={node.id}>
             <span className="px-1">/</span>

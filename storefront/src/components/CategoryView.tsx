@@ -37,7 +37,7 @@ export async function CategoryView({
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
     itemListElement: [
-      { name: 'Tüm ürünler', url: absoluteUrl('/urunler') },
+      { name: 'Ana Sayfa', url: absoluteUrl('/') },
       ...category.path.map((node) => ({ name: node.name, url: absoluteUrl(`/${node.slug}`) })),
     ].map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, item: item.url })),
   };
@@ -55,7 +55,7 @@ export async function CategoryView({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
 
       <nav aria-label="Kategori yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
-        <Link href="/urunler" className="hover:text-brand-600">Tüm ürünler</Link>
+        <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>
         {category.path.map((node) => (
           <span key={node.id}>
             <span className="px-1">/</span>
