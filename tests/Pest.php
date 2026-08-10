@@ -32,6 +32,13 @@ pest()->extend(TestCase::class)
 | is exactly what must never happen to a database somebody else is using. Each
 | file wraps itself in a transaction instead, and skips when the engine is not
 | reachable.
+|
+| **THAT SENTENCE WAS AN INSTRUCTION, NOT A DESCRIPTION, UNTIL 2026-08-10.** The one
+| file here pointed the default connection at the real database and wrapped nothing,
+| so every suite run left factory rows behind — 110 stray KDV brackets and a
+| "catalogue" that was mostly faker output, read by more than one person as real
+| data. A file added here MUST open a transaction in `beforeEach` and roll back in
+| `afterEach`; there is no trait enforcing it.
 */
 pest()->extend(TestCase::class)
     ->in('Integration');

@@ -122,6 +122,37 @@ beforeEach(function (): void {
     // implicit connection.
     config(['database.default' => 'pgsql']);
     DB::setDefaultConnection('pgsql');
+
+    /*
+    | **EVERY TEST IN THIS FILE RUNS INSIDE A TRANSACTION THAT IS ROLLED BACK.**
+    |
+    | `tests/Pest.php` has always claimed "each file wraps itself in a transaction
+    | instead" — and this file did not. It pointed the DEFAULT connection at the
+    | real database and wrote factory rows straight into it, so every suite run
+    | left organizations, products, orders and tax brackets behind. By the time
+    | anybody looked there were 114 KDV brackets, 110 of them named `KDV 0.2000`
+    | with codes like `kdv-28239`, and a "live" catalogue that was mostly faker
+    | output — which is worse than clutter, because it gets READ as real data and
+    | reported as real findings.
+    |
+    | `RefreshDatabase` is not the answer here and never was: it drops and
+    | re-migrates, which is exactly what must never happen to a database somebody
+    | else is using. A transaction gives the same isolation and touches nothing.
+    |
+    | AFTER the skip check, so an unreachable engine leaves no transaction open.
+    */
+    DB::connection('pgsql')->beginTransaction();
+});
+
+afterEach(function (): void {
+    /*
+    | ROLLED BACK WHATEVER HAPPENED, including a test that failed halfway. Guarded
+    | on the level because a test that skipped never opened one, and because a
+    | test that deliberately poisons its own transaction may have unwound it.
+    */
+    if (DB::connection('pgsql')->transactionLevel() > 0) {
+        DB::connection('pgsql')->rollBack();
+    }
 });
 
 /**
@@ -609,15 +640,11 @@ it('holds "one open cancellation request per order" at the database', function (
         ->and($insert('rejected'))->toBeGreaterThan(0);
 
     /*
-    | **IT CLEANS UP AFTER ITSELF, because this file writes to the REAL DATABASE.**
-    | `RefreshDatabase` covers the default connection; these statements go straight
-    | at `pgsql` on purpose — that is the whole point of the file — and nothing
-    | rolls them back. Without this the rows accumulate on every suite run, and
-    | they did: 101 of them, all orphaned against orders that never existed.
-    |
-    | Harmless where they sat — every surface reaches these through the order, so
-    | an orphan is invisible — but a table that grows by three per test run is a
-    | table somebody eventually has to explain.
+    | BELT AND BRACES. The `beforeEach` transaction now unwinds everything this
+    | file writes, so this delete is no longer what keeps the real database clean —
+    | it is what keeps it clean if somebody ever commits mid-test. It was the only
+    | mechanism until 2026-08-10, and by then 101 orphaned rows had accumulated at
+    | three per suite run.
     */
     DB::connection('pgsql')->table('cancellation_requests')->where('order_uuid', $orderUuid)->delete();
 });
@@ -670,8 +697,7 @@ it('holds "one open return per order" at the database, counting TWO states', fun
         ->and($insert('rejected'))->toBeGreaterThan(0)
         ->and($insert('requested'))->toBeGreaterThan(0);
 
-    // Cleaned up for the reason the cancellation test above states: these rows go
-    // straight at the real `pgsql` connection and nothing rolls them back.
+    // Belt and braces, for the reason the cancellation test above states.
     DB::connection('pgsql')->table('return_requests')->where('order_uuid', $orderUuid)->delete();
 });
 
