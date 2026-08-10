@@ -2294,4 +2294,50 @@ before this is usable in production — flagged in the work order, not solved by
 
 ---
 
+# ADR-074 The Catalogue Is Bulk-Loaded From an Admin Excel/CSV Import That Drives the Existing Authoring Actions; v1 Is One Default Variant per Product
+
+**Status:** Accepted (2026-08-08). Work order: `BUILD_CATALOG_IMPORT.md`.
+
+A real catalogue is thousands of products; hand-entering them one Filament form at a time is not
+a plan. The platform gets an **admin self-service bulk import**: upload an Excel/CSV, map the
+columns, and the rows become categories, brands, products, variants, tax brackets and images —
+queued, with a per-row failure report.
+
+**It DRIVES THE EXISTING AUTHORING ACTIONS, it does not write models.** Each row runs the same
+chain a seller's "ürün aç" does — `DraftProductAction → UpsertVariantAction → SubmitProductForReviewAction
+→ PublishProductAction` — plus category/brand/tax resolution and `addMediaFromUrl`. Writing rows
+straight into the tables would bypass the moderation lifecycle, the slug registry, the GTIN unique
+guard, the variant `combination_key`, and the events other modules listen to; going through the
+actions means the import cannot create a product the platform's own rules would reject, and a
+future rule change protects the importer for free. The import is an admin capability
+(`catalog.products.moderate`), so it drafts and **publishes in one pass** — the products are the
+platform owner's real catalogue, not a stranger's submission awaiting review.
+
+**It is built on Filament's own import infrastructure** (`league/csv` + `openspout`, already
+bundled with `filament/actions` — zero new dependencies), which gives queued, chunked per-row
+jobs and a `failed_import_rows` table (a downloadable "these 12 rows failed and why") for free.
+A row that fails — a missing category name, an unreachable image URL, a duplicate GTIN — is
+recorded and skipped; it never fails the other 4,999.
+
+**Products dedup by GTIN.** The barcode is the catalogue's natural key (already `UNIQUE` on
+`products`), so re-running the same file updates rather than duplicates, and two sellers' feeds of
+the same product converge on one catalogue entry (ADR-037's shared catalogue, made operable). A
+row with no GTIN falls back to title+brand and is created fresh.
+
+**v1 is ONE DEFAULT VARIANT per product, and fresh categories carry no required attributes** —
+both deliberate scope cuts, so the first load of thousands of products actually lands. Colour/size
+variant **axes** are attribute-schema-defined and moderated (ADR-038); auto-creating that schema
+from a spreadsheet cell is where a bulk import quietly corrupts a taxonomy, so rich variants and
+descriptive attributes are a **phase 2** with its own design. Because the import creates the
+categories fresh, they have no required attributes, so `PublishProductAction`'s schema-conformance
+gate passes — the owner's Category Manager enriches the schema afterward.
+
+**Cost, stated plainly:** v1 imports products as single-variant, so a shirt that comes in three
+sizes arrives as one product (or three rows/products) until phase 2 adds axes — a real limitation
+the owner accepted to get the catalogue in. Image fetching is N HTTP downloads on a queue; a slow
+or dead image host shows up as failed rows, not a hung import. And the importer is only as safe as
+the authoring actions it drives — which is the point of driving them.
+
+---
+
 END OF FILE
