@@ -26,11 +26,10 @@ use Throwable;
  *
  * **IT TRUNCATES BY LIST, NOT BY CASCADE.** The catalogue is uuid-linked with no
  * foreign key to offers or inventory (ADR-040), so deleting `products` cascades
- * nowhere and each group has to be named. `TRUNCATE ... CASCADE` was the shorter
- * spelling and is the wrong one: cascade follows real FKs wherever they go, and
- * some of them point at tables in the KEEP list. `session_replication_role` is
- * the explicit version — FK triggers suspended for this session only, restored in
- * a `finally` so a failure halfway cannot leave the connection unguarded.
+ * nowhere and each group has to be named. On PostgreSQL every table goes in ONE
+ * `TRUNCATE` statement, which needs neither `CASCADE` nor superuser — @see
+ * `truncateTogether()` for why both were rejected, one of them after it failed on
+ * the server.
  *
  * **MEDIA FILES GO BEFORE THE ROWS**, because the rows are the only record of
  * where the files are. And **the `media` table is never truncated**: store
@@ -104,9 +103,14 @@ final class ResetCommerceCommand extends Command
      * top-down is one somebody can verify. It is also what would still be correct
      * if the truncation strategy ever changed.
      *
+     * **PUBLIC so the PostgreSQL integration test can check the invariant the
+     * one-statement TRUNCATE rests on** — that no KEPT table points into this
+     * list. A constant nobody outside can read is a constant nobody outside can
+     * verify.
+     *
      * @var array<int, string>
      */
-    private const DELETE = [
+    public const DELETE = [
         // Payment — the deepest children first.
         'payment_refund_lines',
         'payment_refunds',
@@ -372,57 +376,84 @@ final class ResetCommerceCommand extends Command
      */
     private function truncate(array $tables): void
     {
-        $pgsql = DB::connection()->getDriverName() === 'pgsql';
+        if (DB::connection()->getDriverName() === 'pgsql') {
+            $this->truncateTogether($tables);
 
-        if ($pgsql) {
-            // FK triggers off for THIS SESSION only. Not a schema change, not
-            // visible to anybody else's connection.
-            DB::statement('SET session_replication_role = replica');
+            return;
         }
 
-        try {
-            foreach ($tables as $table) {
-                $this->line("  truncating <fg=yellow>{$table}</>");
+        $this->deleteInOrder($tables);
+    }
 
-                if ($pgsql) {
-                    // RESTART IDENTITY so a fresh catalogue starts at id 1 rather
-                    // than continuing a sequence only the deleted data explains.
-                    DB::statement("TRUNCATE TABLE {$table} RESTART IDENTITY");
+    /**
+     * PostgreSQL: **ONE statement naming every table, no CASCADE, no superuser.**
+     *
+     * **THE `session_replication_role` VERSION FAILED ON THE SERVER**, and it was
+     * always going to: suspending FK triggers is a SUPERUSER privilege, and the
+     * application's database user is not one — correctly, since a web app that can
+     * turn off referential integrity is a web app that can be made to.
+     *
+     * The replacement uses PostgreSQL's own rule instead of fighting it: a
+     * multi-table `TRUNCATE` succeeds when every table referencing any table in the
+     * group is ALSO in the group. Nothing has to be disabled, because nothing is
+     * being violated.
+     *
+     * **AND DELIBERATELY WITHOUT `CASCADE`.** Cascade would also work and is the
+     * shorter spelling, and it is the dangerous one: it follows real foreign keys
+     * wherever they lead, so the day somebody adds a column pointing from a KEPT
+     * table into a deleted one, `CASCADE` silently empties the kept table too —
+     * accounts, stores, ledger, whatever it reached. Without it, that same day
+     * produces a loud refusal naming the constraint, and nobody loses anything.
+     * `ResetCommerceCommandTest` asserts the invariant that makes this safe.
+     *
+     * RESTART IDENTITY so a fresh catalogue starts at id 1 rather than continuing a
+     * sequence only the deleted data explains.
+     *
+     * @param array<int, string> $tables
+     */
+    private function truncateTogether(array $tables): void
+    {
+        if ($tables === []) {
+            return;
+        }
 
-                    continue;
-                }
+        $this->line('  truncating <fg=yellow>'.count($tables).' tables</> in one statement');
 
+        // Quoted, and built only from `self::DELETE` plus a fixed opt-in — no
+        // caller-supplied string ever reaches this line.
+        $quoted = implode(', ', array_map(static fn (string $table): string => '"'.$table.'"', $tables));
+
+        DB::statement("TRUNCATE TABLE {$quoted} RESTART IDENTITY");
+    }
+
+    /**
+     * Everything else — SQLite, which is what the suite runs on.
+     *
+     * `TRUNCATE` does not exist there, and `PRAGMA foreign_keys = OFF` is a NO-OP
+     * INSIDE A TRANSACTION, which is exactly where every test executes
+     * (`RefreshDatabase`). So the deletes satisfy the constraints rather than
+     * suspend them, which the child-before-parent ordering of `DELETE` already
+     * does — with one exception.
+     *
+     * @param array<int, string> $tables
+     */
+    private function deleteInOrder(array $tables): void
+    {
+        foreach ($tables as $table) {
+            $this->line("  clearing <fg=yellow>{$table}</>");
+
+            if (isset(self::SELF_REFERENCING[$table])) {
                 /*
-                | THE FALLBACK PATH — SQLite, which is what the suite runs on.
-                | `TRUNCATE` does not exist there, and `PRAGMA foreign_keys = OFF`
-                | is a NO-OP INSIDE A TRANSACTION, which is exactly where every
-                | test executes (`RefreshDatabase`). So the deletes have to
-                | satisfy the constraints rather than suspend them — which the
-                | child-before-parent ordering of `DELETE` already does, with one
-                | exception.
+                | **A TABLE THAT POINTS AT ITSELF CANNOT BE EMPTIED IN ONE
+                | STATEMENT** — `categories.parent_id` is the only one here, and a
+                | single `DELETE` trips its own foreign key on whichever row the
+                | engine happens to reach first. Nulling the link turns a tree into
+                | a flat set, and a flat set deletes.
                 */
-                if (isset(self::SELF_REFERENCING[$table])) {
-                    /*
-                    | **A TABLE THAT POINTS AT ITSELF CANNOT BE EMPTIED IN ONE
-                    | STATEMENT** — `categories.parent_id` is the only one here,
-                    | and a single `DELETE` trips its own foreign key on whichever
-                    | row the engine happens to reach first. Nulling the link
-                    | turns a tree into a flat set, and a flat set deletes.
-                    */
-                    DB::table($table)->update([self::SELF_REFERENCING[$table] => null]);
-                }
+                DB::table($table)->update([self::SELF_REFERENCING[$table] => null]);
+            }
 
-                DB::table($table)->delete();
-            }
-        } finally {
-            /*
-            | **RESTORED IN `finally`, ALWAYS.** A failure between the two
-            | statements would otherwise leave this connection able to write past
-            | every foreign key in the database — and connections are pooled.
-            */
-            if ($pgsql) {
-                DB::statement('SET session_replication_role = origin');
-            }
+            DB::table($table)->delete();
         }
     }
 }

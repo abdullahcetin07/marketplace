@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Console\Commands\ResetCommerceCommand;
 use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Models\Admin;
 use App\Models\Customer;
@@ -672,6 +673,44 @@ it('holds "one open return per order" at the database, counting TWO states', fun
     // Cleaned up for the reason the cancellation test above states: these rows go
     // straight at the real `pgsql` connection and nothing rolls them back.
     DB::connection('pgsql')->table('return_requests')->where('order_uuid', $orderUuid)->delete();
+});
+
+it('lets reset-commerce truncate its whole list in one statement, without CASCADE', function (): void {
+    /*
+     * **THE INVARIANT THE COMMAND RESTS ON, CHECKED ON THE ENGINE THAT ENFORCES
+     * IT.** `marketplace:reset-commerce` empties every table in one multi-table
+     * `TRUNCATE`. PostgreSQL permits that only when every table referencing any
+     * table in the group is ALSO in the group — which is why the command needs
+     * neither `CASCADE` nor the superuser-only `session_replication_role` that
+     * failed on the server.
+     *
+     * If somebody later adds a foreign key from a KEPT table into a deleted one,
+     * this fails HERE, in a test, naming the pair. Without it the discovery would
+     * be a production run that aborts halfway — or, had `CASCADE` been used to
+     * make the error go away, a production run that quietly empties the kept table
+     * along with it.
+     */
+    $delete = ResetCommerceCommand::DELETE;
+
+    $offenders = collect(DB::connection('pgsql')->select("
+        select tc.table_name as child, ccu.table_name as parent
+        from information_schema.table_constraints tc
+        join information_schema.constraint_column_usage ccu on tc.constraint_name = ccu.constraint_name
+        where tc.constraint_type = 'FOREIGN KEY' and tc.table_schema = 'public'
+    "))
+        ->filter(fn (object $row): bool => in_array($row->parent, $delete, true)
+            && ! in_array($row->child, $delete, true))
+        ->map(fn (object $row): string => "{$row->child} -> {$row->parent}")
+        ->unique()
+        ->values()
+        ->all();
+
+    expect($offenders)->toBe(
+        [],
+        'A kept table now points into a table reset-commerce truncates. Add it to the '
+        .'DELETE list or the command will abort — and never "fix" this with CASCADE, '
+        .'which would empty the kept table instead.',
+    );
 });
 
 it('resolves a real slug to its type on PostgreSQL', function (): void {
