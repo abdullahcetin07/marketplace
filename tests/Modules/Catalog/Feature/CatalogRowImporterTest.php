@@ -287,3 +287,47 @@ it('fetches the images it is given and shrugs off the ones it cannot', function 
     // The gif was judged by extension and never requested at all.
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'animasyon.gif'));
 });
+
+it('reuses a Turkish category whose name carries a dotted capital İ', function (): void {
+    $adminId = importingAdmin();
+    $importer = app(CatalogRowImporter::class);
+
+    /*
+     * **A REGRESSION TEST FOR A LIVE BUG THAT REACHED A REAL CATALOGUE.** The first
+     * version folded one side of the comparison in PHP and the other in SQL, and
+     * Turkish is where those two disagree:
+     *
+     *     PHP   mb_strtolower('İÇİN')  →  'i̇çi̇n'   (i + U+0307 combining dot)
+     *     pgsql lower('İÇİN')          →  'için'    (one character)
+     *
+     * So every row believed its category did not exist yet. 109 imported products
+     * produced 2,068 categories — "Yetişkinler İçin Güneş Kremleri" a THOUSAND
+     * times over — and every row reported success while doing it.
+     *
+     * **THIS RUNS ON SQLITE TOO, which is the point of writing it this way.** The
+     * exact-same-name case is what actually shipped, and it failed on BOTH engines:
+     * SQLite's `LOWER()` leaves `İ` alone while PHP's replaces it, so the two
+     * spellings never met there either. Only the DIFFERENT-case half needs real
+     * Unicode folding, and that lives in the PostgreSQL suite.
+     *
+     * The earlier fixtures could not catch any of it: "Erkek > Giyim > Tişört" has
+     * no İ.
+     */
+    $path = 'Kozmetik > Yetişkinler İçin Güneş Kremleri';
+
+    $first = $importer->import(catalogRow([
+        'kategori_yolu' => $path,
+        'gtin' => '08690000000101',
+        'baslik' => 'Güneş Kremi SPF 50',
+    ]), $adminId);
+
+    $second = $importer->import(catalogRow([
+        'kategori_yolu' => $path,
+        'gtin' => '08690000000102',
+        'baslik' => 'Güneş Spreyi SPF 50',
+    ]), $adminId);
+
+    // TWO nodes for a two-segment path, not four.
+    expect(Category::query()->count())->toBe(2)
+        ->and($second->category?->getKey())->toBe($first->category?->getKey());
+});

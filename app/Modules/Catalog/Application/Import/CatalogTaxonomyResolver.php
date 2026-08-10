@@ -160,9 +160,24 @@ final class CatalogTaxonomyResolver
      * One segment, matched among its siblings.
      *
      * CASE-INSENSITIVE ON THE TURKISH NAME because a spreadsheet is typed by a
-     * human: "AYAKKABI" and "Ayakkabı" are the same shelf. `LOWER()` in the
-     * database rather than in PHP, so the comparison uses the collation the rows
-     * were stored under.
+     * human: "AYAKKABI" and "Ayakkabı" are the same shelf.
+     *
+     * **BOTH SIDES ARE FOLDED BY THE DATABASE, AND THE FIRST VERSION FOLDED ONE
+     * SIDE IN PHP.** That shipped, and it created 1,000 copies of "Yetişkinler
+     * İçin Güneş Kremleri" in a real catalogue before anybody noticed. The Turkish
+     * dotted capital İ is why:
+     *
+     *     PHP   mb_strtolower('İÇİN')  →  'i̇çi̇n'   (i + U+0307 combining dot)
+     *     pgsql lower('İÇİN')          →  'için'    (one character)
+     *
+     * Two spellings of the same word that never compare equal, so every imported
+     * row believed its category did not exist yet and made another one. The
+     * docblock above this method already said the comparison belongs to the
+     * database — the code then did half of it in PHP, which is worse than doing
+     * neither, because it looks careful.
+     *
+     * `LOWER(?)` on the parameter keeps ONE case-folding implementation in play:
+     * whichever the column's own collation uses.
      */
     private function childByName(?Category $parent, string $name): ?Category
     {
@@ -172,7 +187,7 @@ final class CatalogTaxonomyResolver
                 static fn ($query) => $query->whereNull('parent_id'),
                 static fn ($query) => $query->where('parent_id', $parent?->getKey()),
             )
-            ->whereRaw('LOWER(name_tr) = ?', [mb_strtolower($name)])
+            ->whereRaw('LOWER(name_tr) = LOWER(?)', [$name])
             ->first();
     }
 }

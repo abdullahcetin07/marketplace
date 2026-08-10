@@ -739,6 +739,34 @@ it('lets reset-commerce truncate its whole list in one statement, without CASCAD
     );
 });
 
+it('folds a Turkish İ the way the CATALOGUE COLUMN does, not the way PHP does', function (): void {
+    /*
+     * **THE HALF SQLITE CANNOT ANSWER.** `LOWER()` there is ASCII-only, so it
+     * cannot fold `İ` at all and a case-insensitive claim would pass without being
+     * tested. PostgreSQL folds it for real — and the disagreement between its
+     * folding and PHP's is what put a thousand copies of one category into a live
+     * catalogue (ADR-074, fixed 2026-08-10).
+     *
+     * The importer now folds BOTH sides in SQL. This asserts the property that
+     * makes that correct: the database's own `lower()` maps the dotted capital onto
+     * the plain lowercase, while PHP's does not.
+     */
+    $name = 'Yetişkinler İçin Güneş Kremleri';
+
+    $sql = DB::connection('pgsql')->selectOne('select lower(?) as folded', [$name])->folded;
+
+    expect($sql)->toBe('yetişkinler için güneş kremleri')
+        // AND THE TRAP, STATED: PHP disagrees, which is why nothing may fold in PHP.
+        ->and(mb_strtolower($name))->not->toBe($sql);
+
+    // The comparison the importer actually makes, on the engine that will make it.
+    $matches = DB::connection('pgsql')
+        ->selectOne('select (lower(?) = lower(?)) as same', [$name, mb_strtoupper($name, 'UTF-8')])
+        ->same;
+
+    expect((bool) $matches)->toBeTrue();
+});
+
 it('resolves a real slug to its type on PostgreSQL', function (): void {
     $row = DB::connection('pgsql')->table('slugs')->where('is_canonical', true)->first();
 
