@@ -14,6 +14,9 @@ use App\Modules\Offer\Domain\DTOs\UpdateOfferStockDTO;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Queue;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -376,4 +379,65 @@ it('does not leak seller-facing fields onto the page', function (): void {
     foreach (['status', 'proposed_by_org_uuid', 'moderation_reason', 'tax_rate_id'] as $forbidden) {
         expect($payload)->not->toHaveKey($forbidden);
     }
+});
+
+it('serves the LARGE conversion on the product page, not the 480px preview', function (): void {
+    // The media disk is S3 in this environment; faked here rather than in
+    // `beforeEach` so the rest of the file keeps running against the real config.
+    Storage::fake(config('marketplace.media.public_disk'));
+
+    ['product' => $product] = sellableProduct();
+
+    app(App\Modules\Catalog\Application\Actions\AttachProductMediaAction::class)
+        ->run($product, [UploadedFile::fake()->image('urun.jpg', 1600, 1600)]);
+
+    $media = $product->fresh()->getFirstMedia('images');
+
+    // Pretend the media queue has caught up, so the payload is choosing between
+    // real conversions rather than falling back.
+    $media->generated_conversions = ['thumb' => true, 'preview' => true, 'large' => true];
+    $media->save();
+
+    $images = $this->getJson("/api/v1/products/{$product->slug}")
+        ->assertOk()
+        ->json('data.images');
+
+    /*
+     * **THE DETAIL PAGE IS THE ONE SCREEN WHOSE JOB IS SIZE.** It shipped asking
+     * for `preview` (480px) while its own docblock said "largest-usable", so the
+     * main image and the lightbox both rendered a 480px file scaled up. Nothing
+     * caught it because nothing asserted what the payload actually contained.
+     */
+    expect($images)->toBe([$media->getUrl('large')])
+        ->and($images)->not->toBe([$media->getUrl('preview')]);
+});
+
+it('still hands back the original when the large conversion is not generated yet', function (): void {
+    Storage::fake(config('marketplace.media.public_disk'));
+
+    // A COLD MEDIA QUEUE, which is the state this test is about. Without the fake
+    // the conversions run inline and there is nothing to fall back from.
+    Queue::fake();
+
+    ['product' => $product] = sellableProduct();
+
+    app(App\Modules\Catalog\Application\Actions\AttachProductMediaAction::class)
+        ->run($product, [UploadedFile::fake()->image('urun.jpg', 1600, 1600)]);
+
+    $media = $product->fresh()->getFirstMedia('images');
+
+    /*
+     * THE PROPERTY THAT MAKES THIS CHANGE SAFE WITH A COLD QUEUE: Spatie builds a
+     * conversion URL by convention rather than by looking at the disk, so asking
+     * for one that has not been generated returns a path that 404s. The shared
+     * helper checks first and serves the ORIGINAL — which is larger still, so the
+     * page is never worse off than before.
+     */
+    expect($media->hasGeneratedConversion('large'))->toBeFalse();
+
+    $images = $this->getJson("/api/v1/products/{$product->slug}")
+        ->assertOk()
+        ->json('data.images');
+
+    expect($images)->toBe([$media->getUrl()]);
 });

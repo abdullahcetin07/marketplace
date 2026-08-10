@@ -119,18 +119,29 @@ final class PublicProductResource extends JsonResource
     /**
      * Every gallery image, largest-usable conversion.
      *
-     * THROUGH THE SHARED HELPER, which falls back to the original when the
-     * conversion has not been generated. This used to ask each media item for its
-     * `preview` URL directly, and Spatie answers that by CONVENTION rather than by
-     * looking at the disk — so with the queue stopped every product page returned
-     * a set of perfectly-formed URLs that all 404'd, and the storefront rendered
-     * "görsel yok" for products that had images all along.
+     * **`large` (1200px), NOT `preview` (480px).** The docblock said
+     * "largest-usable" while the code asked for the middle one, so a product
+     * detail page — the screen whose whole job is showing the thing close up —
+     * rendered a 480px image, and the lightbox opened the same 480px image
+     * scaled up. One word, and it was the wrong one in the one place where size
+     * is the point.
+     *
+     * THROUGH THE SHARED HELPER, which falls back to the ORIGINAL when the
+     * conversion has not been generated — so this is never smaller than before,
+     * even for images the media queue has not reached yet. It used to ask each
+     * media item for its URL directly, and Spatie answers that by CONVENTION
+     * rather than by looking at the disk: with the queue stopped every product
+     * page returned perfectly-formed URLs that all 404'd, and the storefront
+     * rendered "görsel yok" for products that had images all along.
+     *
+     * THE SHAPE IS UNCHANGED — `string[]`, same order, same count. The frontend
+     * needs no release for this.
      *
      * @return array<int, string>
      */
     private function gallery(): array
     {
-        return $this->imageUrls('preview');
+        return $this->imageUrls('large');
     }
 
     /**
