@@ -3,6 +3,11 @@
 /public/build
 /public/hot
 /public/storage
+# Filament's PUBLISHED assets — 2.3 MB of vendor output that `filament:assets`
+# regenerates on every deploy. Untracked but unignored, they sat in every
+# `git status` waiting for somebody to commit them by accident.
+/public/css/filament
+/public/js/filament
 /storage/*.key
 /storage/pail
 /storage/debugbar

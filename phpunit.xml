@@ -50,6 +50,13 @@
 
     <php>
         <env name="APP_ENV" value="testing"/>
+        <!--
+          | THE SUITE KEEPS ITS OWN LOGS. Without this, `php artisan test` wrote
+          | into the server's real audit and error files — one day's audit log
+          | held 12,735 test lines against 16 genuine ones, which makes a trail
+          | that exists to be evidence unreadable exactly when it is needed.
+        -->
+        <env name="LOG_DIRECTORY" value="testing/"/>
         <env name="APP_MAINTENANCE_DRIVER" value="file"/>
         <env name="BCRYPT_ROUNDS" value="4"/>
         <env name="CACHE_STORE" value="array"/>

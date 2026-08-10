@@ -39,6 +39,19 @@ return [
         'trace' => (bool) env('LOG_DEPRECATIONS_TRACE', false),
     ],
 
+    /*
+    | **WHERE THE FILES GO — AND WHY THIS IS A VARIABLE.** The suite ran against
+    | the same paths as the server, so `php artisan test` wrote its own noise into
+    | the real files: one day's audit log held 12,735 `testing.` lines against 16
+    | genuine ones. A trail that exists to be EVIDENCE cannot be 99% test output —
+    | the signal is not lost exactly, it is unfindable, which is the same thing at
+    | the moment somebody needs it.
+    |
+    | Empty by default, so every production path is byte-identical to what it was.
+    | `phpunit.xml` sets it to `testing/`.
+    */
+    'directory' => env('LOG_DIRECTORY', ''),
+
     'channels' => [
 
         'stack' => [
@@ -52,7 +65,7 @@ return [
         */
         'daily' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/marketplaceos.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'marketplaceos.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'days' => (int) env('LOG_DAILY_DAYS', 30),
             'replace_placeholders' => true,
@@ -64,7 +77,7 @@ return [
         */
         'audit' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/audit.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'audit.log'),
             'level' => 'info',
             'days' => (int) env('LOG_AUDIT_DAYS', 365),
             'permission' => 0640,
@@ -79,7 +92,7 @@ return [
         */
         'activity' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/activity.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'activity.log'),
             'level' => 'info',
             'days' => (int) env('LOG_ACTIVITY_DAYS', 180),
             'replace_placeholders' => true,
@@ -90,7 +103,7 @@ return [
         */
         'errors' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/errors.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'errors.log'),
             'level' => 'error',
             'days' => (int) env('LOG_ERROR_DAYS', 90),
             'replace_placeholders' => true,
@@ -113,7 +126,7 @@ return [
 
         'single' => [
             'driver' => 'single',
-            'path' => storage_path('logs/laravel.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'laravel.log'),
             'level' => env('LOG_LEVEL', 'debug'),
             'replace_placeholders' => true,
         ],
@@ -139,7 +152,7 @@ return [
 
         'deprecations' => [
             'driver' => 'daily',
-            'path' => storage_path('logs/deprecations.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'deprecations.log'),
             'level' => 'warning',
             'days' => 14,
         ],
@@ -150,7 +163,7 @@ return [
         ],
 
         'emergency' => [
-            'path' => storage_path('logs/emergency.log'),
+            'path' => storage_path('logs/'.env('LOG_DIRECTORY', '').'emergency.log'),
         ],
 
     ],
