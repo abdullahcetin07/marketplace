@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Offer\Presentation\Filament\Seller\Resources;
 
 use App\Core\Domain\Contracts\CatalogBrowseContract;
+use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
@@ -160,7 +161,28 @@ final class OfferResource extends Resource
                 ->required()
                 ->minValue(0)
                 ->step(1)
-                ->helperText(__('offer.field.stock_hint')),
+                /*
+                | **WHAT YOU HAVE, BEFORE YOU OVERWRITE IT.** The mirror is
+                | ABSOLUTE (ADR-048): typing 5 here sets Inventory's `on_hand` to
+                | 5 — it does not add 5. A seller who sold three of five and comes
+                | here to "top up" would otherwise be silently restoring stock
+                | they no longer have, and the first they would hear of it is an
+                | order they cannot fill.
+                |
+                | ON CREATE THERE IS NO RECORD YET, so it falls back to the plain
+                | hint rather than claiming a live figure for a variant nobody has
+                | stocked.
+                */
+                ->helperText(function (?Offer $record): string {
+                    if ($record === null) {
+                        return __('offer.field.stock_hint');
+                    }
+
+                    return __('offer.field.stock_hint_live', [
+                        'available' => app(InventoryQueryContract::class)
+                            ->availableFor($record->variant_uuid, $record->selling_org_uuid),
+                    ]);
+                }),
 
             Forms\Components\Textarea::make('reason')
                 ->label(__('offer.field.reason'))
@@ -185,12 +207,54 @@ final class OfferResource extends Resource
                     ->state(fn (Offer $record): string => money($record->price_minor, $record->currency))
                     ->sortable(),
 
-                Tables\Columns\TextColumn::make('stock_quantity')
-                    ->label(__('offer.field.stock'))
+                /*
+                | **THE NUMBER THAT IS ACTUALLY TRUE, AND IT IS NOT THE ONE BESIDE
+                | IT.** `stock_quantity` is what the seller TYPED; it never
+                | decrements, because selling moves Inventory's `on_hand` and
+                | nothing writes back (ADR-048). So an offer that sold all five
+                | units read "Stok 5" here while the buy box had already dropped
+                | it for `available = 0` — the seller's own screen disagreeing
+                | with the shop, and only the shop being right.
+                |
+                | COMPUTED PER ROW THROUGH THE CORE PORT, never joined: Inventory
+                | is a different bounded context and `available = on_hand −
+                | reserved` is computed on read by design (ADR-048), so there is
+                | no column to eager-load. The same shape `CatalogLabels` uses on
+                | the row above.
+                |
+                | NOT SORTABLE, for the reason the Inventory page states: sorting
+                | would mean computing it for the whole result set and ordering in
+                | PHP.
+                */
+                Tables\Columns\TextColumn::make('available')
+                    ->label(__('offer.field.available'))
                     ->badge()
-                    // Zero is not an error, it is "tükendi" — warned, not
-                    // alarmed, because the seller may have meant it.
-                    ->color(fn (Offer $record): string => $record->isInStock() ? 'gray' : 'warning')
+                    ->getStateUsing(fn (Offer $record): int => app(InventoryQueryContract::class)
+                        ->availableFor($record->variant_uuid, $record->selling_org_uuid))
+                    ->formatStateUsing(fn (int $state): string => $state === 0
+                        ? __('offer.stock.sold_out')
+                        : (string) $state)
+                    ->color(fn (int $state): string => match (true) {
+                        // DANGER at zero, where the old column said "warning":
+                        // this one is not a preference the seller expressed, it
+                        // is a sale they are no longer making.
+                        $state === 0 => 'danger',
+                        $state <= 5 => 'warning',
+                        default => 'success',
+                    }),
+
+                /*
+                | KEPT, RELABELLED, AND MUTED. Removing it would hide the thing
+                | the seller can actually change — the live number is read-only
+                | and this is the input behind it — and seeing both is what makes
+                | the gap legible: "I said 5, nothing is sellable, so restock".
+                | The colour signal moved to the column above; this one is a fact
+                | about a form field, not a warning.
+                */
+                Tables\Columns\TextColumn::make('stock_quantity')
+                    ->label(__('offer.field.declared'))
+                    ->badge()
+                    ->color('gray')
                     ->sortable(),
 
                 Tables\Columns\TextColumn::make('status')

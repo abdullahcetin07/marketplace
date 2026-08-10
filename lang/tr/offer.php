@@ -27,6 +27,14 @@ return [
         'list_price_hint' => 'İsteğe bağlı. Üstü çizili gösterilir; satış fiyatından düşük olamaz.',
         'stock' => 'Stok',
         'stock_hint' => 'Elinizdeki adet. 0 girerseniz teklif "tükendi" olur; fiyatınız ve sıranız korunur.',
+        /*
+        | Yazdığınız sayı stoğun ÜSTÜNE EKLENMEZ, yerine geçer (ADR-048). Beşten
+        | üçünü satmış bir satıcı "tamamlayayım" diye 5 yazarsa elinde olmayan
+        | stoğu geri açmış olur; bunu ancak karşılayamadığı siparişte fark eder.
+        */
+        'stock_hint_live' => 'Şu an satılabilir: :available. Buraya yazdığınız sayı mevcut stoğun yerine geçer, üstüne eklenmez.',
+        'available' => 'Satılabilir',
+        'declared' => 'Beyan edilen',
         'status' => 'Durum',
         'listed_at' => 'Yayına alındı',
         'buy_box_rank' => 'Buy-box sırası',
@@ -45,6 +53,9 @@ return [
     */
     'stock' => [
         'zeroed_by_seller_cancellation' => ':order numaralı sipariş karşılanamadığı için iptal edildi; bu ürün için stok sıfırlandı.',
+        // Teklif listesindeki canlı sütun 0 gösterdiğinde. "0" değil "Tükendi",
+        // çünkü satıcının okuması gereken şey sayı değil durum.
+        'sold_out' => 'Tükendi',
     ],
 
     /*

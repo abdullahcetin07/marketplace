@@ -27,6 +27,10 @@ return [
         'list_price_hint' => 'Optional. Shown struck through; it cannot be lower than the selling price.',
         'stock' => 'Stock',
         'stock_hint' => 'How many you have. Enter 0 to mark it sold out — your price and your place are kept.',
+        // The number you type REPLACES the stock, it is not added to it (ADR-048).
+        'stock_hint_live' => 'Sellable right now: :available. What you type here replaces your stock — it is not added to it.',
+        'available' => 'Sellable',
+        'declared' => 'Declared',
         'status' => 'Status',
         'listed_at' => 'Listed',
         'buy_box_rank' => 'Buy-box rank',
@@ -45,6 +49,8 @@ return [
     */
     'stock' => [
         'zeroed_by_seller_cancellation' => 'Order :order was cancelled as unfulfillable; stock for this product was set to zero.',
+        // What the live column reads at 0 — a state, not a number.
+        'sold_out' => 'Sold out',
     ],
 
     /*

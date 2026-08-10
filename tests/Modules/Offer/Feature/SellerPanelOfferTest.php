@@ -2,10 +2,12 @@
 
 declare(strict_types=1);
 
+use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Models\Seller;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Modules\Inventory\Domain\Models\StockItem;
 use App\Modules\Offer\Domain\Enums\OfferStatus;
 use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource;
@@ -263,4 +265,77 @@ it('never lets a seller delete an offer', function (): void {
     // A future order line references the offer it was bought from.
     expect(OfferResource::canDelete($offer))->toBeFalse()
         ->and(OfferResource::canDeleteAny())->toBeFalse();
+});
+
+/*
+|--------------------------------------------------------------------------
+| The number the seller reads is the one the shop uses
+|--------------------------------------------------------------------------
+|
+| **THE BUG THIS PINS.** `stock_quantity` is what the seller TYPED and it never
+| decrements — selling moves Inventory's `on_hand`, and nothing writes back
+| (ADR-048). So an offer that sold all five units showed "Stok 5" on the seller's
+| own screen while the buy box had already dropped it for `available = 0`. The
+| seller's page and the shop disagreed, and only the shop was right.
+|
+*/
+
+it('shows the LIVE sellable count, not the stale declared number', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $offer = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->create(['stock_quantity' => 5]);
+
+    // The mirror gave Inventory five (ADR-048), and then all five sold: `on_hand`
+    // is the number that moved, and it moved WITHOUT touching the offer.
+    $stock = StockItem::query()
+        ->where('variant_uuid', $fixture['variant']->uuid)
+        ->where('selling_org_uuid', $fixture['org']->uuid)
+        ->firstOrFail();
+
+    $stock->forceFill(['on_hand' => 0, 'reserved' => 0])->save();
+
+    expect($offer->fresh()->stock_quantity)->toBe(5)
+        ->and(app(InventoryQueryContract::class)
+            ->availableFor($fixture['variant']->uuid, $fixture['org']->uuid))->toBe(0);
+
+    /*
+     * **BOTH NUMBERS ON THE PAGE, AND THE TRUE ONE READS "Tükendi".** The declared
+     * column stays because it is the field the seller can actually change; seeing
+     * the two side by side is what makes the gap legible — "I said 5, nothing is
+     * sellable, so restock".
+     */
+    Livewire::test(ListOffers::class)
+        ->assertCanSeeTableRecords([$offer])
+        ->assertSee(__('offer.stock.sold_out'));
+});
+
+it('shows a real sellable count when there is stock', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $offer = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->create(['stock_quantity' => 9]);
+
+    $stock = StockItem::query()
+        ->where('variant_uuid', $fixture['variant']->uuid)
+        ->where('selling_org_uuid', $fixture['org']->uuid)
+        ->firstOrFail();
+
+    // Two spoken for by an in-flight checkout: `available = on_hand − reserved`,
+    // which is the number a buyer can still take and therefore the number the
+    // seller should see.
+    $stock->forceFill(['on_hand' => 9, 'reserved' => 2])->save();
+
+    Livewire::test(ListOffers::class)
+        ->assertCanSeeTableRecords([$offer])
+        ->assertSee('7')
+        ->assertDontSee(__('offer.stock.sold_out'));
 });
