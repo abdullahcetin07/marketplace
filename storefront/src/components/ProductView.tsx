@@ -4,6 +4,7 @@ import { AddToCartButton } from '@/components/AddToCartButton';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductReviews } from '@/components/ProductReviews';
+import { Stars } from '@/components/Stars';
 import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
@@ -117,6 +118,28 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           )}
           <h1 className="mt-1.5 text-2xl font-extrabold leading-tight tracking-tight text-balance">{product.title}</h1>
 
+          {/* Rating + Q&A — the Trendyol-style trust row, linking to the sections below. */}
+          <div className="mt-2.5 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm">
+            {reviews.summary.count > 0 ? (
+              <a href="#degerlendirmeler" className="group flex items-center gap-1.5">
+                <span className="font-extrabold">{reviews.summary.average}</span>
+                <Stars value={reviews.summary.average} className="text-[.95rem]" />
+                <span className="text-ink-500 group-hover:text-brand-600 group-hover:underline">
+                  {reviews.summary.count} Değerlendirme
+                </span>
+              </a>
+            ) : (
+              <span className="flex items-center gap-1.5 text-ink-400">
+                <Stars value={0} className="text-[.95rem]" /> Henüz değerlendirilmemiş
+              </span>
+            )}
+
+            <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
+            <a href="#sorular" className="text-ink-500 hover:text-brand-600 hover:underline">
+              <span className="font-bold text-ink-700 dark:text-ink-200">{questions.total}</span> Soru-Cevap
+            </a>
+          </div>
+
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-500">
             {offers !== null && offers.offer_count > 0 && <span>{offers.offer_count} satıcı satışta</span>}
             <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
@@ -202,10 +225,20 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                 <div className="mb-4 mt-1.5 flex items-center gap-1.5 text-[.82rem] font-extrabold text-green-600">
                   <span className="h-2 w-2 rounded-full bg-green-500" /> Stokta var · KDV dahil
                 </div>
-                <AddToCartButton offerId={featured.id} variant="primary" label="Hemen Al" redirectOnAdd="/sepet" />
-                <div className="mt-2.5">
-                  <AddToCartButton offerId={featured.id} variant="secondary" label="Sepete ekle" />
+                <div className="grid grid-cols-2 gap-2.5">
+                  <AddToCartButton offerId={featured.id} variant="secondary" label="Şimdi Al" redirectOnAdd="/sepet" />
+                  <AddToCartButton offerId={featured.id} variant="primary" label="Sepete Ekle" />
                 </div>
+
+                {featured.store?.slug && (
+                  <Link
+                    href={`/magaza/${featured.store.slug}`}
+                    className="mt-3 flex items-center justify-center gap-1.5 rounded-xl border-2 border-ink-200 py-2.5 text-sm font-bold text-ink-600 transition hover:border-brand-400 hover:text-brand-600 dark:border-ink-700 dark:text-ink-300"
+                  >
+                    Mağazayı ziyaret et →
+                  </Link>
+                )}
+
                 <div className="mt-4 flex flex-col gap-2 border-t border-ink-100 pt-3.5 text-[.8rem] text-ink-500 dark:border-ink-800">
                   <span className="flex items-center gap-2">🚚 Hızlı ve güvenli kargo</span>
                   <span className="flex items-center gap-2">🛡️ Orijinal ürün &amp; 14 gün iade</span>
