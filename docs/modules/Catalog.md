@@ -572,3 +572,92 @@ Surfacing the fuzzy half is a UI addition, not a model change.
 
    `CosmeticAttributeDemoSeeder` is demo scaffolding for one deployment, not taxonomy —
    the real cosmetic schema is the owner's to curate.
+
+---
+
+# 16. Bulk import — an admin uploads a spreadsheet (ADR-074, 2026-08-10)
+
+An admin uploads an Excel/CSV; each row becomes a **category path + brand + product
++ one default variant + KDV bracket + images**, published, queued and chunked, with
+a downloadable per-row failure report. **Catalog only** — no price, no stock: those
+are a seller's Offer and arrive in a separate import.
+
+## 16.1 The columns
+
+| Column | Required | Notes |
+|---|---|---|
+| `baslik` | ✅ | The product title |
+| `kategori_yolu` | ✅ | `Erkek > Giyim > Tişört` — created where missing |
+| `marka` | | Reused by slug when the name already exists |
+| `gtin` | | **The dedup key.** Re-uploading the same barcode UPDATES rather than duplicating |
+| `aciklama` | | |
+| `kdv` | | `%20`, `20` or `0,20`; unreadable or blank falls back to `kdv-20` |
+| `gorsel_url` | | Several separated by `\|`; jpg/png/webp/avif |
+
+The names are **Turkish in both lang files**, deliberately: they are the contract
+with a spreadsheet somebody has already filled in, and translating one would break
+the template.
+
+## 16.2 It drives the authoring actions and writes no model
+
+`CatalogRowImporter` calls `CreateCategoryAction`, `CreateBrandAction`,
+`DraftProductAction`, `UpsertVariantAction`, `SubmitProductForReviewAction` and
+`PublishProductAction` — the same path a seller's "ürün aç" takes. **Bypassing them
+would skip the moderation lifecycle, the slug registry, the GTIN guard,
+`combination_key` and the events other modules consume**, and the result would look
+correct in the admin table while being invisible to search, the storefront and Offer.
+
+It also means the import cannot do anything a human could not: `SubmitProductForReviewAction`
+still demands a variant and a tax bracket, and `PublishProductAction` still checks the
+category's required attributes.
+
+## 16.3 The category path is resolved by NAME WITHIN A PARENT
+
+**Not by global slug, and this is the one thing to preserve if the walk is ever
+rewritten.** `categories.slug` is UNIQUE across the whole table, so matching a
+segment by slug means that once `Erkek > Ayakkabı` exists, a row for
+`Kadın > Ayakkabı` finds the men's category and files every women's shoe under it —
+every row succeeds, nothing is reported, and the tree is quietly wrong. A segment is
+only meaningful relative to its parent.
+
+**A created leaf gets `accepts_products = true`; an EXISTING category that refuses
+products fails the row** rather than being flipped. That flag is a moderated decision
+about the shape of the catalogue (ADR-047) and a spreadsheet cell must not overturn
+one.
+
+## 16.4 Failure and idempotency
+
+A bad row throws `CatalogImportException` with a **Turkish sentence**, which Filament
+records in `failed_import_rows` and offers back as a downloadable report — the batch
+carries on. A bad image URL is weaker still: logged and skipped, because a dead link
+is not a reason to reject a product whose every other cell is right.
+
+**Re-uploading a corrected file is the intended workflow.** Rows with a GTIN update
+in place (title, category, brand, tax; images only when the product has none, so a
+re-run does not stack duplicates). Rows without one always create.
+
+## 16.5 The surface, and what it needs to actually run
+
+`/admin` → **Katalog İçe Aktarma** (a page, not a resource: the moderation queue
+states "nothing is created from the queue", and a second product table beside it
+would be one list too many). Gated on `catalog.products.moderate` — an import
+publishes products, which is exactly what that permission means.
+
+**⚠️ THE IMPORT IS QUEUED AND IS INERT WITHOUT A WORKER.** With no `queue:work`
+(or Horizon) running, an admin uploads a file, sees a cheerful notification and
+nothing whatsoever happens — the same operational truth the scheduler carries for the
+sweeps. The page says so on screen rather than leaving it in a run-book.
+
+## 16.6 v1 scope
+
+**Deliberately absent, and each for a reason rather than a lack of time:**
+
+- **Variant axes (colour/size) and descriptive attributes.** They need the moderated
+  category attribute schema (ADR-038); a spreadsheet cell must not silently create
+  schema. v1 gives every product ONE default variant.
+- **Offers — price and stock.** A separate seller-facing import; the owner chose
+  catalogue-first.
+- **Rows targeting a category with required attributes.** They fail publish and are
+  reported. v1 creates fresh categories, which have none.
+- **Scheduled feed sync** (supplier XML/API). A manual upload is v1.
+

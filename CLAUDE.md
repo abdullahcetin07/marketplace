@@ -261,6 +261,29 @@ also leaves the merchant's queue. **Questions imports NO module** — Catalog, O
 Store and Organization through Core contracts; no media, no money. **Not frozen**:
 the storefront (Questions.md §9) is still to come. One recorded deviation in §13.
 
+**Admin BULK CATALOGUE IMPORT is COMPLETE (2026-08-10; ADR-074, built C1–C3).** An
+admin uploads an Excel/CSV and each row becomes a category path + brand + product +
+one default variant + KDV bracket + images, **published**, queued and chunked, with a
+downloadable per-row failure report. **Catalog only** — price and stock are a seller's
+Offer and arrive separately.
+
+**It DRIVES the authoring actions and writes no model.** Bypassing them would skip the
+moderation lifecycle, the slug registry, the GTIN guard, `combination_key` and the
+events other modules consume — the rows would look right in the admin table and be
+invisible to search, the storefront and Offer. **Idempotent on GTIN**, so a corrected
+file can simply be re-uploaded.
+
+**A category path resolves by NAME WITHIN A PARENT, never by global slug** — the work
+order said slug, and `categories.slug` is UNIQUE table-wide, so "Kadın > Ayakkabı"
+would have found the MEN'S shoes category and filed every women's shoe under it with
+every row reporting success. If you rewrite that walk, keep this. **An existing
+`accepts_products = false` category fails the row rather than being flipped** (ADR-047).
+
+**⚠️ The import is QUEUED and inert without a worker** — no `queue:work`, no rows
+processed, however cheerful the notification. v1 gives every product ONE default
+variant; colour/size axes and descriptive attributes are phase 2 (they need the
+moderated category schema, ADR-038).
+
 **Pre-shipment cancellation is COMPLETE (2026-08-06; ADR-065, C1+C2).** The mirror
 of the return: while a shipment is `pending`, a paid order cancels two ways, **both reusing
 S4's line-level refund** (proportional commission/KDV reversal + PayTR partial refund +
