@@ -201,6 +201,14 @@ final class AdminPanelProvider extends PanelProvider
 
             ->pages([
                 Pages\Dashboard::class,
+
+                /*
+                | KATALOG İÇE AKTARMA (ADR-074). Registered here rather than
+                | auto-discovered from `app/Filament`, because `LayeringTest` lets
+                | only this composition root reach into a module — and a page that
+                | drives Catalog's authoring actions belongs to Catalog.
+                */
+                \App\Modules\Catalog\Presentation\Filament\Pages\ImportCatalog::class,
             ])
             ->widgets([
                 Widgets\AccountWidget::class,

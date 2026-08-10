@@ -202,4 +202,42 @@ return [
         'queue_singular' => 'Onay bekleyen ürün',
     ],
 
+    /*
+    | ADR-074 — yönetici Excel/CSV katalog yüklemesi. Sütun adları TÜRKÇE, çünkü
+    | dosyayı hazırlayan kişi Türkçe çalışıyor; bir alan adını çevirmek, hazır
+    | şablonu bozar.
+    */
+    'import' => [
+        'title' => 'Katalog İçe Aktarma',
+        'subheading' => 'Excel/CSV yükleyerek toplu ürün ekleyin. Satırlar arka planda işlenir.',
+        'action' => 'İçe Aktar',
+        'download_template' => 'Örnek şablon indir',
+        'columns_heading' => 'Sütunlar',
+        'notes_heading' => 'Bilinmesi gerekenler',
+        'completed' => ':imported ürün içe aktarıldı, :failed satır başarısız.',
+        'column' => [
+            'title' => 'Başlık',
+            'category_path' => 'Kategori yolu',
+            'brand' => 'Marka',
+            'gtin' => 'Barkod (GTIN)',
+            'description' => 'Açıklama',
+            'tax' => 'KDV',
+            'images' => 'Görsel URL',
+        ],
+        'help' => [
+            'title' => 'Zorunlu. Ürünün adı.',
+            'category_path' => 'Zorunlu. "Erkek > Giyim > Tişört" — yoksa oluşturulur, son basamak ürün kabul eder.',
+            'brand' => 'İsteğe bağlı. Aynı isim varsa yeniden kullanılır.',
+            'gtin' => 'İsteğe bağlı ama önerilir: aynı barkodla tekrar yüklerseniz ürün GÜNCELLENİR, ikinci kez oluşturulmaz.',
+            'description' => 'İsteğe bağlı.',
+            'tax' => 'İsteğe bağlı. "%20", "20" veya "0,20" — boşsa %20 varsayılır.',
+            'images' => 'İsteğe bağlı. Birden fazla adresi | ile ayırın. jpg, png, webp, avif.',
+        ],
+        'note' => [
+            'queue' => 'İşlem KUYRUKTA çalışır: sunucuda bir queue worker açık değilse dosya yüklenir ama hiçbir satır işlenmez.',
+            'idempotent' => 'Aynı dosyayı düzeltip yeniden yükleyebilirsiniz; barkodu olan satırlar güncellenir, kopya ürün oluşmaz.',
+            'failures' => 'Hatalı bir satır tüm yüklemeyi durdurmaz — atlanır ve bitişte indirilebilir bir hata raporunda gerekçesiyle listelenir.',
+            'scope' => 'Bu yükleme yalnızca KATALOĞU oluşturur. Fiyat ve stok satıcının teklifidir; ayrı bir yüklemeyle gelir.',
+        ],
+    ],
 ];

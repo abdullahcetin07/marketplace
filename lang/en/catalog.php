@@ -200,4 +200,42 @@ return [
         'queue_singular' => 'Product awaiting review',
     ],
 
+    /*
+    | ADR-074 — the admin's Excel/CSV catalogue upload. The column names stay
+    | TURKISH in both files: they are the contract with the spreadsheet, and
+    | translating one would break the template somebody already filled in.
+    */
+    'import' => [
+        'title' => 'Catalogue import',
+        'subheading' => 'Upload an Excel/CSV to add products in bulk. Rows are processed in the background.',
+        'action' => 'Import',
+        'download_template' => 'Download the example template',
+        'columns_heading' => 'Columns',
+        'notes_heading' => 'What to know',
+        'completed' => ':imported products imported, :failed rows failed.',
+        'column' => [
+            'title' => 'Title',
+            'category_path' => 'Category path',
+            'brand' => 'Brand',
+            'gtin' => 'Barcode (GTIN)',
+            'description' => 'Description',
+            'tax' => 'VAT',
+            'images' => 'Image URL',
+        ],
+        'help' => [
+            'title' => 'Required. The product name.',
+            'category_path' => 'Required. "Erkek > Giyim > Tişört" — created when missing; the last segment accepts products.',
+            'brand' => 'Optional. Reused when the name already exists.',
+            'gtin' => 'Optional but recommended: re-uploading the same barcode UPDATES the product instead of creating a second one.',
+            'description' => 'Optional.',
+            'tax' => 'Optional. "%20", "20" or "0.20" — defaults to 20%.',
+            'images' => 'Optional. Separate several with |. jpg, png, webp, avif.',
+        ],
+        'note' => [
+            'queue' => 'The work is QUEUED: with no queue worker running on the server the file uploads and not a single row is processed.',
+            'idempotent' => 'Correct the file and upload it again; rows with a barcode are updated, no duplicates are created.',
+            'failures' => 'A bad row does not stop the upload — it is skipped and listed with its reason in a downloadable failure report.',
+            'scope' => 'This builds the CATALOGUE only. Price and stock belong to a seller offer and arrive in a separate import.',
+        ],
+    ],
 ];
