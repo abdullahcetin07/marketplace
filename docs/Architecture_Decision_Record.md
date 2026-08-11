@@ -1326,6 +1326,12 @@ expressive one.
 
 Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §3.2.
 
+**Amended by ADR-075** — the bulk import may open a category **it created** when a
+row places a product there; a category a **human** left `accepts_products = false`
+still refuses. The invariant "import respects the Category Manager's decision" is
+unchanged; ADR-075 only distinguishes a human's decision from the import's own
+seconds-old default.
+
 ---
 
 # ADR-048 Inventory Is the Availability Authority; On-Hand Is Mirrored from the Offer
@@ -2337,6 +2343,57 @@ sizes arrives as one product (or three rows/products) until phase 2 adds axes �
 the owner accepted to get the catalogue in. Image fetching is N HTTP downloads on a queue; a slow
 or dead image host shows up as failed rows, not a hung import. And the importer is only as safe as
 the authoring actions it drives — which is the point of driving them.
+
+---
+
+# ADR-075 The Bulk Import Opens a Category IT Created When a Row Sells There; a Human-Closed Category Still Refuses (Amends ADR-047)
+
+**Status:** Accepted (2026-08-11). Amends ADR-047. Work order: `BUILD_CATALOG_IMPORT_FIX.md`.
+
+A real catalogue puts products at a node that is **also a parent** — *Cilt Bakımı >
+Cilt Temizleme Ürünleri > Cilt Temizleyiciler* in one row, *Cilt Bakımı > Cilt
+Temizleme Ürünleri* (a product sold directly at that middle node) in another. ADR-047
+already permits this shape (`accepts_products = true` **with** children). The first
+real import still failed 5 rows on it, and the reason is a self-inflicted one: the
+import creates each intermediate node **closed** (`accepts_products = false`, ADR-047's
+default for a node it opens on the way down), then a later row that terminates at that
+same node is refused by the very flag the import just set seconds earlier.
+
+**The fix distinguishes WHO closed the category.** A node the **import created** carries
+no human moderation decision — its `false` is a default, not a judgement — so when a row
+terminates there (a product is sold directly at it), the import **opens it**
+(`accepts_products = true`). A node a **human** left closed in the Category Manager is a
+real decision; the import **still refuses the row** and reports it, exactly as ADR-047
+says. To tell them apart the category records its **origin** — a boolean marker set at
+creation (`created_by_import`, or equivalent) — because after the fact a closed node
+created by a prior import chunk and a closed node a human curated are otherwise
+indistinguishable, and re-running the file must stay idempotent.
+
+Concretely: a node accepts products iff **any row terminates at it** OR a human opened it;
+a pure intermediate that no row sells at stays closed; a human-closed node is never
+flipped. ADR-047's invariant — *the import does not overrule the Category Manager* — is
+preserved verbatim; ADR-075 only stops the import from overruling **itself**.
+
+**Bundled, but a separate concern: the import job had no retry ceiling.** `ImportCsv`
+shipped with `$tries` undefined (unlimited), `$backoff` undefined (0s, retry instantly),
+and only a 24-hour `retryUntil` — so those 5 rejected rows, re-thrown per chunk, drove
+**29,074 attempts** overnight and **~155,000** duplicate failure rows before the window
+closed. Two independent hardenings: (1) a row the importer means to reject must fail at
+the **row** level (recorded in `failed_import_rows`, the chunk continues) and never throw
+out of the chunk job; (2) the job carries an explicit **`$tries` ceiling and a `$backoff`**
+so that no future defect — this one or another — can ever again turn one bad row into tens
+of thousands of retries. The retry storm was the real cost; the wrong five rows were cheap.
+
+Cost: one boolean column on `categories` and the small asymmetry that an import-created
+node is *permissive* where a hand-built one is *restrictive*. We accept it because the
+alternative that needs no column — open **every** path segment — abandons ADR-047's
+default and lets a seller later author a product straight into an empty container the
+import happened to pass through, and the alternative that needs no code — reject and make
+the operator restructure a correct 5,000-row file — punishes correct data for the
+import's own default.
+
+Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §3.2 and
+`BUILD_CATALOG_IMPORT_FIX.md`.
 
 ---
 
