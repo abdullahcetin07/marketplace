@@ -195,11 +195,15 @@ it('serves the ORIGINAL while a conversion is still queued, never a dead path', 
      * A full-size phone photo is the fallback, and that IS the trade: the page is
      * heavier until the worker catches up, and it works.
      */
+    // `?v={updated_at}` — @see `HasMedia::cacheBusted()`. Spelled out rather than
+    // regex-matched, so a change to the token's SOURCE fails here too.
+    $version = '?v='.$media->updated_at?->getTimestamp();
+
     expect($media->hasGeneratedConversion('preview'))->toBeFalse()
-        ->and($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl()])
+        ->and($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl().$version])
         // The listing thumbnail already had this fallback; it is asserted here so
         // the two cannot drift apart again.
-        ->and($product->fresh()->imageUrl('thumb'))->toBe($media->getUrl());
+        ->and($product->fresh()->imageUrl('thumb'))->toBe($media->getUrl().$version);
 });
 
 it('prefers the conversion the moment it exists', function (): void {
@@ -211,8 +215,10 @@ it('prefers the conversion the moment it exists', function (): void {
     $media->generated_conversions = ['preview' => true];
     $media->save();
 
+    $version = '?v='.$media->updated_at?->getTimestamp();
+
     // The fallback is a fallback, not a policy: a generated conversion is smaller,
     // webp, and the whole reason the conversions exist.
-    expect($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl('preview')])
+    expect($product->fresh()->imageUrls('preview'))->toBe([$media->getUrl('preview').$version])
         ->and($media->getUrl('preview'))->not->toBe($media->getUrl());
 });

@@ -410,9 +410,25 @@ it('serves three sizes, each at the size its surface renders', function (): void
      * them at 160, or the lightbox blew up a 480px one. Nothing caught it because
      * nothing asserted what the payload contained.
      */
-    expect($data['images'])->toBe($gallery->map(fn ($m): string => $m->getUrl('preview'))->all())
-        ->and($data['images_thumb'])->toBe($gallery->map(fn ($m): string => $m->getUrl('thumb'))->all())
-        ->and($data['images_large'])->toBe($gallery->map(fn ($m): string => $m->getUrl('large'))->all());
+    $bust = fn ($m): string => '?v='.$m->updated_at?->getTimestamp();
+
+    expect($data['images'])->toBe($gallery->map(fn ($m): string => $m->getUrl('preview').$bust($m))->all())
+        ->and($data['images_thumb'])->toBe($gallery->map(fn ($m): string => $m->getUrl('thumb').$bust($m))->all())
+        ->and($data['images_large'])->toBe($gallery->map(fn ($m): string => $m->getUrl('large').$bust($m))->all());
+
+    /*
+     * **THE CACHE-BUSTER ITSELF**, which arrived without a test of its own. Spatie
+     * names a conversion by convention and never changes it, so `regenerate`
+     * overwrites the bytes at the SAME path and a CDN holding a 30-day copy keeps
+     * serving the old image — the origin fixed, the visitor not. The token is the
+     * media row's `updated_at`, so the URL changes exactly when the bytes do and
+     * stays stable (fully cacheable) otherwise.
+     */
+    foreach (['images', 'images_thumb', 'images_large'] as $field) {
+        foreach ($data[$field] as $i => $url) {
+            expect($url)->toContain('?v='.$gallery[$i]->updated_at?->getTimestamp());
+        }
+    }
 
     /*
      * **AND THE INDICES LINE UP**, which is the entire contract a client relies on:
@@ -423,11 +439,19 @@ it('serves three sizes, each at the size its surface renders', function (): void
         ->and($data['images_thumb'])->toHaveCount(2)
         ->and($data['images_large'])->toHaveCount(2);
 
-    foreach ([0, 1] as $i) {
-        $stem = str_replace(['-preview.webp', '-thumb.webp', '-large.webp'], '', basename($data['images'][$i]));
+    // THE PATH, WITHOUT THE `?v=` TOKEN — the filename is what carries the
+    // ordering, and the query string would otherwise land inside the stem.
+    $stemOf = static fn (string $url): string => str_replace(
+        ['-preview.webp', '-thumb.webp', '-large.webp'],
+        '',
+        basename((string) parse_url($url, PHP_URL_PATH)),
+    );
 
-        expect(basename($data['images_thumb'][$i]))->toContain($stem)
-            ->and(basename($data['images_large'][$i]))->toContain($stem);
+    foreach ([0, 1] as $i) {
+        $stem = $stemOf($data['images'][$i]);
+
+        expect($stemOf($data['images_thumb'][$i]))->toBe($stem)
+            ->and($stemOf($data['images_large'][$i]))->toBe($stem);
     }
 });
 
@@ -456,7 +480,9 @@ it('still hands back the original for every size when the conversions are not ge
 
     $data = $this->getJson("/api/v1/products/{$product->slug}")->assertOk()->json('data');
 
-    expect($data['images'])->toBe([$media->getUrl()])
-        ->and($data['images_thumb'])->toBe([$media->getUrl()])
-        ->and($data['images_large'])->toBe([$media->getUrl()]);
+    $version = '?v='.$media->updated_at?->getTimestamp();
+
+    expect($data['images'])->toBe([$media->getUrl().$version])
+        ->and($data['images_thumb'])->toBe([$media->getUrl().$version])
+        ->and($data['images_large'])->toBe([$media->getUrl().$version]);
 });
