@@ -76,7 +76,7 @@ export function ProductGallery({
           type="button"
           onClick={() => setZoomed(true)}
           aria-label="Görseli büyüt"
-          className="group relative grid aspect-square w-full cursor-zoom-in place-items-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-50"
+          className="group relative flex min-h-[380px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-50"
         >
           {discount ? (
             <span className="absolute left-4 top-4 z-10 rounded-lg bg-red-500 px-2.5 py-1 text-[.8rem] font-extrabold text-white">
@@ -84,11 +84,14 @@ export function ProductGallery({
             </span>
           ) : null}
 
+          {/* The frame follows the IMAGE's own aspect (capped), not a forced square,
+              so a portrait or landscape product photo fills naturally instead of
+              being letterboxed into a box that isn't its shape. */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[active]}
             alt={alt}
-            className="h-full w-full object-contain"
+            className="max-h-[560px] max-w-full object-contain"
           />
 
           {/* zoom affordance */}
