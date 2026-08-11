@@ -64,6 +64,19 @@ final class OfferRepository implements OfferRepositoryContract
             ->first();
     }
 
+    public function anyForSellerAndVariant(int $sellingOrgId, string $variantUuid): ?Offer
+    {
+        return Offer::query()
+            // WITH THE TRASHED ONES, which is the whole difference: a withdrawal
+            // is a soft delete (@see `WithdrawOfferAction`), so the row a repeat
+            // withdrawal is asking about is invisible to every other finder here.
+            ->withTrashed()
+            ->where('selling_org_id', $sellingOrgId)
+            ->where('variant_uuid', $variantUuid)
+            ->orderByDesc('id')
+            ->first();
+    }
+
     /**
      * @param array<int, int> $organizationIds
      *

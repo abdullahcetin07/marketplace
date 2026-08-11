@@ -93,4 +93,32 @@ interface CatalogQueryContract
      * can be read as the latter.
      */
     public function taxRateForProduct(string $productUuid): ?string;
+
+    /**
+     * The PUBLISHED product's default variant uuid for this GTIN, or null
+     * (ADR-076 — the seller offer feed).
+     *
+     * **A BARCODE IS THE ONLY THING A SELLER'S SYSTEM AND THIS CATALOGUE BOTH
+     * KNOW.** The catalogue is admin-built and shared (ADR-037): a seller has no
+     * product uuid to send and cannot create one, so the feed matches on the
+     * number printed on the box. `products.gtin` is UNIQUE, which is what makes
+     * that a lookup rather than a search.
+     *
+     * **NULL FOR UNKNOWN AND FOR UNPUBLISHED ALIKE**, deliberately. A draft or
+     * archived product is not on sale, so an offer against it would be stock
+     * nobody can buy — and telling a feed which of the two it hit would let a
+     * seller enumerate the unpublished catalogue one barcode at a time. The
+     * caller reports one reason: `product_not_in_catalog`.
+     *
+     * **IT RETURNS A VARIANT, BECAUSE AN OFFER IS PRICED PER VARIANT** (ADR-042),
+     * and v1 products carry exactly one default variant (ADR-074). Colour/size
+     * axes are a later phase; when they arrive, a GTIN will address a variant
+     * directly and this method's shape does not change.
+     *
+     * **STILL NOT A PRICE.** It answers "which sellable thing is this barcode",
+     * never what it costs — `CatalogBoundaryTest` asserts no method here can be
+     * read as the latter, and this one returns a uuid string for exactly that
+     * reason.
+     */
+    public function publishedVariantUuidForGtin(string $gtin): ?string;
 }

@@ -108,4 +108,41 @@ final class CatalogQuery implements CatalogQueryContract
         // `0.2` reach every caller as the same string.
         return $rate === null ? null : number_format((float) $rate, 4, '.', '');
     }
+
+    public function publishedVariantUuidForGtin(string $gtin): ?string
+    {
+        $gtin = trim($gtin);
+
+        if ($gtin === '') {
+            return null;
+        }
+
+        /*
+        | ONE QUERY, AND THE STATUS IS IN IT rather than checked afterwards: an
+        | unpublished product must be indistinguishable from an unknown barcode
+        | (@see the contract), and two steps invite a caller — or a later edit —
+        | to report which one it was.
+        */
+        $productId = Product::query()
+            ->where('gtin', $gtin)
+            ->where('status', ProductStatus::Published)
+            ->value('id');
+
+        if ($productId === null) {
+            return null;
+        }
+
+        /*
+        | THE DEFAULT VARIANT, falling back to the first by position. v1 products
+        | have exactly one (ADR-074), but the fallback costs nothing and means a
+        | product whose default flag was never set still answers rather than
+        | rejecting a seller's whole feed row.
+        */
+        return ProductVariant::query()
+            ->where('product_id', $productId)
+            ->orderByDesc('is_default')
+            ->orderBy('position')
+            ->orderBy('id')
+            ->value('uuid');
+    }
 }

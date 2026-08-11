@@ -36,6 +36,21 @@ interface OfferRepositoryContract
     public function duplicateFor(int $sellingOrgId, string $variantUuid): ?Offer;
 
     /**
+     * This seller's offer for a variant INCLUDING a withdrawn one (ADR-076).
+     *
+     * **THE OPPOSITE QUESTION TO `duplicateFor()`, WHICH IS WHY IT IS A SECOND
+     * METHOD.** That one asks "may this seller list here?" and deliberately cannot
+     * see a withdrawn offer — a withdrawal is a soft delete and must not block a
+     * fresh listing. This asks "has this seller ever listed here?", which the feed
+     * needs for exactly one thing: telling a repeat withdrawal (idempotent, spec
+     * §5) from a withdrawal of something never offered (`offer_not_found`).
+     *
+     * Widening `duplicateFor()` instead would have let a withdrawn offer block a
+     * seller from ever re-listing the product.
+     */
+    public function anyForSellerAndVariant(int $sellingOrgId, string $variantUuid): ?Offer;
+
+    /**
      * Every offer belonging to any of these organizations — the seller panel's
      * scope (ADR-030). An empty id list yields an empty collection, never
      * everyone's offers.
