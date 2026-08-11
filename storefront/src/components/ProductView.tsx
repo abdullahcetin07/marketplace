@@ -108,7 +108,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
       </nav>
 
       <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_1fr] xl:grid-cols-[minmax(0,1.2fr)_1fr_300px]">
-        <ProductGallery images={product.images} alt={product.title} />
+        <ProductGallery images={product.images} largeImages={product.images_large} alt={product.title} />
 
         <section className="flex flex-col">
           {product.brand !== null && (

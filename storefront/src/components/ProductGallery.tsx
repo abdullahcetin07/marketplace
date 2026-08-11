@@ -12,15 +12,26 @@ import { useCallback, useEffect, useState } from 'react';
  */
 export function ProductGallery({
   images,
+  largeImages,
   alt,
   discount,
 }: {
   images: string[];
+  /**
+   * Higher-resolution versions of `images`, same order, for the lightbox only —
+   * the on-page image and thumbnails stay the smaller `images`. Falls back to
+   * `images` when absent, so the gallery works before the API supplies them.
+   */
+  largeImages?: string[];
   alt: string;
   discount?: number | null;
 }) {
   const [active, setActive] = useState(0);
   const [zoomed, setZoomed] = useState(false);
+
+  // The lightbox shows the large versions; the on-page image and thumbnails stay
+  // the smaller `images`. Same order + length, so `active` indexes both.
+  const zoomImages = largeImages?.length === images.length ? largeImages : images;
 
   const show = useCallback(
     (i: number) => setActive(((i % images.length) + images.length) % images.length),
@@ -107,7 +118,7 @@ export function ProductGallery({
 
       {zoomed && (
         <Lightbox
-          images={images}
+          images={zoomImages}
           active={active}
           alt={alt}
           onClose={() => setZoomed(false)}

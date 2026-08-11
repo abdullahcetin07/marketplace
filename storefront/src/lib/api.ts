@@ -52,6 +52,8 @@ export type ProductDetail = {
   title: string;
   description: string | null;
   images: string[];
+  /** Higher-res versions of `images` (same order) for the lightbox; optional. */
+  images_large?: string[];
   category: { id: string; name: string; slug: string; path: TaxonomyNode[] };
   brand: TaxonomyNode | null;
   gtin: string | null;
