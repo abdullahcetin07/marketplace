@@ -13,16 +13,20 @@ import { useCallback, useEffect, useState } from 'react';
 export function ProductGallery({
   images,
   largeImages,
+  thumbImages,
   alt,
   discount,
 }: {
+  /** The on-page main image (preview / ~480px). */
   images: string[];
   /**
-   * Higher-resolution versions of `images`, same order, for the lightbox only —
-   * the on-page image and thumbnails stay the smaller `images`. Falls back to
-   * `images` when absent, so the gallery works before the API supplies them.
+   * Higher-resolution versions of `images`, same order, for the lightbox only.
+   * Falls back to `images` when absent, so the gallery works before the API
+   * supplies them.
    */
   largeImages?: string[];
+  /** Smaller versions (thumb / ~160px) for the thumbnail strip only; falls back to `images`. */
+  thumbImages?: string[];
   alt: string;
   discount?: number | null;
 }) {
@@ -109,7 +113,7 @@ export function ProductGallery({
                 }`}
               >
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={src} alt="" className="max-h-full w-auto object-contain" loading="lazy" />
+                <img src={thumbImages?.[i] ?? src} alt="" className="max-h-full w-auto object-contain" loading="lazy" />
               </button>
             ))}
           </div>
