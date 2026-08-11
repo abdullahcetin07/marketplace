@@ -331,3 +331,61 @@ it('reuses a Turkish category whose name carries a dotted capital İ', function 
     expect(Category::query()->count())->toBe(2)
         ->and($second->category?->getKey())->toBe($first->category?->getKey());
 });
+
+it('does not stack a second copy of the same photo on a re-import', function (): void {
+    $adminId = importingAdmin();
+
+    $pixel = base64_decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        true,
+    ) ?: '';
+
+    Http::fake(['cdn.example.com/*' => Http::response($pixel, 200, ['Content-Type' => 'image/png'])]);
+
+    $row = catalogRow(['gorsel_url' => 'https://cdn.example.com/tisort-1.jpg']);
+
+    $first = app(CatalogRowImporter::class)->import($row, $adminId);
+
+    expect($first->getMedia('images')->count())->toBe(1);
+
+    /*
+     * **THE QUESTION A RE-UPLOAD ACTUALLY TURNS ON.** The correction workflow is
+     * "fix three cells, upload the whole sheet again" — and that is only safe if a
+     * product which already has its photos does not collect a second copy of each
+     * on every pass. `update()` attaches images ONLY when the collection is empty,
+     * so a re-import tops up what is missing and leaves the rest alone.
+     */
+    $second = app(CatalogRowImporter::class)->import($row, $adminId);
+
+    expect($second->getKey())->toBe($first->getKey())
+        ->and($second->fresh()->getMedia('images')->count())->toBe(1);
+});
+
+it('fills in the images of a product that has none, on a later pass', function (): void {
+    $adminId = importingAdmin();
+
+    // First pass with no image column at all — the shape five live products ended
+    // up in when their rows were replayed without one.
+    $bare = app(CatalogRowImporter::class)->import(catalogRow(['gorsel_url' => null]), $adminId);
+
+    expect($bare->getMedia('images'))->toBeEmpty();
+
+    $pixel = base64_decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
+        true,
+    ) ?: '';
+
+    Http::fake(['cdn.example.com/*' => Http::response($pixel, 200, ['Content-Type' => 'image/png'])]);
+
+    // Same GTIN, now carrying the photo.
+    $filled = app(CatalogRowImporter::class)->import(
+        catalogRow(['gorsel_url' => 'https://cdn.example.com/tisort-1.jpg']),
+        $adminId,
+    );
+
+    // ONE product, now with its image — which is exactly what re-uploading the
+    // full catalogue has to do for those five.
+    expect(Product::query()->count())->toBe(1)
+        ->and($filled->getKey())->toBe($bare->getKey())
+        ->and($filled->fresh()->getMedia('images')->count())->toBe(1);
+});

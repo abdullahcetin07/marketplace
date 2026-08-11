@@ -486,3 +486,49 @@ it('still hands back the original for every size when the conversions are not ge
         ->and($data['images_thumb'])->toBe([$media->getUrl().$version])
         ->and($data['images_large'])->toBe([$media->getUrl().$version]);
 });
+
+it('serves the listing card the preview, not the 160px thumb', function (): void {
+    Storage::fake(config('marketplace.media.public_disk'));
+
+    ['product' => $product] = sellableProduct();
+
+    app(App\Modules\Catalog\Application\Actions\AttachProductMediaAction::class)
+        ->run($product, [UploadedFile::fake()->image('urun.jpg', 1600, 1600)]);
+
+    $media = $product->fresh()->getFirstMedia('images');
+    $media->generated_conversions = ['thumb' => true, 'preview' => true, 'large' => true];
+    $media->save();
+
+    /*
+     * **`data.0.image`, NOT `primary_image_url`.** The browse query builds a card
+     * array under the internal key and `PublicProductCardResource` renames it on
+     * the wire. The first version of this test asked for the internal name, got
+     * null for a MISSING KEY, and its sibling below "passed" on the same nothing —
+     * a test that asserts an absent field is a test that cannot fail.
+     */
+    $card = $this->getJson('/api/v1/products')->assertOk()->json('data.0.image');
+
+    /*
+     * **`thumb` FITS A 160px BOX, WHICH IS ~119px WIDE FOR A PORTRAIT BOTTLE**, and
+     * the storefront card renders it past 200px — visibly blurry. The listing had
+     * no test at all, which is how the detail page's own size drifted unnoticed
+     * until somebody looked at a screen.
+     */
+    expect($card)->toBe($media->getUrl('preview').'?v='.$media->updated_at?->getTimestamp())
+        ->and($card)->not->toContain('-thumb.webp');
+});
+
+it('gives the listing card nothing rather than a broken image', function (): void {
+    ['product' => $product] = sellableProduct();
+
+    // No media at all — a seller who uploaded nothing. The client renders a
+    // placeholder; a URL that 404s would render a broken image instead.
+    expect($product->fresh()->getMedia('images'))->toBeEmpty();
+
+    $body = $this->getJson('/api/v1/products')->assertOk();
+
+    // THE KEY MUST EXIST AND BE NULL — a client distinguishes "no image" from a
+    // payload that forgot the field only if the field is there.
+    $body->assertJsonPath('data.0.image', null)
+        ->assertJsonStructure(['data' => [['id', 'slug', 'title', 'image']]]);
+});
