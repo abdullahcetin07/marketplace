@@ -107,7 +107,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         ))}
       </nav>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.2fr] xl:grid-cols-[minmax(0,1fr)_1.2fr_300px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.2fr] xl:grid-cols-[minmax(0,1fr)_1.4fr_250px]">
         <ProductGallery
           images={product.images}
           largeImages={product.images_large}
@@ -230,9 +230,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                 <div className="mb-4 mt-1.5 flex items-center gap-1.5 text-[.82rem] font-extrabold text-green-600">
                   <span className="h-2 w-2 rounded-full bg-green-500" /> Stokta var · KDV dahil
                 </div>
-                <div className="grid grid-cols-2 gap-2.5">
-                  <AddToCartButton offerId={featured.id} variant="secondary" label="Şimdi Al" redirectOnAdd="/sepet" />
+                <div className="flex flex-col gap-2.5">
                   <AddToCartButton offerId={featured.id} variant="primary" label="Sepete Ekle" />
+                  <AddToCartButton offerId={featured.id} variant="secondary" label="Şimdi Al" redirectOnAdd="/sepet" />
                 </div>
 
                 {featured.store?.slug && (
