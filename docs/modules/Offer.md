@@ -511,3 +511,120 @@ All read-only, all recorded in the `001_Architecture.md` amendment log.
 5. **Stock is a naïve counter with no reservation semantics** (ADR-043, accepted). It is
    harmless while nothing decrements it; Inventory becomes the authority and
    `UpdateOfferStockAction` is what gets migrated.
+
+---
+
+# 16. The seller offer feed — price + stock ingress (ADR-076, 2026-08-11)
+
+Sellers created offers **one Filament form at a time**; a real store is thousands of
+SKUs whose price and stock change daily, so there was no workable way to keep them
+current. The feed is how a merchant's own system talks to this one.
+
+**Two doors over one brain.** A token-authed REST API (the priority) and a
+seller-panel CSV import are thin adapters over `SyncSellerOfferAction`. Neither
+holds feed logic — two copies of "what does an item mean" is how two doors start
+disagreeing about one seller's catalogue.
+
+## 16.1 It drives the offer actions and writes no model
+
+`SyncSellerOfferAction` calls `CreateOfferAction`, `UpdateOfferPriceAction`,
+`UpdateOfferStockAction` and `WithdrawOfferAction` — the same path the seller's own
+form takes. **This is the load-bearing rule** (ADR-074's, again): those actions emit
+`OfferCreated` / `OfferStockChanged`, which **Inventory mirrors on-hand from**
+(ADR-048) and the search index consumes. A model write would produce an offer that
+is correct in the `offers` table and invisible to availability and to search — right
+in one place, wrong everywhere a buyer looks.
+
+The tests assert **Inventory**, not the offers row, for exactly that reason.
+
+## 16.2 A barcode is the only shared name
+
+The catalogue is admin-built and shared (ADR-037): a seller has no product uuid and
+cannot create one. So an item is matched by **GTIN** through one new read on Core
+`CatalogQueryContract`:
+
+```php
+public function publishedVariantUuidForGtin(string $gtin): ?string;
+```
+
+**Unknown and unpublished answer alike** — the seller's next move is the same either
+way (ask the platform to add the product), and separating them would let a feed
+enumerate the unpublished catalogue one barcode at a time. It returns a uuid, so
+`CatalogBoundaryTest` stays green: no price or stock touches Catalog.
+
+## 16.3 The three doors of the API
+
+| Endpoint | Body | Meaning |
+|---|---|---|
+| `POST /api/v1/seller/offers/sync` | `{items:[{gtin, price, stock, list_price?}]}` | Full upsert |
+| `POST /api/v1/seller/offers/stock` | `{items:[{gtin, stock}]}` | The hourly fast path |
+| `POST /api/v1/seller/offers/withdraw` | `{items:[{gtin}]}` | Take off sale |
+
+**A batch is a report, not a transaction.** Every call answers `200` with a per-item
+result even when items failed: forty stale barcodes must not cost a seller the 3,960
+that were fine. `422` is reserved for a malformed request or one over
+`offer.feed.max_batch` (500) — **refused, not truncated**, because processing the
+first 500 of 4,000 would tell a seller's system everything succeeded while three
+quarters went nowhere.
+
+Machine reasons per item: `product_not_in_catalog`, `offer_not_found`,
+`invalid_price`, `invalid_stock`, `list_price_below_price`.
+
+**Money is a decimal STRING on the wire** and becomes kuruş once, at the boundary
+(ADR-005). A JSON float is rejected there: `129.90` as a number is
+`129.89999999999998` in transit. `"129,90"` is accepted — a comma is a decimal point
+in Turkish and Excel writes it that way.
+
+## 16.4 The merchant is never in the payload
+
+There is no organization field, in the JSON or the CSV, and that is the whole
+authorization model: **there is nowhere for a token or a spreadsheet to name
+somebody else's shop.** `SellerFeedIdentity` resolves the acting merchant from the
+authenticated user through the panel's own chain — memberships the actor may MANAGE,
+then that org's live stores — so both surfaces can only ever offer the same set.
+
+Listing against a *rival's product* is ordinary competition on a shared catalogue and
+succeeds; the offer lands on the token's own org. A seller with no live store is
+refused for the whole call (`no_sellable_store`) rather than defaulted to one, since
+defaulting would create offers nobody can see.
+
+**No new permission** (v1): a token authenticates you as yourself, and the feed is
+gated by the offer abilities the panel already checks. Guard isolation holds —
+`auth:sanctum` consults all three named guards here, so an admin or customer token
+authenticates fine and is stopped by the actor-type check.
+
+## 16.5 `Unchanged` is a success
+
+A seller pushes their whole catalogue every morning and most of it did not move
+overnight. Untouched fields are skipped, so a no-change item emits **no event** —
+otherwise Inventory and the search index would be woken four thousand times to be
+told nothing. Price and stock are decided separately, because they are separate
+events: a stock-only change must not write an audit entry claiming somebody
+re-priced.
+
+## 16.6 The CSV, and the retry lesson
+
+Columns `gtin`, `fiyat`, `stok`, optional `liste_fiyati`; queued and chunked with a
+downloadable failure report. A rejected row is translated to Filament's
+`RowImportFailedException`, which is recorded per row — **any other exception fails
+the job, and the queue re-runs the whole chunk**, which is how five bad catalogue
+rows became 29,074 attempts overnight (ADR-075). `OfferImportChunk` adds the fence
+anyway: `$tries = 3`, `$backoff = [30, 120, 300]`, window ten minutes rather than a
+day.
+
+**Inert without a queue worker**, like every other import here.
+
+## 16.7 Its cost, stated
+
+- **A seller can move their own prices without a human looking.** That is the point,
+  and it means a bad integration can mis-price a catalogue in one call. The per-item
+  report is the only feedback loop; there is no approval step, and adding one would
+  defeat the feature.
+- **One acting org per token** (v1). A user managing two companies gets the first;
+  widening this needs a per-call store parameter, deliberately not guessed at now.
+- **Stock is absolute, never a delta.** `stock = 12`, not `+3` — a relative feed is
+  unsafe to retry, and every one of these calls must be.
+- **No product creation.** An unmatched barcode is a failed item forever, until an
+  admin imports the product (ADR-074). Sellers will ask for this; it is a catalogue
+  decision, not a feed one.
+

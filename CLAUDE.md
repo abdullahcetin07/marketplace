@@ -261,6 +261,29 @@ also leaves the merchant's queue. **Questions imports NO module** — Catalog, O
 Store and Organization through Core contracts; no media, no money. **Not frozen**:
 the storefront (Questions.md §9) is still to come. One recorded deviation in §13.
 
+**The SELLER OFFER FEED is COMPLETE (2026-08-11; ADR-076, built P1–P4).** Sellers
+created offers one form at a time; a real store is thousands of SKUs whose price and
+stock change daily. **Two doors over one brain**: a token-authed REST API
+(`/api/v1/seller/offers/{sync,stock,withdraw}`) and a seller-panel CSV import, both
+thin adapters over `SyncSellerOfferAction`.
+
+**It DRIVES the offer actions and writes no `Offer` model** — the same load-bearing
+rule as ADR-074's importer. Those actions emit the events **Inventory mirrors on-hand
+from** (ADR-048) and search consumes, so a model write would be an offer that is right
+in the table and invisible to availability and search. The tests assert INVENTORY, not
+the offers row.
+
+**The merchant is never in the payload, and that IS the authorization model** — no
+organization field in the JSON or the CSV, so nothing can name somebody else's shop;
+the acting seller is resolved from the token's user. **A batch is a report**: `200`
+with a per-item result even when items fail, `422` only for a malformed request or one
+over `offer.feed.max_batch` (refused, never truncated). Money crosses as a decimal
+STRING and becomes kuruş at the boundary; a JSON float is rejected there.
+
+**An unmatched GTIN NEVER creates a product** — the catalogue is admin-built (ADR-037),
+and unknown and unpublished answer alike so a feed cannot enumerate it. `Unchanged` is
+a success, so a daily full push emits nothing for the rows that did not move.
+
 **Admin BULK CATALOGUE IMPORT is COMPLETE (2026-08-10; ADR-074, built C1–C3).** An
 admin uploads an Excel/CSV and each row becomes a category path + brand + product +
 one default variant + KDV bracket + images, **published**, queued and chunked, with a
