@@ -257,11 +257,13 @@ final class PublicProductBrowse
             'uuid' => $product->uuid,
             'slug' => $product->slug,
             'title' => $product->localized('title'),
-            // The listing thumbnail, straight off the model helper so the URL rule
-            // (public disk, conversion) stays in one place. Null when the seller
-            // uploaded nothing — a client renders a placeholder rather than a
-            // broken image.
-            'primary_image_url' => $product->imageUrl('thumb'),
+            // The listing card image, straight off the model helper so the URL rule
+            // (public disk, conversion) stays in one place. `preview` (~620px), not
+            // `thumb` (160px box → ~119px wide): the storefront card renders it near
+            // 200px+ and upscaling a 119px thumb there is visibly blurry. Null when
+            // the seller uploaded nothing — a client renders a placeholder rather
+            // than a broken image.
+            'primary_image_url' => $product->imageUrl('preview'),
             'category' => [
                 'uuid' => $product->category->uuid,
                 'name' => $product->category->localized('name'),
