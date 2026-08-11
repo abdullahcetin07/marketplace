@@ -2397,4 +2397,59 @@ Full specification: [docs/modules/Catalog.md](modules/Catalog.md) §3.2 and
 
 ---
 
+# ADR-076 Sellers Feed Price + Stock Through a Token-Authed Offer Sync API and a CSV Mirror; the API Is the Priority, Both Drive One Upsert Action
+
+**Status:** Accepted (2026-08-11). Design: `docs/superpowers/specs/2026-08-11-seller-offer-feed-design.md`. Extends ADR-042/043; adds one read-only method to Core `CatalogQueryContract`.
+
+Offers are created **one at a time** in the Filament seller panel. A real store is
+thousands of SKUs whose **price and stock change daily**, so there is no workable way to
+keep them current — and the catalogue import (ADR-074) deliberately loads *catalogue*,
+not price or stock, so the products sit in the catalogue with no seller selling them.
+This adds the missing ingress: a **seller offer feed**.
+
+**Two doors over one brain.** A single `SyncSellerOfferAction` (upsert by seller org +
+variant) holds all the logic; a **token-authed REST API** — the priority — and a
+**CSV import** in the seller panel are thin adapters over it. The API serves sellers
+whose systems integrate (the platform's own store feeds this way); the CSV serves
+sellers who only have a spreadsheet. One brain means the two doors can never diverge.
+
+**It feeds price + stock only; it never creates a product.** A row/item is matched to an
+existing **published** catalogue product by **GTIN**; an unmatched or unpublished GTIN is
+reported as a failed item and nothing is created. Auto-creating a product here would drag
+the moderation lifecycle, the slug/GTIN guards and the category schema into Offer and
+bulge the ADR-037/042 boundary — product creation stays the catalogue import's job. This
+required **one read-only method** on Core `CatalogQueryContract`
+(`publishedVariantUuidForGtin`); Catalog stays unaware of Offer, and `CatalogBoundaryTest`
+stays green because a uuid string carries no price or stock back into the catalogue.
+
+**The feed DRIVES the existing offer actions, it does not write the Offer model** — the
+same rule ADR-074 set for the catalogue import. `CreateOfferAction` /
+`UpdateOfferStockAction` emit the stock events **Inventory mirrors on-hand from**
+(ADR-048) and the **search index** consumes; a model written directly would be an offer
+that is right in the table and invisible to availability and search. So the action
+composes those actions, one invocation per item, each in its own transaction — one bad
+item never rolls back its neighbours.
+
+**Shape.** REST: `POST /api/v1/seller/offers/sync` (bulk price+stock upsert, bounded to
+`offer.feed.max_batch` per call, **synchronous** with a per-item result report),
+`.../stock` (stock-only fast path, because stock changes far more often than price),
+`.../withdraw`. CSV: a seller-panel importer on Filament's own queued/chunked import
+infra with a downloadable failure report, idempotent on (seller org, GTIN). **Auth:**
+per-seller-org **Sanctum** bearer tokens (already installed and driving the existing API),
+issued/revoked in the seller panel, scoped by `OfferPolicy` to the seller's **own** org;
+an admin/customer token cannot reach these routes. **Stock is absolute**, **price is a
+decimal string** on the wire and minor units internally (the money rule holds), and the
+whole thing is **idempotent** — a re-send that changes nothing emits nothing.
+
+**Cost, stated plainly.** A public write surface is a new attack surface and a versioning
+obligation (`/api/v1`), plus a token lifecycle to manage. A synchronous bulk endpoint
+must bound its batch or a large POST occupies a worker — hence the `max_batch` cap and
+the CSV/queue path for the thousands. We accept it because per-form entry does not scale
+to a live multi-thousand-SKU store, the shared action keeps the two doors honest, and the
+GTIN-reject rule keeps price/stock and the catalogue cleanly apart.
+
+Full specification: `docs/superpowers/specs/2026-08-11-seller-offer-feed-design.md`.
+
+---
+
 END OF FILE
