@@ -155,14 +155,14 @@ trait HasMedia
     public function imageGallery(): array
     {
         return $this->getMedia('images')
-            ->map(static fn (Media $media): array => [
+            ->map(fn (Media $media): array => [
                 'uuid' => $media->uuid,
                 'name' => $media->name,
                 'alt' => $media->getCustomProperty('alt'),
                 'order' => $media->order_column,
-                'thumb' => $media->getUrl('thumb'),
-                'preview' => $media->getUrl('preview'),
-                'large' => $media->getUrl('large'),
+                'thumb' => $this->urlFor($media, 'thumb'),
+                'preview' => $this->urlFor($media, 'preview'),
+                'large' => $this->urlFor($media, 'large'),
             ])
             ->values()
             ->all();
@@ -184,8 +184,30 @@ trait HasMedia
      */
     private function urlFor(Media $media, string $conversion): string
     {
-        return $media->hasGeneratedConversion($conversion)
+        $url = $media->hasGeneratedConversion($conversion)
             ? $media->getUrl($conversion)
             : $media->getUrl();
+
+        return $this->cacheBusted($media, $url);
+    }
+
+    /**
+     * Append a `?v=` version token so a REGENERATED conversion is a brand-new URL
+     * to any CDN in front of the origin.
+     *
+     * WHY: Spatie names a conversion file by convention (…-preview.webp) and never
+     * changes it, so re-running `media-library:regenerate` overwrites the bytes at
+     * the SAME path. A CDN that cached the old bytes under a long max-age keeps
+     * serving them — the origin is fixed and the visitor is not. The token is the
+     * media row's `updated_at`, which regenerate bumps, so the URL changes exactly
+     * when the image changes and stays stable (fully cacheable) the rest of the
+     * time. This is correct caching, not cache defeat.
+     */
+    private function cacheBusted(Media $media, string $url): string
+    {
+        $version = $media->updated_at?->getTimestamp() ?? 0;
+        $separator = str_contains($url, '?') ? '&' : '?';
+
+        return "{$url}{$separator}v={$version}";
     }
 }
