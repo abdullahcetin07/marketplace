@@ -102,9 +102,12 @@ trait HasMedia
             ->fit(Fit::Contain, 160, 160)
             ->format('webp');
 
+        // ~620px wide for the on-page product image (portrait products land at
+        // 620×930; landscape caps at 620 wide). The old 480 box left a 320px-wide
+        // portrait upscaling — and blurry — in a ~600–700px gallery on wide screens.
         $this->addMediaConversion('preview')
             ->performOnCollections('images')
-            ->fit(Fit::Contain, 480, 480)
+            ->fit(Fit::Contain, 620, 930)
             ->format('webp');
 
         $this->addMediaConversion('large')
