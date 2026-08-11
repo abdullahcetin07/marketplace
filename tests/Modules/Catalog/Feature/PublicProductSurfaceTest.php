@@ -381,7 +381,7 @@ it('does not leak seller-facing fields onto the page', function (): void {
     }
 });
 
-it('serves the LARGE conversion on the product page, not the 480px preview', function (): void {
+it('serves three sizes, each at the size its surface renders', function (): void {
     // The media disk is S3 in this environment; faked here rather than in
     // `beforeEach` so the rest of the file keeps running against the real config.
     Storage::fake(config('marketplace.media.public_disk'));
@@ -389,30 +389,49 @@ it('serves the LARGE conversion on the product page, not the 480px preview', fun
     ['product' => $product] = sellableProduct();
 
     app(App\Modules\Catalog\Application\Actions\AttachProductMediaAction::class)
-        ->run($product, [UploadedFile::fake()->image('urun.jpg', 1600, 1600)]);
-
-    $media = $product->fresh()->getFirstMedia('images');
+        ->run($product, [
+            UploadedFile::fake()->image('bir.jpg', 1600, 1600),
+            UploadedFile::fake()->image('iki.jpg', 1600, 1600),
+        ]);
 
     // Pretend the media queue has caught up, so the payload is choosing between
     // real conversions rather than falling back.
-    $media->generated_conversions = ['thumb' => true, 'preview' => true, 'large' => true];
-    $media->save();
+    foreach ($product->fresh()->getMedia('images') as $media) {
+        $media->generated_conversions = ['thumb' => true, 'preview' => true, 'large' => true];
+        $media->save();
+    }
 
-    $images = $this->getJson("/api/v1/products/{$product->slug}")
-        ->assertOk()
-        ->json('data.images');
+    $data = $this->getJson("/api/v1/products/{$product->slug}")->assertOk()->json('data');
+    $gallery = $product->fresh()->getMedia('images');
 
     /*
-     * **THE DETAIL PAGE IS THE ONE SCREEN WHOSE JOB IS SIZE.** It shipped asking
-     * for `preview` (480px) while its own docblock said "largest-usable", so the
-     * main image and the lightbox both rendered a 480px file scaled up. Nothing
-     * caught it because nothing asserted what the payload actually contained.
+     * **ONE FILE PER JOB.** The page used to serve a single URL to all three
+     * surfaces, so either the thumbnail strip downloaded 1200px files to draw
+     * them at 160, or the lightbox blew up a 480px one. Nothing caught it because
+     * nothing asserted what the payload contained.
      */
-    expect($images)->toBe([$media->getUrl('large')])
-        ->and($images)->not->toBe([$media->getUrl('preview')]);
+    expect($data['images'])->toBe($gallery->map(fn ($m): string => $m->getUrl('preview'))->all())
+        ->and($data['images_thumb'])->toBe($gallery->map(fn ($m): string => $m->getUrl('thumb'))->all())
+        ->and($data['images_large'])->toBe($gallery->map(fn ($m): string => $m->getUrl('large'))->all());
+
+    /*
+     * **AND THE INDICES LINE UP**, which is the entire contract a client relies on:
+     * `images_large[1]` must be the big version of `images[1]`. Two images, so an
+     * ordering mistake has somewhere to show.
+     */
+    expect($data['images'])->toHaveCount(2)
+        ->and($data['images_thumb'])->toHaveCount(2)
+        ->and($data['images_large'])->toHaveCount(2);
+
+    foreach ([0, 1] as $i) {
+        $stem = str_replace(['-preview.webp', '-thumb.webp', '-large.webp'], '', basename($data['images'][$i]));
+
+        expect(basename($data['images_thumb'][$i]))->toContain($stem)
+            ->and(basename($data['images_large'][$i]))->toContain($stem);
+    }
 });
 
-it('still hands back the original when the large conversion is not generated yet', function (): void {
+it('still hands back the original for every size when the conversions are not generated yet', function (): void {
     Storage::fake(config('marketplace.media.public_disk'));
 
     // A COLD MEDIA QUEUE, which is the state this test is about. Without the fake
@@ -427,17 +446,17 @@ it('still hands back the original when the large conversion is not generated yet
     $media = $product->fresh()->getFirstMedia('images');
 
     /*
-     * THE PROPERTY THAT MAKES THIS CHANGE SAFE WITH A COLD QUEUE: Spatie builds a
+     * THE PROPERTY THAT MAKES THREE FIELDS SAFE WITH A COLD QUEUE: Spatie builds a
      * conversion URL by convention rather than by looking at the disk, so asking
      * for one that has not been generated returns a path that 404s. The shared
-     * helper checks first and serves the ORIGINAL — which is larger still, so the
-     * page is never worse off than before.
+     * helper checks first and serves the ORIGINAL — so a stopped worker costs
+     * bandwidth, not broken images, on all three fields alike.
      */
     expect($media->hasGeneratedConversion('large'))->toBeFalse();
 
-    $images = $this->getJson("/api/v1/products/{$product->slug}")
-        ->assertOk()
-        ->json('data.images');
+    $data = $this->getJson("/api/v1/products/{$product->slug}")->assertOk()->json('data');
 
-    expect($images)->toBe([$media->getUrl()]);
+    expect($data['images'])->toBe([$media->getUrl()])
+        ->and($data['images_thumb'])->toBe([$media->getUrl()])
+        ->and($data['images_large'])->toBe([$media->getUrl()]);
 });

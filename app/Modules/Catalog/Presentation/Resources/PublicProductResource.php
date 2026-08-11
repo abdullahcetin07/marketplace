@@ -69,7 +69,25 @@ final class PublicProductResource extends JsonResource
             // hand-made or unbranded product legitimately has none.
             'gtin' => $this->gtin,
 
+            /*
+            | **THREE SIZES, ONE ORDER.** The page needs different files for
+            | different jobs and used to get one: the main image, the thumbnail
+            | strip under it and the lightbox were all served the same URL, so
+            | either the strip downloaded 1200px files to draw them at 160, or the
+            | lightbox blew up a 480px file.
+            |
+            | THE INDICES LINE UP ACROSS ALL THREE. Spatie returns the collection
+            | in `order_column` order and each array is built from the same
+            | collection, so `images_large[2]` is the big version of `images[2]`.
+            | A client pairs them by index and needs nothing else.
+            |
+            | ANY OF THEM FALLS BACK TO THE ORIGINAL where the conversion has not
+            | been generated (@see `HasMedia::imageUrls()`), so a cold media queue
+            | costs bandwidth rather than broken images.
+            */
             'images' => $this->gallery(),
+            'images_thumb' => $this->imageUrls('thumb'),
+            'images_large' => $this->imageUrls('large'),
 
             /*
             | EVERY NODE CARRIES ITS SLUG (ADR-059). The breadcrumb is a row of
@@ -117,31 +135,25 @@ final class PublicProductResource extends JsonResource
     }
 
     /**
-     * Every gallery image, largest-usable conversion.
+     * The gallery at DISPLAY size — what the page shows before anybody clicks.
      *
-     * **`large` (1200px), NOT `preview` (480px).** The docblock said
-     * "largest-usable" while the code asked for the middle one, so a product
-     * detail page — the screen whose whole job is showing the thing close up —
-     * rendered a 480px image, and the lightbox opened the same 480px image
-     * scaled up. One word, and it was the wrong one in the one place where size
-     * is the point.
+     * **`preview` (480px), with `images_thumb` and `images_large` beside it.** For
+     * one commit this returned `large`, which fixed a small lightbox by making
+     * every page download 1200px files it drew at 480. Three fields is the honest
+     * answer: each surface asks for the size it actually renders.
      *
      * THROUGH THE SHARED HELPER, which falls back to the ORIGINAL when the
-     * conversion has not been generated — so this is never smaller than before,
-     * even for images the media queue has not reached yet. It used to ask each
-     * media item for its URL directly, and Spatie answers that by CONVENTION
-     * rather than by looking at the disk: with the queue stopped every product
-     * page returned perfectly-formed URLs that all 404'd, and the storefront
-     * rendered "görsel yok" for products that had images all along.
-     *
-     * THE SHAPE IS UNCHANGED — `string[]`, same order, same count. The frontend
-     * needs no release for this.
+     * conversion has not been generated. It used to ask each media item for its
+     * URL directly, and Spatie answers that by CONVENTION rather than by looking
+     * at the disk: with the queue stopped every product page returned
+     * perfectly-formed URLs that all 404'd, and the storefront rendered "görsel
+     * yok" for products that had images all along.
      *
      * @return array<int, string>
      */
     private function gallery(): array
     {
-        return $this->imageUrls('large');
+        return $this->imageUrls('preview');
     }
 
     /**
