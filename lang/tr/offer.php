@@ -36,6 +36,14 @@ return [
 
     'feed' => [
         'batch_too_large' => 'Tek seferde en fazla :max ürün gönderebilirsiniz; listeyi bölün.',
+        'import' => 'CSV ile toplu yükle',
+        'completed' => ':imported teklif işlendi, :failed satır başarısız.',
+        'column' => [
+            'gtin' => 'Barkod (GTIN)',
+            'price' => 'Fiyat',
+            'stock' => 'Stok',
+            'list_price' => 'Piyasa fiyatı',
+        ],
     ],
 
     'field' => [

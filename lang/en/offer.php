@@ -36,6 +36,14 @@ return [
 
     'feed' => [
         'batch_too_large' => 'At most :max items per call; split the list.',
+        'import' => 'Bulk upload via CSV',
+        'completed' => ':imported offers processed, :failed rows failed.',
+        'column' => [
+            'gtin' => 'Barcode (GTIN)',
+            'price' => 'Price',
+            'stock' => 'Stock',
+            'list_price' => 'List price',
+        ],
     ],
 
     'field' => [
