@@ -13,6 +13,31 @@ return [
     'singular' => 'Teklif',
     'plural' => 'Teklifler',
 
+    'tokens' => [
+        'title' => 'API Anahtarları',
+        'subheading' => 'Kendi sisteminizden toplu fiyat/stok göndermek için anahtar oluşturun.',
+        'create' => 'Yeni anahtar',
+        'name' => 'Anahtar adı',
+        'name_hint' => 'Hangi sistem kullanacak? Örn. "ERP", "Stok robotu".',
+        'created' => 'Anahtar oluşturuldu — bu değeri şimdi kopyalayın, bir daha gösterilmeyecek:',
+        'revoke' => 'İptal et',
+        'revoked' => 'Anahtar iptal edildi',
+        'existing' => 'Mevcut anahtarlar',
+        'empty' => 'Henüz anahtar oluşturmadınız.',
+        'last_used' => 'Son kullanım',
+        'never_used' => 'hiç kullanılmadı',
+        'how_heading' => 'Nasıl kullanılır',
+        'note' => [
+            'once' => 'Anahtar YALNIZCA bir kez gösterilir; sistem yalnızca özetini saklar. Kaybederseniz yenisini oluşturup eskisini iptal edin.',
+            'scope' => 'Anahtar sizin adınıza çalışır ve yalnızca KENDİ mağazanızın tekliflerini yazabilir.',
+            'endpoints' => 'Uç noktalar: /sync (fiyat+stok), /stock (yalnızca stok), /withdraw (satıştan kaldır).',
+        ],
+    ],
+
+    'feed' => [
+        'batch_too_large' => 'Tek seferde en fazla :max ürün gönderebilirsiniz; listeyi bölün.',
+    ],
+
     'field' => [
         'product' => 'Ürün',
         'product_hint' => 'Yayındaki katalogda arayın. Ürün yoksa önce "ürün aç" akışını kullanın.',

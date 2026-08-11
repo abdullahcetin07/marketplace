@@ -13,6 +13,31 @@ return [
     'singular' => 'Offer',
     'plural' => 'Offers',
 
+    'tokens' => [
+        'title' => 'API keys',
+        'subheading' => 'Create a key so your own system can push price and stock in bulk.',
+        'create' => 'New key',
+        'name' => 'Key name',
+        'name_hint' => 'Which system will use it? e.g. "ERP", "stock robot".',
+        'created' => 'Key created — copy it now, it will not be shown again:',
+        'revoke' => 'Revoke',
+        'revoked' => 'Key revoked',
+        'existing' => 'Existing keys',
+        'empty' => 'You have not created a key yet.',
+        'last_used' => 'Last used',
+        'never_used' => 'never used',
+        'how_heading' => 'How to use it',
+        'note' => [
+            'once' => 'A key is shown ONCE; only its hash is stored. If you lose it, create a new one and revoke the old.',
+            'scope' => 'The key acts as you and can only write your OWN store\'s offers.',
+            'endpoints' => 'Endpoints: /sync (price+stock), /stock (stock only), /withdraw (take off sale).',
+        ],
+    ],
+
+    'feed' => [
+        'batch_too_large' => 'At most :max items per call; split the list.',
+    ],
+
     'field' => [
         'product' => 'Product',
         'product_hint' => 'Search the published catalog. If the product does not exist yet, open it first.',

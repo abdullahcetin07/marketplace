@@ -83,6 +83,20 @@ final class OfferFeedException extends BaseException
     }
 
     /**
+     * The actor holds a token but manages no company with a live shopfront.
+     *
+     * **REFUSED FOR THE WHOLE CALL, NOT PER ITEM**, because it is not about any
+     * item: nothing this token sends could be written anywhere. Defaulting to
+     * some store would create offers nobody can see.
+     */
+    public static function noSellableStore(): self
+    {
+        return self::make('Yayında mağazanız yok; teklif gönderebilmek için önce mağazanızın açık olması gerekiyor.')
+            ->withContext(['reason' => 'no_sellable_store'])
+            ->withStatus(Response::HTTP_FORBIDDEN);
+    }
+
+    /**
      * The machine-readable half, for the API's per-item report.
      */
     public function reason(): string

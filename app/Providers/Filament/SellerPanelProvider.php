@@ -168,6 +168,14 @@ final class SellerPanelProvider extends PanelProvider
 
             ->pages([
                 Pages\Dashboard::class,
+
+                /*
+                | API ANAHTARLARI (ADR-076). Registered here rather than
+                | auto-discovered from `app/Filament`, because `LayeringTest` lets
+                | only this composition root reach into a module — and a page that
+                | mints tokens for the offer feed belongs to Offer.
+                */
+                \App\Modules\Offer\Presentation\Filament\Seller\Pages\ApiTokens::class,
             ])
             ->widgets([
                 Widgets\AccountWidget::class,

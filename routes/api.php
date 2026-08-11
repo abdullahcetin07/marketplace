@@ -16,6 +16,7 @@ use App\Modules\Identity\Presentation\Controllers\Api\SessionController;
 use App\Modules\Identity\Presentation\Controllers\Api\TwoFactorController;
 use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
+use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferFeedController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
 use App\Modules\Order\Presentation\Controllers\Api\CancellationRequestController;
@@ -383,6 +384,23 @@ Route::prefix('v1')
             | Every route is policy-gated by the actor's membership of THAT org;
             | a member of another org is denied by construction.
             */
+            /*
+            | THE SELLER OFFER FEED (ADR-076) — price + stock ingress.
+            |
+            | **A BATCH IS A REPORT**: every call answers 200 with a per-item
+            | result even when some items failed, because a seller pushing four
+            | thousand SKUs needs to know which forty were rejected. 422 is for a
+            | malformed request or one over `offer.feed.max_batch`.
+            |
+            | THE MERCHANT IS NEVER IN THE PAYLOAD. It is resolved from the token's
+            | user, so there is no field for a token to name somebody else's shop.
+            */
+            Route::prefix('seller/offers')->name('seller.offers.')->group(function (): void {
+                Route::post('/sync', [OfferFeedController::class, 'sync'])->name('sync');
+                Route::post('/stock', [OfferFeedController::class, 'stock'])->name('stock');
+                Route::post('/withdraw', [OfferFeedController::class, 'withdraw'])->name('withdraw');
+            });
+
             Route::prefix('organizations')->name('organizations.')->group(function (): void {
                 Route::get('/', [OrganizationController::class, 'index'])->name('index');
                 Route::post('/', [OrganizationController::class, 'store'])->name('store');
