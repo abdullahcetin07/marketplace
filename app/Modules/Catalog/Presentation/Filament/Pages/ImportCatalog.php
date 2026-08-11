@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Catalog\Presentation\Filament\Pages;
 
+use App\Modules\Catalog\Application\Import\ImportChunk;
 use App\Modules\Catalog\Presentation\Filament\Imports\ProductImporter;
 use Filament\Actions\Action;
 use Filament\Actions\ImportAction;
@@ -119,6 +120,13 @@ final class ImportCatalog extends Page
         return [
             ImportAction::make()
                 ->importer(ProductImporter::class)
+                /*
+                | **THE CHUNK JOB, WITH A RETRY CEILING (ADR-075, Fix B).**
+                | Filament's `Importer` has no `$tries`/`$backoff` hook — only
+                | `job()` swaps the class — and the stock job retried one rejected
+                | row 29,074 times overnight. @see `ImportChunk`.
+                */
+                ->job(ImportChunk::class)
                 ->label(__('catalog.import.action'))
                 ->icon('heroicon-o-arrow-up-tray'),
             /*

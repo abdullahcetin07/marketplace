@@ -54,10 +54,22 @@ final class CatalogTaxonomyResolver
      * A path segment is only meaningful relative to its parent, so that is what is
      * matched.
      *
-     * **THE LEAF MUST ACCEPT PRODUCTS** (ADR-047). Created leaves are made so; an
-     * EXISTING category that does not is a failed row rather than a silent flip,
-     * because `accepts_products` is a moderated decision about the shape of the
-     * catalogue and a spreadsheet cell must not overturn one.
+     * **THE LEAF MUST ACCEPT PRODUCTS, AND WHO CLOSED IT DECIDES WHAT HAPPENS**
+     * (ADR-075, amending ADR-047). A node the IMPORT created carries no human
+     * judgement — its `false` is the "shelves, not shelves' contents" default
+     * applied a few rows earlier — so a row selling directly there OPENS it. A
+     * node a HUMAN left closed in the Category Manager is a real decision: the
+     * row is refused and reported, exactly as before.
+     *
+     * The first real catalogue is why. It sells a product at a node that is also
+     * a parent:
+     *
+     *     satır A:  Cilt Bakımı > Cilt Temizleme Ürünleri > Cilt Temizleyiciler
+     *     satır B:  Cilt Bakımı > Cilt Temizleme Ürünleri
+     *
+     * Row A created the middle node closed; row B terminated at it and was refused
+     * by a flag the import itself had just set. Five rows failed that way — and
+     * the rejection then drove 29,074 job retries (@see `ImportChunk`).
      */
     public function categoryByPath(string $path): Category
     {
@@ -85,11 +97,19 @@ final class CatalogTaxonomyResolver
                     // Only the last segment takes products; the ones above it are
                     // shelves, not shelves' contents.
                     acceptsProducts: $isLeaf,
+                    // ADR-075: stamped so a later row can reopen what WE closed.
+                    createdByImport: true,
                 ));
             }
 
             if ($isLeaf && ! $found->acceptsProducts()) {
-                throw CatalogImportException::categoryRejectsProducts($path, $name);
+                if (! $found->created_by_import) {
+                    // A human left this closed. ADR-047 stands, and the row is
+                    // reported rather than silently filed somewhere else.
+                    throw CatalogImportException::categoryRejectsProducts($path, $name);
+                }
+
+                $this->openForProducts($found);
             }
 
             $parent = $found;
@@ -154,6 +174,23 @@ final class CatalogTaxonomyResolver
         return TaxRate::query()->where('rate', number_format($ratio, 4, '.', ''))->first()
             ?? TaxRate::query()->where('code', 'kdv-'.(int) round($ratio * 100))->first()
             ?? $default;
+    }
+
+    /**
+     * Open a node the IMPORT closed, because a row sells directly at it (ADR-075).
+     *
+     * **NOT THROUGH `UpdateCategoryAction`, AND THAT IS THE POINT.** That action is
+     * the human's lever, and A4 makes it CLEAR `created_by_import` — routing this
+     * through it would make the import look like a curator and permanently hand
+     * the node to nobody. This is the import correcting its own default, so the
+     * marker survives and a later human edit still takes ownership.
+     *
+     * `forceFill` + save rather than a mass update: the walk continues from
+     * `$found`, so the in-memory model has to agree with the row.
+     */
+    private function openForProducts(Category $category): void
+    {
+        $category->forceFill(['accepts_products' => true])->save();
     }
 
     /**

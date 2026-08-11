@@ -54,6 +54,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property string $slug
  * @property bool $is_active
  * @property bool $accepts_products
+ * @property bool $created_by_import
  * @property int $position
  * @property-read Category|null $parent
  * @property-read Collection<int, Category> $children
@@ -86,6 +87,7 @@ final class Category extends Model
         'slug',
         'is_active',
         'accepts_products',
+        'created_by_import',
         'position',
     ];
 
@@ -301,6 +303,7 @@ final class Category extends Model
         return [
             'is_active' => 'boolean',
             'accepts_products' => 'boolean',
+            'created_by_import' => 'boolean',
             'depth' => 'integer',
             'position' => 'integer',
         ];

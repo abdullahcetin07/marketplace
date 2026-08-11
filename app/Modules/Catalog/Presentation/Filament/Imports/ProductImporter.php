@@ -5,7 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Presentation\Filament\Imports;
 
 use App\Modules\Catalog\Application\Import\CatalogRowImporter;
+use App\Modules\Catalog\Domain\Exceptions\CatalogImportException;
 use App\Modules\Catalog\Domain\Models\Product;
+use Carbon\CarbonInterface;
+use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
@@ -115,15 +118,37 @@ final class ProductImporter extends Importer
      *
      * NEVER NULL, which is narrower than the parent's signature and deliberate:
      * returning null tells Filament to SKIP the row silently, and a row this
-     * importer cannot handle should throw instead so it lands in
-     * `failed_import_rows` with a reason a human can read.
+     * importer cannot handle should be RECORDED with a reason a human can read.
+     *
+     * **THE TRANSLATION BELOW IS WHAT KEPT ONE BAD ROW FROM STORMING THE QUEUE.**
+     * `ImportCsv` treats its three catches very differently (vendor lines 89–97):
+     *
+     *   `RowImportFailedException`  logged WITH the message, chunk continues
+     *   `ValidationException`       logged with the errors, chunk continues
+     *   any other `Throwable`       logged with NO message, collected — and then
+     *                               rethrown by `handleExceptions()`, which FAILS
+     *                               THE JOB
+     *
+     * A `CatalogImportException` fell into the third. The job failed, the queue
+     * retried it, the whole chunk re-ran, the same rows were logged again — and
+     * with no `$tries` and no `$backoff` that reached **29,074 attempts** and
+     * ~155,000 duplicate failure rows overnight. It also explains why every one of
+     * those rows had an EMPTY reason: the generic branch logs the row without the
+     * message.
+     *
+     * So a domain refusal is re-thrown as the framework's own per-row failure,
+     * carrying the Turkish sentence. One bad row costs one recorded row.
      */
     public function resolveRecord(): Model
     {
         /** @var array<string, string|null> $row */
         $row = $this->data;
 
-        return app(CatalogRowImporter::class)->import($row, (int) $this->import->user_id);
+        try {
+            return app(CatalogRowImporter::class)->import($row, (int) $this->import->user_id);
+        } catch (CatalogImportException $exception) {
+            throw new RowImportFailedException($exception->getMessage());
+        }
     }
 
     /**
@@ -155,5 +180,22 @@ final class ProductImporter extends Importer
     public function getJobQueue(): ?string
     {
         return null;
+    }
+
+    /**
+     * Ten minutes, not a day (ADR-075, Fix B).
+     *
+     * **THE OUTER FENCE.** Filament's default is `now()->addDay()`, and a job with
+     * no `$tries` retries for as long as that window allows — which is how 29,074
+     * attempts happened between one evening and the next morning. The real fix is
+     * that a bad ROW no longer fails the job at all (@see `resolveRecord()`); this
+     * is what bounds the damage of the NEXT defect, whatever it turns out to be.
+     *
+     * Ten minutes is generous for a chunk of rows and short enough that nobody
+     * finds a storm in the morning.
+     */
+    public function getJobRetryUntil(): CarbonInterface
+    {
+        return now()->addMinutes(10);
     }
 }

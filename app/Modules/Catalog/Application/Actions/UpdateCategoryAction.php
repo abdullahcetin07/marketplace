@@ -92,6 +92,20 @@ final class UpdateCategoryAction extends BaseAction
             $category->position = $data->position;
         }
 
+        /*
+        | **A HUMAN TOUCHED IT, SO IT IS THEIRS NOW** (ADR-075, A4). The marker
+        | means precisely "the import made this and nobody has curated it since",
+        | and this is the moment that stops being true. Without clearing it, a
+        | later re-import could reopen a category a Category Manager had
+        | deliberately closed — ADR-047 broken through the back door, by a
+        | spreadsheet, silently.
+        |
+        | UNCONDITIONAL, not "only when accepts_products changed": renaming or
+        | re-parenting a node is curation too, and a rule that tried to decide
+        | which edits count would be a rule somebody has to keep correct.
+        */
+        $category->created_by_import = false;
+
         $category->save();
 
         if ($moved) {

@@ -38,5 +38,11 @@ final class CreateCategoryDTO extends BaseDTO
          */
         public readonly bool $acceptsProducts = false,
         public readonly ?int $position = null,
+        /**
+         * ADR-075 — set ONLY by the bulk import, so a node it created can later
+         * be opened for products when a row sells directly at it. A human's
+         * closed category is never reopened. @see the migration.
+         */
+        public readonly bool $createdByImport = false,
     ) {}
 }

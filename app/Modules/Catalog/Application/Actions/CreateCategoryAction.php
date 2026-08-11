@@ -50,6 +50,8 @@ final class CreateCategoryAction extends BaseAction
             'slug' => $this->slugs->forCategory((string) $requested),
             'is_active' => $data->isActive,
             'accepts_products' => $data->acceptsProducts,
+            // ADR-075: whose default this is. @see the migration on `categories`.
+            'created_by_import' => $data->createdByImport,
             'position' => $data->position ?? $this->categories->nextPositionUnder($parent?->getKey()),
         ]);
         $category->fillLocalized('name', $data->name);
