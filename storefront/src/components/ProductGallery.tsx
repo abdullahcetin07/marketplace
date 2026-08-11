@@ -88,7 +88,7 @@ export function ProductGallery({
           <img
             src={images[active]}
             alt={alt}
-            className="h-full w-full object-contain transition duration-300 group-hover:scale-105"
+            className="h-full w-full object-contain"
           />
 
           {/* zoom affordance */}
