@@ -107,7 +107,7 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         ))}
       </nav>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1.1fr)_1fr] xl:grid-cols-[minmax(0,1.2fr)_1fr_300px]">
+      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.2fr] xl:grid-cols-[minmax(0,1fr)_1.2fr_300px]">
         <ProductGallery
           images={product.images}
           largeImages={product.images_large}
