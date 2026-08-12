@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { browseProducts, fetchBrands } from '@/lib/api';
+import { HeroSlider } from '@/components/HeroSlider';
 import { ProductGrid } from '@/components/ProductGrid';
+import { campaigns } from '@/lib/campaigns';
 
 /**
  * RENDERED PER REQUEST, NOT BAKED AT BUILD TIME.
@@ -72,24 +74,29 @@ export default async function HomePage() {
         </div>
       )}
 
-      {/* hero */}
-      <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 px-8 py-14 text-white">
-        <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-extrabold">
-          ⚡ Süper Fırsat Günleri
-        </span>
-        <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-balance sm:text-[2.7rem]">
-          Cildine iyi gelen her şeyde %50&apos;ye varan indirim
-        </h1>
-        <p className="mt-3 max-w-xl text-[1.02rem] text-brand-50">
-          Onaylı satıcılardan orijinal ürünler, en uygun fiyatla — biz sizin için en iyi teklifi öne çıkarıyoruz.
-        </p>
-        <Link
-          href="/urunler"
-          className="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-extrabold text-brand-700 transition hover:bg-brand-50"
-        >
-          Ürünleri keşfet
-        </Link>
-      </section>
+      {/* hero — the campaign slider once banners are configured (src/lib/campaigns.ts),
+          a plain marketplace panel until then */}
+      {campaigns.length > 0 ? (
+        <HeroSlider slides={campaigns} />
+      ) : (
+        <section className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-brand-500 to-brand-400 px-8 py-14 text-white">
+          <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-extrabold">
+            Türkiye&apos;nin pazaryeri
+          </span>
+          <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-balance sm:text-[2.7rem]">
+            Binlerce ürün, güvenilir satıcılar
+          </h1>
+          <p className="mt-3 max-w-xl text-[1.02rem] text-brand-50">
+            Farklı mağazalardan ürünleri keşfet, karşılaştır ve güvenle satın al.
+          </p>
+          <Link
+            href="/urunler"
+            className="mt-6 inline-block rounded-xl bg-white px-6 py-3 font-extrabold text-brand-700 transition hover:bg-brand-50"
+          >
+            Alışverişe başla
+          </Link>
+        </section>
+      )}
 
       {/* coupons */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
