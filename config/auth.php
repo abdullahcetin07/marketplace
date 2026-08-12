@@ -75,6 +75,26 @@ return [
         ],
 
         /*
+        | A SECOND SANCTUM GUARD, FOR SELLER API TOKENS (ADR-076).
+        |
+        | **Sanctum's guard checks that a token's owner belongs to its provider**
+        | (`Guard::hasValidProvider`), and the one above is bound to `customers` —
+        | so a Seller's bearer token authenticated as far as the token table and
+        | was then refused with a 401. The seller API routes that predate the feed
+        | are session-authenticated, which is why nothing noticed.
+        |
+        | **A SECOND GUARD RATHER THAN DROPPING THE PROVIDER FROM THE FIRST.**
+        | Setting `provider => null` would make the platform's main token guard
+        | accept ANY tokenable model — one config line quietly widening every
+        | `auth:sanctum` route on the platform. This widens exactly three routes,
+        | and the guard's name says who it is for.
+        */
+        'sanctum_seller' => [
+            'driver' => 'sanctum',
+            'provider' => 'sellers',
+        ],
+
+        /*
         | Filament's own scaffolding occasionally reaches for a guard named
         | 'web'. Pointing it at admins keeps that path from silently falling
         | back to an unscoped provider.

@@ -73,13 +73,14 @@ it('refuses a call with no token at all', function (): void {
         ->assertUnauthorized();
 });
 
-it('refuses a customer or an admin holding a valid token', function (): void {
+it('refuses a customer or an admin signed in through their own panel guard', function (): void {
     /*
      * **GUARD ISOLATION, WHICH IS A PRIVILEGE QUESTION RATHER THAN A UI ONE.**
-     * `auth:sanctum` consults all three guards (config/sanctum.php), so a customer
-     * or admin token authenticates perfectly well here; what keeps them out of a
-     * seller's write surface is the actor-type check in the form request, and it
-     * is asserted because nothing else would catch its removal.
+     * A session on any of the three panel guards satisfies Sanctum's stateful
+     * path (config/sanctum.php lists all three), so a customer or admin reaches
+     * this route authenticated; what keeps them out of a seller's write surface
+     * is the actor-type check in the form request, and it is asserted because
+     * nothing else would catch its removal.
      */
     foreach ([['customer', Customer::factory()->create()], ['admin', Admin::factory()->create()]] as [$guard, $stranger]) {
         $this->actingAs($stranger, $guard)
@@ -88,6 +89,61 @@ it('refuses a customer or an admin holding a valid token', function (): void {
             ])
             ->assertForbidden();
     }
+});
+
+it('accepts a REAL bearer token from a seller', function (): void {
+    /*
+     * **THE TEST THAT WAS MISSING, AND IT COST A LIVE 401.** Every other test in
+     * this file signs in through a named guard the way the panel does, which
+     * never exercises the token path at all — so nothing noticed that the
+     * platform's `sanctum` guard is bound to the `customers` provider and
+     * therefore rejects a seller's token in `hasValidProvider()`, after
+     * authenticating it. The feed is the first surface a seller reaches with a
+     * TOKEN; it gets `auth:sanctum_seller`, bound to `sellers`.
+     */
+    $fixture = feedApiSeller();
+
+    $token = $fixture['seller']->createToken('erp')->plainTextToken;
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => $fixture['gtin'], 'price' => '10.00', 'stock' => 1]],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.created', 1);
+});
+
+it('refuses a bearer token belonging to a customer', function (): void {
+    /*
+     * **ISOLATION IS THE GUARD'S HERE, NOT A POLICY'S.** `auth:sanctum_seller`
+     * is bound to the `sellers` provider, so a customer's token is refused in
+     * `hasValidProvider()` — 401, before anything reads what it asked for,
+     * rather than the 403 a policy would give after.
+     *
+     * ONE STRANGER PER TEST, DELIBERATELY: `RequestGuard` caches its resolved
+     * user, and the test client keeps the same container across requests within
+     * one test, so a second call in the same `it()` would answer from the first
+     * call's guard rather than from the token in its own header. That is an
+     * artifact of the harness — a real request is a fresh process — but it makes
+     * a shared-body version of this test prove nothing.
+     */
+    $token = Customer::factory()->create()->createToken('erp')->plainTextToken;
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => '08690000004321', 'price' => '10.00', 'stock' => 1]],
+        ])
+        ->assertUnauthorized();
+});
+
+it('refuses a bearer token belonging to an admin', function (): void {
+    $token = Admin::factory()->create()->createToken('erp')->plainTextToken;
+
+    $this->withHeader('Authorization', 'Bearer '.$token)
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => '08690000004321', 'price' => '10.00', 'stock' => 1]],
+        ])
+        ->assertUnauthorized();
 });
 
 it('creates an offer from a token push, and Inventory sees the stock', function (): void {

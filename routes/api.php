@@ -330,6 +330,40 @@ Route::prefix('v1')
 
         /*
         |------------------------------------------------------------------
+        | The seller offer feed (ADR-076) — price + stock ingress
+        |------------------------------------------------------------------
+        |
+        | **OUTSIDE THE `auth:sanctum` GROUP ABOVE, DELIBERATELY.** Route
+        | middleware ACCUMULATES: nesting these inside it would run
+        | `auth:sanctum` first, and that guard is bound to the `customers`
+        | provider — a seller's bearer token authenticates against the token
+        | table and is then refused by `Sanctum::hasValidProvider()`. The
+        | second guard would never be reached. So this is a sibling group, not
+        | a child, and the nesting is the load-bearing part.
+        |
+        | **GUARD ISOLATION IS NOW ENFORCED BY THE GUARD ITSELF**: an admin or
+        | customer token cannot authenticate here at all, so it never reaches a
+        | policy to be denied by one. 401, not 403 — the stronger answer.
+        |
+        | **A BATCH IS A REPORT**: every call answers 200 with a per-item result
+        | even when some items failed, because a seller pushing four thousand
+        | SKUs needs to know which forty were rejected. 422 is for a malformed
+        | request or one over `offer.feed.max_batch`.
+        |
+        | THE MERCHANT IS NEVER IN THE PAYLOAD. It is resolved from the token's
+        | user, so there is no field for a token to name somebody else's shop.
+        */
+        Route::middleware(['auth:sanctum_seller', 'throttle:api'])
+            ->prefix('seller/offers')
+            ->name('seller.offers.')
+            ->group(function (): void {
+                Route::post('/sync', [OfferFeedController::class, 'sync'])->name('sync');
+                Route::post('/stock', [OfferFeedController::class, 'stock'])->name('stock');
+                Route::post('/withdraw', [OfferFeedController::class, 'withdraw'])->name('withdraw');
+            });
+
+        /*
+        |------------------------------------------------------------------
         | Authenticated
         |------------------------------------------------------------------
         |
@@ -384,23 +418,6 @@ Route::prefix('v1')
             | Every route is policy-gated by the actor's membership of THAT org;
             | a member of another org is denied by construction.
             */
-            /*
-            | THE SELLER OFFER FEED (ADR-076) — price + stock ingress.
-            |
-            | **A BATCH IS A REPORT**: every call answers 200 with a per-item
-            | result even when some items failed, because a seller pushing four
-            | thousand SKUs needs to know which forty were rejected. 422 is for a
-            | malformed request or one over `offer.feed.max_batch`.
-            |
-            | THE MERCHANT IS NEVER IN THE PAYLOAD. It is resolved from the token's
-            | user, so there is no field for a token to name somebody else's shop.
-            */
-            Route::prefix('seller/offers')->name('seller.offers.')->group(function (): void {
-                Route::post('/sync', [OfferFeedController::class, 'sync'])->name('sync');
-                Route::post('/stock', [OfferFeedController::class, 'stock'])->name('stock');
-                Route::post('/withdraw', [OfferFeedController::class, 'withdraw'])->name('withdraw');
-            });
-
             Route::prefix('organizations')->name('organizations.')->group(function (): void {
                 Route::get('/', [OrganizationController::class, 'index'])->name('index');
                 Route::post('/', [OrganizationController::class, 'store'])->name('store');

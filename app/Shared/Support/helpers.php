@@ -69,13 +69,30 @@ if (! function_exists('current_currency')) {
 
 if (! function_exists('current_actor')) {
     /**
-     * The authenticated user across whichever of the three guards is active,
-     * or null. Use instead of auth()->user(), which silently resolves only the
-     * default guard and therefore returns null for a logged-in seller.
+     * The authenticated user across whichever guard is active, or null. Use
+     * instead of auth()->user(), which silently resolves only the default guard
+     * and therefore returns null for a logged-in seller.
+     *
+     * **THE TOKEN GUARDS ARE IN THE LIST BECAUSE A BEARER TOKEN POPULATES NO
+     * NAMED GUARD** (ADR-076). A session request fills `admin`/`seller`/
+     * `customer`; a token request fills only the sanctum guard that authenticated
+     * it. Without them, a seller pushing their price feed authenticated
+     * perfectly well and then read as nobody — every policy denying, every
+     * ownership check failing, for a request that was correctly signed.
+     *
+     * **THE ORDER IS SESSION FIRST, AND IT MATTERS.** A Filament page and an API
+     * call can share a browser; resolving the session actor first keeps the panel
+     * reading the person who is looking at it rather than whichever token was
+     * last presented.
+     *
+     * **WHAT COMES BACK IS A REAL ACTOR SUBCLASS**, so `->type` answers correctly
+     * and every policy, org scope and guard-name check downstream behaves exactly
+     * as it does for a session — the token changes how you arrive, never who you
+     * are.
      */
     function current_actor(): ?User
     {
-        foreach (['admin', 'seller', 'customer'] as $guard) {
+        foreach (['admin', 'seller', 'customer', 'sanctum', 'sanctum_seller'] as $guard) {
             $user = auth()->guard($guard)->user();
 
             if ($user instanceof User) {

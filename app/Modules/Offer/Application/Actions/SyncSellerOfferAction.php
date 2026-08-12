@@ -111,6 +111,8 @@ final class SyncSellerOfferAction extends BaseFeedAction
         $touched = false;
 
         if ($this->pricingChanged($offer, $data)) {
+            $this->assertAgainstStoredListPrice($offer, $data);
+
             $this->updatePrice->run($offer, new UpdateOfferPriceDTO(
                 priceMinor: $data->priceMinor ?? $offer->price_minor,
                 listPriceMinor: $data->listPriceMinor,
@@ -118,8 +120,16 @@ final class SyncSellerOfferAction extends BaseFeedAction
                 | `present` IS WHAT SEPARATES "not sent" FROM "cleared". A feed item
                 | with no `list_price` leaves the struck-through price alone; only
                 | an item that carried the field may change it.
+                |
+                | **THE TOKEN IS THE COLUMN NAME, NOT THE DTO PROPERTY.**
+                | `UpdateOfferPriceAction` asks `has('list_price_minor')`, so
+                | `listPriceMinor` here read as "not sent" and the feed's struck-
+                | through price was dropped on the floor — silently, and worse:
+                | `pricingChanged()` then saw a difference on every re-send, so an
+                | unchanged catalogue reported `updated` and wrote an audit entry
+                | for an edit that never happened. Live smoke test, ADR-076.
                 */
-                present: $data->listPriceMinor === null ? ['priceMinor'] : ['priceMinor', 'listPriceMinor'],
+                present: $data->listPriceMinor === null ? [] : ['list_price_minor'],
                 reason: self::REASON,
             ));
 
@@ -152,6 +162,26 @@ final class SyncSellerOfferAction extends BaseFeedAction
         }
 
         return $data->listPriceMinor !== null && $data->listPriceMinor !== $offer->list_price_minor;
+    }
+
+    /**
+     * The one pricing rule that needs the offer in hand.
+     *
+     * **A PRICE SENT ALONE IS STILL CHECKED AGAINST THE STORED LIST PRICE.** A
+     * seller raising a price above the struck-through one they set months ago in
+     * the panel is a legitimate item to refuse — but `UpdateOfferPriceAction`
+     * refuses it with an `OfferException`, which the batch loop does not catch,
+     * so one such item would have returned 500 for four thousand good ones. The
+     * feed's contract is a machine reason per item, and this is where the last
+     * hole in it was.
+     */
+    private function assertAgainstStoredListPrice(Offer $offer, SyncOfferDTO $data): void
+    {
+        $listPrice = $data->listPriceMinor ?? $offer->list_price_minor;
+
+        if ($listPrice !== null && $listPrice < ($data->priceMinor ?? $offer->price_minor)) {
+            throw OfferFeedException::listPriceBelowPrice($data->gtin);
+        }
     }
 
     /**

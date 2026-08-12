@@ -570,6 +570,13 @@ quarters went nowhere.
 Machine reasons per item: `product_not_in_catalog`, `offer_not_found`,
 `invalid_price`, `invalid_stock`, `list_price_below_price`.
 
+**`list_price_below_price` is also checked against the STORED list price**, not only
+against a pair sent together. A seller raising a price above the struck-through one
+they set months ago in the panel is a legitimate refusal, but
+`UpdateOfferPriceAction` refuses it with an `OfferException`, which the batch loop
+does not catch — one such item would have returned `500` for the four thousand good
+ones beside it.
+
 **Money is a decimal STRING on the wire** and becomes kuruş once, at the boundary
 (ADR-005). A JSON float is rejected there: `129.90` as a number is
 `129.89999999999998` in transit. `"129,90"` is accepted — a comma is a decimal point
@@ -589,9 +596,37 @@ refused for the whole call (`no_sellable_store`) rather than defaulted to one, s
 defaulting would create offers nobody can see.
 
 **No new permission** (v1): a token authenticates you as yourself, and the feed is
-gated by the offer abilities the panel already checks. Guard isolation holds —
-`auth:sanctum` consults all three named guards here, so an admin or customer token
-authenticates fine and is stopped by the actor-type check.
+gated by the offer abilities the panel already checks.
+
+### The guard is `auth:sanctum_seller`, and it had to be
+
+These three routes carry their own Sanctum guard, bound to the `sellers` provider,
+and sit **outside** the `auth:sanctum` group rather than inside it. Both halves are
+load-bearing:
+
+- The platform's `sanctum` guard is bound to the **`customers`** provider (the
+  Next.js storefront is what it was built for). A seller's bearer token
+  authenticates against the token table and is then refused by Sanctum's
+  `hasValidProvider()`. The feed is the first surface a seller reaches with a
+  **token** rather than a panel session, so it is the first place this could show —
+  and it showed as a live `401` that the whole P2 suite had missed, because every
+  test signed in through the named guard the way the panel does. There is now a test
+  that presents a real bearer token.
+- Route middleware **accumulates**. Nesting the group inside `auth:sanctum` would
+  run that guard first and never reach the second one, so the sibling placement is
+  the fix, not a tidiness choice.
+
+**Isolation is therefore the guard's rather than a policy's**: an admin or customer
+token cannot authenticate here at all — `401`, before anything reads what it asked
+for, instead of the `403` a policy gives after. A session on any of the three panel
+guards still satisfies Sanctum's stateful path, and the actor-type check in the form
+request is what stops those; both answers are asserted.
+
+**The cost is a second guard to keep in step.** `current_actor()` and
+`BaseRequest::actor()` had to learn the token guards too — a bearer token populates
+no NAMED guard, so without that a correctly signed request authenticates and then
+reads as nobody, every policy denying. Session guards are consulted first, since a
+panel and an API call can share a browser.
 
 ## 16.5 `Unchanged` is a success
 
@@ -601,6 +636,15 @@ otherwise Inventory and the search index would be woken four thousand times to b
 told nothing. Price and stock are decided separately, because they are separate
 events: a stock-only change must not write an audit entry claiming somebody
 re-priced.
+
+**`present` speaks COLUMN names.** `UpdateOfferPriceDTO::has()` is asked
+`'list_price_minor'`, and the feed shipped passing the DTO's property name — so every
+struck-through price a seller sent was read as "not sent" and dropped. The expensive
+half was the second-order effect: because the value never landed, the next identical
+push saw a difference again and reported `Updated` **forever**, re-pricing an
+unchanged catalogue every morning and writing an audit entry for an edit nobody made.
+The live smoke test caught it; nothing in the suite had. Two regression tests now
+pin both halves.
 
 ## 16.6 The CSV, and the retry lesson
 

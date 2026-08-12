@@ -275,3 +275,52 @@ it('refuses a zero price and a negative stock, each with its own reason', functi
     // differently.
     expect($reasons)->toBe(['invalid_price', 'invalid_stock']);
 });
+
+it('actually writes the struck-through price it was sent, and then stops', function (): void {
+    $fixture = feedFixture();
+    $sync = app(SyncSellerOfferAction::class);
+
+    $sync->run(feedItem($fixture, price: 12_900, stock: 12));
+    $sync->run(feedItem($fixture, price: 12_900, stock: 12, listPrice: 19_900));
+
+    /*
+     * **THE LIVE SMOKE TEST CAUGHT THIS AND NOTHING ELSE DID.** `present` speaks
+     * COLUMN names — `UpdateOfferPriceAction` asks `has('list_price_minor')` —
+     * and the feed was passing the DTO property name, so every struck-through
+     * price a seller sent was read as "not sent" and dropped.
+     */
+    expect(Offer::query()->firstOrFail()->list_price_minor)->toBe(19_900);
+
+    /*
+     * The second half of the same bug, and the more expensive one: because the
+     * value never landed, the next identical push saw a difference again and
+     * reported `Updated` forever — re-pricing an unchanged catalogue daily and
+     * writing an audit entry for an edit nobody made.
+     */
+    expect($sync->run(feedItem($fixture, price: 12_900, stock: 12, listPrice: 19_900)))
+        ->toBe(OfferFeedOutcome::Unchanged);
+});
+
+it('refuses a price raised above a struck-through price it was not sent', function (): void {
+    $fixture = feedFixture();
+    $sync = app(SyncSellerOfferAction::class);
+
+    $sync->run(feedItem($fixture, price: 12_900, stock: 12, listPrice: 19_900));
+
+    try {
+        // Only a price this time — the list price stays whatever the panel set.
+        $sync->run(feedItem($fixture, price: 24_900, stock: 12));
+        $reason = null;
+    } catch (OfferFeedException $exception) {
+        $reason = $exception->reason();
+    }
+
+    /*
+     * **A MACHINE REASON, NOT A 500.** `UpdateOfferPriceAction` refuses this with
+     * an `OfferException`, which the batch loop does not catch — so one such item
+     * would have taken down the response for the four thousand good ones beside
+     * it.
+     */
+    expect($reason)->toBe('list_price_below_price')
+        ->and(Offer::query()->firstOrFail()->price_minor)->toBe(12_900);
+});

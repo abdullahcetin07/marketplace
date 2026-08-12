@@ -55,7 +55,14 @@ abstract class BaseRequest extends FormRequest
      */
     public function actor(): ?User
     {
-        foreach (['admin', 'seller', 'customer'] as $guard) {
+        /*
+        | THE TOKEN GUARDS ARE HERE FOR THE REASON `current_actor()` STATES: a
+        | bearer token populates no named guard, so without them a correctly
+        | signed API request reads as nobody and every `authorize()` returns
+        | false. Session guards stay first — a panel and an API call can share a
+        | browser.
+        */
+        foreach (['admin', 'seller', 'customer', 'sanctum', 'sanctum_seller'] as $guard) {
             $user = $this->user($guard);
 
             if ($user instanceof User) {
