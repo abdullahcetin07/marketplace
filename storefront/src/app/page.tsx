@@ -1,5 +1,5 @@
 import Link from 'next/link';
-import { browseProducts, fetchCategoryTree } from '@/lib/api';
+import { browseProducts, fetchBrands } from '@/lib/api';
 import { ProductGrid } from '@/components/ProductGrid';
 
 /**
@@ -17,8 +17,8 @@ import { ProductGrid } from '@/components/ProductGrid';
 export const dynamic = 'force-dynamic';
 
 // Promotional coupons are static — they are merchandising, not live data — so they
-// live here rather than behind a fetch. The category shortcuts, by contrast, are the
-// real tree now (ADR-059), fetched below and linked by slug.
+// live here rather than behind a fetch. The brand shortcuts, by contrast, are the real
+// brand list, fetched below and linked by slug; categories live in the menu bar above.
 const coupons = [
   { amount: '50₺', title: '500 TL üzeri', note: 'Kod: SAGLIK50' },
   { amount: '%15', title: 'Dermokozmetik', note: 'Sepette otomatik' },
@@ -38,24 +38,35 @@ const coupons = [
  * chosen.
  */
 export default async function HomePage() {
-  const [page, tree] = await Promise.all([browseProducts({ perPage: 12 }), fetchCategoryTree()]);
-  const categories = tree.filter((category) => category.product_count > 0).slice(0, 9);
+  const [page, brands] = await Promise.all([browseProducts({ perPage: 12 }), fetchBrands()]);
+  // Brand shortcuts, most-stocked first. Categories already live in the menu bar
+  // above, so this row is brands now — a round logo where the brand has one,
+  // its initials until an admin uploads it (Admin → Markalar).
+  const topBrands = brands
+    .filter((brand) => brand.product_count > 0)
+    .sort((a, b) => b.product_count - a.product_count)
+    .slice(0, 9);
 
   return (
     <div className="flex flex-col gap-9">
-      {/* category shortcuts — the real tree, linked by slug */}
-      {categories.length > 0 && (
+      {/* brand shortcuts — round logos, linked by slug */}
+      {topBrands.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
-          {categories.map((category) => (
+          {topBrands.map((brand) => (
             <Link
-              key={category.id}
-              href={`/${category.slug}`}
+              key={brand.id}
+              href={`/${brand.slug}`}
               className="flex flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
             >
-              <span className="grid h-14 w-14 place-items-center rounded-full bg-white text-brand-500 shadow-sm ring-1 ring-ink-100 dark:bg-ink-900 dark:ring-ink-800">
-                <LeafIcon />
+              <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-ink-100 dark:ring-ink-800">
+                {brand.logo ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={brand.logo} alt={brand.name} className="h-full w-full object-contain p-1.5" loading="lazy" />
+                ) : (
+                  <span className="text-sm font-extrabold text-brand-600">{brand.name.slice(0, 2).toLocaleUpperCase('tr')}</span>
+                )}
               </span>
-              <span className="line-clamp-2 text-center text-xs font-bold text-ink-600 dark:text-ink-300">{category.name}</span>
+              <span className="line-clamp-2 text-center text-xs font-bold text-ink-600 dark:text-ink-300">{brand.name}</span>
             </Link>
           ))}
         </div>
@@ -108,13 +119,5 @@ export default async function HomePage() {
         <ProductGrid products={page.items} />
       </section>
     </div>
-  );
-}
-
-function LeafIcon() {
-  return (
-    <svg viewBox="0 0 24 24" className="h-7 w-7" fill="none" stroke="currentColor" strokeWidth={1.6} strokeLinecap="round" strokeLinejoin="round">
-      <path d="M12 3c3 4 5 6 5 9a5 5 0 0 1-10 0c0-3 2-5 5-9z" />
-    </svg>
   );
 }
