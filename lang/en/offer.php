@@ -46,6 +46,33 @@ return [
         ],
     ],
 
+    'imports' => [
+        'title' => 'Upload History',
+        'subheading' => 'What your CSV uploads actually did — how many rows landed, and why the rest did not.',
+        'help_heading' => 'What this page tells you',
+        'note' => [
+            'catalog' => 'A price list does NOT create products. A barcode the published catalogue does not carry cannot be priced; the product has to be added to the platform catalogue first.',
+            'idempotent' => 'Correct the file and upload it again — rows match on barcode, so nothing is duplicated.',
+            'report' => 'Download every failed row as a CSV and fix them in your own system.',
+        ],
+        'file' => 'File',
+        'uploaded_at' => 'Uploaded',
+        'rows' => 'Rows',
+        'succeeded' => 'Succeeded',
+        'failed' => 'Failed',
+        'status' => 'Status',
+        'running' => 'Running',
+        'done' => 'Completed',
+        'detail' => 'View failures',
+        'download' => 'Download report',
+        'close' => 'Close',
+        'reason_heading' => 'Failure reasons (:count rows)',
+        'sample_heading' => 'Sample rows (first :count)',
+        'unknown_reason' => '(no reason recorded)',
+        'empty' => 'No CSV uploaded yet',
+        'empty_hint' => 'Start from the "Bulk upload via CSV" button on the Offers page.',
+    ],
+
     'field' => [
         'product' => 'Product',
         'product_hint' => 'Search the published catalog. If the product does not exist yet, open it first.',

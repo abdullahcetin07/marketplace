@@ -682,6 +682,23 @@ day.
 
 **Inert without a queue worker**, like every other import here.
 
+**A completion toast is not a report**, so the seller panel carries a *Yükleme
+Geçmişi* page: their own offer-feed imports (scoped by `user_id` AND by importer,
+so neither another merchant's uploads nor the admin's catalogue imports appear),
+with the failure reasons **grouped**. Three thousand failed rows are rarely three
+thousand problems — usually two or three causes — and the grouping is the part a
+seller can act on. The full set stays a CSV download.
+
+Two things that page had to fix on the way. Filament guards its import routes with
+a bare `auth`, which resolves `auth.defaults.guard` — `customer` here — so the
+"download the failure report" button in every import notification bounced a
+signed-in seller AND a signed-in admin to the login page; the report advertised by
+ADR-074 and ADR-076 alike was unreachable by the only two people it is written for.
+`AppServiceProvider` re-registers `filament.actions` naming all three guards. And a
+row count in a table column is the classic way to trip strict mode's lazy-loading
+guard once per row, so the query uses `withCount` — with a two-row fixture in the
+test, since Laravel only arms that guard when a query hydrates more than one row.
+
 ## 16.7 Its cost, stated
 
 - **A seller can move their own prices without a human looking.** That is the point,

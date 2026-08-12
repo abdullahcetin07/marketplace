@@ -8,12 +8,14 @@ use App\Core\Domain\Contracts\InvitationTokenizerContract;
 use App\Core\Domain\Contracts\OtpStoreContract;
 use App\Core\Infrastructure\Invitations\Sha256InvitationTokenizer;
 use App\Core\Infrastructure\Otp\CacheOtpStore;
+use App\Shared\Enums\UserType;
 use App\Shared\Rules\StrongPassword;
 use Carbon\CarbonImmutable;
 use Illuminate\Cache\RateLimiting\Limit;
 use Illuminate\Database\Eloquent\Factories\Factory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
+use Illuminate\Routing\Router;
 use Illuminate\Support\Facades\Date;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Log;
@@ -65,6 +67,33 @@ final class AppServiceProvider extends ServiceProvider
         $this->configurePasswords();
         $this->configureRateLimiting();
         $this->configureUrls();
+        $this->configureFilamentActionRoutes();
+    }
+
+    /**
+     * Let a seller or an admin download their own import failure report.
+     *
+     * **FILAMENT GUARDS ITS IMPORT ROUTES WITH A BARE `auth`, AND A BARE `auth`
+     * IS THE CUSTOMER GUARD HERE.** `ActionsServiceProvider` registers
+     * `filament.actions` as `['web', 'auth']`, which resolves
+     * `auth.defaults.guard` — `customer` on this platform (three guards, ADR-011).
+     * So the "hata raporunu indir" button in every import notification bounced a
+     * signed-in seller AND a signed-in admin to the login page, and the failure
+     * report the catalogue import (ADR-074) and the offer feed (ADR-076) both
+     * advertise was unreachable by the only two people it is written for.
+     *
+     * Naming the three guards fixes it without touching the vendor route: the
+     * `auth` middleware tries each in turn and calls `shouldUse()` on the one
+     * that answers, so the controller's own `$import->user()->is(auth()->user())`
+     * check — which decides whose report you may read — then compares against the
+     * right person rather than against null.
+     */
+    private function configureFilamentActionRoutes(): void
+    {
+        app(Router::class)->middlewareGroup('filament.actions', [
+            'web',
+            'auth:'.implode(',', [UserType::Admin->value, UserType::Seller->value, UserType::Customer->value]),
+        ]);
     }
 
     /**

@@ -46,6 +46,33 @@ return [
         ],
     ],
 
+    'imports' => [
+        'title' => 'Yükleme Geçmişi',
+        'subheading' => 'Yüklediğiniz CSV dosyalarının ne yaptığı — kaç satır geçti, kaçı neden geçmedi.',
+        'help_heading' => 'Bu sayfa ne anlatır?',
+        'note' => [
+            'catalog' => 'Fiyat listesi ürün AÇMAZ. Barkod yayındaki katalogda yoksa o satır geçmez; ürünün önce platform kataloğuna eklenmesi gerekir.',
+            'idempotent' => 'Aynı dosyayı düzeltip yeniden yükleyebilirsiniz — barkod üzerinden eşleşir, teklif çoğaltmaz.',
+            'report' => 'Hatalı satırların tamamını CSV olarak indirip kendi sisteminizde düzeltebilirsiniz.',
+        ],
+        'file' => 'Dosya',
+        'uploaded_at' => 'Yüklendi',
+        'rows' => 'Satır',
+        'succeeded' => 'Başarılı',
+        'failed' => 'Hatalı',
+        'status' => 'Durum',
+        'running' => 'Sürüyor',
+        'done' => 'Tamamlandı',
+        'detail' => 'Hataları gör',
+        'download' => 'Raporu indir',
+        'close' => 'Kapat',
+        'reason_heading' => 'Hata sebepleri (:count satır)',
+        'sample_heading' => 'Örnek satırlar (ilk :count)',
+        'unknown_reason' => '(sebep kaydedilmedi)',
+        'empty' => 'Henüz CSV yüklemediniz',
+        'empty_hint' => 'Teklifler sayfasındaki "CSV ile toplu yükle" düğmesiyle başlayın.',
+    ],
+
     'field' => [
         'product' => 'Ürün',
         'product_hint' => 'Yayındaki katalogda arayın. Ürün yoksa önce "ürün aç" akışını kullanın.',

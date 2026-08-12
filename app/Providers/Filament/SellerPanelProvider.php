@@ -176,6 +176,7 @@ final class SellerPanelProvider extends PanelProvider
                 | mints tokens for the offer feed belongs to Offer.
                 */
                 \App\Modules\Offer\Presentation\Filament\Seller\Pages\ApiTokens::class,
+                \App\Modules\Offer\Presentation\Filament\Seller\Pages\OfferImports::class,
             ])
             ->widgets([
                 Widgets\AccountWidget::class,
