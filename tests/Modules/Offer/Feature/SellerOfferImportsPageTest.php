@@ -57,7 +57,9 @@ function importsPageRecord(Seller $seller, int $failed, string $reason = 'Bu bar
 }
 
 it('shows the seller their own uploads and nobody else’s', function (): void {
+    /** @var Seller $mine */
     $mine = Seller::factory()->create();
+    /** @var Seller $theirs */
     $theirs = Seller::factory()->create();
 
     importsPageRecord($mine, failed: 3);
@@ -77,6 +79,7 @@ it('shows the seller their own uploads and nobody else’s', function (): void {
 });
 
 it('hides the admin catalogue import, which is not a seller’s upload', function (): void {
+    /** @var Seller $seller */
     $seller = Seller::factory()->create();
 
     importsPageRecord($seller, failed: 1);
@@ -101,6 +104,7 @@ it('hides the admin catalogue import, which is not a seller’s upload', functio
 });
 
 it('counts failures without lazy loading a relation per row', function (): void {
+    /** @var Seller $seller */
     $seller = Seller::factory()->create();
 
     /*

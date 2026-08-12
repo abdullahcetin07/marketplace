@@ -582,6 +582,19 @@ ones beside it.
 `129.89999999999998` in transit. `"129,90"` is accepted — a comma is a decimal point
 in Turkish and Excel writes it that way.
 
+**More than two decimals is accepted and ROUNDED to the kuruş, at both doors.** A
+stock system deriving prices from a KDV-exclusive base legitimately emits `494.244`;
+it becomes 49 424 kuruş. The two doors disagreed about this for one build — the CSV
+rounded, the API answered 422 — so the same seller's same row landed or bounced
+depending on how it arrived.
+
+**What is still refused is a string that is not a number**, and the reason is that
+`Currency::toMinor()` COERCES rather than refusing: it reads `12.5.6` as 12,50 TL,
+`1e3` as 1 000,00 and `abc` as zero. The CSV door had no shape rule at all, so a
+mistyped cell did not fail the row — it quietly became a real price on a real offer
+and was reported as a success. Both doors now validate the same expression before
+the converter ever sees the value.
+
 ## 16.4 The merchant is never in the payload
 
 There is no organization field, in the JSON or the CSV, and that is the whole

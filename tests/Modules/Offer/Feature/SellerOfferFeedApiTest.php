@@ -341,3 +341,42 @@ it('refuses a seller who may only view the organization, not manage it', functio
 
     expect(Offer::query()->count())->toBe(0);
 });
+
+it('rounds a sub-kuruş price to the kuruş rather than refusing it', function (): void {
+    /*
+     * **BOTH DOORS ROUND, WHICH THEY DID NOT USED TO.** A stock system deriving
+     * prices from a KDV-exclusive base emits `494.244`; the CSV door converted
+     * and rounded it while the API door answered 422, so the same seller's same
+     * row landed or bounced depending on which door it arrived through.
+     */
+    $fixture = feedApiSeller();
+
+    $this->actingAs($fixture['seller'], 'seller')
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => $fixture['gtin'], 'price' => '494.244', 'stock' => 1]],
+        ])
+        ->assertOk()
+        ->assertJsonPath('data.created', 1);
+
+    // Rounded to the nearest kuruş, because a third decimal is not money here.
+    expect(Offer::query()->firstOrFail()->price_minor)->toBe(49_424);
+});
+
+it('still refuses a price that is not a number, because toMinor would not', function (): void {
+    /*
+     * `toMinor()` COERCES RATHER THAN REFUSING: it reads `12.5.6` as 12,50 TL and
+     * `abc` as zero. Loosening the decimal count must not loosen this — a mistyped
+     * cell that becomes a real price on a real offer is worse than a rejection.
+     */
+    $fixture = feedApiSeller();
+
+    foreach (['12.5.6', 'abc', '1e3', '-5'] as $bad) {
+        $this->actingAs($fixture['seller'], 'seller')
+            ->postJson('/api/v1/seller/offers/sync', [
+                'items' => [['gtin' => $fixture['gtin'], 'price' => $bad, 'stock' => 1]],
+            ])
+            ->assertUnprocessable();
+    }
+
+    expect(Offer::query()->count())->toBe(0);
+});

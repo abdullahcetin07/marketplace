@@ -17,6 +17,7 @@ use App\Modules\Organization\Domain\Models\OrganizationMember;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;
+use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Models\Import;
 
 /*
@@ -221,4 +222,29 @@ it('reports a draft shop as a row failure instead of killing the chunk', functio
      */
     expect($message)->toContain('Yayında mağazanız yok')
         ->and(Offer::query()->count())->toBe(0);
+});
+
+it('rounds a sub-kuruş price and refuses one that is not a number', function (): void {
+    /*
+     * The CSV half of the same rule. `12.5.6` used to reach `toMinor()`, which
+     * reads it as 12,50 TL — a mistyped cell becoming a real price on a real
+     * offer, silently, with the row reported as a success.
+     */
+    $fixture = importSeller();
+
+    offerImporterFor($fixture)([
+        'gtin' => $fixture['gtin'],
+        'fiyat' => '494,244',
+        'stok' => '1',
+        'liste_fiyati' => null,
+    ]);
+
+    expect(Offer::query()->firstOrFail()->price_minor)->toBe(49_424);
+
+    $rules = collect(OfferImporter::getColumns())
+        ->firstOrFail(fn (ImportColumn $column): bool => $column->getName() === 'fiyat')
+        ->getDataValidationRules();
+
+    // The shape is decided by validation, before the coercing converter sees it.
+    expect($rules)->toContain('regex:/^\d+([.,]\d+)?$/');
 });

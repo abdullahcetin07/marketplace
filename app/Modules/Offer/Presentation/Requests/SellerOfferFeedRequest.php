@@ -46,10 +46,23 @@ class SellerOfferFeedRequest extends BaseRequest
             | A DECIMAL STRING, not a number: JSON floats are the exact thing the
             | minor-units rule exists to keep out, and `129.90` arriving as
             | 129.89999999999998 is a price nobody typed.
+            |
+            | **MORE THAN TWO DECIMALS IS ACCEPTED AND ROUNDED TO THE KURUŞ**, the
+            | same as the CSV door. A stock system that derives prices from a
+            | KDV-exclusive base legitimately emits `494.244`, and a seller whose
+            | ERP does that could push nothing at all while the identical row
+            | imported by spreadsheet went through — two doors, one brain, and
+            | they disagreed about what a price is. What is still refused is a
+            | string that is not a number: `toMinor()` reads `12.5.6` as 12,50 TL
+            | and `abc` as zero, so the shape has to be decided here.
             */
-            'items.*.price' => ['required', 'string', 'regex:/^\d+([.,]\d{1,2})?$/'],
+            'items.*.price' => [
+                'required', 'string', 'max:20', 'regex:/^\d+([.,]\d+)?$/',
+            ],
             'items.*.stock' => ['required', 'integer', 'min:0'],
-            'items.*.list_price' => ['nullable', 'string', 'regex:/^\d+([.,]\d{1,2})?$/'],
+            'items.*.list_price' => [
+                'nullable', 'string', 'max:20', 'regex:/^\d+([.,]\d+)?$/',
+            ],
         ];
     }
 

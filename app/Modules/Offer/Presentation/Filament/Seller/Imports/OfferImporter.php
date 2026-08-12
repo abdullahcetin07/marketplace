@@ -70,12 +70,22 @@ final class OfferImporter extends Importer
             | A STRING, NOT `numeric`. The spreadsheet writes "129,90" and the
             | conversion to kuruş happens once, below — a float in between is the
             | financial bug ADR-005 exists to prevent.
+            |
+            | **AND THE SHAPE IS VALIDATED HERE BECAUSE `toMinor()` NEVER REFUSES.**
+            | It coerces: `12.5.6` becomes 12,50 TL, `1e3` becomes 1.000,00 and
+            | `abc` becomes zero. Without this rule a mistyped cell does not fail
+            | the row — it quietly becomes a real price on a real offer, which is
+            | the worst of the three outcomes. Same expression as the API door.
+            |
+            | More than two decimals is allowed and rounded to the kuruş: a stock
+            | system deriving prices from a KDV-exclusive base emits `494.244`,
+            | and refusing that would reject most of a legitimate export.
             */
             ImportColumn::make('fiyat')
                 ->label(__('offer.feed.column.price'))
                 ->requiredMapping()
                 ->example('129,90')
-                ->rules(['required', 'string', 'max:16']),
+                ->rules(['required', 'string', 'max:16', 'regex:/^\d+([.,]\d+)?$/']),
 
             ImportColumn::make('stok')
                 ->label(__('offer.feed.column.stock'))
@@ -86,7 +96,7 @@ final class OfferImporter extends Importer
             ImportColumn::make('liste_fiyati')
                 ->label(__('offer.feed.column.list_price'))
                 ->example('159,90')
-                ->rules(['nullable', 'string', 'max:16']),
+                ->rules(['nullable', 'string', 'max:16', 'regex:/^\d+([.,]\d+)?$/']),
         ];
     }
 
