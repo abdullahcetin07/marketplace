@@ -177,9 +177,23 @@ downloadable per-row failure report.
 
 ## 7. Auth & authorization
 
-- **Per-seller-org Sanctum bearer tokens.** Sanctum is already installed and drives the
-  existing `auth:sanctum` API. A seller generates/revokes a token in the seller panel
-  (a new "API Anahtarları" page); the token authenticates as their seller user.
+- **A dedicated `sanctum_seller` guard — NOT the existing `sanctum` guard.** The existing
+  `sanctum` guard is bound to the **customers** provider
+  (`auth.guards.sanctum.provider = customers`), so a seller's token fails
+  `Sanctum::hasValidProvider()` and 401s — reusing it was the design's one wrong
+  assumption (caught at build, ADR-018). Instead add a `sanctum_seller` guard (driver
+  `sanctum`, provider `sellers` → `App\Models\Seller`); the feed routes use
+  `auth:sanctum_seller`. This leaves the customer `sanctum` guard untouched (no
+  platform-wide relaxation) and **preserves guard isolation by construction**: only a
+  `Seller` tokenable resolves on it, so an admin/customer token cannot authenticate here.
+- **Actor resolution, second layer.** `current_actor()` / `BaseRequest::actor()` consult
+  only the named admin/seller/customer guards today, which are empty on a token request —
+  so even past auth, actor resolution would 403. They must also consult `sanctum_seller`
+  (or the feed controllers name the guard explicitly) so the token's `Seller` resolves as
+  the seller actor. Spatie permissions still key off the `Seller` model's `seller`
+  `guard_name`, so policies/abilities are unchanged.
+- A seller generates/revokes named tokens in the seller panel (a new "API Anahtarları"
+  page); the tokenable is their `Seller` user.
 - **Acting org** = the seller panel's existing current-org resolution for that user; the
   feed writes offers for **that org only**. A multi-org user's token is bound to one org
   (v1: single acting org, consistent with the panel).

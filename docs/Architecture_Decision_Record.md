@@ -2435,9 +2435,11 @@ item never rolls back its neighbours.
 `.../stock` (stock-only fast path, because stock changes far more often than price),
 `.../withdraw`. CSV: a seller-panel importer on Filament's own queued/chunked import
 infra with a downloadable failure report, idempotent on (seller org, GTIN). **Auth:**
-per-seller-org **Sanctum** bearer tokens (already installed and driving the existing API),
-issued/revoked in the seller panel, scoped by `OfferPolicy` to the seller's **own** org;
-an admin/customer token cannot reach these routes. **Stock is absolute**, **price is a
+per-seller **Sanctum** bearer tokens on a **dedicated `sanctum_seller` guard** (the
+existing `sanctum` guard is customer-bound and 401s a seller token — corrected at build,
+ADR-018), issued/revoked in the seller panel, scoped by `OfferPolicy` to the seller's
+**own** org; guard isolation holds by construction — an admin/customer token cannot
+resolve on the sellers-provider guard. **Stock is absolute**, **price is a
 decimal string** on the wire and minor units internally (the money rule holds), and the
 whole thing is **idempotent** — a re-send that changes nothing emits nothing.
 
