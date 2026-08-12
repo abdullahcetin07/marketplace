@@ -95,24 +95,29 @@ final class OfferImporter extends Importer
      */
     public function resolveRecord(): Model
     {
-        $seller = app(SellerFeedIdentity::class)->forUser((int) $this->import->user_id);
-
-        /*
-        | THE SAME POLICY THE API DOOR ASKS, ASKED THE SAME WAY. Two doors over
-        | one brain is only true if they are also two doors past one guard.
-        |
-        | **A REFUSAL IS RECORDED AS A ROW FAILURE, NOT THROWN OUT OF THE CHUNK.**
-        | The API answers 403 for the whole call because there is a caller waiting;
-        | here the caller left hours ago, and an escaping exception fails the job
-        | and hands the queue the whole chunk to retry — the ADR-075 lesson. Every
-        | row will carry the same refusal, which is a perfectly clear report.
-        */
         /** @var User $importer */
         $importer = $this->import->user;
 
+        /*
+        | **EVERY REFUSAL BECOMES A ROW FAILURE, INCLUDING THE ONES THAT ARE NOT
+        | ABOUT THE ROW.** The API answers 403 for the whole call because there is
+        | a caller waiting; here the caller left hours ago, and an exception that
+        | escapes this method fails the JOB — so Filament records the row with an
+        | EMPTY reason and hands the queue the whole chunk to retry (ADR-075).
+        |
+        | That is not theory: a seller whose shop was still a draft uploaded 1,321
+        | rows and got 3,963 blank failures and no completion notification at all,
+        | because `noSellableStore` was thrown one line above this block, outside
+        | any catch. The identity lookup belongs INSIDE the guard for the same
+        | reason the policy check does. Every row then carries the same clear
+        | sentence, which is a perfectly good report — and the import finishes, so
+        | the seller is actually told.
+        */
         try {
+            $seller = app(SellerFeedIdentity::class)->forUser((int) $this->import->user_id);
+
             app(SellerFeedGate::class)->assertMayWriteFor($importer, $seller['orgId']);
-        } catch (AuthorizationException $exception) {
+        } catch (OfferFeedException|AuthorizationException $exception) {
             throw new RowImportFailedException($exception->getMessage());
         }
 

@@ -191,3 +191,34 @@ it('caps the chunk job, so no future defect can storm the queue', function (): v
 
     expect($method->getDeclaringClass()->getName())->toBe(OfferImporter::class);
 });
+
+it('reports a draft shop as a row failure instead of killing the chunk', function (): void {
+    /*
+     * **THE BLANK-FAILURE BUG, PINNED.** A seller whose shop was still a draft
+     * uploaded 1,321 rows and got 3,963 failures with an EMPTY reason and no
+     * completion notification at all: `noSellableStore` was thrown outside any
+     * catch, so it failed the JOB rather than the row, and the queue re-ran the
+     * whole chunk three times before giving up silently. A row-level answer is
+     * the only kind that reaches a human.
+     */
+    $fixture = importSeller();
+
+    Store::query()->update(['status' => StoreStatus::Draft]);
+
+    $importer = offerImporterFor($fixture);
+
+    try {
+        $importer(['gtin' => $fixture['gtin'], 'fiyat' => '129,90', 'stok' => '12', 'liste_fiyati' => null]);
+        $message = null;
+    } catch (RowImportFailedException $exception) {
+        $message = $exception->getMessage();
+    }
+
+    /*
+     * The type is what keeps the chunk alive; the message is what makes the
+     * failure report worth downloading. Filament stores an empty string for any
+     * exception it did not expect, which is precisely what the seller saw.
+     */
+    expect($message)->toContain('Yayında mağazanız yok')
+        ->and(Offer::query()->count())->toBe(0);
+});
