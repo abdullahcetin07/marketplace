@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Models\Admin;
 use App\Modules\Catalog\Application\Import\CatalogRowImporter;
+use App\Modules\Catalog\Application\Jobs\AttachImportedProductImages;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Exceptions\CatalogImportException;
 use App\Modules\Catalog\Domain\Models\Brand;
@@ -13,6 +14,7 @@ use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Catalog\Domain\Models\TaxRate;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Queue;
 
 /*
 |--------------------------------------------------------------------------
@@ -281,8 +283,13 @@ it('fetches the images it is given and shrugs off the ones it cannot', function 
      * cell is right — and the product being PUBLISHED is the assertion that
      * matters here.
      */
+    /*
+     * READ FROM A FRESH INSTANCE, because the fetch is no longer part of this
+     * call: the row queues one job per product and `import()` returns without
+     * waiting (@see `AttachImportedProductImages` for why).
+     */
     expect($product->status)->toBe(ProductStatus::Published)
-        ->and($product->getMedia('images')->count())->toBe(1);
+        ->and($product->fresh()->getMedia('images')->count())->toBe(1);
 
     // The gif was judged by extension and never requested at all.
     Http::assertNotSent(fn (Request $request): bool => str_contains($request->url(), 'animasyon.gif'));
@@ -346,7 +353,7 @@ it('does not stack a second copy of the same photo on a re-import', function ():
 
     $first = app(CatalogRowImporter::class)->import($row, $adminId);
 
-    expect($first->getMedia('images')->count())->toBe(1);
+    expect($first->fresh()->getMedia('images')->count())->toBe(1);
 
     /*
      * **THE QUESTION A RE-UPLOAD ACTUALLY TURNS ON.** The correction workflow is
@@ -388,4 +395,49 @@ it('fills in the images of a product that has none, on a later pass', function (
     expect(Product::query()->count())->toBe(1)
         ->and($filled->getKey())->toBe($bare->getKey())
         ->and($filled->fresh()->getMedia('images')->count())->toBe(1);
+});
+
+it('queues the image fetch instead of doing it in the row', function (): void {
+    /*
+     * **THE CHANGE THAT MADE LARGE IMPORTS FINISH AT ALL.** Filament sends 100
+     * rows per chunk and each row carries ~1.6 image urls, so fetching here meant
+     * ~160 sequential HTTP round trips inside a job the worker kills at 120
+     * seconds. It never finished: 385 `MaxAttemptsExceeded` failures in seventeen
+     * minutes, and a 21,205-row file that reported exactly 2,000 successes — the
+     * twenty chunks that happened to fit.
+     *
+     * So this asserts the NEGATIVE as much as the positive: the row does database
+     * work and queues the network work, and nothing was fetched while it ran.
+     */
+    $adminId = importingAdmin();
+
+    Queue::fake();
+    Http::fake(['cdn.example.com/*' => Http::response('', 200, ['Content-Type' => 'image/png'])]);
+
+    $product = app(CatalogRowImporter::class)->import(catalogRow([
+        'gorsel_url' => 'https://cdn.example.com/bir.jpg | https://cdn.example.com/iki.png',
+    ]), $adminId);
+
+    Queue::assertPushed(
+        AttachImportedProductImages::class,
+        fn (AttachImportedProductImages $job): bool => $job->queue === 'media',
+    );
+
+    Http::assertNothingSent();
+
+    expect($product->status)->toBe(ProductStatus::Published);
+});
+
+it('queues nothing for a row whose urls are all unusable', function (): void {
+    // A job per product costs a worker slot; a row whose only "image" is a PDF
+    // should not buy one to discover that.
+    $adminId = importingAdmin();
+
+    Queue::fake();
+
+    app(CatalogRowImporter::class)->import(catalogRow([
+        'gorsel_url' => 'https://cdn.example.com/katalog.pdf | https://cdn.example.com/animasyon.gif',
+    ]), $adminId);
+
+    Queue::assertNotPushed(AttachImportedProductImages::class);
 });

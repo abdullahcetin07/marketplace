@@ -8,6 +8,7 @@ use App\Modules\Catalog\Application\Actions\DraftProductAction;
 use App\Modules\Catalog\Application\Actions\PublishProductAction;
 use App\Modules\Catalog\Application\Actions\SubmitProductForReviewAction;
 use App\Modules\Catalog\Application\Actions\UpsertVariantAction;
+use App\Modules\Catalog\Application\Jobs\AttachImportedProductImages;
 use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
 use App\Modules\Catalog\Domain\DTOs\DraftProductDTO;
 use App\Modules\Catalog\Domain\DTOs\ModerationDecisionDTO;
@@ -18,7 +19,6 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\TaxRate;
 use Illuminate\Support\Facades\Log;
-use Throwable;
 
 /**
  * One spreadsheet row → a published product (ADR-074).
@@ -165,33 +165,44 @@ final class CatalogRowImporter
             'tax_rate_id' => $taxRate->getKey(),
         ])->save();
 
-        // NEW IMAGES ONLY WHEN THERE ARE NONE. Re-running an import must not
-        // stack a fourth copy of the same photo onto a product every time.
-        if ($product->getMedia('images')->isEmpty()) {
-            $this->attachImages($product, $row['gorsel_url'] ?? null);
-        }
+        // The "only when there are none" guard moved INTO `attachImages()`, so
+        // both call sites carry it and the queued job re-checks besides.
+        $this->attachImages($product, $row['gorsel_url'] ?? null);
 
         return $product->refresh();
     }
 
     /**
-     * Pipe-separated URLs → media.
+     * Pipe-separated URLs → a job on the `media` queue.
      *
-     * **A BAD IMAGE NEVER FAILS A ROW.** A 404, a redirect to an HTML error page,
-     * a host that times out — none of them is a reason to reject a product whose
-     * every other cell is right. The failure is logged with the url and the row
-     * carries on, which is the same judgement the rest of this class makes about
-     * partial data.
+     * **THE FETCH LEFT THIS CLASS BECAUSE IT WAS KILLING THE IMPORT.** Filament
+     * sends 100 rows per chunk and each row carries ~1.6 urls, so downloading
+     * here meant ~160 sequential HTTP round trips inside a job the worker kills
+     * at 120 seconds. It never finished: 385 `MaxAttemptsExceeded` failures in
+     * seventeen minutes, and a 21,205-row file that reported exactly 2,000
+     * successes — the twenty chunks that happened to fit.
      *
-     * NOT INSIDE A TRANSACTION, mirroring `AttachProductMediaAction`: a network
-     * fetch inside an open transaction holds a database connection for the
-     * duration of somebody else's web server.
+     * So the row's own work is now database work, which is bounded and fast, and
+     * the network work is queued one job per product where ten minutes are
+     * allowed. @see `AttachImportedProductImages` for the whole diagnosis.
+     *
+     * **THE URL IS STILL JUDGED HERE**, before anything is queued: a cell holding
+     * a PDF should not cost a job to discover, and the log entry belongs with the
+     * row that carried the bad cell.
+     *
+     * **NOTHING IS QUEUED WHEN THE PRODUCT ALREADY HAS PHOTOS.** Re-running an
+     * import must not stack a fourth copy of the same picture; the job re-checks
+     * as well, since it runs later and a retry could arrive after the fact.
      */
     private function attachImages(Product $product, ?string $urls): void
     {
-        $list = array_filter(array_map(trim(...), explode('|', (string) $urls)));
+        if ($product->getMedia('images')->isNotEmpty()) {
+            return;
+        }
 
-        foreach ($list as $url) {
+        $list = [];
+
+        foreach (array_filter(array_map(trim(...), explode('|', (string) $urls))) as $url) {
             if (! $this->looksLikeImage($url)) {
                 Log::channel('errors')->info('Skipped a non-image url during a catalogue import', [
                     'product_uuid' => $product->uuid,
@@ -201,16 +212,14 @@ final class CatalogRowImporter
                 continue;
             }
 
-            try {
-                $product->addMediaFromUrl($url)->toMediaCollection('images');
-            } catch (Throwable $exception) {
-                Log::channel('errors')->warning('Could not fetch an image during a catalogue import', [
-                    'product_uuid' => $product->uuid,
-                    'url' => $url,
-                    'exception' => $exception->getMessage(),
-                ]);
-            }
+            $list[] = $url;
         }
+
+        if ($list === []) {
+            return;
+        }
+
+        AttachImportedProductImages::dispatch((int) $product->getKey(), $list);
     }
 
     /**

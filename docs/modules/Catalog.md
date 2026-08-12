@@ -648,7 +648,43 @@ publishes products, which is exactly what that permission means.
 nothing whatsoever happens — the same operational truth the scheduler carries for the
 sweeps. The page says so on screen rather than leaving it in a run-book.
 
-## 16.6 v1 scope
+## 16.6 The image fetch is queued behind the row, and it had to be
+
+**A 20,000-ROW FILE NEVER FINISHED, AND THE REASON WAS ARITHMETIC.** Filament sends
+**100 rows per chunk**, and each row carried ~1.6 image urls fetched with
+`addMediaFromUrl` — inside the chunk, one after another. That is ~160 sequential
+HTTP round trips in a job the worker kills at **120 seconds** (`horizon.php`,
+`supervisor-default`). It could not fit: 385 `MaxAttemptsExceeded` failures in
+seventeen minutes across two uploads, and a 21,205-row file that reported exactly
+**2,000** successes — twenty whole chunks, the ones that happened to finish.
+
+Two symptoms made it hard to read, and both are worth remembering:
+
+- **`failed_import_rows` stayed EMPTY.** The rows never failed validation; the job
+  died before it could record anything. A failure report with nothing in it means
+  the job was killed, not that the file was bad.
+- **The import under-reported what it had written.** Filament increments
+  `successful_rows` when a chunk FINISHES, so everything a killed chunk had already
+  committed was invisible to its own report — products existed that the import
+  swore it had not created.
+
+So the chunk now does **database work only** — category path, brand, product,
+variant, tax bracket — and the network work rides on `AttachImportedProductImages`,
+one job per product on the **`media`** queue, whose supervisor already allows ten
+minutes and 512 MB. Measured on the live server afterwards: 200 brand-new products,
+two chunks, **under twenty seconds**, zero failed jobs, with the photographs
+arriving behind them over the next ninety seconds.
+
+**The job's timeout is 170s, and that number is not the supervisor's.** The redis
+connection releases a reserved job after `retry_after` = **180** seconds, so a job
+permitted to run longer gets handed to a SECOND worker while the first is still
+downloading — and the product collects two copies of every photograph. A job must
+live inside `retry_after`, not inside the supervisor's ceiling.
+
+**A row whose urls are all unusable queues nothing.** The extension check stays with
+the row, because a cell holding a PDF should not cost a worker slot to discover.
+
+## 16.7 v1 scope
 
 **Deliberately absent, and each for a reason rather than a lack of time:**
 
