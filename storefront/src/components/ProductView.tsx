@@ -5,6 +5,7 @@ import { ProductGallery } from '@/components/ProductGallery';
 import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductReviews } from '@/components/ProductReviews';
 import { Stars } from '@/components/Stars';
+import { TrackRecentView } from '@/components/TrackRecentView';
 import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
@@ -94,6 +95,19 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
   return (
     <div className="flex flex-col gap-8 pb-4">
+      {/* record this view for the homepage "Son baktıkların" + recommendations (client, localStorage) */}
+      <TrackRecentView
+        product={{
+          id: product.id,
+          slug: product.slug,
+          title: product.title,
+          image: product.images[0] ?? null,
+          category: { id: product.category.id, name: product.category.name, slug: product.category.slug },
+          brand: product.brand
+            ? { id: product.brand.id, name: product.brand.name, slug: product.brand.slug }
+            : null,
+        }}
+      />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }} />
 

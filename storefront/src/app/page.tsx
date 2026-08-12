@@ -2,6 +2,8 @@ import Link from 'next/link';
 import { browseProducts, fetchBrands } from '@/lib/api';
 import { HeroSlider } from '@/components/HeroSlider';
 import { ProductGrid } from '@/components/ProductGrid';
+import { RecentlyViewed } from '@/components/RecentlyViewed';
+import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
 
 /**
@@ -114,17 +116,23 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* newest sellable products */}
-      <section className="flex flex-col gap-5">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-xl font-extrabold tracking-tight">Yeni eklenenler</h2>
-          <Link href="/urunler" className="text-sm font-bold text-brand-600 hover:underline">
-            tümünü gör →
-          </Link>
-        </div>
+      {/* "Son baktıkların" for a returning visitor; the newest grid (below) is the
+          server-rendered fallback shown to first-time visitors and crawlers */}
+      <RecentlyViewed>
+        <section className="flex flex-col gap-5">
+          <div className="flex items-baseline justify-between">
+            <h2 className="text-xl font-extrabold tracking-tight">Yeni eklenenler</h2>
+            <Link href="/urunler" className="text-sm font-bold text-brand-600 hover:underline">
+              tümünü gör →
+            </Link>
+          </div>
 
-        <ProductGrid products={page.items} />
-      </section>
+          <ProductGrid products={page.items} />
+        </section>
+      </RecentlyViewed>
+
+      {/* "Sana özel öneriler" — same-category picks; hides itself without view history */}
+      <RecommendedForYou />
     </div>
   );
 }

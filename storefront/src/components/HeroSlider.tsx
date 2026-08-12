@@ -37,8 +37,8 @@ export function HeroSlider({ slides, intervalMs = 5000 }: { slides: HeroSlide[];
 
   // Touch swipe for mobile.
   const [touchX, setTouchX] = useState<number | null>(null);
-  function onTouchEnd(endX: number) {
-    if (touchX === null) return;
+  function handleTouchEnd(endX: number | null) {
+    if (touchX === null || endX === null) return;
     const dx = endX - touchX;
     if (Math.abs(dx) > 40) go(active + (dx < 0 ? 1 : -1));
     setTouchX(null);
@@ -51,8 +51,8 @@ export function HeroSlider({ slides, intervalMs = 5000 }: { slides: HeroSlide[];
       className="relative overflow-hidden rounded-3xl bg-ink-100 dark:bg-ink-900"
       onMouseEnter={() => setPaused(true)}
       onMouseLeave={() => setPaused(false)}
-      onTouchStart={(e) => setTouchX(e.touches[0].clientX)}
-      onTouchEnd={(e) => onTouchEnd(e.changedTouches[0].clientX)}
+      onTouchStart={(e) => setTouchX(e.touches[0]?.clientX ?? null)}
+      onTouchEnd={(e) => handleTouchEnd(e.changedTouches[0]?.clientX ?? null)}
       aria-roledescription="carousel"
       aria-label="Kampanyalar"
     >
