@@ -16,6 +16,7 @@ use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationMember;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
+use Illuminate\Support\Facades\Gate;
 
 /*
 |--------------------------------------------------------------------------
@@ -286,6 +287,53 @@ it('refuses a seller whose shop is not live', function (): void {
      * can see.
      */
     $this->actingAs($fixture['seller'], 'seller')
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => $fixture['gtin'], 'price' => '10.00', 'stock' => 1]],
+        ])
+        ->assertForbidden();
+
+    expect(Offer::query()->count())->toBe(0);
+});
+
+it('asks OfferPolicy before writing, and stops when it says no', function (): void {
+    /*
+     * **THE FEED USED TO ANSWER THIS QUESTION ITSELF.** Resolving an org the
+     * actor manages is how the merchant is FOUND; whether they may write offers
+     * for it is `OfferPolicy`'s answer. The two were the same predicate on the
+     * day this shipped — which is exactly how they drift apart unnoticed, and why
+     * this test denies at the GATE rather than by rearranging memberships: it
+     * fails if the policy stops being consulted, not merely if the outcome
+     * changes.
+     */
+    $fixture = feedApiSeller();
+
+    Gate::before(fn (): bool => false);
+
+    $this->actingAs($fixture['seller'], 'seller')
+        ->postJson('/api/v1/seller/offers/sync', [
+            'items' => [['gtin' => $fixture['gtin'], 'price' => '10.00', 'stock' => 1]],
+        ])
+        ->assertForbidden();
+
+    // AND IT STOPPED BEFORE WRITING, rather than reporting a refusal afterwards.
+    expect(Offer::query()->count())->toBe(0);
+});
+
+it('refuses a seller who may only view the organization, not manage it', function (): void {
+    /*
+     * The property underneath both layers: an active member without the
+     * capability to change what the company sells cannot push a price feed. A
+     * viewer is the realistic case — a bookkeeper with panel access.
+     */
+    $fixture = feedApiSeller();
+
+    /** @var Seller $viewer */
+    $viewer = Seller::factory()->create();
+
+    OrganizationMember::factory()->for($fixture['org'])->role(OrganizationRole::Viewer)
+        ->create(['user_id' => $viewer->getKey()]);
+
+    $this->actingAs($viewer, 'seller')
         ->postJson('/api/v1/seller/offers/sync', [
             'items' => [['gtin' => $fixture['gtin'], 'price' => '10.00', 'stock' => 1]],
         ])

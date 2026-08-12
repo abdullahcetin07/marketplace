@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Offer\Presentation\Filament\Seller\Imports;
 
 use App\Core\Domain\Contracts\CatalogQueryContract;
+use App\Models\User;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Offer\Application\Actions\SyncSellerOfferAction;
 use App\Modules\Offer\Application\Import\SellerFeedIdentity;
@@ -12,11 +13,13 @@ use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
 use App\Modules\Offer\Domain\DTOs\SyncOfferDTO;
 use App\Modules\Offer\Domain\Exceptions\OfferFeedException;
 use App\Modules\Offer\Domain\Models\Offer;
+use App\Modules\Offer\Presentation\Support\SellerFeedGate;
 use Carbon\CarbonInterface;
 use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
+use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
 
 /**
@@ -93,6 +96,26 @@ final class OfferImporter extends Importer
     public function resolveRecord(): Model
     {
         $seller = app(SellerFeedIdentity::class)->forUser((int) $this->import->user_id);
+
+        /*
+        | THE SAME POLICY THE API DOOR ASKS, ASKED THE SAME WAY. Two doors over
+        | one brain is only true if they are also two doors past one guard.
+        |
+        | **A REFUSAL IS RECORDED AS A ROW FAILURE, NOT THROWN OUT OF THE CHUNK.**
+        | The API answers 403 for the whole call because there is a caller waiting;
+        | here the caller left hours ago, and an escaping exception fails the job
+        | and hands the queue the whole chunk to retry — the ADR-075 lesson. Every
+        | row will carry the same refusal, which is a perfectly clear report.
+        */
+        /** @var User $importer */
+        $importer = $this->import->user;
+
+        try {
+            app(SellerFeedGate::class)->assertMayWriteFor($importer, $seller['orgId']);
+        } catch (AuthorizationException $exception) {
+            throw new RowImportFailedException($exception->getMessage());
+        }
+
         $currency = app(CurrencyRepositoryContract::class)->default();
 
         $gtin = trim((string) ($this->data['gtin'] ?? ''));

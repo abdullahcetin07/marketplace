@@ -596,7 +596,31 @@ refused for the whole call (`no_sellable_store`) rather than defaulted to one, s
 defaulting would create offers nobody can see.
 
 **No new permission** (v1): a token authenticates you as yourself, and the feed is
-gated by the offer abilities the panel already checks.
+gated by the same policy the panel already checks — **`OfferPolicy::createFor()`,
+actually called**, once per call, by both doors through `SellerFeedGate`.
+
+That distinction was a real deviation for one build. `SellerFeedIdentity` resolves
+the merchant by walking the memberships the actor may MANAGE, which is predicate for
+predicate what the policy decides — so the feed was answering its own authorization
+question and getting the right answer. Two copies of one rule agree right up until
+somebody tightens one of them: a policy that later refuses a suspended organization,
+or demands an org role, would have gone on being ignored by the two surfaces that
+write the most offers. A test now denies at the GATE rather than by rearranging
+memberships, so it fails if the policy stops being consulted — not merely if the
+outcome changes.
+
+**One check per call, not per item.** `createFor` is asked about the acting
+organization, and every offer either door then touches is looked up scoped to that
+same organization — so `OfferPolicy::manage()`, which is
+`canManageOrganization($user, $offer->selling_org_id)`, is the identical question
+about the identical org. If `manage()` ever grows a condition on the OFFER rather
+than its owner, the check must move into the loop.
+
+**The two doors answer a refusal differently, deliberately.** The API returns `403`
+for the whole call, because there is a caller waiting and this is not one bad item
+among good ones. The CSV records it as a row failure instead: the caller left hours
+ago, and an exception escaping the chunk fails the job and hands the queue the whole
+chunk to retry (ADR-075).
 
 ### The guard is `auth:sanctum_seller`, and it had to be
 

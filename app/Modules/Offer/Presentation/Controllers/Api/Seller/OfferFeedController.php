@@ -17,6 +17,7 @@ use App\Modules\Offer\Domain\Exceptions\OfferFeedException;
 use App\Modules\Offer\Presentation\Requests\SellerOfferFeedRequest;
 use App\Modules\Offer\Presentation\Requests\SellerStockFeedRequest;
 use App\Modules\Offer\Presentation\Requests\SellerWithdrawFeedRequest;
+use App\Modules\Offer\Presentation\Support\SellerFeedGate;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -46,6 +47,7 @@ final class OfferFeedController extends BaseController
 {
     public function __construct(
         private readonly SellerFeedIdentity $identity,
+        private readonly SellerFeedGate $gate,
         private readonly SyncSellerOfferAction $sync,
         private readonly SyncSellerStockAction $stock,
         private readonly WithdrawSellerOfferAction $withdraw,
@@ -89,7 +91,17 @@ final class OfferFeedController extends BaseController
      */
     private function run(BaseAction $action, array $items): array
     {
-        $seller = $this->identity->forUser((int) $this->actor()->getKey());
+        $actor = $this->actor();
+        $seller = $this->identity->forUser((int) $actor->getKey());
+
+        /*
+        | **`OfferPolicy` DECIDES, NOT THIS CONTROLLER.** Resolving an org the
+        | actor manages is how the merchant is FOUND; it is not the platform's
+        | answer to whether they may write offers for it. Those were the same
+        | predicate on the day this shipped, which is exactly how the two drift
+        | apart unnoticed.
+        */
+        $this->gate->assertMayWriteFor($actor, $seller['orgId']);
 
         $results = [];
         $tally = ['created' => 0, 'updated' => 0, 'unchanged' => 0, 'failed' => 0];
