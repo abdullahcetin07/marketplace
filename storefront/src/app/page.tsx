@@ -1,10 +1,28 @@
 import Link from 'next/link';
-import { browseProducts, fetchBrands } from '@/lib/api';
+import { browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
+import { CategoryStrip } from '@/components/CategoryStrip';
 import { HeroSlider } from '@/components/HeroSlider';
 import { ProductGrid } from '@/components/ProductGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
+
+/**
+ * The curated, always-on category strips under the personalized ones. Resolved
+ * against the REAL category tree by a name fragment, so a strip finds its category
+ * whatever its exact name/slug is — and simply doesn't render if that category is
+ * absent or empty. Reorder or extend this list to change the homepage strips.
+ */
+const CATEGORY_STRIPS: { title: string; match: string }[] = [
+  { title: 'Güneş Kremleri', match: 'güneş' },
+  { title: 'Vitaminler', match: 'vitamin' },
+  { title: 'Cilt Bakımı', match: 'cilt bak' },
+  { title: 'Makyaj', match: 'makyaj' },
+];
+
+function flattenCategories(nodes: CategoryNode[]): CategoryNode[] {
+  return nodes.flatMap((node) => [node, ...flattenCategories(node.children)]);
+}
 
 /**
  * RENDERED PER REQUEST, NOT BAKED AT BUILD TIME.
@@ -42,7 +60,12 @@ const coupons = [
  * chosen.
  */
 export default async function HomePage() {
-  const [page, brands] = await Promise.all([browseProducts({ perPage: 12 }), fetchBrands()]);
+  const [page, brands, tree] = await Promise.all([
+    browseProducts({ perPage: 12 }),
+    fetchBrands(),
+    fetchCategoryTree(),
+  ]);
+
   // Brand shortcuts, most-stocked first. Categories already live in the menu bar
   // above, so this row is brands now — a round logo where the brand has one,
   // its initials until an admin uploads it (Admin → Markalar).
@@ -50,6 +73,16 @@ export default async function HomePage() {
     .filter((brand) => brand.product_count > 0)
     .sort((a, b) => b.product_count - a.product_count)
     .slice(0, 9);
+
+  // Curated category strips, resolved to real categories by name (unmatched/empty
+  // ones simply don't render).
+  const flatCats = flattenCategories(tree);
+  const strips = CATEGORY_STRIPS.map((strip) => {
+    const category = flatCats.find(
+      (node) => node.product_count > 0 && node.name.toLocaleLowerCase('tr').includes(strip.match),
+    );
+    return category ? { title: strip.title, slug: category.slug } : null;
+  }).filter((strip): strip is { title: string; slug: string } => strip !== null);
 
   return (
     <div className="flex flex-col gap-9">
@@ -133,6 +166,11 @@ export default async function HomePage() {
 
       {/* "Sana özel öneriler" — same-category picks; hides itself without view history */}
       <RecommendedForYou />
+
+      {/* curated, always-on category strips (real categories, resolved by name) */}
+      {strips.map((strip) => (
+        <CategoryStrip key={strip.slug} title={strip.title} slug={strip.slug} href={`/${strip.slug}`} />
+      ))}
     </div>
   );
 }

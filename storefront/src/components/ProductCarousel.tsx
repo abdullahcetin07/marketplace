@@ -1,5 +1,6 @@
 'use client';
 
+import Link from 'next/link';
 import { useRef } from 'react';
 import type { BuyBoxPrices, ProductCard as Card, ProductRatings } from '@/lib/api';
 import { ProductCard } from '@/components/ProductCard';
@@ -17,11 +18,14 @@ export function ProductCarousel({
   items,
   prices,
   ratings,
+  href,
 }: {
   title: string;
   items: Card[];
   prices: BuyBoxPrices;
   ratings: ProductRatings;
+  /** Optional "tümünü gör" target — e.g. the category page for a category strip. */
+  href?: string;
 }) {
   const track = useRef<HTMLDivElement>(null);
 
@@ -31,11 +35,18 @@ export function ProductCarousel({
 
   return (
     <section className="flex flex-col gap-5">
-      <div className="flex items-baseline justify-between">
+      <div className="flex items-baseline justify-between gap-3">
         <h2 className="text-xl font-extrabold tracking-tight">{title}</h2>
-        <div className="hidden gap-2 sm:flex">
-          <Arrow side="left" onClick={() => scroll(-1)} />
-          <Arrow side="right" onClick={() => scroll(1)} />
+        <div className="flex items-center gap-4">
+          {href && (
+            <Link href={href} className="whitespace-nowrap text-sm font-bold text-brand-600 hover:underline">
+              tümünü gör →
+            </Link>
+          )}
+          <div className="hidden gap-2 sm:flex">
+            <Arrow side="left" onClick={() => scroll(-1)} />
+            <Arrow side="right" onClick={() => scroll(1)} />
+          </div>
         </div>
       </div>
       <div ref={track} className="hide-scroll flex snap-x gap-3.5 overflow-x-auto pb-1">
