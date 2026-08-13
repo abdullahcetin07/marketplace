@@ -30,6 +30,16 @@ export const metadata: Metadata = {
     template: '%s — Raftabul',
   },
   description: 'Binlerce satıcı, tek pazar yeri.',
+  // Default social-share card for every page that doesn't set its own (product and
+  // store pages override `images` with their own). Drop a 1200×630 banner at
+  // public/og-default.jpg and it fills the preview site-wide.
+  openGraph: {
+    siteName: 'Raftabul',
+    type: 'website',
+    locale: 'tr_TR',
+    images: [{ url: '/og-default.jpg', width: 1200, height: 630, alt: 'Raftabul' }],
+  },
+  twitter: { card: 'summary_large_image' },
 };
 
 const footerCols = [

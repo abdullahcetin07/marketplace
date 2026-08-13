@@ -1,3 +1,4 @@
+import type { Metadata } from 'next';
 import Link from 'next/link';
 import { fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
 import { CategoryStrip } from '@/components/CategoryStrip';
@@ -5,6 +6,37 @@ import { HeroSlider } from '@/components/HeroSlider';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
+import { SITE_URL } from '@/lib/site';
+
+// A keyword-rich home title of its own (absolute, so it skips the "%s — Raftabul"
+// template) + a canonical, since this is the site's most-linked page.
+export const metadata: Metadata = {
+  title: { absolute: 'Raftabul — Dermokozmetik, Vitamin & Kişisel Bakım Pazaryeri' },
+  description:
+    'Onaylı satıcılardan orijinal dermokozmetik, vitamin, cilt bakım ve kişisel bakım ürünleri — en uygun fiyatlarla Raftabul’da. Güvenli ödeme, hızlı kargo.',
+  alternates: { canonical: '/' },
+};
+
+// Homepage structured data: the brand as an Organization, and a WebSite with a
+// SearchAction so Google can offer a sitelinks search box into the listing.
+const organizationLd = {
+  '@context': 'https://schema.org',
+  '@type': 'Organization',
+  name: 'Raftabul',
+  url: SITE_URL,
+};
+
+const websiteLd = {
+  '@context': 'https://schema.org',
+  '@type': 'WebSite',
+  name: 'Raftabul',
+  url: SITE_URL,
+  potentialAction: {
+    '@type': 'SearchAction',
+    target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/urunler?q={search_term_string}` },
+    'query-input': 'required name=search_term_string',
+  },
+};
 
 /**
  * The curated, always-on category strips under the personalized ones. Resolved
@@ -79,6 +111,9 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-9">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
+
       {/* brand shortcuts — round logos, linked by slug */}
       {topBrands.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
