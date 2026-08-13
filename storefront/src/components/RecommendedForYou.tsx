@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { BuyBoxPrices, ProductCard as Card, ProductRatings } from '@/lib/api';
 import { browseProducts, getBuyBoxPrices, getProductRatings } from '@/lib/api';
-import { getRecentViews } from '@/lib/recently-viewed';
+import { getRecentViews, RECENT_STRIP_MIN } from '@/lib/recently-viewed';
 import { ProductCarousel } from '@/components/ProductCarousel';
 
 /**
@@ -28,7 +28,6 @@ export function RecommendedForYou() {
     const categorySlugs = [
       ...new Set(recent.map((product) => product.category.slug).filter((slug): slug is string => Boolean(slug))),
     ].slice(0, 3);
-    if (categorySlugs.length === 0) return;
 
     let cancelled = false;
 
@@ -57,7 +56,11 @@ export function RecommendedForYou() {
         pool[i] = pool[j]!;
         pool[j] = tmp;
       }
-      const picked = pool.slice(0, 8);
+
+      // Too few views for their own "Son baktıkların" strip → lead this one with
+      // them, so what they looked at still shows, followed by the picks.
+      const lead = recent.length < RECENT_STRIP_MIN ? recent : [];
+      const picked = [...lead, ...pool].slice(0, 8);
       if (cancelled || picked.length === 0) return;
 
       setItems(picked);

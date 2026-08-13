@@ -3,7 +3,7 @@
 import { useEffect, useState } from 'react';
 import type { BuyBoxPrices, ProductCard as Card, ProductRatings } from '@/lib/api';
 import { getBuyBoxPrices, getProductRatings } from '@/lib/api';
-import { getRecentViews } from '@/lib/recently-viewed';
+import { getRecentViews, RECENT_STRIP_MIN } from '@/lib/recently-viewed';
 import { ProductCarousel } from '@/components/ProductCarousel';
 
 /**
@@ -23,14 +23,16 @@ export function RecentlyViewed({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const recent = getRecentViews().slice(0, 8);
     setItems(recent);
-    if (recent.length === 0) return;
+    if (recent.length < RECENT_STRIP_MIN) return;
 
     const ids = recent.map((product) => product.id);
     getBuyBoxPrices(ids).then(setPrices).catch(() => {});
     getProductRatings(ids).then(setRatings).catch(() => {});
   }, []);
 
-  if (items === null || items.length === 0) return <>{children}</>;
+  // Fewer than RECENT_STRIP_MIN views → no own strip (those views ride along in
+  // "Sana özel öneriler" instead); the children (newest grid) show here.
+  if (items === null || items.length < RECENT_STRIP_MIN) return <>{children}</>;
 
   return <ProductCarousel title="Son baktıkların" items={items} prices={prices} ratings={ratings} />;
 }
