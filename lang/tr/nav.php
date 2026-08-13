@@ -19,5 +19,6 @@ return [
     'store' => 'Mağaza',
     'finance' => 'Finans',
     'shipping' => 'Kargo',
+    'settings' => 'Ayarlar',
     'system' => 'Sistem',
 ];

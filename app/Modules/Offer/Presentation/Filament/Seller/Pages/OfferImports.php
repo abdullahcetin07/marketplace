@@ -53,9 +53,16 @@ final class OfferImports extends Page implements HasTable
 
     protected static string $view = 'filament.offer.pages.offer-imports';
 
+    /**
+     * **UNDER "Teklifler", NOT "Katalog".** This is the history of the OFFER
+     * feed — a seller's own prices and stock — and the catalogue is the
+     * platform's, not theirs. It shipped pointing at `nav.catalog`, a key that
+     * does not exist, so the sidebar rendered the group as the literal string
+     * `nav.catalog` and the page was effectively unfindable.
+     */
     public static function getNavigationGroup(): string
     {
-        return __('nav.catalog');
+        return __('nav.offers');
     }
 
     public static function getNavigationLabel(): string

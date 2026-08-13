@@ -19,5 +19,6 @@ return [
     'store' => 'Store',
     'finance' => 'Finance',
     'shipping' => 'Shipping',
+    'settings' => 'Settings',
     'system' => 'System',
 ];
