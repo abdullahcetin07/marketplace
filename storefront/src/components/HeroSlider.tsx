@@ -68,6 +68,10 @@ export function HeroSlider({ slides, intervalMs = 5000 }: { slides: HeroSlide[];
               alt={slide.alt}
               className="aspect-[16/5] w-full object-cover"
               loading={i === 0 ? 'eager' : 'lazy'}
+              // The first slide is the homepage LCP element. `eager` only says "don't
+              // lazy-load"; `fetchPriority=high` tells the browser to pull it ahead of
+              // the other slides and page assets — the single biggest lever on hero LCP.
+              fetchPriority={i === 0 ? 'high' : 'auto'}
             />
           );
           return (

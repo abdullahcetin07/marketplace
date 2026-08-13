@@ -44,6 +44,12 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
   const featured = offers?.featured ?? null;
 
+  // Google flags a Product Offer with no priceValidUntil as an incomplete
+  // merchant listing. A live buy-box price can be re-priced by the seller at any
+  // time, so 30 days out is an honest ceiling rather than a promise — a date, not
+  // money, so the "never parse price" rule below does not apply to it.
+  const priceValidUntil = new Date(Date.now() + 30 * 864e5).toISOString().slice(0, 10);
+
   const breadcrumbLd = {
     '@context': 'https://schema.org',
     '@type': 'BreadcrumbList',
@@ -89,7 +95,27 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
             availability: featured.in_stock
               ? 'https://schema.org/InStock'
               : 'https://schema.org/OutOfStock',
+            // The catalogue is admin-built and sold new by onaylı satıcılar, so the
+            // condition is not a per-offer field the seller sets — it is always new.
+            itemCondition: 'https://schema.org/NewCondition',
+            priceValidUntil,
             url: absoluteUrl(`/${product.slug}`),
+            // The buy-box winner IS the seller of record for this price — name it so
+            // the listing attributes the offer to the merchant, not the platform.
+            ...(featured.store?.name
+              ? { seller: { '@type': 'Organization', name: featured.store.name } }
+              : {}),
+            // The platform-wide 14-day return the page already promises ("14 gün
+            // iade"), expressed for the merchant-listing so Google stops flagging it
+            // as missing. Free return, by mail, Türkiye.
+            hasMerchantReturnPolicy: {
+              '@type': 'MerchantReturnPolicy',
+              applicableCountry: 'TR',
+              returnPolicyCategory: 'https://schema.org/MerchantReturnFiniteReturnWindow',
+              merchantReturnDays: 14,
+              returnMethod: 'https://schema.org/ReturnByMail',
+              returnFees: 'https://schema.org/FreeReturn',
+            },
           },
   };
 

@@ -38,6 +38,23 @@ export async function BrandView({
     ].map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, item: item.url })),
   };
 
+  // The brand's products on this page as an ItemList — same reasoning as the
+  // category hub: a named collection reads better to a crawler than a link wall,
+  // and positions continue across pages so page 2 doesn't restart at rank 1.
+  const itemListLd =
+    listing.items.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          itemListElement: listing.items.map((item, index) => ({
+            '@type': 'ListItem',
+            position: (page - 1) * 24 + index + 1,
+            url: absoluteUrl(`/${item.slug}`),
+            name: item.title,
+          })),
+        }
+      : null;
+
   const hrefForPage = (next: number) => {
     const query = new URLSearchParams();
     if (sort !== 'newest') query.set('sort', sort);
@@ -49,6 +66,9 @@ export async function BrandView({
   return (
     <div className="flex flex-col gap-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      {itemListLd !== null && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+      )}
 
       <nav aria-label="Yol" className="flex flex-wrap gap-1 text-sm text-ink-500">
         <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>

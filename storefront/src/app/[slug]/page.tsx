@@ -41,9 +41,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const product = await getProduct(slug);
     if (product === null) return { title: 'Ürün bulunamadı' };
 
+    // Many catalogue rows carry no editorial description; rather than ship a
+    // product page with no meta description at all (Google then invents a snippet
+    // from the page chrome), synthesize one from what we always know — title,
+    // brand and the marketplace's standing promises.
+    const description =
+      product.description ??
+      `${product.title}${product.brand ? ` – ${product.brand.name}` : ''}, onaylı satıcılardan orijinal ve en uygun fiyatla Raftabul’da. Güvenli ödeme, hızlı kargo.`;
+
     return {
       title: product.title,
-      description: product.description ?? undefined,
+      description,
       alternates: { canonical },
       openGraph: {
         title: product.title,

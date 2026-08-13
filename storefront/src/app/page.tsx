@@ -114,6 +114,14 @@ export default async function HomePage() {
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
 
+      {/* The page's ONE h1. The hero is a campaign slider (or the fallback panel
+          below) — neither is a reliable, stable heading for the crawler, so the
+          home page's subject lives here, always rendered and sr-only so it names
+          the page for search without competing with the hero's own visual copy. */}
+      <h1 className="sr-only">
+        Onaylı satıcılardan orijinal dermokozmetik, vitamin ve kişisel bakım ürünleri
+      </h1>
+
       {/* brand shortcuts — round logos, linked by slug */}
       {topBrands.length > 0 && (
         <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
@@ -146,9 +154,11 @@ export default async function HomePage() {
           <span className="inline-flex w-max items-center gap-2 rounded-full bg-white/20 px-3 py-1.5 text-xs font-extrabold">
             Türkiye&apos;nin pazaryeri
           </span>
-          <h1 className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-balance sm:text-[2.7rem]">
+          {/* Visual hero heading, not the document h1 — the page's single h1 is the
+              sr-only one above, so this stays a styled paragraph to avoid two h1s. */}
+          <p className="mt-4 max-w-2xl text-3xl font-extrabold leading-tight tracking-tight text-balance sm:text-[2.7rem]">
             Binlerce ürün, güvenilir satıcılar
-          </h1>
+          </p>
           <p className="mt-3 max-w-xl text-[1.02rem] text-brand-50">
             Farklı mağazalardan ürünleri keşfet, karşılaştır ve güvenle satın al.
           </p>
