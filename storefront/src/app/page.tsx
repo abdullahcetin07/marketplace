@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
-import { fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
+import { fetchBrands, fetchCategoryTree, getBestSellers, getMostReviewed, type CategoryNode } from '@/lib/api';
 import { CategoryStrip } from '@/components/CategoryStrip';
 import { HeroSlider } from '@/components/HeroSlider';
+import { ProductRail } from '@/components/ProductRail';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
@@ -98,7 +99,12 @@ const coupons = [
  * are the server-rendered content; the personalized strips hydrate on top.
  */
 export default async function HomePage() {
-  const [brands, tree] = await Promise.all([fetchBrands(), fetchCategoryTree()]);
+  const [brands, tree, bestSellers, mostReviewed] = await Promise.all([
+    fetchBrands(),
+    fetchCategoryTree(),
+    getBestSellers(),
+    getMostReviewed(),
+  ]);
 
   // Brand shortcuts, most-stocked first. Categories already live in the menu bar
   // above, so this row is brands now — a round logo where the brand has one,
@@ -201,6 +207,10 @@ export default async function HomePage() {
 
       {/* "Sana özel öneriler" — same-category picks; hides itself without view history */}
       <RecommendedForYou />
+
+      {/* ranking strips — hidden until their backend endpoints have data, then auto-appear */}
+      <ProductRail title="Çok Satanlar" items={bestSellers} />
+      <ProductRail title="En Çok Değerlendirilenler" items={mostReviewed} />
 
       {/* curated, always-on category strips (real categories, resolved by name) */}
       {strips.map((strip) => (

@@ -423,6 +423,31 @@ export async function getAlsoBought(idOrSlug: string): Promise<ProductCard[]> {
   }
 }
 
+/**
+ * "Çok Satanlar" — products ranked by units sold across paid orders. Degrades to
+ * `[]` until sales exist, so the homepage strip stays hidden and appears on its own
+ * once the backend endpoint ships and orders accumulate.
+ */
+export async function getBestSellers(): Promise<ProductCard[]> {
+  try {
+    return (await publicJson<ProductCard[]>('/api/v1/products/best-sellers')) ?? [];
+  } catch {
+    return [];
+  }
+}
+
+/**
+ * "En Çok Değerlendirilenler" — products ranked by published review count. Same
+ * degrade-to-empty contract: hidden until reviews exist.
+ */
+export async function getMostReviewed(): Promise<ProductCard[]> {
+  try {
+    return (await publicJson<ProductCard[]>('/api/v1/products/most-reviewed')) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /*
 |------------------------------------------------------------------------------
 | Flat slug URLs (ADR-059)

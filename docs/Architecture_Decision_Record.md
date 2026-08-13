@@ -2498,4 +2498,41 @@ Full specification: `BUILD_ALSO_BOUGHT.md`.
 
 ---
 
+# ADR-078 "Çok Satanlar" and "En Çok Değerlendirilenler" Are Ranking Read Endpoints, Computed on Read Like ADR-077
+
+**Status:** Accepted (2026-08-13). Extends the ADR-077 pattern. Work order: `BUILD_RANKING_STRIPS.md`.
+
+The homepage wants two always-on ranking strips it had deferred: **"Çok Satanlar"** and
+**"En Çok Değerlendirilenler"**. Both are the same shape as ADR-077's also-bought — an
+aggregation read with no honest static source — so they follow the same rules.
+
+**Two public read endpoints**, each returning the browse `ProductCard[]` shape (up to 12),
+**published + sellable** only, **computed on read**, no stored ranking table:
+- `GET /api/v1/products/best-sellers` — ranked by **units sold across paid orders** (a cart
+  is not a sale; cancelled/expired baskets are not sales), read through a **new Core
+  `OrderQueryContract` method** (e.g. `bestSellingProductUuids(limit)`), the sibling of
+  ADR-077's co-purchase method.
+- `GET /api/v1/products/most-reviewed` — ranked by **published (approved) review count**,
+  read through a **new Core Reviews query-contract method** (e.g.
+  `mostReviewedProductUuids(limit)`). Reviews owns the count; Catalog hydrates the cards.
+
+**Catalog hydrates both** — it calls the Core method for the ranked uuids and turns them
+into published+sellable cards preserving rank (`whereIn` + explicit order-by-position). No
+module imports another; `LayeringTest` and `CatalogBoundaryTest` hold.
+
+**Empty until data, then automatic** — best-sellers is `[]` until sales exist,
+most-reviewed `[]` until a product is reviewed; the storefront (already wired,
+`getBestSellers` / `getMostReviewed`, degrade-to-empty) hides each strip and it appears on
+its own. Both cached; precompute into a rebuilt table only if volume ever bites — the same
+documented follow-up as ADR-077.
+
+**Why on read, not stored:** the truth is the order lines (ADR-053) and the reviews
+(ADR-069, already computed on read); a materialized ranking would be a second place to
+drift, and at launch volume the query is cheap. "En yüksek puanlı" is deliberately left out
+for now (rating average is noisy at low review counts); it can join this surface later.
+
+Full specification: `BUILD_RANKING_STRIPS.md`.
+
+---
+
 END OF FILE
