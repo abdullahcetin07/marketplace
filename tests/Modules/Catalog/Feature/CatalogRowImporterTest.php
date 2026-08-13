@@ -239,10 +239,16 @@ it('reads the KDV cell in every spelling a spreadsheet produces', function (): v
     $adminId = importingAdmin();
     $importer = app(CatalogRowImporter::class);
 
-    $twenty = $importer->import(catalogRow(['kdv' => '%20', 'gtin' => '08690000000010']), $adminId);
-    $ten = $importer->import(catalogRow(['kdv' => '10', 'gtin' => '08690000000011']), $adminId);
-    $ratio = $importer->import(catalogRow(['kdv' => '0,01', 'gtin' => '08690000000012']), $adminId);
-    $blank = $importer->import(catalogRow(['kdv' => null, 'gtin' => '08690000000013']), $adminId);
+    /*
+     * DISTINCT TITLES, because these are four different products and a real sheet
+     * would name them so. Sharing one title is now a slug collision, which the
+     * importer reports as a renewed barcode and skips — correct behaviour that
+     * would make this test fail for a reason that has nothing to do with KDV.
+     */
+    $twenty = $importer->import(catalogRow(['baslik' => 'KDV Yirmi', 'kdv' => '%20', 'gtin' => '08690000000010']), $adminId);
+    $ten = $importer->import(catalogRow(['baslik' => 'KDV On', 'kdv' => '10', 'gtin' => '08690000000011']), $adminId);
+    $ratio = $importer->import(catalogRow(['baslik' => 'KDV Bir', 'kdv' => '0,01', 'gtin' => '08690000000012']), $adminId);
+    $blank = $importer->import(catalogRow(['baslik' => 'KDV Boş', 'kdv' => null, 'gtin' => '08690000000013']), $adminId);
 
     expect($twenty->taxRate?->code)->toBe('kdv-20')
         ->and($ten->taxRate?->code)->toBe('kdv-10')
@@ -462,4 +468,41 @@ it('gives a queued chunk hours to be picked up, not minutes', function (): void 
     );
 
     expect(now()->diffInMinutes($importer->getJobRetryUntil()))->toBeGreaterThan(60);
+});
+
+it('skips a renewed barcode whose product is already in the catalogue', function (): void {
+    /*
+     * **A RENEWED BARCODE IS THE SAME PRODUCT** (owner's call, 2026-08-13). A
+     * supplier re-barcodes an item and the sheet carries both, so `Bioderma
+     * Photoderm LEB SPF30 100 ml` arrives as `3701129808047` and `...48`. GTIN
+     * dedup cannot see it — the barcodes genuinely differ — and the two rows then
+     * collide on one slug.
+     *
+     * **THE ROW IS REPORTED, NOT SWALLOWED**, and both barcodes are named: only an
+     * admin can tell a re-barcode from two products that happen to share a name.
+     */
+    $adminId = importingAdmin();
+    $importer = app(CatalogRowImporter::class);
+
+    $importer->import(catalogRow(['baslik' => 'Bioderma Photoderm LEB SPF30 100 ml', 'gtin' => '3701129808047']), $adminId);
+
+    try {
+        $importer->import(catalogRow(['baslik' => 'Bioderma Photoderm LEB SPF30 100 ml', 'gtin' => '3701129808048']), $adminId);
+        $message = null;
+    } catch (CatalogImportException $exception) {
+        $message = $exception->getMessage();
+    }
+
+    /*
+     * **AND IT IS A `CatalogImportException`, WHICH IS THE WHOLE POINT.** Before
+     * this, the collision surfaced as an `UniqueConstraintViolationException`
+     * escaping the row — which Filament cannot record as a row failure, so it
+     * wrote the row with an EMPTY reason and failed the whole JOB. The queue then
+     * re-ran the chunk and every innocent row beside it was reported failed too:
+     * 117 blank failures out of 78 real collisions.
+     */
+    expect($message)->toContain('3701129808047')
+        ->and($message)->toContain('3701129808048')
+        // ONE product, not two, and the first one is untouched.
+        ->and(Product::withoutGlobalScopes()->where('title_tr', 'Bioderma Photoderm LEB SPF30 100 ml')->count())->toBe(1);
 });

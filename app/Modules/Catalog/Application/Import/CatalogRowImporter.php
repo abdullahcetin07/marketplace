@@ -18,7 +18,9 @@ use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\TaxRate;
+use Illuminate\Database\UniqueConstraintViolationException;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Str;
 
 /**
  * One spreadsheet row → a published product (ADR-074).
@@ -100,6 +102,63 @@ final class CatalogRowImporter
             return $this->update($existing, $title, $description, $category, $brand, $taxRate, $row);
         }
 
+        /*
+        | **A RENEWED BARCODE IS THE SAME PRODUCT, AND ITS ROW IS SKIPPED**
+        | (owner's call, 2026-08-13). A supplier re-barcodes an item and the sheet
+        | carries both, so `Bioderma Photoderm LEB SPF30 100 ml` arrives twice as
+        | `3701129808047` and `...48`. The GTIN dedup above cannot see it — the
+        | barcodes genuinely differ — and the two rows then collide on one slug.
+        |
+        | **CHECKED HERE AND CAUGHT BELOW, BECAUSE THE COLLISION HAS TWO SHAPES.**
+        | `SlugRegistry::issue()` already appends `-2`, but it decides against the
+        | registry BEFORE the product row exists; two chunks running the same title
+        | concurrently both get the clean slug and the second insert dies on
+        | `products_slug_unique`. This check answers the settled case — the twin is
+        | already committed — and the catch answers the raced one.
+        |
+        | Either way it must not reach Filament as a database exception. That is
+        | what happened for a day: an `UniqueConstraintViolationException` escaping
+        | this method cannot be recorded as a row failure, so Filament wrote the row
+        | with an EMPTY reason and failed the whole JOB — the queue re-ran the chunk
+        | and every innocent row beside it was reported failed too. 117 blank
+        | failures out of 78 real collisions.
+        */
+        $clash = $this->products->findBySlug(Str::slug($title));
+
+        if ($clash !== null) {
+            throw CatalogImportException::titleAlreadyInCatalog($title, $clash->gtin, $gtin);
+        }
+
+        try {
+            return $this->createProduct($title, $description, $category, $brand, $taxRate, $gtin, $row, $adminId);
+        } catch (UniqueConstraintViolationException) {
+            // THE RACE, LOST. Another chunk registered this title's slug between
+            // the check above and this insert; the twin exists, so the row is the
+            // same skip with the same sentence.
+            throw CatalogImportException::titleAlreadyInCatalog(
+                $title,
+                $this->products->findBySlug(Str::slug($title))?->gtin,
+                $gtin,
+            );
+        }
+    }
+
+    /**
+     * The draft, its default variant, its images and the full moderation
+     * lifecycle. @see `create()` for why the slug collision around it lives there.
+     *
+     * @param array<string, string|null> $row
+     */
+    private function createProduct(
+        string $title,
+        string $description,
+        Category $category,
+        ?Brand $brand,
+        TaxRate $taxRate,
+        ?string $gtin,
+        array $row,
+        int $adminId,
+    ): Product {
         $product = $this->draftProduct->run(new DraftProductDTO(
             categoryUuid: $category->uuid,
             title: ['tr' => $title],

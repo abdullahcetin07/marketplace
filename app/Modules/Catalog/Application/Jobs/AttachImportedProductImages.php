@@ -6,6 +6,7 @@ namespace App\Modules\Catalog\Application\Jobs;
 
 use App\Core\Application\Jobs\BaseJob;
 use App\Modules\Catalog\Domain\Models\Product;
+use DateTimeInterface;
 use Illuminate\Support\Facades\Log;
 use Throwable;
 
@@ -67,6 +68,27 @@ final class AttachImportedProductImages extends BaseJob
         parent::__construct();
 
         $this->onQueue('media');
+    }
+
+    /**
+     * **TWELVE HOURS, BECAUSE THIS JOB'S WAIT IS UNBOUNDED BY DESIGN.**
+     * `BaseJob` sets an hour, which is right for a job dispatched by a request and
+     * expected to run promptly. A bulk import pushes ONE OF THESE PER PRODUCT —
+     * 19,886 of them from a single upload — onto a queue with four workers, so the
+     * last one legitimately waits most of a day for its turn.
+     *
+     * `retryUntil` is stamped into the payload at DISPATCH and Laravel checks it
+     * BEFORE it checks attempts, so an expired job is failed on pickup having done
+     * nothing: 963 of them died that way with `attempts = 0`, and **3,961 products
+     * — one in five — ended up with no photographs at all** while every other
+     * number in the import report said success. Third instance of the same trap in
+     * this feature (@see `ProductImporter::getJobRetryUntil()`), and the lesson is
+     * the same: a deadline measured from dispatch has to outlast the QUEUE, not
+     * the job.
+     */
+    public function retryUntil(): DateTimeInterface
+    {
+        return now()->addHours(12);
     }
 
     public function handle(): void

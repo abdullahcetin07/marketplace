@@ -58,6 +58,40 @@ final class CatalogImportException extends BaseException
      * catalogue (ADR-047) without a single person deciding to. The row fails and
      * says which category, which a human can fix in one click.
      */
+    /**
+     * The catalogue already carries this product under a different barcode.
+     *
+     * **A RENEWED BARCODE IS THE SAME PRODUCT, AND THE ROW IS SKIPPED** (owner's
+     * call, 2026-08-13). A supplier re-barcodes an item and the sheet arrives
+     * carrying both, so `Bioderma Photoderm LEB SPF30 100 ml` shows up as
+     * `3701129808047` and `...48`. The GTIN dedup cannot see it — that is a
+     * DIFFERENT barcode — and the two rows then race for one slug.
+     *
+     * **IT IS REPORTED, NOT SWALLOWED.** The row lands in the failure report with
+     * both barcodes named, because the admin is the only one who can decide
+     * whether it really is a re-barcode or two genuinely different products that
+     * happen to share a name.
+     *
+     * Before this existed the collision surfaced as an
+     * `UniqueConstraintViolationException` escaping `resolveRecord()`, which
+     * Filament cannot record as a row failure: it wrote the row with an EMPTY
+     * reason and failed the whole JOB, so the queue re-ran the chunk and every
+     * innocent row beside it was reported as failed too. 117 blank failures from
+     * 78 genuine collisions.
+     */
+    public static function titleAlreadyInCatalog(string $title, ?string $existingGtin, ?string $rowGtin): self
+    {
+        return self::rowRejected(
+            sprintf(
+                'Bu isimde bir ürün katalogda zaten var: "%s" (kayıtlı barkod: %s, dosyadaki barkod: %s). Satır atlandı.',
+                $title,
+                $existingGtin ?? '—',
+                $rowGtin ?? '—',
+            ),
+            ['title' => $title, 'existing_gtin' => $existingGtin, 'row_gtin' => $rowGtin],
+        );
+    }
+
     public static function categoryRejectsProducts(string $path, string $name): self
     {
         return self::rowRejected(

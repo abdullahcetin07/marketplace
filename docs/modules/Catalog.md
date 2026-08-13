@@ -705,7 +705,34 @@ first. Each fix reveals the next constraint, which is the ordinary shape of this
 of work — and the reason both numbers are written down here with what they are
 measured against.
 
-## 16.7 v1 scope
+## 16.7 A renewed barcode is the same product, and its row is skipped
+
+**A SUPPLIER RE-BARCODES AN ITEM AND THE SHEET ARRIVES CARRYING BOTH.** `Bioderma
+Photoderm LEB SPF30 100 ml` came in as `3701129808047` and `...48`; `Babe Stop-Akn`
+and `Babe Stop Akn` differ by one hyphen and slug identically. GTIN dedup (§16.4)
+cannot see either — the barcodes genuinely differ — so the two rows collide on one
+slug. The owner's ruling (2026-08-13): **these are the same product, renewed. Skip
+the row.**
+
+It is **reported, not swallowed**, naming both barcodes, because only an admin can
+tell a re-barcode from two different products that happen to share a name.
+
+**The collision has two shapes and both are handled.** `SlugRegistry::issue()`
+already appends `-2`, but it decides against the registry BEFORE the product row
+exists — so two chunks running the same title concurrently both receive the clean
+slug and the second insert dies on `products_slug_unique`. A `findBySlug` check
+answers the settled case; a caught `UniqueConstraintViolationException` answers the
+raced one.
+
+**Neither may reach Filament as a database exception**, and that is the expensive
+part of this lesson. An exception that is not `RowImportFailedException` escaping
+`resolveRecord()` cannot be recorded against a row: Filament writes the row with an
+EMPTY reason and fails the whole JOB, so the queue re-runs the chunk and every
+innocent row beside it is reported failed too. One upload produced **117 blank
+failures out of 78 real collisions** — and the surplus was neighbours, not
+duplicates.
+
+## 16.8 v1 scope
 
 **Deliberately absent, and each for a reason rather than a lack of time:**
 
