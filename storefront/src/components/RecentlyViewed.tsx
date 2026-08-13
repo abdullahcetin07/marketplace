@@ -9,13 +9,11 @@ import { ProductCarousel } from '@/components/ProductCarousel';
 /**
  * "Son baktıkların" — the last 8 products this browser viewed, as a carousel.
  *
- * PERSONALIZED, SO CLIENT-ONLY. It reads localStorage on mount; a first-time
- * visitor has no history, so it renders `children` instead — which is the
- * server-rendered "Yeni eklenenler" grid the homepage passes in. That also means
- * the newest grid is the SSR/first-paint content (good for a crawler and for the
- * no-history case), swapped for the carousel only when a history exists.
+ * PERSONALIZED, SO CLIENT-ONLY. It reads localStorage on mount and renders nothing
+ * until there are at least RECENT_STRIP_MIN views — below that a 1–2 card strip
+ * looks empty, and those views ride along in "Sana özel öneriler" instead.
  */
-export function RecentlyViewed({ children }: { children: React.ReactNode }) {
+export function RecentlyViewed() {
   const [items, setItems] = useState<Card[] | null>(null);
   const [prices, setPrices] = useState<BuyBoxPrices>({});
   const [ratings, setRatings] = useState<ProductRatings>({});
@@ -30,9 +28,7 @@ export function RecentlyViewed({ children }: { children: React.ReactNode }) {
     getProductRatings(ids).then(setRatings).catch(() => {});
   }, []);
 
-  // Fewer than RECENT_STRIP_MIN views → no own strip (those views ride along in
-  // "Sana özel öneriler" instead); the children (newest grid) show here.
-  if (items === null || items.length < RECENT_STRIP_MIN) return <>{children}</>;
+  if (items === null || items.length < RECENT_STRIP_MIN) return null;
 
   return <ProductCarousel title="Son baktıkların" items={items} prices={prices} ratings={ratings} />;
 }

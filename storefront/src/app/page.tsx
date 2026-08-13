@@ -1,8 +1,7 @@
 import Link from 'next/link';
-import { browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
+import { fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
 import { CategoryStrip } from '@/components/CategoryStrip';
 import { HeroSlider } from '@/components/HeroSlider';
-import { ProductGrid } from '@/components/ProductGrid';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
@@ -49,22 +48,16 @@ const coupons = [
 ];
 
 /**
- * The front page — newest sellable products (§2.2).
+ * The front page: brand shortcuts, the campaign hero slider, the personalized
+ * strips ("Son baktıkların" / "Sana özel öneriler", client-side), and the curated
+ * always-on category strips.
  *
- * A SERVER COMPONENT, so the marketplace's most linked page is fully rendered
- * HTML for a crawler rather than a spinner (§2.1).
- *
- * "Newest" is the API's default sort, and it is the honest thing to show a
- * visitor with no query: campaigns and curation need an editorial surface nobody
- * has built yet, and a hard-coded "featured" list would be a lie about how it was
- * chosen.
+ * A SERVER COMPONENT, so the marketplace's most linked page is fully rendered HTML
+ * for a crawler rather than a spinner (§2.1) — the brand row and category strips
+ * are the server-rendered content; the personalized strips hydrate on top.
  */
 export default async function HomePage() {
-  const [page, brands, tree] = await Promise.all([
-    browseProducts({ perPage: 12 }),
-    fetchBrands(),
-    fetchCategoryTree(),
-  ]);
+  const [brands, tree] = await Promise.all([fetchBrands(), fetchCategoryTree()]);
 
   // Brand shortcuts, most-stocked first. Categories already live in the menu bar
   // above, so this row is brands now — a round logo where the brand has one,
@@ -149,20 +142,8 @@ export default async function HomePage() {
         ))}
       </div>
 
-      {/* "Son baktıkların" for a returning visitor; the newest grid (below) is the
-          server-rendered fallback shown to first-time visitors and crawlers */}
-      <RecentlyViewed>
-        <section className="flex flex-col gap-5">
-          <div className="flex items-baseline justify-between">
-            <h2 className="text-xl font-extrabold tracking-tight">Yeni eklenenler</h2>
-            <Link href="/urunler" className="text-sm font-bold text-brand-600 hover:underline">
-              tümünü gör →
-            </Link>
-          </div>
-
-          <ProductGrid products={page.items} />
-        </section>
-      </RecentlyViewed>
+      {/* "Son baktıkların" (≥3 views); hidden otherwise */}
+      <RecentlyViewed />
 
       {/* "Sana özel öneriler" — same-category picks; hides itself without view history */}
       <RecommendedForYou />
