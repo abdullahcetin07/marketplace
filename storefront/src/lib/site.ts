@@ -6,7 +6,7 @@
  * this app is same-origin and relative; this is the one place that isn't, so it is
  * the one constant that carries the origin.
  */
-export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://test.raftabul.com').replace(
+export const SITE_URL = (process.env.NEXT_PUBLIC_SITE_URL ?? 'https://raftabul.com').replace(
   /\/$/,
   '',
 );
