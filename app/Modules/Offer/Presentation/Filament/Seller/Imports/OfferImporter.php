@@ -178,11 +178,30 @@ final class OfferImporter extends Importer
     public function saveRecord(): void {}
 
     /**
-     * Ten minutes, not Filament's default day (ADR-075's outer fence).
+     * Six hours, and the number is about the BATCH rather than one job.
+     *
+     * **A TEN-MINUTE FENCE KILLED A 19,896-ROW IMPORT AT ROW 1,500** (2026-08-13).
+     * `retryUntil` is stamped into the payload when the job is DISPATCHED, so it
+     * bounds a chunk's total time in the queue — not its retries. Filament pushes
+     * every chunk at once: 199 of them here, one finishing about every  minute, so the
+     * batch needs hours. At 08:58:34, ten minutes after the upload, the 184 chunks
+     * still WAITING were failed on pickup, untouched, with `attempts = 202`
+     * against `maxTries = 3` — a number that makes no sense until you notice the
+     * deadline had passed and Laravel checks it before it checks attempts.
+     *
+     * ADR-075 set the fence to stop an unbounded overnight retry storm, and that
+     * intent is intact: **`$tries = 3` is what actually bounds retries** (@see
+     * `ImportChunk`), and this is the outer wall. Six hours still ends long before
+     * anybody finds a storm in the morning, and it is longer than any import this
+     * catalogue can produce.
+     *
+     * The reason it went unnoticed for a day is that chunks were dying of the
+     * 120-second worker timeout first (@see `AttachImportedProductImages`). Fixing
+     * that made this the binding constraint.
      */
     public function getJobRetryUntil(): CarbonInterface
     {
-        return now()->addMinutes(10);
+        return now()->addHours(6);
     }
 
     public static function getCompletedNotificationBody(Import $import): string

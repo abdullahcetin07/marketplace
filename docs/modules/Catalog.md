@@ -684,6 +684,27 @@ live inside `retry_after`, not inside the supervisor's ceiling.
 **A row whose urls are all unusable queues nothing.** The extension check stays with
 the row, because a cell holding a PDF should not cost a worker slot to discover.
 
+**And the retry fence is SIX HOURS, not ten minutes** — a second failure the first
+fix uncovered. ADR-075 set `getJobRetryUntil()` to ten minutes to stop an unbounded
+overnight retry storm, but `retryUntil` is stamped into the payload when a job is
+DISPATCHED, so it bounds a chunk's time in the QUEUE rather than its retries. Filament
+pushes every chunk at once — 199 of them for a 19,896-row file, completing at roughly
+one a minute — so a 19,896-row import stopped dead at row 1,500, exactly ten minutes
+in, with the 184 chunks still waiting failed on pickup, untouched, reporting
+`attempts = 202` against `maxTries = 3`. That number makes no sense until you notice
+Laravel checks the deadline BEFORE it checks attempts.
+
+ADR-075's intent is intact: **`ImportChunk::$tries = 3` is what actually bounds
+retries**, and the window is only the outer wall. Six hours outlasts any import this
+catalogue can produce and still ends long before anybody finds a storm in the morning.
+`OfferImporter` carried the identical ten-minute fence and got the identical fix; a
+seller's file is smaller, so it had not hit it yet.
+
+It went unnoticed for a day because chunks were dying of the 120-second worker timeout
+first. Each fix reveals the next constraint, which is the ordinary shape of this kind
+of work — and the reason both numbers are written down here with what they are
+measured against.
+
 ## 16.7 v1 scope
 
 **Deliberately absent, and each for a reason rather than a lack of time:**

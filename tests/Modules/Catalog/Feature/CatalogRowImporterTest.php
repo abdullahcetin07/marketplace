@@ -12,6 +12,8 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Catalog\Domain\Models\TaxRate;
+use App\Modules\Catalog\Presentation\Filament\Imports\ProductImporter;
+use Filament\Actions\Imports\Models\Import;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Support\Facades\Queue;
@@ -440,4 +442,24 @@ it('queues nothing for a row whose urls are all unusable', function (): void {
     ]), $adminId);
 
     Queue::assertNotPushed(AttachImportedProductImages::class);
+});
+
+it('gives a queued chunk hours to be picked up, not minutes', function (): void {
+    /*
+     * **A TEN-MINUTE FENCE KILLED A 19,896-ROW IMPORT AT ROW 1,500.** `retryUntil`
+     * is stamped into the payload when a job is DISPATCHED, so it bounds a chunk's
+     * time in the QUEUE, not its retries — and Filament pushes every chunk at
+     * once. Ten minutes after the upload, the 184 chunks still waiting were failed
+     * on pickup, untouched, reporting `attempts = 202` against `maxTries = 3`.
+     *
+     * ADR-075's intent survives in `ImportChunk::$tries`, which is what actually
+     * bounds retries. This is only the outer wall, and it has to outlast the batch.
+     */
+    $importer = new ProductImporter(
+        new Import(['importer' => ProductImporter::class]),
+        [],
+        [],
+    );
+
+    expect(now()->diffInMinutes($importer->getJobRetryUntil()))->toBeGreaterThan(60);
 });

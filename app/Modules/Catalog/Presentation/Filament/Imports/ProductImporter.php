@@ -183,19 +183,29 @@ final class ProductImporter extends Importer
     }
 
     /**
-     * Ten minutes, not a day (ADR-075, Fix B).
+     * Six hours, and the number is about the BATCH rather than one job.
      *
-     * **THE OUTER FENCE.** Filament's default is `now()->addDay()`, and a job with
-     * no `$tries` retries for as long as that window allows — which is how 29,074
-     * attempts happened between one evening and the next morning. The real fix is
-     * that a bad ROW no longer fails the job at all (@see `resolveRecord()`); this
-     * is what bounds the damage of the NEXT defect, whatever it turns out to be.
+     * **A TEN-MINUTE FENCE KILLED A 19,896-ROW IMPORT AT ROW 1,500** (2026-08-13).
+     * `retryUntil` is stamped into the payload when the job is DISPATCHED, so it
+     * bounds a chunk's total time in the queue — not its retries. Filament pushes
+     * every chunk at once: 199 of them here, one finishing about every  minute, so the
+     * batch needs hours. At 08:58:34, ten minutes after the upload, the 184 chunks
+     * still WAITING were failed on pickup, untouched, with `attempts = 202`
+     * against `maxTries = 3` — a number that makes no sense until you notice the
+     * deadline had passed and Laravel checks it before it checks attempts.
      *
-     * Ten minutes is generous for a chunk of rows and short enough that nobody
-     * finds a storm in the morning.
+     * ADR-075 set the fence to stop an unbounded overnight retry storm, and that
+     * intent is intact: **`$tries = 3` is what actually bounds retries** (@see
+     * `ImportChunk`), and this is the outer wall. Six hours still ends long before
+     * anybody finds a storm in the morning, and it is longer than any import this
+     * catalogue can produce.
+     *
+     * The reason it went unnoticed for a day is that chunks were dying of the
+     * 120-second worker timeout first (@see `AttachImportedProductImages`). Fixing
+     * that made this the binding constraint.
      */
     public function getJobRetryUntil(): CarbonInterface
     {
-        return now()->addMinutes(10);
+        return now()->addHours(6);
     }
 }
