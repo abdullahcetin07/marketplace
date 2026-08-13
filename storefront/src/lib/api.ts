@@ -407,6 +407,22 @@ export function getProductOffers(idOrSlug: string): Promise<ProductOffers | null
   return publicJson<ProductOffers>(`/api/v1/products/${encodeURIComponent(idOrSlug)}/offers`);
 }
 
+/**
+ * "Bu ürünü alanlar bunları da aldı" — products co-purchased with this one (same
+ * basket), ranked by frequency.
+ *
+ * DEGRADES TO `[]` when the endpoint is absent or there is no purchase history yet,
+ * so the section stays hidden and lights up on its own once sales create
+ * co-purchase data — no frontend change needed when the backend ships it.
+ */
+export async function getAlsoBought(idOrSlug: string): Promise<ProductCard[]> {
+  try {
+    return (await publicJson<ProductCard[]>(`/api/v1/products/${encodeURIComponent(idOrSlug)}/also-bought`)) ?? [];
+  } catch {
+    return [];
+  }
+}
+
 /*
 |------------------------------------------------------------------------------
 | Flat slug URLs (ADR-059)

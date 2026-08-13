@@ -4,6 +4,7 @@ import { AddToCartButton } from '@/components/AddToCartButton';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductReviews } from '@/components/ProductReviews';
+import { AlsoBought } from '@/components/AlsoBought';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { Stars } from '@/components/Stars';
 import { TrackRecentView } from '@/components/TrackRecentView';
@@ -332,6 +333,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         excludeId={product.id}
         href={`/${product.category.slug}`}
       />
+      {/* Hidden until the backend also-bought endpoint returns co-purchase data;
+          appears on its own once sales accumulate (ADR-077). */}
+      <AlsoBought productId={product.id} />
       {product.brand !== null && (
         <RelatedProducts
           title="Önerilen Ürünler"

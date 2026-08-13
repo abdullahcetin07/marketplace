@@ -2454,4 +2454,48 @@ Full specification: `docs/superpowers/specs/2026-08-11-seller-offer-feed-design.
 
 ---
 
+# ADR-077 "Also Bought" Recommendations Are Computed on Read From Paid-Order Co-Occurrence; No Stored Recommendation Model
+
+**Status:** Accepted (2026-08-13). Work order: `BUILD_ALSO_BOUGHT.md`.
+
+The product page wants a "Bu Ürünü Alanlar Bunları da Aldı" strip — products bought in
+the same basket as the one being viewed. There is no behavioral data source today, so
+this defines one.
+
+**A public read endpoint `GET /api/v1/products/{product}/also-bought`** returns the
+products that co-occur in the same **checkout group** as this product across **paid**
+orders, ranked by co-occurrence frequency, filtered to currently **published + sellable**
+products, shaped as the same `ProductCard[]` the browse endpoint returns (up to 12).
+`{product}` resolves by uuid or slug like the other product routes.
+
+**Computed on read, no stored recommendation table** — the same stance as the buy box
+(ADR-045) and the rating average (ADR-069). The truth is the **order lines** (ADR-053,
+immutable snapshots); a materialized recommendation table would be a second place to
+drift, and at launch volume the live query is cheap.
+
+**Co-purchase is the checkout GROUP, not a single order.** A basket splits into one order
+per seller under a `checkout_group` (ADR-052), so "bought together" spans the group — two
+products from two different sellers in one basket are a co-purchase. **Only paid orders
+count**: a cart is not an order, and a cancelled/expired basket is not a purchase.
+
+**It reads Order data, and recommendations are a read concern.** Order owns the lines; the
+endpoint gets ranked co-purchased product uuids through a **new Core `OrderQueryContract`
+method** (e.g. `coPurchasedProductUuids(productUuid, limit)`), and Catalog hydrates them
+into published+sellable cards preserving rank — no module imports another (`LayeringTest`
+holds; Catalog reaches Order only through the Core contract).
+
+**Empty until sales, then automatic.** With no purchase history it returns `[]`, the
+storefront hides the section, and it lights up on its own as orders accumulate — the
+storefront is wired now (`AlsoBought` + `getAlsoBought`, degrade-to-empty) and needs no
+change when the endpoint ships. This is the same family as the deferred "Çok satanlar /
+en çok değerlendirilen" strips — all order/rating aggregation reads.
+
+**Cost:** the co-occurrence query grows with order volume, so the endpoint is cached and,
+when it bites, the co-occurrence is precomputed into a periodically-rebuilt table — a
+documented follow-up, not v1.
+
+Full specification: `BUILD_ALSO_BOUGHT.md`.
+
+---
+
 END OF FILE
