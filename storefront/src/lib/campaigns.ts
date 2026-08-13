@@ -14,6 +14,7 @@ import type { HeroSlide } from '@/components/HeroSlider';
  * instead of the slider.
  */
 export const campaigns: HeroSlide[] = [
-  // { image: '/kampanyalar/1.jpg', href: '/urunler', alt: 'Elektronikte büyük indirim' },
-  // { image: '/kampanyalar/2.jpg', href: '/moda',    alt: 'Moda haftası fırsatları' },
+  { image: '/kampanyalar/magnezyum-slider.webp', href: '/magnezyum-mineralleri', alt: 'Magnezyumlarda Büyük İndirim Fırsatı' },
+  { image: '/kampanyalar/cilt-bakim.webp', href: '/cilt-bakimi', alt: 'Cilt Bakım haftası fırsatları' },
+  { image: '/kampanyalar/nutraxin.webp', href: '/nutraxin', alt: 'Nutraxin ile Sağlığın için güçlü destek' },
 ];
