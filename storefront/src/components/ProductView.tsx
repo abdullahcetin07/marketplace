@@ -4,6 +4,7 @@ import { AddToCartButton } from '@/components/AddToCartButton';
 import { ProductGallery } from '@/components/ProductGallery';
 import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductReviews } from '@/components/ProductReviews';
+import { RelatedProducts } from '@/components/RelatedProducts';
 import { Stars } from '@/components/Stars';
 import { TrackRecentView } from '@/components/TrackRecentView';
 import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
@@ -321,6 +322,24 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
       <ProductReviews productId={product.id} initial={reviews} />
 
       <ProductQuestions productId={product.id} initial={questions} />
+
+      {/* Related products — same category, then same brand. Each hides if empty.
+          "Bu ürünü alanlar bunları da aldı" needs order co-purchase data the API
+          doesn't expose yet; it slots between these two once a backend endpoint exists. */}
+      <RelatedProducts
+        title="Benzer Ürünler"
+        query={{ category: product.category.slug }}
+        excludeId={product.id}
+        href={`/${product.category.slug}`}
+      />
+      {product.brand !== null && (
+        <RelatedProducts
+          title="Önerilen Ürünler"
+          query={{ brand: product.brand.slug }}
+          excludeId={product.id}
+          href={`/${product.brand.slug}`}
+        />
+      )}
     </div>
   );
 }
