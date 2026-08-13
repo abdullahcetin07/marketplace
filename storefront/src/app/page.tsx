@@ -19,11 +19,20 @@ export const metadata: Metadata = {
 
 // Homepage structured data: the brand as an Organization, and a WebSite with a
 // SearchAction so Google can offer a sitelinks search box into the listing.
+// The brand's public accounts, once they exist — `sameAs` is how Google ties this
+// storefront to the same brand entity across the web. Empty for now, so it is
+// omitted below rather than emitting an empty field; add URLs here to light it up.
+const ORG_SAME_AS: string[] = [];
+
 const organizationLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
   name: 'Raftabul',
   url: SITE_URL,
+  // The brand's only image asset today. Swap for a dedicated square logo (on white,
+  // ≥112px) when there is one — Google can surface it beside the brand in results.
+  logo: `${SITE_URL}/og-default.jpg`,
+  ...(ORG_SAME_AS.length > 0 ? { sameAs: ORG_SAME_AS } : {}),
 };
 
 const websiteLd = {

@@ -4,9 +4,31 @@ import { browseProducts, type ProductSort } from '@/lib/api';
 import { ProductGrid } from '@/components/ProductGrid';
 import { ui } from '@/lib/ui';
 
-export const metadata: Metadata = {
-  title: 'Tüm ürünler',
-};
+/**
+ * The listing is ONE indexable page — clean `/urunler` — plus a cloud of faceted
+ * variants (`?q=`, `?sort=`, `?page=`, `?category=`, `?brand=`) that are either
+ * near-duplicates of it or of a category/brand hub. Index the clean page with a
+ * self-canonical; tell the crawler to skip the parametrized variants but still
+ * walk through to the products (`noindex, follow`), so search/sort/filter URLs
+ * don't bloat the index with thin duplicates.
+ */
+export async function generateMetadata({
+  searchParams,
+}: {
+  searchParams: Promise<Record<string, string | string[] | undefined>>;
+}): Promise<Metadata> {
+  const params = await searchParams;
+  const q = single(params.q);
+  const faceted = Boolean(
+    q || single(params.sort) || single(params.page) || single(params.category) || single(params.brand),
+  );
+
+  const title = q ? `“${q}” için sonuçlar` : 'Tüm ürünler';
+
+  return faceted
+    ? { title, robots: { index: false, follow: true } }
+    : { title, alternates: { canonical: '/urunler' } };
+}
 
 const SORTS: { value: ProductSort; label: string }[] = [
   { value: 'newest', label: 'En yeni' },
