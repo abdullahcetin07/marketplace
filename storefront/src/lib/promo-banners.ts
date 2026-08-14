@@ -29,13 +29,27 @@ export type PromoBlock = {
  */
 export const promoBlocks: Record<string, PromoBlock> = {
   'gunes-kremleri': {
-    // triple: [
-    //   { image: '/banner/gunes-1.webp', href: '/gunes-kremleri', alt: 'Güneş kremlerinde fırsat' },
-    //   { image: '/banner/gunes-2.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk güneş ürünleri' },
-    //   { image: '/banner/gunes-3.webp', href: '/gunes-spreyleri', alt: 'Güneş spreyleri' },
-    // ],
-    // wide: { image: '/banner/gunes-wide.webp', href: '/gunes-kremleri', alt: 'Güneş bakım kampanyası' },
+    triple: [
+      { image: '/banner/cocuk-gunes-urunleri.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk Güneş kremlerinde fırsat' },
+      { image: '/banner/bronzluk-urunleri.webp', href: '/saglikli-bronzlasma', alt: 'Sağlıklı Bronzlaşma ürünleri' },
+      { image: '/banner/after-sun-urunleri.webp', href: '/gunes-sonrasi-kremleri', alt: 'After Sun Fırsatı' },
+    ],
+    wide: { image: '/banner/renkli-gunes.webp', href: '/renkli-tinted-gunes-urunleri', alt: 'Renkli Güneş ürünleri kampanyası' },
   },
-  'besin-takviyeleri': {},
-  'cilt-bakimi': {},
+  'besin-takviyeleri': {
+    triple: [
+      { image: '/banner/cocuk-gunes-urunleri.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk Güneş kremlerinde fırsat' },
+      { image: '/banner/bronzluk-urunleri.webp', href: '/saglikli-bronzlasma', alt: 'Sağlıklı Bronzlaşma ürünleri' },
+      { image: '/banner/after-sun-urunleri.webp', href: '/gunes-sonrasi-kremleri', alt: 'After Sun Fırsatı' },
+    ],
+    wide: { image: '/banner/renkli-gunes.webp', href: '/renkli-tinted-gunes-urunleri', alt: 'Renkli Güneş ürünleri kampanyası' },
+  },
+  'cilt-bakimi': {
+    triple: [
+      { image: '/banner/cocuk-gunes-urunleri.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk Güneş kremlerinde fırsat' },
+      { image: '/banner/bronzluk-urunleri.webp', href: '/saglikli-bronzlasma', alt: 'Sağlıklı Bronzlaşma ürünleri' },
+      { image: '/banner/after-sun-urunleri.webp', href: '/gunes-sonrasi-kremleri', alt: 'After Sun Fırsatı' },
+    ],
+    wide: { image: '/banner/renkli-gunes.webp', href: '/renkli-tinted-gunes-urunleri', alt: 'Renkli Güneş ürünleri kampanyası' },
+  },
 };
