@@ -28,15 +28,21 @@ use Illuminate\Support\Facades\DB;
  * decision here worth arguing about. Filtering a page AFTER fetching it gives
  * pages of variable size and a wrong total — "1 234 results" that yields 12 rows
  * on page 1 and 20 on page 2 is a listing a buyer cannot trust and a client cannot
- * paginate. So the sellable set is resolved first and becomes a `whereIn`.
+ * paginate. The sellable fact is therefore carried ON the product, as an indexed
+ * column (ADR-079), rather than resolved into a `whereIn` per request.
  *
- * ITS COST, STATED (Storefront.md §1.1): that set grows with the catalogue, and a
- * `whereIn` of a hundred thousand uuids will eventually be the slow part of this
- * page. The scaling path is denormalization — a `sellable` flag on the product
- * kept current by Offer's events, or the same fact carried on the search index —
- * and it is deliberately NOT built now: it is a second source of truth for
- * something computed correctly today, and building it before there is traffic to
- * justify it would be guessing at the shape of the fix.
+ * THE SCALING WALL THIS CLASS PREDICTED, AND THEN HIT (ADR-079). The old note here
+ * said a `whereIn` of a hundred thousand uuids would eventually be the slow part of
+ * the page, and that denormalising was deliberately not built yet because it would
+ * be a second source of truth for something computed correctly. It arrived earlier
+ * than that: 7,025 uuids per request, built from 9,510 round trips, 22 seconds, and
+ * 504s that reached shoppers as "Application error".
+ *
+ * So it is built. `products.is_sellable` is indexed alongside `status`, kept current
+ * by Offer's and Inventory's events and rebuilt by `catalog:refresh-sellability` —
+ * and the second-source-of-truth objection is answered by the rebuild rather than by
+ * avoidance: the offers, the stores and the ledger stay authoritative, this is a
+ * cache of what they say, and anything that drifts is repaired on a schedule.
  *
  * PRICE SORTING IS DRIVEN BY OFFER, NOT BY CATALOG, for the same reason: the
  * price lives in another context, so ordering by it means ordering the uuid list
@@ -86,18 +92,21 @@ final class PublicProductBrowse
         $perPage = max(1, min($perPage, self::MAX_PER_PAGE));
         $page = max(1, $page);
 
-        // THE SELLABLE WALL. Everything below narrows within it; nothing can widen
-        // past it, so an unsold or unpublished product cannot reach a buyer
-        // whatever else the filters say.
-        $sellable = $this->offers->sellableProductUuids();
-
-        if ($sellable === []) {
-            return $this->empty($page, $perPage);
-        }
-
+        /*
+        | **THE SELLABLE WALL IS NOW A COLUMN** (ADR-079). It used to collect every
+        | sellable product uuid and hand them to a `whereIn`: 7,025 of them on the
+        | live catalogue, on every request, after 9,510 round trips to build the
+        | list — 22 seconds, and 504s that reached shoppers as "Application error".
+        |
+        | `products.is_sellable` is the same fact, denormalised and indexed
+        | alongside `status`, kept current by Offer's and Inventory's events and
+        | rebuilt by `catalog:refresh-sellability`. Nothing below can widen past it,
+        | so an unsold or unpublished product still cannot reach a buyer whatever
+        | else the filters say.
+        */
         return $sort === self::SORT_NEWEST
-            ? $this->byNewest($query, $categoryUuid, $brandUuid, $sellable, $page, $perPage)
-            : $this->byPrice($query, $categoryUuid, $brandUuid, $sellable, $sort, $page, $perPage);
+            ? $this->byNewest($query, $categoryUuid, $brandUuid, $page, $perPage)
+            : $this->byPrice($query, $categoryUuid, $brandUuid, $sort, $page, $perPage);
     }
 
     /**
@@ -128,18 +137,18 @@ final class PublicProductBrowse
             return [];
         }
 
-        // Asked for exactly these — `sellableProductUuids()` narrows to the ones
-        // with a live in-stock offer rather than fetching the whole catalogue's.
-        $sellable = $this->offers->sellableProductUuids($rankedUuids);
-
-        if ($sellable === []) {
-            return [];
-        }
-
+        /*
+        | THE SAME INDEXED FLAG THE BROWSE USES (ADR-079). A strip asked for at
+        | most thirty-six uuids, so the old narrowed `sellableProductUuids($uuids)`
+        | was never the slow call — but two definitions of "sellable" on one
+        | storefront is one too many, and this way a product appears and disappears
+        | from a strip and a listing at the same moment.
+        */
         /** @var array<int, Product> $products */
         $products = Product::query()
             ->where('status', ProductStatus::Published->value)
-            ->whereIn('uuid', $sellable)
+            ->where('is_sellable', true)
+            ->whereIn('uuid', $rankedUuids)
             ->with(['brand', 'category', 'media'])
             ->get()
             ->all();
@@ -161,19 +170,16 @@ final class PublicProductBrowse
     /**
      * The default listing: newest published first, paginated by the database.
      *
-     * @param array<int, string> $sellable
-     *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
     private function byNewest(
         string $query,
         ?string $categoryUuid,
         ?string $brandUuid,
-        array $sellable,
         int $page,
         int $perPage,
     ): array {
-        $paginator = $this->baseQuery($query, $categoryUuid, $brandUuid, $sellable)
+        $paginator = $this->baseQuery($query, $categoryUuid, $brandUuid)
             // What just arrived, not what has sat unsold for a year — the same
             // default the seller-facing browse uses.
             ->orderByDesc('published_at')
@@ -204,15 +210,12 @@ final class PublicProductBrowse
      * alternative — a price column on the product — is exactly what ADR-037
      * forbids and what would make one product sellable at one price.
      *
-     * @param array<int, string> $sellable
-     *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
     private function byPrice(
         string $query,
         ?string $categoryUuid,
         ?string $brandUuid,
-        array $sellable,
         string $sort,
         int $page,
         int $perPage,
@@ -220,7 +223,7 @@ final class PublicProductBrowse
         // Which of the sellable products also match the buyer's filters. Ids only:
         // the content for the page is fetched after the order is known.
         /** @var array<int, string> $matching */
-        $matching = $this->baseQuery($query, $categoryUuid, $brandUuid, $sellable)
+        $matching = $this->baseQuery($query, $categoryUuid, $brandUuid)
             ->pluck('uuid')
             ->all();
 
@@ -281,19 +284,17 @@ final class PublicProductBrowse
     /**
      * Published, sellable, and matching the buyer's filters.
      *
-     * @param array<int, string> $sellable
-     *
      * @return Builder<Product>
      */
     private function baseQuery(
         string $query,
         ?string $categoryUuid,
         ?string $brandUuid,
-        array $sellable,
     ): Builder {
         $builder = Product::query()
             ->where('status', ProductStatus::Published->value)
-            ->whereIn('uuid', $sellable)
+            // The composite index is (status, is_sellable), in that order.
+            ->where('is_sellable', true)
             ->with(['brand', 'category', 'media']);
 
         $this->applyText($builder, $query);

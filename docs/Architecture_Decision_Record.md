@@ -2536,3 +2536,84 @@ Full specification: `BUILD_RANKING_STRIPS.md`.
 ---
 
 END OF FILE
+
+---
+
+# ADR-079 The Sellable Wall Is Denormalised onto the Product, and Availability Is Read in Bulk
+
+**Status:** Accepted (2026-08-14). Forced by a production incident. Work order:
+`BUILD_BROWSE_PERF.md`. Amends the deferral recorded in `PublicProductBrowse`'s
+docblock and Storefront.md §1.1.
+
+## Context
+
+Every browse asked `OfferQueryContract::sellableProductUuids()` — "which products
+have at least one active offer, from a live store, with stock available" — and
+turned the answer into a `whereIn`. On the live catalogue that was **7,025 uuids per
+request**, and building it walked **9,510 active offers asking Inventory about each
+one in turn**.
+
+Measured on test.raftabul.com: single-product reads 0.39s, **every browse 22 seconds**,
+and past the proxy timeout a 504 that reached shoppers as *"Application error: a
+server-side exception has occurred"*. The homepage strips, the product-page rails and
+`/urunler` are all browses, so the whole storefront was affected.
+
+The work order's hypothesis was that `available` was being summed from the
+append-only movement ledger on read (ADR-048/050). **It was not.** `on_hand` and
+`reserved` have been columns on `stock_items` since Inventory shipped; `available` is
+arithmetic on two integers. The balance was never the cost. **The count of reads
+was** — one `stock_items` query per offer, inside a loop.
+
+## Decision
+
+**1. Availability is asked in bulk.** `InventoryQueryContract::availableKeysAmong()`
+answers for a whole set in one query, keyed `sellingOrgUuid|variantUuid` because a
+pool is per (org, variant) (ADR-051). The port did not move and Offer still may not
+join Inventory's table; only the round trips went. Narrowed by the variants asked
+for, so one product's buy box still reads one product's pools.
+
+**2. The sellable fact is denormalised onto the product.** `products.is_sellable`,
+indexed composite with `status`, is what the browse filters on — no uuid list, no
+`whereIn`. It is maintained by listeners subscribing **by class-string** to Offer's
+lifecycle events and Inventory's movement events (the seam Inventory already uses to
+hear Offer, ADR-048), and rebuilt wholesale by `catalog:refresh-sellability`.
+
+**3. The buy-box price read stops hydrating models.** `buyBoxPricesFor()` is the one
+caller asked about the whole catalogue — the price-sorted listing hands it 7,025
+products — and it was building an Eloquent `Offer` with its `currency` relation per
+row to produce nine values. Six columns and a join answer the same question.
+
+## Consequences
+
+Measured after, same host, same catalogue:
+
+| | before | after |
+|---|---|---|
+| `sellableProductUuids()` | 24.95s | 0.91s |
+| browse (`?per_page=8`) | 22s / 504 | **0.26s** (99ms server-side) |
+| browse (`?category=…`) | 10s | **0.27s** |
+| browse (`?q=…`) | — | **0.38s** (56ms server-side) |
+| browse (`?sort=price_asc`) | — | **0.35s** (was 1.50s mid-fix) |
+
+**The flag is a cache and it is allowed to drift.** Offers, stores and the movement
+ledger stay authoritative; `is_sellable` is derived from them. Sellability changes for
+reasons nothing announces to Catalog — a store going dark, a reservation ageing out, a
+fix script — so the rebuild runs **every ten minutes** and drift heals itself. This is
+the answer to the objection the deferred note raised: a second source of truth is
+acceptable when it can be rebuilt from the first, and unacceptable when it cannot.
+
+**The failure mode is silent and one-directional.** A flag that only ever cleared
+would take a restocked product off the storefront permanently — right in the table,
+invisible to every buyer, and nothing to report it. Both directions are tested, and
+the column defaults to `false` so a missing backfill hides products rather than
+showing unsellable ones.
+
+**Deploying it needs the backfill.** `php artisan migrate` then
+`catalog:refresh-sellability`; until that runs the storefront is empty rather than
+wrong.
+
+**Still outstanding:** price-sorted browse computes the buy box for every matching
+product (7,025) and lands at ~0.35s rather than under 0.2s. The fix is the same shape
+one level further — a denormalised minimum price — and it is deliberately not built
+here: this ADR already trades one derived column for correctness that a sweep must
+maintain, and a second one belongs to its own decision with its own measurement.

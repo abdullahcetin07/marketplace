@@ -173,3 +173,20 @@ Schedule::job(new App\Modules\Order\Application\Jobs\ExpireReservationsJob)
     ->name('expire-pending-reservations')
     ->everyMinute()
     ->onOneServer();
+
+/*
+| THE SELLABLE FLAG SELF-HEALS (ADR-079). `products.is_sellable` is a cache of
+| what Offer, Store and Inventory say, kept current by listeners — but
+| sellability also changes for reasons nothing announces to Catalog: a store
+| going dark, a reservation ageing out, a row written by a fix script.
+|
+| **A DENORMALISED FACT WITH NO REBUILD IS A FACT THAT QUIETLY DIVERGES**, and
+| the failure is silent in the worst direction — a product that is right in the
+| table and invisible to every buyer. Ten minutes is often enough that drift is
+| never visible for long, and rare enough that a full recompute costs nothing.
+*/
+Schedule::command('catalog:refresh-sellability')
+    ->name('refresh-product-sellability')
+    ->everyTenMinutes()
+    ->onOneServer()
+    ->withoutOverlapping();

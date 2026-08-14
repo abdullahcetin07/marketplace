@@ -68,6 +68,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property string|null $description_en
  * @property string|null $gtin
  * @property ProductStatus $status
+ * @property bool $is_sellable
  * @property int|null $proposed_by_org_id
  * @property string|null $proposed_by_org_uuid
  * @property int|null $proposed_by_user_id
@@ -511,6 +512,13 @@ final class Product extends Model implements HasMediaContract
     {
         return [
             'status' => ProductStatus::class,
+            /*
+            | A BOOLEAN, NOT THE DATABASE'S 1/0 (ADR-079). The browse filters on
+            | it in SQL where the cast never runs, but a listener and a test read
+            | it as a value — and `1 === true` is false in PHP, which is the shape
+            | of bug that passes review and fails at runtime.
+            */
+            'is_sellable' => 'boolean',
             'submitted_at' => 'datetime',
             'moderated_at' => 'datetime',
             'published_at' => 'datetime',

@@ -11,6 +11,7 @@ use App\Modules\Offer\Domain\Enums\OfferStatus;
 use App\Modules\Offer\Domain\Models\Offer;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
+use Illuminate\Support\Facades\DB;
 
 /**
  * THE BUY BOX (§5, ADR-045) — and Offer's implementation of the downstream read
@@ -196,7 +197,51 @@ final class OfferQuery implements OfferQueryContract
         /** @var array<string, array<string, true>> $sellers */
         $sellers = [];
 
-        foreach ($this->eligible(Offer::query()->whereIn('product_uuid', $productUuids)) as $offer) {
+        /*
+        | **ITS OWN LEAN READ, NOT `eligible()`** (ADR-079). This is the one caller
+        | that asks about the whole catalogue — the price-sorted listing hands it
+        | 7,025 products — and `eligible()` hydrates an Eloquent `Offer` per row to
+        | produce nine values. That was 1.2 seconds. Six columns and a join answer
+        | the same question without a model.
+        |
+        | The eligibility RULES are unchanged and still cross the same two
+        | boundaries: a live store (Store) and stock that is not all reserved
+        | (Inventory), both asked in bulk below.
+        */
+        $rows = DB::table('offers')
+            ->join('currencies', 'currencies.id', '=', 'offers.currency_id')
+            ->select([
+                'offers.product_uuid',
+                'offers.selling_org_uuid',
+                'offers.variant_uuid',
+                'offers.store_uuid',
+                'offers.price_minor',
+                'offers.list_price_minor',
+                'currencies.code as currency_code',
+            ])
+            ->whereIn('offers.product_uuid', $productUuids)
+            ->where('offers.status', OfferStatus::Active->value)
+            ->whereNull('offers.deleted_at')
+            // Cheapest first, ties by earliest — the buy-box rule (ADR-045).
+            ->orderBy('offers.price_minor')
+            ->orderBy('offers.created_at')
+            ->orderBy('offers.id')
+            ->get();
+
+        $available = $this->inventory->availableKeysAmong(
+            $rows->pluck('variant_uuid')->all(),
+        );
+
+        foreach ($rows as $row) {
+            if (! $this->storeIsLive((string) $row->store_uuid)) {
+                continue;
+            }
+
+            if (! isset($available[$row->selling_org_uuid.'|'.$row->variant_uuid])) {
+                continue;
+            }
+
+            $offer = (array) $row;
             $productUuid = (string) $offer['product_uuid'];
 
             // First one wins: the rows arrive cheapest-first, ties broken by
@@ -260,6 +305,15 @@ final class OfferQuery implements OfferQueryContract
             | change and this phase is a correctness one.
             */
             ->where('status', OfferStatus::Active->value)
+            /*
+            | THE RELATION STAYS HERE, AND A JOIN WAS TRIED AND REVERTED. Adding
+            | `join('currencies')` to save the eager load made every caller's
+            | unqualified `where('uuid', …)` ambiguous — 203 tests, instantly.
+            | `eligible()` is shared by narrow reads (one product's offers, one
+            | seller's) where hydrating a handful of models costs nothing; the
+            | caller that asked about the whole catalogue got its own lean read
+            | instead (@see `buyBoxPricesFor`).
+            */
             ->with('currency')
             // Cheapest first; ties by earliest created_at — a stable,
             // explainable rule a seller can be told (§5).

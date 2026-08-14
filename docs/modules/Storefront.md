@@ -79,9 +79,15 @@ tr+en, PWA/native.
 - `GET /api/v1/products` — paginated **browse/search** of **published + sellable** products.
   Query: `q` (text, over the existing search index), `category`, `brand`, `sort`
   (price_asc/desc, newest), page. Each item: uuid, title, primary image, category, brand.
-  **Sellable filter:** Catalog asks `OfferQueryContract` which products have an active
-  in-stock offer and returns only those. **No price on the Catalog item** — the storefront
-  overlays it from Offer (§1.2).
+  **Sellable filter:** `products.is_sellable`, an indexed column (ADR-079). It used to
+  be a live `OfferQueryContract` call per request whose answer became a `whereIn` — 7,025
+  uuids built from 9,510 round trips, **22 seconds per browse and 504s that reached
+  shoppers as "Application error"**. The same fact is now carried on the product, kept
+  current by Offer's and Inventory's events and rebuilt every ten minutes by
+  `catalog:refresh-sellability`; the offers, stores and movement ledger stay
+  authoritative and the column is a cache of what they say. Browse dropped to **~0.26s**
+  (99ms server-side). **No price on the Catalog item** — the storefront overlays it from
+  Offer (§1.2).
 - `GET /api/v1/products/{uuid}` — **product detail** (published): title, description,
   gallery, attributes, variants (uuid + attribute labels), category path, brand,
   **`gtin`** (nullable). No price.

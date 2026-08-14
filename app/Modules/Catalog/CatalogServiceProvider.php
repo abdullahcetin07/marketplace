@@ -6,6 +6,7 @@ namespace App\Modules\Catalog;
 
 use App\Core\Domain\Contracts\CatalogBrowseContract;
 use App\Core\Domain\Contracts\CatalogQueryContract;
+use App\Modules\Catalog\Application\Listeners\RefreshProductSellability;
 use App\Modules\Catalog\Application\Listeners\SyncProductSearchIndex;
 use App\Modules\Catalog\Domain\Contracts\AttributeRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\BrandRepositoryContract;
@@ -25,6 +26,7 @@ use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\ProductRepository;
+use App\Modules\Catalog\Presentation\Commands\RefreshSellabilityCommand;
 use App\Modules\Catalog\Presentation\Policies\CategoryPolicy;
 use App\Modules\Catalog\Presentation\Policies\ProductPolicy;
 use App\Shared\Enums\UserType;
@@ -105,6 +107,12 @@ final class CatalogServiceProvider extends ServiceProvider
         */
         Event::subscribe(SyncProductSearchIndex::class);
 
+        $this->listenForSellability();
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([RefreshSellabilityCommand::class]);
+        }
+
         /*
         | AUDIT is already wired — `Product` uses the Auditable trait (ADR-027),
         | so every field change on a catalog entry is recorded without a
@@ -147,5 +155,43 @@ final class CatalogServiceProvider extends ServiceProvider
         PermissionRegistry::ability('catalog.products.view_any', [UserType::Admin, UserType::Seller]);
         PermissionRegistry::ability('catalog.products.create', [UserType::Seller]);
         PermissionRegistry::ability('catalog.products.author', [UserType::Seller]);
+    }
+
+    /**
+     * Keep `products.is_sellable` current (ADR-079).
+     *
+     * **BY CLASS-STRING, BECAUSE CATALOG IMPORTS NEITHER MODULE.** The same seam
+     * Inventory uses to hear Offer's stock events. Naming the classes as strings
+     * is what lets a listing filter on an indexed boolean instead of collecting
+     * every sellable uuid and handing seven thousand of them to a `whereIn`.
+     *
+     * **BOTH HALVES OF THE FACT.** Offer's events say the listing changed;
+     * Inventory's say the stock behind it did. A storefront that heard only the
+     * first would keep offering the last unit of something already in somebody
+     * else's basket.
+     */
+    private function listenForSellability(): void
+    {
+        foreach ([
+            'App\Modules\Offer\Domain\Events\OfferCreated',
+            'App\Modules\Offer\Domain\Events\OfferStockChanged',
+            'App\Modules\Offer\Domain\Events\OfferWithdrawn',
+            'App\Modules\Offer\Domain\Events\OfferPaused',
+            'App\Modules\Offer\Domain\Events\OfferResumed',
+            'App\Modules\Offer\Domain\Events\OfferSuspended',
+            'App\Modules\Offer\Domain\Events\OfferReinstated',
+        ] as $event) {
+            Event::listen($event, [RefreshProductSellability::class, 'onOfferChanged']);
+        }
+
+        foreach ([
+            'App\Modules\Inventory\Domain\Events\StockReserved',
+            'App\Modules\Inventory\Domain\Events\StockReleased',
+            'App\Modules\Inventory\Domain\Events\StockCommitted',
+            'App\Modules\Inventory\Domain\Events\StockRestocked',
+            'App\Modules\Inventory\Domain\Events\StockAdjusted',
+        ] as $event) {
+            Event::listen($event, [RefreshProductSellability::class, 'onStockMoved']);
+        }
     }
 }
