@@ -13,8 +13,13 @@ import { fetchCategoryTree } from '@/lib/api';
 export async function CategoryBar() {
   // The menu sits in the shell on every page; an API blip should drop the menu, not
   // 500 the whole site — so a failed read renders an empty bar rather than throwing.
+  // Catch-all buckets that shouldn't sit in the shopfront menu.
+  const hidden = new Set(['kategorisiz-urunler']);
+
   const tree = await fetchCategoryTree().catch(() => []);
-  const top = tree.filter((category) => category.product_count > 0).slice(0, 12);
+  const top = tree
+    .filter((category) => category.product_count > 0 && !hidden.has(category.slug))
+    .slice(0, 12);
 
   return (
     <nav className="border-b border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-950">
