@@ -19,18 +19,23 @@ export async function CategoryBar() {
   return (
     <nav className="border-b border-ink-200 bg-white dark:border-ink-800 dark:bg-ink-950">
       <div className="mx-auto flex w-full max-w-page items-center gap-1 overflow-x-auto px-4 py-2 hide-scroll">
-        <Link href="/urunler" className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold text-brand-600 hover:bg-brand-50 dark:hover:bg-ink-900">
-          Süper Fırsatlar
-        </Link>
-        {top.map((category) => (
-          <Link
-            key={category.id}
-            href={`/${category.slug}`}
-            className="whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold text-ink-600 hover:bg-brand-50 hover:text-brand-700 dark:text-ink-300 dark:hover:bg-ink-900"
-          >
-            {category.name}
-          </Link>
-        ))}
+        {top.map((category) => {
+          // The Outlet category gets the accent colour (it replaces the old
+          // "Süper Fırsatlar" as the one highlighted entry).
+          const highlight = /outlet/i.test(category.name);
+
+          return (
+            <Link
+              key={category.id}
+              href={`/${category.slug}`}
+              className={`whitespace-nowrap rounded-lg px-3 py-2 text-sm font-bold hover:bg-brand-50 hover:text-brand-700 dark:hover:bg-ink-900 ${
+                highlight ? 'text-brand-600' : 'text-ink-600 dark:text-ink-300'
+              }`}
+            >
+              {category.name}
+            </Link>
+          );
+        })}
       </div>
     </nav>
   );
