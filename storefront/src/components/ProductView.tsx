@@ -1,3 +1,4 @@
+import { Suspense } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/AddToCartButton';
@@ -327,23 +328,51 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
       {/* Related products — same category, then same brand. Each hides if empty.
           "Bu ürünü alanlar bunları da aldı" needs order co-purchase data the API
           doesn't expose yet; it slots between these two once a backend endpoint exists. */}
-      <RelatedProducts
-        title="Benzer Ürünler"
-        query={{ category: product.category.slug }}
-        excludeId={product.id}
-        href={`/${product.category.slug}`}
-      />
+      {/* The related-product rails each make their own backend calls; streaming them
+          behind Suspense means the product itself (gallery, buy box, info) renders
+          immediately instead of waiting on ~9 secondary requests — the first-open
+          latency fix. Each rail fills in below as it resolves. */}
+      <Suspense fallback={<RailSkeleton />}>
+        <RelatedProducts
+          title="Benzer Ürünler"
+          query={{ category: product.category.slug }}
+          excludeId={product.id}
+          href={`/${product.category.slug}`}
+        />
+      </Suspense>
       {/* Hidden until the backend also-bought endpoint returns co-purchase data;
           appears on its own once sales accumulate (ADR-077). */}
-      <AlsoBought productId={product.id} />
+      <Suspense fallback={null}>
+        <AlsoBought productId={product.id} />
+      </Suspense>
       {product.brand !== null && (
-        <RelatedProducts
-          title="Önerilen Ürünler"
-          query={{ brand: product.brand.slug }}
-          excludeId={product.id}
-          href={`/${product.brand.slug}`}
-        />
+        <Suspense fallback={<RailSkeleton />}>
+          <RelatedProducts
+            title="Önerilen Ürünler"
+            query={{ brand: product.brand.slug }}
+            excludeId={product.id}
+            href={`/${product.brand.slug}`}
+          />
+        </Suspense>
       )}
+    </div>
+  );
+}
+
+/** Placeholder for a streaming product rail — a title bar + a row of card shapes. */
+function RailSkeleton() {
+  return (
+    <div className="flex flex-col gap-5" aria-hidden>
+      <div className="h-6 w-44 animate-pulse rounded-lg bg-ink-100 dark:bg-ink-800" />
+      <div className="flex gap-3.5 overflow-hidden">
+        {Array.from({ length: 6 }).map((_, i) => (
+          <div key={i} className="w-[160px] shrink-0 sm:w-[190px]">
+            <div className="aspect-square animate-pulse rounded-2xl bg-ink-100 dark:bg-ink-800" />
+            <div className="mt-2.5 h-3 w-3/4 animate-pulse rounded bg-ink-100 dark:bg-ink-800" />
+            <div className="mt-2 h-3 w-1/2 animate-pulse rounded bg-ink-100 dark:bg-ink-800" />
+          </div>
+        ))}
+      </div>
     </div>
   );
 }
