@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Offer\Presentation\Filament\Seller\Pages;
 
+use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Modules\Offer\Presentation\Filament\Seller\Imports\OfferImporter;
 use Filament\Actions\Imports\Models\Import;
 use Filament\Pages\Page;
@@ -31,9 +32,16 @@ use Illuminate\Support\Facades\DB;
  * the detail modal — the sample rows below it are there to make a reason concrete,
  * not to be read end to end. The full set is the CSV.
  *
- * **IT SHOWS THE UPLOADER'S OWN IMPORTS AND NOTHING ELSE.** Scoped by `user_id`
- * to the signed-in seller and by `importer` to the offer feed, so neither another
- * merchant's uploads nor the admin's catalogue imports (ADR-074) can appear here.
+ * **IT SHOWS THE SHOP'S IMPORTS, NOT THE PERSON'S** (2026-08-14). A price list is
+ * the shop's work: a Seller Employee uploads it and the owner has to be able to
+ * read what happened, so the scope is every ACTIVE member of the organizations the
+ * actor belongs to. Scoping it to `user_id` was invisible while every organization
+ * had one member and wrong the day it had two.
+ *
+ * **ANOTHER MERCHANT'S UPLOADS STAY INVISIBLE**, which is the half that matters:
+ * the failure report carries their barcodes, prices and stock levels. The widening
+ * goes exactly as far as shared membership and no further, and the `importer`
+ * filter keeps the admin's catalogue imports (ADR-074) out on top of that.
  *
  * **AN IMPORT WITH NO `completed_at` IS STILL RUNNING — OR DIED TRYING.** Both
  * read as "sürüyor", which is honest: the queue is the only thing that knows, and
@@ -159,11 +167,37 @@ final class OfferImports extends Page implements HasTable
     {
         /** @var Builder<Import> $query */
         $query = Import::query()
-            ->whereBelongsTo(current_actor(), 'user')
+            ->whereIn('user_id', $this->colleagueIds())
             ->where('importer', OfferImporter::class)
             ->withCount('failedRows');
 
         return $query;
+    }
+
+    /**
+     * Everyone whose uploads count as this shop's.
+     *
+     * **THE ACTOR IS ALWAYS IN THE LIST**, even with no organization at all — a
+     * seller mid-onboarding still owns what they uploaded, and an empty `whereIn`
+     * would hide their own history from them rather than showing nothing extra.
+     *
+     * `imports` is a vendor table with no tenancy of its own, so this list is the
+     * only thing between one merchant's failure report and another's.
+     *
+     * @return array<int, int>
+     */
+    private function colleagueIds(): array
+    {
+        $actorId = (int) current_actor()?->getKey();
+        $authz = app(OrganizationAuthorizationContract::class);
+
+        $ids = [$actorId];
+
+        foreach ($authz->organizationIdsForUser($actorId) as $organizationId) {
+            $ids = [...$ids, ...$authz->activeMemberUserIdsFor($organizationId)];
+        }
+
+        return array_values(array_unique($ids));
     }
 
     private function failureCount(Import $import): int

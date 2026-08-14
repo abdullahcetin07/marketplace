@@ -5,6 +5,9 @@ declare(strict_types=1);
 use App\Models\Seller;
 use App\Modules\Offer\Presentation\Filament\Seller\Imports\OfferImporter;
 use App\Modules\Offer\Presentation\Filament\Seller\Pages\OfferImports;
+use App\Modules\Organization\Domain\Enums\OrganizationRole;
+use App\Modules\Organization\Domain\Models\Organization;
+use App\Modules\Organization\Domain\Models\OrganizationMember;
 use Filament\Actions\Imports\Models\Import;
 use Filament\Facades\Filament;
 use Livewire\Livewire;
@@ -56,6 +59,33 @@ function importsPageRecord(Seller $seller, int $failed, string $reason = 'Bu bar
     return $import;
 }
 
+it('shows a colleague’s upload, because the price list is the shop’s work', function (): void {
+    /*
+     * **A PRICE LIST IS THE SHOP'S WORK, NOT THE PERSON'S** (2026-08-14). Scoping
+     * this page to `user_id` was invisible while every organization had one member
+     * and wrong the day it had two: a Seller Employee uploads the file and the
+     * owner opens an empty page with no way to learn what happened.
+     */
+    /** @var Seller $owner */
+    $owner = Seller::factory()->create();
+    /** @var Seller $employee */
+    $employee = Seller::factory()->create();
+    // A warehouse hand is exactly the person who uploads a stock file and is not
+    // the person who later asks what happened to it.
+
+    $organization = Organization::factory()->create(['owner_id' => $owner->getKey()]);
+
+    foreach ([[$owner, OrganizationRole::Owner], [$employee, OrganizationRole::Warehouse]] as [$user, $role]) {
+        OrganizationMember::factory()->for($organization)->role($role)->create(['user_id' => $user->getKey()]);
+    }
+
+    $theirs = importsPageRecord($employee, failed: 2);
+
+    $this->actingAs($owner, 'seller');
+
+    Livewire::test(OfferImports::class)->assertCanSeeTableRecords([$theirs]);
+});
+
 it('shows the seller their own uploads and nobody else’s', function (): void {
     /** @var Seller $mine */
     $mine = Seller::factory()->create();
@@ -73,6 +103,12 @@ it('shows the seller their own uploads and nobody else’s', function (): void {
      */
     $this->actingAs($mine, 'seller');
 
+    /*
+     * **THE HALF THAT MATTERS.** The widening above goes exactly as far as shared
+     * membership: these two sellers share none, and a failure report carries the
+     * uploader's barcodes, prices and stock levels. `imports` is a vendor table
+     * with no tenancy of its own, so this query is the only thing between them.
+     */
     Livewire::test(OfferImports::class)
         ->assertCanSeeTableRecords(Import::query()->where('user_id', $mine->getKey())->get())
         ->assertCanNotSeeTableRecords(Import::query()->where('user_id', $theirs->getKey())->get());

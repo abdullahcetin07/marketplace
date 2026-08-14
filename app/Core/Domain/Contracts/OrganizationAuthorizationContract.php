@@ -70,5 +70,26 @@ interface OrganizationAuthorizationContract
      * public identifier into an internal one, which is the direction ADR-040
      * exists to prevent.
      */
+    /**
+     * The user ids of an organization's ACTIVE members.
+     *
+     * **ADDED SO A SHOP'S RECORDS CAN BELONG TO THE SHOP, NOT TO WHOEVER CLICKED**
+     * (2026-08-14). The seller panel's upload history was scoped to the uploader,
+     * which is invisible while every organization has one member and wrong the
+     * day it has two: a Seller Employee uploads the price list and the owner sees
+     * an empty page. Rows carry a `user_id` because that is what the framework
+     * records, so turning "mine" into "my shop's" needs the shop's people.
+     *
+     * **IT ANSWERS IDS, NOT MODELS** — the caller is a module that may not import
+     * Organization, and a list of integers is the smallest thing that can be
+     * asked for here without opening a door.
+     *
+     * ACTIVE ONLY: a removed employee's uploads stay in the shop's history, but
+     * they stop being a way to widen anybody's view.
+     *
+     * @return array<int, int>
+     */
+    public function activeMemberUserIdsFor(int $organizationId): array;
+
     public function organizationUuidFor(int $organizationId): ?string;
 }

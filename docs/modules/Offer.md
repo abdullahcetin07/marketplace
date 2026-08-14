@@ -696,9 +696,18 @@ day.
 **Inert without a queue worker**, like every other import here.
 
 **A completion toast is not a report**, so the seller panel carries a *Yükleme
-Geçmişi* page: their own offer-feed imports (scoped by `user_id` AND by importer,
-so neither another merchant's uploads nor the admin's catalogue imports appear),
-with the failure reasons **grouped**. Three thousand failed rows are rarely three
+Geçmişi* page: the SHOP's offer-feed imports — every active member of the
+organizations the actor belongs to, filtered by importer so the admin's catalogue
+imports never appear — with the failure reasons **grouped**.
+
+It was scoped to `user_id` for one build, which is invisible while every
+organization has one member and wrong the day it has two: a warehouse hand uploads
+the stock file and the owner opens an empty page. A price list is the shop's work.
+The widening goes exactly as far as shared membership and no further — a failure
+report carries the uploader's barcodes, prices and stock levels, and `imports` is a
+vendor table with no tenancy of its own, so that query is the only thing between
+one merchant's and another's. It cost one read-only Core method,
+`activeMemberUserIdsFor`, because Offer may not import Organization. Three thousand failed rows are rarely three
 thousand problems — usually two or three causes — and the grouping is the part a
 seller can act on. The full set stays a CSV download.
 

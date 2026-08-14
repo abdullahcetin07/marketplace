@@ -8,6 +8,7 @@ use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Modules\Organization\Domain\Contracts\OrganizationMemberRepositoryContract;
 use App\Modules\Organization\Domain\Enums\OrganizationCapability;
 use App\Modules\Organization\Domain\Models\Organization;
+use App\Modules\Organization\Domain\Models\OrganizationMember;
 
 /**
  * Organization's answer to the cross-context authorization port (ADR-033 §9.1).
@@ -55,6 +56,18 @@ final class OrganizationAuthorization implements OrganizationAuthorizationContra
         $uuid = Organization::query()->whereKey($organizationId)->value('uuid');
 
         return $uuid === null ? null : (string) $uuid;
+    }
+
+    /**
+     * @return array<int, int>
+     */
+    public function activeMemberUserIdsFor(int $organizationId): array
+    {
+        return $this->members->membersOf($organizationId)
+            ->filter(fn (OrganizationMember $member): bool => $member->isActive())
+            ->map(fn (OrganizationMember $member): int => (int) $member->user_id)
+            ->values()
+            ->all();
     }
 
     private function holds(int $userId, int $organizationId, OrganizationCapability $capability): bool
