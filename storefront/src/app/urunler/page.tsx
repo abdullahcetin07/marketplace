@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import Link from 'next/link';
 import { browseProducts, type ProductSort } from '@/lib/api';
+import { ListingFilters } from '@/components/ListingFilters';
 import { ProductGrid } from '@/components/ProductGrid';
 import { ui } from '@/lib/ui';
 
@@ -20,7 +21,13 @@ export async function generateMetadata({
   const params = await searchParams;
   const q = single(params.q);
   const faceted = Boolean(
-    q || single(params.sort) || single(params.page) || single(params.category) || single(params.brand),
+    q ||
+      single(params.sort) ||
+      single(params.page) ||
+      single(params.category) ||
+      single(params.brand) ||
+      single(params.price_min) ||
+      single(params.price_max),
   );
 
   const title = q ? `“${q}” için sonuçlar` : 'Tüm ürünler';
@@ -77,6 +84,8 @@ export default async function ProductsPage({
     q: q === '' ? undefined : q,
     category: single(params.category),
     brand: single(params.brand),
+    priceMin: single(params.price_min),
+    priceMax: single(params.price_max),
     sort,
     page,
     perPage: 24,
@@ -115,12 +124,16 @@ export default async function ProductsPage({
               is the classic listing annoyance. */}
           {passthrough(params.category, 'category')}
           {passthrough(params.brand, 'brand')}
+          {passthrough(params.price_min, 'price_min')}
+          {passthrough(params.price_max, 'price_max')}
 
           <button type="submit" className={ui.btnPrimarySm}>
             Uygula
           </button>
         </form>
       </div>
+
+      <ListingFilters facets={result.facets} />
 
       {result.items.length === 0 ? (
         <div className={`flex flex-col items-center gap-3 py-16 text-center ${ui.card}`}>
@@ -185,7 +198,7 @@ function passthrough(value: string | string[] | undefined, name: string) {
 function pageUrl(params: Record<string, string | string[] | undefined>, page: number): string {
   const query = new URLSearchParams();
 
-  for (const key of ['q', 'category', 'brand', 'sort'] as const) {
+  for (const key of ['q', 'category', 'brand', 'sort', 'price_min', 'price_max'] as const) {
     const value = single(params[key]);
     if (value !== undefined && value !== '') query.set(key, value);
   }

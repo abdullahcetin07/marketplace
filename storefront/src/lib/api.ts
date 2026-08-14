@@ -282,6 +282,16 @@ export type BrowseParams = {
   sort?: ProductSort;
   page?: number;
   perPage?: number;
+  /** Price bounds as decimal strings (TL); never parsed to a float here. */
+  priceMin?: string;
+  priceMax?: string;
+};
+
+/** The filter facets a listing offers, from the browse `meta.facets` (ADR-080). */
+export type ListingFacets = {
+  brands: { slug: string; name: string; count: number }[];
+  /** Price span of the current query, decimal strings; null until the backend sends it. */
+  price: { min: string; max: string } | null;
 };
 
 /**
@@ -365,13 +375,17 @@ async function publicPost<T>(path: string, body: unknown): Promise<T> {
 | chose over putting a price column in the catalogue.
 */
 
-export async function browseProducts(params: BrowseParams = {}): Promise<Paginated<ProductCard>> {
+export async function browseProducts(
+  params: BrowseParams = {},
+): Promise<Paginated<ProductCard> & { facets: ListingFacets }> {
   const query = new URLSearchParams();
 
   if (params.q) query.set('q', params.q);
   if (params.category) query.set('category', params.category);
   if (params.brand) query.set('brand', params.brand);
   if (params.sort) query.set('sort', params.sort);
+  if (params.priceMin) query.set('price_min', params.priceMin);
+  if (params.priceMax) query.set('price_max', params.priceMax);
   if (params.page && params.page > 1) query.set('page', String(params.page));
   if (params.perPage) query.set('per_page', String(params.perPage));
 
@@ -386,8 +400,17 @@ export async function browseProducts(params: BrowseParams = {}): Promise<Paginat
     throw new ApiError('Ürünler yüklenemedi', response.status);
   }
 
-  const envelope = (await response.json()) as Envelope<ProductCard[]>;
+  const envelope = (await response.json()) as Envelope<ProductCard[]> & {
+    meta?: { facets?: Partial<ListingFacets> } & Record<string, unknown>;
+  };
   const meta = envelope.meta ?? {};
+
+  // Facets ride in meta; absent until the backend ships ADR-080, so the filter UI
+  // degrades to an empty brand list + open price bounds rather than breaking.
+  const facets: ListingFacets = {
+    brands: Array.isArray(meta.facets?.brands) ? meta.facets.brands : [],
+    price: meta.facets?.price ?? null,
+  };
 
   return {
     items: envelope.data,
@@ -395,6 +418,7 @@ export async function browseProducts(params: BrowseParams = {}): Promise<Paginat
     perPage: Number(meta.per_page ?? envelope.data.length),
     total: Number(meta.total ?? envelope.data.length),
     lastPage: Number(meta.last_page ?? 1),
+    facets,
   };
 }
 

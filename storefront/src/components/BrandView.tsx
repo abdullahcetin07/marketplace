@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
 import { SortSelect } from '@/components/SortSelect';
@@ -18,14 +19,18 @@ export async function BrandView({
   slug,
   page,
   sort,
+  priceMin,
+  priceMax,
 }: {
   slug: string;
   page: number;
   sort: ProductSort;
+  priceMin?: string;
+  priceMax?: string;
 }) {
   const [brand, listing] = await Promise.all([
     getBrand(slug),
-    browseProducts({ brand: slug, sort, page, perPage: 24 }),
+    browseProducts({ brand: slug, priceMin, priceMax, sort, page, perPage: 24 }),
   ]);
 
   if (brand === null) notFound();
@@ -59,6 +64,8 @@ export async function BrandView({
   const hrefForPage = (next: number) => {
     const query = new URLSearchParams();
     if (sort !== 'newest') query.set('sort', sort);
+    if (priceMin) query.set('price_min', priceMin);
+    if (priceMax) query.set('price_max', priceMax);
     if (next > 1) query.set('page', String(next));
 
     return query.toString() === '' ? `/${slug}` : `/${slug}?${query.toString()}`;
@@ -97,6 +104,8 @@ export async function BrandView({
           <SortSelect value={sort} />
         </label>
       </div>
+
+      <ListingFilters facets={listing.facets} showBrand={false} />
 
       <ProductGrid products={listing.items} />
 

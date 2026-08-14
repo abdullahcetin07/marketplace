@@ -96,9 +96,14 @@ export default async function SlugPage({ params, searchParams }: Props) {
 
   const page = Math.max(1, Number(single(sp.page) ?? 1) || 1);
   const sort = asSort(single(sp.sort));
+  const priceMin = single(sp.price_min);
+  const priceMax = single(sp.price_max);
+  const brand = single(sp.brand);
 
-  if (match.type === 'category') return <CategoryView slug={slug} page={page} sort={sort} />;
-  if (match.type === 'brand') return <BrandView slug={slug} page={page} sort={sort} />;
+  if (match.type === 'category')
+    return <CategoryView slug={slug} page={page} sort={sort} priceMin={priceMin} priceMax={priceMax} brand={brand} />;
+  if (match.type === 'brand')
+    return <BrandView slug={slug} page={page} sort={sort} priceMin={priceMin} priceMax={priceMax} />;
 
   notFound();
 }

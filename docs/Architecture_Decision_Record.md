@@ -2535,6 +2535,47 @@ Full specification: `BUILD_RANKING_STRIPS.md`.
 
 ---
 
+# ADR-080 Listing Filters Are Faceted: Price Range + Brand, Computed on Read and Returned in the Browse Meta
+
+**Status:** Accepted (2026-08-14). Extends ADR-058 (the buyer listing). Work order: `BUILD_LISTING_FILTERS.md`.
+
+The category, brand and search listings sort but do not filter. Two filters are added:
+a **price range** and, on category/search, a **brand** facet. Both follow the same
+compute-on-read stance as the rest of the buyer read surface — no stored facet tables.
+
+**The browse endpoint gains two request params and one meta block.** Request:
+`price_min` / `price_max` as **decimal strings** (TL), converted to minor units at the
+boundary and applied against the buy-box (Offer) price — the same price the sort already
+orders by. Response `meta.facets`:
+- `brands`: the brands present in the current query (category + `q`), each with a count,
+  so the UI can offer only brands that actually return results.
+- `price`: `{ min, max }` decimal strings — the price span of the current query, for the
+  range control's bounds.
+
+**Facets are computed over the query MINUS the applied brand/price,** so a shopper who
+picks a brand still sees the other brands to switch to, and the price bounds don't collapse
+to the filtered subset. Standard faceting. Category and `q` DO scope the facets.
+
+**`category + brand` together already works** (verified live: a category of 1,138 narrowed
+to 20 by a brand); this ADR only adds the price filter and the facet DATA the UI needs to
+present the choices. Price lives in Offer, so the price filter and the price facet read
+through the same **Core contract** the sellable-wall uses (`OfferQueryContract`) — Catalog
+imports no Offer, `CatalogBoundaryTest` stays green. The `is_sellable` denormalisation
+(ADR-079) keeps these aggregations cheap.
+
+**Filters live in the URL, not component state** (the listing's existing decision, ADR-058):
+`?price_min=&price_max=&brand=` — a filtered view stays shareable, bookmarkable and
+crawlable, and the pages stay server components. The parametrised variants remain
+`noindex,follow` (already the rule for the search page), so facets don't bloat the index.
+
+**Out of scope (v1):** rating and attribute (Cilt Tipi, Hacim…) facets — attribute
+faceting needs the moderated category schema and is a larger, separate step; rating needs
+its own facet read. Both can join `meta.facets` later without changing this shape.
+
+Full specification: `BUILD_LISTING_FILTERS.md`.
+
+---
+
 END OF FILE
 
 ---

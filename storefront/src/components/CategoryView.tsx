@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
+import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
 import { SortSelect } from '@/components/SortSelect';
@@ -22,14 +23,20 @@ export async function CategoryView({
   slug,
   page,
   sort,
+  priceMin,
+  priceMax,
+  brand,
 }: {
   slug: string;
   page: number;
   sort: ProductSort;
+  priceMin?: string;
+  priceMax?: string;
+  brand?: string;
 }) {
   const [category, listing] = await Promise.all([
     getCategory(slug),
-    browseProducts({ category: slug, sort, page, perPage: 24 }),
+    browseProducts({ category: slug, brand, priceMin, priceMax, sort, page, perPage: 24 }),
   ]);
 
   if (category === null) notFound();
@@ -63,6 +70,9 @@ export async function CategoryView({
   const hrefForPage = (next: number) => {
     const query = new URLSearchParams();
     if (sort !== 'newest') query.set('sort', sort);
+    if (brand) query.set('brand', brand);
+    if (priceMin) query.set('price_min', priceMin);
+    if (priceMax) query.set('price_max', priceMax);
     if (next > 1) query.set('page', String(next));
 
     return query.toString() === '' ? `/${slug}` : `/${slug}?${query.toString()}`;
@@ -101,6 +111,8 @@ export async function CategoryView({
           <SortSelect value={sort} />
         </label>
       </div>
+
+      <ListingFilters facets={listing.facets} />
 
       {category.children.length > 0 && (
         <div className="flex flex-wrap gap-2">
