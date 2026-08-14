@@ -9,13 +9,19 @@ import { ProductCarousel } from '@/components/ProductCarousel';
  * without guarding each.
  */
 export async function CategoryStrip({ title, slug, href }: { title: string; slug: string; href?: string }) {
-  const { items } = await browseProducts({ category: slug, perPage: 12 });
-  const products = items.slice(0, 8);
+  // DEGRADES TO NOTHING on any error — a slow/failing browse must not crash the
+  // homepage this strip sits on (it renders behind a Suspense boundary).
+  try {
+    const { items } = await browseProducts({ category: slug, perPage: 12 });
+    const products = items.slice(0, 8);
 
-  if (products.length === 0) return null;
+    if (products.length === 0) return null;
 
-  const ids = products.map((product) => product.id);
-  const [prices, ratings] = await Promise.all([getBuyBoxPrices(ids), getProductRatings(ids)]);
+    const ids = products.map((product) => product.id);
+    const [prices, ratings] = await Promise.all([getBuyBoxPrices(ids), getProductRatings(ids)]);
 
-  return <ProductCarousel title={title} href={href} items={products} prices={prices} ratings={ratings} />;
+    return <ProductCarousel title={title} href={href} items={products} prices={prices} ratings={ratings} />;
+  } catch {
+    return null;
+  }
 }

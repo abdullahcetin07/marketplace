@@ -1,10 +1,11 @@
 import type { Metadata } from 'next';
-import { Fragment } from 'react';
+import { Fragment, Suspense } from 'react';
 import Link from 'next/link';
 import { fetchBrands, getBestSellers, getMostReviewed } from '@/lib/api';
 import { CategoryStrip } from '@/components/CategoryStrip';
 import { HeroSlider } from '@/components/HeroSlider';
 import { ProductRail } from '@/components/ProductRail';
+import { ProductRailSkeleton } from '@/components/ProductRailSkeleton';
 import { PromoBlock } from '@/components/PromoBlock';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
@@ -202,10 +203,13 @@ export default async function HomePage() {
       <ProductRail title="En Çok Değerlendirilenler" items={mostReviewed} />
 
       {/* curated category strips (exact slugs; each hides if empty), each followed by
-          its promo banner block (3 banners + a wide one) when configured */}
+          its promo banner block. The strip's browse is streamed behind Suspense so it
+          never blocks the page shell. */}
       {CATEGORY_STRIPS.map((strip) => (
         <Fragment key={strip.slug}>
-          <CategoryStrip title={strip.title} slug={strip.slug} href={`/${strip.slug}`} />
+          <Suspense fallback={<ProductRailSkeleton />}>
+            <CategoryStrip title={strip.title} slug={strip.slug} href={`/${strip.slug}`} />
+          </Suspense>
           <PromoBlock block={promoBlocks[strip.slug]} />
         </Fragment>
       ))}

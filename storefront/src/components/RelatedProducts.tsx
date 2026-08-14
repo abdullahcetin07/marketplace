@@ -19,13 +19,20 @@ export async function RelatedProducts({
   excludeId: string;
   href?: string;
 }) {
-  const { items } = await browseProducts({ ...query, perPage: 16 });
-  const products = items.filter((product) => product.id !== excludeId).slice(0, 8);
+  // DEGRADES TO NOTHING on any error. This is an optional rail — a slow or failing
+  // browse must never crash the product page it hangs off (it lives behind a
+  // Suspense boundary, which streams loading but does NOT catch a throw).
+  try {
+    const { items } = await browseProducts({ ...query, perPage: 16 });
+    const products = items.filter((product) => product.id !== excludeId).slice(0, 8);
 
-  if (products.length === 0) return null;
+    if (products.length === 0) return null;
 
-  const ids = products.map((product) => product.id);
-  const [prices, ratings] = await Promise.all([getBuyBoxPrices(ids), getProductRatings(ids)]);
+    const ids = products.map((product) => product.id);
+    const [prices, ratings] = await Promise.all([getBuyBoxPrices(ids), getProductRatings(ids)]);
 
-  return <ProductCarousel title={title} href={href} items={products} prices={prices} ratings={ratings} />;
+    return <ProductCarousel title={title} href={href} items={products} prices={prices} ratings={ratings} />;
+  } catch {
+    return null;
+  }
 }
