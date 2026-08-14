@@ -193,7 +193,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           <div className="mt-3 flex flex-wrap items-center gap-3 text-sm text-ink-500">
             {offers !== null && offers.offer_count > 0 && <span>{offers.offer_count} satıcı satışta</span>}
             <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
-            <span className="font-bold text-green-600">✓ Orijinal ürün</span>
+            <span className="flex items-center gap-1 font-bold text-green-600">
+              <CheckIcon /> Orijinal ürün
+            </span>
           </div>
 
           {(product.attributes.length > 0 || product.gtin) && (
@@ -290,8 +292,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                 )}
 
                 <div className="mt-4 flex flex-col gap-2 border-t border-ink-100 pt-3.5 text-[.8rem] text-ink-500 dark:border-ink-800">
-                  <span className="flex items-center gap-2">🚚 Hızlı ve güvenli kargo</span>
-                  <span className="flex items-center gap-2">🛡️ Orijinal ürün &amp; 14 gün iade</span>
+                  <span className="flex items-center gap-2"><TruckIcon /> Hızlı ve güvenli kargo</span>
+                  <span className="flex items-center gap-2"><ShieldCheckIcon /> Orijinal ürün &amp; 14 gün iade</span>
                 </div>
               </>
             )}
@@ -394,6 +396,36 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
 function initials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
+}
+
+/* Small decorative icons (replace the emoji) — inherit colour + are aria-hidden
+   because the label beside each already says what they mean. */
+function CheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-3.5 w-3.5 shrink-0" fill="none" stroke="currentColor" strokeWidth={2.4} strokeLinecap="round" strokeLinejoin="round">
+      <path d="m5 13 4 4L19 7" />
+    </svg>
+  );
+}
+
+function TruckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M3 6h11v9H3z" />
+      <path d="M14 9h3.6L21 12.2V15h-7" />
+      <circle cx="7" cy="18" r="1.6" />
+      <circle cx="17" cy="18" r="1.6" />
+    </svg>
+  );
+}
+
+function ShieldCheckIcon() {
+  return (
+    <svg viewBox="0 0 24 24" aria-hidden className="h-4 w-4 shrink-0" fill="none" stroke="currentColor" strokeWidth={1.7} strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 3l7 3v6c0 4-3 7-7 9-4-2-7-5-7-9V6z" />
+      <path d="M9 12l2 2 4-4" />
+    </svg>
+  );
 }
 
 /**
