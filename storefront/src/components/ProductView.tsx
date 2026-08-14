@@ -308,11 +308,12 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                     <div className="grid h-[30px] w-[30px] shrink-0 place-items-center rounded-[9px] bg-ink-50 text-[.74rem] font-extrabold text-ink-500 dark:bg-ink-800">
                       {initials(offer.store?.name ?? 'Mağaza')}
                     </div>
-                    <StoreLabel store={offer.store} className="min-w-0 flex-1 truncate text-[.85rem] font-bold" />
-
-                    <span className="whitespace-nowrap text-[1.02rem] font-extrabold text-brand-600">
-                      {formatMoney(offer.price, offer.currency)}
-                    </span>
+                    <div className="min-w-0 flex-1">
+                      <StoreLabel store={offer.store} className="block truncate text-[.85rem] font-bold" />
+                      <span className="text-[.98rem] font-extrabold text-brand-600">
+                        {formatMoney(offer.price, offer.currency)}
+                      </span>
+                    </div>
                     <AddToCartButton offerId={offer.id} variant="icon" />
                   </li>
                 ))}
