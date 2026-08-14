@@ -6,6 +6,7 @@ namespace App\Modules\Inventory\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Modules\Inventory\Domain\Contracts\StockItemRepositoryContract;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Inventory's implementation of the downstream read port (ADR-048).
@@ -54,5 +55,39 @@ final class InventoryQuery implements InventoryQueryContract
         $item = $this->items->findFor($sellingOrgUuid, $variantUuid);
 
         return $item === null ? 0 : $item->on_hand;
+    }
+
+    /**
+     * @param array<int, string> $variantUuids
+     *
+     * @return array<string, true>
+     */
+    public function availableKeysAmong(array $variantUuids, int $quantity = 1): array
+    {
+        if ($variantUuids === []) {
+            return [];
+        }
+
+        $keys = [];
+
+        /*
+        | ONE QUERY, CHUNKED ONLY FOR THE BIND LIMIT. `available` stays computed
+        | rather than stored (ADR-048) — it is `on_hand - reserved` in the SELECT,
+        | not a column somebody has to remember to update — but it is computed
+        | once for the whole set instead of once per caller.
+        */
+        foreach (array_chunk(array_values(array_unique($variantUuids)), 5_000) as $chunk) {
+            $rows = DB::table('stock_items')
+                ->select(['selling_org_uuid', 'variant_uuid'])
+                ->whereIn('variant_uuid', $chunk)
+                ->whereRaw('on_hand - reserved >= ?', [max(1, $quantity)])
+                ->get();
+
+            foreach ($rows as $row) {
+                $keys[$row->selling_org_uuid.'|'.$row->variant_uuid] = true;
+            }
+        }
+
+        return $keys;
     }
 }

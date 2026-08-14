@@ -268,6 +268,20 @@ final class OfferQuery implements OfferQueryContract
             ->orderBy('id')
             ->get();
 
+        /*
+        | **THE AUTHORITATIVE IN-STOCK TEST, ASKED ONCE FOR THE WHOLE SET**
+        | (ADR-048/079). Availability is still Inventory's answer and Offer still
+        | may not join its table — the port did not move, the ROUND TRIPS did.
+        |
+        | Asking `isAvailable()` per offer meant one query per row: 9,510 active
+        | offers, 9,510 round trips, a browse that took 25 seconds and
+        | intermittently 504'd. The balance was never the cost; the count of reads
+        | was.
+        */
+        $available = $this->inventory->availableKeysAmong(
+            $offers->pluck('variant_uuid')->all(),
+        );
+
         $rows = [];
 
         foreach ($offers as $offer) {
@@ -275,10 +289,7 @@ final class OfferQuery implements OfferQueryContract
                 continue;
             }
 
-            // THE AUTHORITATIVE IN-STOCK TEST (ADR-048). Read per offer rather
-            // than filtered in SQL, because Inventory is a different bounded
-            // context and Offer may not join its table.
-            if (! $this->inventory->isAvailable($offer->variant_uuid, $offer->selling_org_uuid)) {
+            if (! isset($available[$offer->selling_org_uuid.'|'.$offer->variant_uuid])) {
                 continue;
             }
 

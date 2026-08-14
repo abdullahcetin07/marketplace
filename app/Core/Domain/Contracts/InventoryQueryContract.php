@@ -55,5 +55,28 @@ interface InventoryQueryContract
      * both, because "I have 10 but can only sell 7" is the sentence
      * reservations exist to make sayable.
      */
+    /**
+     * Which of these (org, variant) pools currently have something to sell.
+     *
+     * **THE BULK ANSWER, BECAUSE ASKING ONE AT A TIME WAS THE SLOW PAGE.** The
+     * sellable wall asked `isAvailable()` per offer: 9,510 active offers meant
+     * 9,510 round trips and a browse that took **25 seconds** and intermittently
+     * 504'd. The balance was never the problem — `available` is a column read,
+     * not a ledger scan — the COUNT of reads was.
+     *
+     * **KEYED `sellingOrgUuid|variantUuid`**, because availability is per (org,
+     * variant) pool (ADR-048/051) and a caller holding both halves needs a single
+     * lookup rather than a nested search. Absent from the returned set means
+     * nothing to sell: no pool, or `on_hand − reserved` at or below zero.
+     *
+     * Narrowed by the variants asked for, so a buy box for one product still
+     * reads one product's pools.
+     *
+     * @param array<int, string> $variantUuids
+     *
+     * @return array<string, true> the keys that can sell at least $quantity
+     */
+    public function availableKeysAmong(array $variantUuids, int $quantity = 1): array;
+
     public function onHandFor(string $variantUuid, string $sellingOrgUuid): int;
 }
