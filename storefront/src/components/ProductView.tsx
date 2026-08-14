@@ -124,7 +124,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
   };
 
   return (
-    <div className="flex flex-col gap-8 pb-4">
+    // extra bottom padding on mobile so content clears the fixed buy bar below
+    <div className="flex flex-col gap-8 pb-24 lg:pb-4">
       {/* record this view for the homepage "Son baktıkların" + recommendations (client, localStorage) */}
       <TrackRecentView
         product={{
@@ -357,6 +358,36 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           />
         </Suspense>
       )}
+
+      {/* Mobile sticky buy bar — price + Sepete Ekle, always in reach. Hidden from lg
+          up, where the side buy box is on-screen. Out of flow (fixed), so it doesn't
+          affect the layout above. */}
+      <div className="fixed inset-x-0 bottom-0 z-40 flex items-center gap-3 border-t border-ink-200 bg-white/95 px-4 py-2.5 backdrop-blur lg:hidden dark:border-ink-800 dark:bg-ink-950/95">
+        {featured === null ? (
+          <>
+            <span className="text-sm font-bold text-ink-500">Şu an satışta yok</span>
+            <span className="ml-auto rounded-xl bg-ink-100 px-6 py-3 text-sm font-extrabold text-ink-400 dark:bg-ink-800">
+              Sepete Ekle
+            </span>
+          </>
+        ) : (
+          <>
+            <div className="flex shrink-0 flex-col leading-none">
+              {featured.list_price !== null && (
+                <span className="text-[.7rem] text-ink-400 line-through">
+                  {formatMoney(featured.list_price, featured.currency)}
+                </span>
+              )}
+              <span className="text-[1.2rem] font-extrabold tracking-tight text-brand-600">
+                {formatMoney(featured.price, featured.currency)}
+              </span>
+            </div>
+            <div className="ml-auto w-[54%] max-w-[260px]">
+              <AddToCartButton offerId={featured.id} variant="primary" label="Sepete Ekle" />
+            </div>
+          </>
+        )}
+      </div>
     </div>
   );
 }
