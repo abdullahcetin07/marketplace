@@ -35,7 +35,10 @@ export function ProductCard({
       href={`/${product.slug}`}
       className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:-translate-y-1 hover:border-transparent hover:shadow-[0_20px_44px_-20px_rgba(20,25,35,.28)] dark:border-ink-800 dark:bg-ink-900"
     >
-      <div className="relative aspect-square bg-white p-4 dark:bg-ink-50">
+      {/* overflow-hidden keeps the square authoritative — without it a portrait image
+          (in normal flow) pushes the aspect-square box taller and the card grows
+          unevenly next to its neighbours. */}
+      <div className="relative aspect-square overflow-hidden bg-white p-4 dark:bg-ink-50">
         {product.image === null ? (
           // A placeholder, not a broken image: plenty of real listings have no
           // photograph yet and a missing file should not look like a fault.
