@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
+import { SortSelect } from '@/components/SortSelect';
 import { browseProducts, getCategory, type ProductSort } from '@/lib/api';
 import { absoluteUrl } from '@/lib/site';
 
@@ -88,11 +89,17 @@ export async function CategoryView({
         ))}
       </nav>
 
-      <div>
-        <h1 className="text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[1.9rem]">{category.name}</h1>
-        <p className="mt-1 text-sm text-ink-500">
-          <span className="font-bold text-ink-700 dark:text-ink-200">{listing.total}</span> ürün
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-[1.7rem] font-extrabold leading-tight tracking-tight sm:text-[1.9rem]">{category.name}</h1>
+          <p className="mt-1 text-sm text-ink-500">
+            <span className="font-bold text-ink-700 dark:text-ink-200">{listing.total}</span> ürün
+          </p>
+        </div>
+        <label className="flex items-center gap-2 text-sm text-ink-500">
+          Sırala
+          <SortSelect value={sort} />
+        </label>
       </div>
 
       {category.children.length > 0 && (
