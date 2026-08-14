@@ -28,6 +28,19 @@ use Illuminate\Support\Facades\DB;
  */
 final class OrderQuery implements OrderQueryContract
 {
+    /**
+     * The statuses that mean somebody actually bought the thing (ADR-077/078).
+     *
+     * **NOT `Refunded`.** The money went back, so counting it would let a product
+     * that everybody returned lead the homepage. Not `AwaitingPayment` either: an
+     * abandoned card form is not a sale, and an `Expired` one already gave its
+     * stock back (ADR-072).
+     */
+    private const array SOLD_STATUSES = [
+        OrderStatus::Paid->value,
+        OrderStatus::Delivered->value,
+    ];
+
     public function orderExists(string $orderUuid): bool
     {
         return Order::query()->where('uuid', $orderUuid)->exists();
@@ -331,5 +344,78 @@ final class OrderQuery implements OrderQueryContract
             'grand_total_minor' => $order->grand_total_minor,
             'currency_code' => $order->currency->code,
         ];
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function bestSellingProductUuids(int $limit): array
+    {
+        /*
+        | THE QUERY BUILDER, NOT ELOQUENT. This is an aggregate over two tables
+        | that returns a list of strings; hydrating models to throw them away
+        | would be the expensive way to reach the same array.
+        */
+        /** @var array<int, string> $uuids */
+        $uuids = DB::table('order_lines')
+            ->select('order_lines.product_uuid')
+            ->join('orders', 'orders.id', '=', 'order_lines.order_id')
+            ->whereIn('orders.status', self::SOLD_STATUSES)
+            ->groupBy('order_lines.product_uuid')
+            // UNITS, NOT LINES. Ten of one thing in a single basket outsells one
+            // of another, and a "best seller" that counted baskets would rank a
+            // cheap add-on above the thing people actually stock up on.
+            ->orderByRaw('sum(order_lines.quantity) desc')
+            ->orderBy('order_lines.product_uuid')
+            ->limit(max(1, $limit))
+            ->pluck('order_lines.product_uuid')
+            ->all();
+
+        return $uuids;
+    }
+
+    /**
+     * @return array<int, string>
+     */
+    public function coPurchasedProductUuids(string $productUuid, int $limit): array
+    {
+        /*
+        | THE BASKETS THIS PRODUCT WAS PAID FOR IN. `checkout_group_uuid` rather
+        | than the order, because one basket becomes one order per seller
+        | (ADR-052) — reading a single order would miss every pair bought from two
+        | shops at once, which on a marketplace is most of them.
+        */
+        $groups = DB::table('orders')
+            ->whereIn('status', self::SOLD_STATUSES)
+            ->whereIn('id', DB::table('order_lines')->select('order_id')->where('product_uuid', $productUuid))
+            ->distinct()
+            ->pluck('checkout_group_uuid')
+            ->all();
+
+        if ($groups === []) {
+            return [];
+        }
+
+        /** @var array<int, string> $uuids */
+        $uuids = DB::table('order_lines')
+            ->select('order_lines.product_uuid')
+            ->join('orders', 'orders.id', '=', 'order_lines.order_id')
+            ->whereIn('orders.checkout_group_uuid', $groups)
+            ->whereIn('orders.status', self::SOLD_STATUSES)
+            // A product is not its own recommendation.
+            ->where('order_lines.product_uuid', '!=', $productUuid)
+            ->groupBy('order_lines.product_uuid')
+            /*
+            | DISTINCT BASKETS, NOT UNITS. "Bought together" is a question about
+            | how many PEOPLE paired the two, so three units in one basket count
+            | once — otherwise a single bulk order invents a trend.
+            */
+            ->orderByRaw('count(distinct orders.checkout_group_uuid) desc')
+            ->orderByRaw('max(order_lines.id) desc')
+            ->limit(max(1, $limit))
+            ->pluck('order_lines.product_uuid')
+            ->all();
+
+        return $uuids;
     }
 }

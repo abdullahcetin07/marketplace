@@ -4,8 +4,10 @@ declare(strict_types=1);
 
 namespace App\Modules\Reviews;
 
+use App\Core\Domain\Contracts\ReviewQueryContract;
 use App\Modules\Reviews\Domain\Contracts\ReviewRepositoryContract;
 use App\Modules\Reviews\Domain\Models\Review;
+use App\Modules\Reviews\Infrastructure\Queries\ReviewQuery;
 use App\Modules\Reviews\Infrastructure\Repositories\ReviewRepository;
 use App\Modules\Reviews\Presentation\Policies\ReviewPolicy;
 use App\Shared\Enums\UserType;
@@ -44,6 +46,14 @@ final class ReviewsServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(ReviewRepositoryContract::class, ReviewRepository::class);
+
+        /*
+        | THE MODULE'S FIRST CORE PORT (ADR-078). Reviews was built reading other
+        | modules and answering none; Catalog now asks it which products carry the
+        | most published reviews, because Catalog owns the storefront strips and
+        | may not import Reviews.
+        */
+        $this->app->singleton(ReviewQueryContract::class, ReviewQuery::class);
 
         $this->registerPermissions();
     }

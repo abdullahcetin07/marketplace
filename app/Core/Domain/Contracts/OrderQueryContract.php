@@ -278,5 +278,43 @@ interface OrderQueryContract
      *
      * @return array{items_total_minor: int, tax_total_minor: int, grand_total_minor: int, currency_code: string}|null
      */
+    /**
+     * Product uuids by units sold, best first (ADR-078).
+     *
+     * **A SALE IS A PAID ORDER, AND NOTHING ELSE COUNTS.** A basket is not a
+     * purchase, an unpaid order is a card form somebody abandoned, and an expired
+     * one gave its stock back (ADR-072) — ranking on any of those would put a
+     * product nobody bought at the top of the homepage. Refunded orders are
+     * excluded too: the money went back, so the sale did not happen.
+     *
+     * **ORDER ANSWERS IT BECAUSE ORDER OWNS THE LINES.** A ranking is a READ, and
+     * the module that holds `order_lines` is the only one that can compute it
+     * without a second copy of the data. Catalog asks through this port and
+     * hydrates the uuids into cards; it never learns what an order is.
+     *
+     * @return array<int, string> ranked, at most $limit, empty when nothing sold
+     */
+    public function bestSellingProductUuids(int $limit): array;
+
+    /**
+     * Product uuids most often bought in the same BASKET as this one (ADR-077).
+     *
+     * **THE UNIT IS THE CHECKOUT GROUP, NOT THE ORDER.** A basket splits into one
+     * order per seller (ADR-052), so "bought together" that reads a single order
+     * would miss every pair a customer bought from two shops at once — which is
+     * the whole point of a marketplace. Co-occurrence is counted by distinct
+     * basket, so three units in one basket count once.
+     *
+     * Paid orders only, for the reason `bestSellingProductUuids()` states, and the
+     * product itself is never in its own list.
+     *
+     * @return array<int, string> ranked, at most $limit, empty when nobody has
+     *                            bought this product alongside another
+     */
+    public function coPurchasedProductUuids(string $productUuid, int $limit): array;
+
+    /**
+     * @return array{items_total_minor: int, tax_total_minor: int, grand_total_minor: int, currency_code: string}|null
+     */
     public function orderTotals(string $orderUuid): ?array;
 }

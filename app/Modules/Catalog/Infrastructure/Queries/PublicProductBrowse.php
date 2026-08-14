@@ -101,6 +101,64 @@ final class PublicProductBrowse
     }
 
     /**
+     * Ranked uuids → buyer-facing cards, in the order they were ranked (ADR-077/078).
+     *
+     * **THE RANKING COMES FROM ANOTHER MODULE AND THE CARD COMES FROM THIS ONE.**
+     * Order knows what sold and Reviews knows what was reviewed; neither may build
+     * a product card, and Catalog may not read either's tables. Each strip is one
+     * Core call for the order, then this for the substance.
+     *
+     * **`whereIn` DOES NOT PRESERVE ORDER** — SQL `IN` is a set — so the rank is
+     * reapplied afterwards from the position map. Sorting in PHP rather than with
+     * a database `CASE` is deliberate at this size: a strip is twelve rows, and the
+     * ordering rule then reads the same on every driver.
+     *
+     * **THE SELLABLE WALL STILL APPLIES.** A best-seller that has gone out of stock
+     * or been unpublished is a dead card — the buyer taps it and finds nothing to
+     * buy — so it drops out and the strip is shorter rather than wrong. The same
+     * wall the browse uses, for the same reason.
+     *
+     * @param array<int, string> $rankedUuids
+     *
+     * @return array<int, array<string, mixed>>
+     */
+    public function cardsForUuids(array $rankedUuids, int $limit = 12): array
+    {
+        if ($rankedUuids === []) {
+            return [];
+        }
+
+        // Asked for exactly these — `sellableProductUuids()` narrows to the ones
+        // with a live in-stock offer rather than fetching the whole catalogue's.
+        $sellable = $this->offers->sellableProductUuids($rankedUuids);
+
+        if ($sellable === []) {
+            return [];
+        }
+
+        /** @var array<int, Product> $products */
+        $products = Product::query()
+            ->where('status', ProductStatus::Published->value)
+            ->whereIn('uuid', $sellable)
+            ->with(['brand', 'category', 'media'])
+            ->get()
+            ->all();
+
+        $position = array_flip(array_values($rankedUuids));
+
+        usort(
+            $products,
+            static fn (Product $a, Product $b): int => ($position[$a->uuid] ?? PHP_INT_MAX)
+                <=> ($position[$b->uuid] ?? PHP_INT_MAX),
+        );
+
+        return array_map(
+            fn (Product $product): array => $this->card($product),
+            array_slice($products, 0, max(1, $limit)),
+        );
+    }
+
+    /**
      * The default listing: newest published first, paginated by the database.
      *
      * @param array<int, string> $sellable

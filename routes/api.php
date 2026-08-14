@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Core\Presentation\Middleware\SetLocale;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductRankingController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicTaxonomyController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SlugResolverController;
 use App\Modules\Identity\Presentation\Controllers\Api\Admin\UserController as AdminUserController;
@@ -215,6 +216,26 @@ Route::prefix('v1')
             */
             Route::get('products/{product}/questions', [PublicProductQuestionController::class, 'index'])
                 ->name('storefront.product.questions');
+
+            /*
+            | THE THREE COMPUTED STRIPS (ADR-077, ADR-078).
+            |
+            | **DECLARED BEFORE `products/{product}`, LIKE EVERY SIBLING ABOVE.**
+            | `best-sellers` and `most-reviewed` are literal paths, so the
+            | catch-all would read them as a slug and answer 404 for a product
+            | nobody named that.
+            |
+            | Each is computed on read from paid orders or published reviews, and
+            | each answers `[]` with a 200 on a shop's first day. The storefront
+            | hides a strip that returns nothing and shows it the moment it fills,
+            | so an empty list is the contract rather than a failure.
+            */
+            Route::get('products/best-sellers', [PublicProductRankingController::class, 'bestSellers'])
+                ->name('storefront.products.best-sellers');
+            Route::get('products/most-reviewed', [PublicProductRankingController::class, 'mostReviewed'])
+                ->name('storefront.products.most-reviewed');
+            Route::get('products/{product}/also-bought', [PublicProductRankingController::class, 'alsoBought'])
+                ->name('storefront.product.also-bought');
 
             Route::get('products', [PublicProductController::class, 'index'])
                 ->name('storefront.products.index');

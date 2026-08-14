@@ -745,3 +745,78 @@ duplicates.
   reported. v1 creates fresh categories, which have none.
 - **Scheduled feed sync** (supplier XML/API). A manual upload is v1.
 
+
+---
+
+# 17. The storefront's computed strips (ADR-077, ADR-078)
+
+Three read endpoints that rank products by something Catalog does not own, and then
+hydrate the ranking into Catalog's own cards:
+
+| Endpoint | Ranked by | Port it asks |
+|---|---|---|
+| `GET /products/best-sellers` | units sold across paid orders | `OrderQueryContract::bestSellingProductUuids` |
+| `GET /products/most-reviewed` | published review count | `ReviewQueryContract::mostReviewedProductUuids` |
+| `GET /products/{product}/also-bought` | co-occurrence in paid baskets | `OrderQueryContract::coPurchasedProductUuids` |
+
+## 17.1 Catalog owns the endpoint, never the data
+
+What sold lives in **Order**, what was reviewed lives in **Reviews**, and neither may
+build a product card or be imported here. Each endpoint is **one Core call for the
+ORDER of things and one hydration for the substance**. `ReviewQueryContract` is the
+first port Reviews has ever answered — the module was built reading Catalog and Order
+and was asked nothing back until the homepage needed a ranking.
+
+## 17.2 Computed on read, and what that buys
+
+There is no recommendation table: nothing to rebuild, nothing to invalidate, nothing
+to go stale against the orders it is derived from. A sale counts the moment it is
+paid for. The cost is a live aggregate per request, which the **one-hour cache**
+makes affordable — these are anonymous and identical for every visitor, and a
+best-seller list an hour behind is indistinguishable from one that is not.
+
+**The cards are cached, not the uuids.** Hydration is the expensive half — the
+sellable wall plus the product read — so caching only the ranking would leave it
+running on every request.
+
+**Follow-up when volume bites** (not v1, same note as ADR-077): precompute the
+rankings into a periodically-rebuilt table and read that in place of the Core call.
+The endpoints do not change shape.
+
+## 17.3 A sale is a paid order and nothing else
+
+`Paid` and `Delivered` only. A basket is not a purchase, an abandoned card form is
+not a sale, an `Expired` order already gave its stock back (ADR-072), and a
+**`Refunded` one does not count** — the money went back, so a product everybody
+returned must not lead the homepage.
+
+**Best-sellers count UNITS; also-bought counts BASKETS.** They are different
+questions. Ten of one thing in a single basket outsells one of another, so the
+ranking sums `quantity`. But "bought together" is a question about how many PEOPLE
+paired two things, so co-occurrence counts distinct checkout groups and a single
+bulk order cannot invent a trend.
+
+**The unit of "together" is the checkout group, not the order** (ADR-052). A basket
+splits into one order per seller, so reading co-purchase from a single order would
+find nothing in the most ordinary marketplace basket there is — one bought from two
+shops at once.
+
+## 17.4 Rank survives hydration, and the sellable wall still applies
+
+**`whereIn` does not preserve order** — SQL `IN` is a set — so the rank is reapplied
+from the position map after the read. Sorting in PHP rather than with a database
+`CASE` is deliberate at this size: a strip is twelve rows, and the rule then reads
+the same on every driver.
+
+Each endpoint asks for **three times** what it shows. The ranking knows what sold; it
+does not know what is still sellable, and a strip that asked for exactly twelve would
+come back with four the day eight best-sellers went out of stock. What is not
+published or has no live in-stock offer drops out, so the strip is **shorter rather
+than wrong** — a card the buyer cannot buy is a card that leads to "unavailable".
+
+## 17.5 Empty is a first-class answer
+
+A shop on its first day has no best sellers and no reviews. `[]` with a **200** is
+the contract: the storefront hides a strip that returns nothing and shows it the
+moment it fills, so an empty list is the normal early state rather than a failure.
+Never a 404, never a placeholder.

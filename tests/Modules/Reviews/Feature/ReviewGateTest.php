@@ -125,6 +125,23 @@ function fakeOrderPort(array $lines): void
         {
             return null;
         }
+
+        /*
+        | THE RANKING PORTS (ADR-077/078) ARE NOT WHAT THIS FAKE IS ABOUT. They
+        | belong to the same interface because Order owns the lines both answers
+        | read; a stand-in for the DELIVERY gate has nothing to say about either.
+        */
+        /** @return array<int, string> */
+        public function bestSellingProductUuids(int $limit): array
+        {
+            return [];
+        }
+
+        /** @return array<int, string> */
+        public function coPurchasedProductUuids(string $productUuid, int $limit): array
+        {
+            return [];
+        }
     });
 }
 
