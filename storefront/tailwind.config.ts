@@ -54,7 +54,7 @@ const config: Config = {
         sans: ['var(--font-manrope)', 'system-ui', '-apple-system', 'Segoe UI', 'Roboto', 'Helvetica Neue', 'Arial', 'sans-serif'],
       },
       maxWidth: {
-        page: '80rem',
+        page: '87.5rem',
       },
     },
   },
