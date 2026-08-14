@@ -65,11 +65,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body className="flex min-h-screen flex-col antialiased">
         <SessionProvider>
           <div className="bg-ink-950 text-ink-100">
-            <div className="mx-auto flex w-full max-w-page items-center justify-between px-4 py-1.5 text-xs">
+            <div className="mx-auto flex w-full max-w-page items-center px-4 py-1.5 text-xs">
               <span>Onaylı satıcılardan orijinal ürün · 200 TL üzeri kargo bedava</span>
-              <Link href="/urunler" className="hidden text-ink-300 hover:text-white sm:block">
-                Tüm ürünler →
-              </Link>
             </div>
           </div>
 
