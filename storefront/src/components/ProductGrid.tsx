@@ -24,7 +24,7 @@ export async function ProductGrid({ products }: { products: Card[] }) {
   const [prices, ratings] = await Promise.all([getBuyBoxPrices(ids), getProductRatings(ids)]);
 
   return (
-    <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5">
+    <div className="grid grid-cols-2 gap-3.5 sm:grid-cols-3 lg:grid-cols-4">
       {products.map((product) => (
         <ProductCard key={product.id} product={product} prices={prices} ratings={ratings} />
       ))}

@@ -37,12 +37,6 @@ export async function generateMetadata({
     : { title, alternates: { canonical: '/urunler' } };
 }
 
-const SORTS: { value: ProductSort; label: string }[] = [
-  { value: 'newest', label: 'En yeni' },
-  { value: 'price_asc', label: 'En düşük fiyat' },
-  { value: 'price_desc', label: 'En yüksek fiyat' },
-];
-
 /**
  * RENDERED PER REQUEST, NOT BAKED AT BUILD TIME.
  *
@@ -111,19 +105,13 @@ export default async function ProductsPage({
             className={`${ui.field} w-auto`}
           />
 
-          <select name="sort" defaultValue={sort} aria-label="Sırala" className={`${ui.field} w-auto`}>
-            {SORTS.map((option) => (
-              <option key={option.value} value={option.value}>
-                {option.label}
-              </option>
-            ))}
-          </select>
-
-          {/* The category and brand filters ride through a sort or search change
-              rather than being reset by it — losing a filter because you sorted
-              is the classic listing annoyance. */}
+          {/* The category, brand, sort and price filters ride through a search change
+              rather than being reset by it — losing a filter because you searched
+              is the classic listing annoyance. Sorting itself lives in the filter
+              bar below, next to price and brand. */}
           {passthrough(params.category, 'category')}
           {passthrough(params.brand, 'brand')}
+          {passthrough(params.sort, 'sort')}
           {passthrough(params.price_min, 'price_min')}
           {passthrough(params.price_max, 'price_max')}
 
@@ -133,7 +121,7 @@ export default async function ProductsPage({
         </form>
       </div>
 
-      <ListingFilters facets={result.facets} />
+      <ListingFilters facets={result.facets} sort={sort} />
 
       {result.items.length === 0 ? (
         <div className={`flex flex-col items-center gap-3 py-16 text-center ${ui.card}`}>

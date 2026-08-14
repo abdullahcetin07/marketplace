@@ -3,7 +3,6 @@ import { notFound } from 'next/navigation';
 import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
-import { SortSelect } from '@/components/SortSelect';
 import { browseProducts, getBrand, type ProductSort } from '@/lib/api';
 import { absoluteUrl } from '@/lib/site';
 
@@ -99,13 +98,9 @@ export async function BrandView({
             <span className="font-bold text-ink-700 dark:text-ink-200">{listing.total}</span> ürün
           </p>
         </div>
-        <label className="ml-auto flex items-center gap-2 text-sm text-ink-500">
-          Sırala
-          <SortSelect value={sort} />
-        </label>
       </div>
 
-      <ListingFilters facets={listing.facets} showBrand={false} />
+      <ListingFilters facets={listing.facets} sort={sort} showBrand={false} />
 
       <ProductGrid products={listing.items} />
 

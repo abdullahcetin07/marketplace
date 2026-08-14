@@ -2,7 +2,8 @@
 
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import type { ListingFacets } from '@/lib/api';
+import { SortSelect } from '@/components/SortSelect';
+import type { ListingFacets, ProductSort } from '@/lib/api';
 import { ui } from '@/lib/ui';
 
 /**
@@ -14,7 +15,15 @@ import { ui } from '@/lib/ui';
  * returns results — and the whole brand block hides until the backend supplies facets,
  * so it degrades cleanly before ADR-080 ships.
  */
-export function ListingFilters({ facets, showBrand = true }: { facets: ListingFacets; showBrand?: boolean }) {
+export function ListingFilters({
+  facets,
+  sort,
+  showBrand = true,
+}: {
+  facets: ListingFacets;
+  sort?: ProductSort;
+  showBrand?: boolean;
+}) {
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
@@ -91,23 +100,32 @@ export function ListingFilters({ facets, showBrand = true }: { facets: ListingFa
         </label>
       )}
 
-      {hasFilters && (
-        <button
-          type="button"
-          onClick={() => {
-            setMin('');
-            setMax('');
-            navigate((params) => {
-              params.delete('brand');
-              params.delete('price_min');
-              params.delete('price_max');
-            });
-          }}
-          className="pb-2 text-sm font-bold text-brand-600 hover:underline"
-        >
-          Filtreleri temizle
-        </button>
-      )}
+      <div className="ml-auto flex items-center gap-3">
+        {hasFilters && (
+          <button
+            type="button"
+            onClick={() => {
+              setMin('');
+              setMax('');
+              navigate((params) => {
+                params.delete('brand');
+                params.delete('price_min');
+                params.delete('price_max');
+              });
+            }}
+            className="text-sm font-bold text-brand-600 hover:underline"
+          >
+            Filtreleri temizle
+          </button>
+        )}
+
+        {sort !== undefined && (
+          <label className="flex items-center gap-2 text-[.8rem] font-bold text-ink-500">
+            Sırala
+            <SortSelect value={sort} />
+          </label>
+        )}
+      </div>
     </div>
   );
 }
