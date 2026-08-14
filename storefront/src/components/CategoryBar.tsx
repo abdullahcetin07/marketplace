@@ -14,7 +14,7 @@ export async function CategoryBar() {
   // The menu sits in the shell on every page; an API blip should drop the menu, not
   // 500 the whole site — so a failed read renders an empty bar rather than throwing.
   // Catch-all buckets that shouldn't sit in the shopfront menu.
-  const hidden = new Set(['kategorisiz-urunler']);
+  const hidden = new Set(['kategorisiz-urunler', 'setler']);
 
   const tree = await fetchCategoryTree().catch(() => []);
   const top = tree
