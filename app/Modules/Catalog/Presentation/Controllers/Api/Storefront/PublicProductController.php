@@ -66,6 +66,8 @@ final class PublicProductController extends BaseController
             sort: $this->sort($request),
             page: (int) $request->query('page', 1),
             perPage: $this->perPage(default: 24, max: 48),
+            priceMinMinor: $this->priceMinor($request, 'price_min'),
+            priceMaxMinor: $this->priceMinor($request, 'price_max'),
         );
 
         return $this->ok(
@@ -79,6 +81,14 @@ final class PublicProductController extends BaseController
                 'per_page' => $result['per_page'],
                 'total' => $result['total'],
                 'last_page' => $result['last_page'],
+                /*
+                | THE CHOICES, BESIDE THE RESULTS (ADR-080). In `meta` rather than
+                | in `data` because a facet is not a product: a client that
+                | rendered `data` as cards and found a brand list among them would
+                | be right to be confused, and pagination counts stay about the
+                | grid.
+                */
+                'facets' => $result['facets'],
             ],
         );
     }
@@ -113,6 +123,35 @@ final class PublicProductController extends BaseController
         }
 
         return $this->ok(new PublicProductResource($model, $this->categoryPath($model)));
+    }
+
+    /**
+     * A price bound off the query string, in minor units (ADR-005/080).
+     *
+     * **A DECIMAL STRING IN, KURUŞ OUT, ONCE, AT THE BOUNDARY.** `49.90` is money
+     * the moment it stops being text, and the float in between is the bug the
+     * minor-units rule exists to prevent.
+     *
+     * **AN UNREADABLE BOUND IS NO BOUND, NOT A ZERO.** `price_min=abc` filtering
+     * to "at least ₺0.00" is a filter the shopper did not ask for; ignoring it
+     * shows them the listing they expected. A comma is accepted because Turkish
+     * writes one and a URL somebody typed by hand will carry it.
+     */
+    private function priceMinor(Request $request, string $key): ?int
+    {
+        $value = $request->query($key);
+
+        if (! is_string($value)) {
+            return null;
+        }
+
+        $value = str_replace(',', '.', trim($value));
+
+        if ($value === '' || preg_match('/^\d+(\.\d+)?$/', $value) !== 1) {
+            return null;
+        }
+
+        return (int) round(((float) $value) * 100);
     }
 
     /**

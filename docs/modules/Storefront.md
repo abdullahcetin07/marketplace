@@ -78,7 +78,23 @@ tr+en, PWA/native.
 ## 1.1 Catalog — public product surface (Catalog not frozen)
 - `GET /api/v1/products` — paginated **browse/search** of **published + sellable** products.
   Query: `q` (text, over the existing search index), `category`, `brand`, `sort`
-  (price_asc/desc, newest), page. Each item: uuid, title, primary image, category, brand.
+  (price_asc/desc, newest), `price_min` / `price_max`, page. Each item: uuid, title,
+  primary image, category, brand.
+  **Price filter (ADR-080):** decimal-string TL, converted to minor units at the boundary
+  and applied against the **buy-box** price — the same price the sort orders by, read
+  through `OfferQueryContract`. Bounds are **inclusive**, and an unreadable bound is
+  **no bound rather than a zero**: `price_min=abc` filtering to "at least ₺0.00" is a
+  filter the shopper did not ask for. A Turkish decimal comma is accepted.
+  **`meta.facets` (ADR-080):** `brands` (slug, name, count — commonest first, capped at
+  40) and `price` `{min, max}` as decimal strings. Facets are computed over the query
+  **minus the applied brand and price**, so a choice never hides its own alternatives:
+  collapsing the brand list to the brand already picked would leave the back button as
+  the only way to switch, and price bounds that shrank to the filtered subset would leave
+  the range control unable to widen again. **Category and `q` DO scope them** — those are
+  the query, not a facet choice within it. The brand facet is a grouped count over
+  Catalog's own indexed `status`/`is_sellable` path (ADR-079) with no offer read at all;
+  the price span is one Core call. The block is **cached for five minutes per (category,
+  q) scope**, which keeps the listing off that read: 296ms cold, **32ms warm**.
   **Sellable filter:** `products.is_sellable`, an indexed column (ADR-079). It used to
   be a live `OfferQueryContract` call per request whose answer became a `whereIn` — 7,025
   uuids built from 9,510 round trips, **22 seconds per browse and 504s that reached

@@ -10,6 +10,7 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Shared\Support\PublicKey;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Support\Facades\Cache;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -66,6 +67,11 @@ final class PublicProductBrowse
 
     private const int MAX_PER_PAGE = 48;
 
+    /** A listing offers a shortlist, not a directory: past ~40 nobody scrolls. */
+    private const int MAX_FACET_BRANDS = 40;
+
+    private const int FACET_TTL = 300;
+
     public function __construct(
         private readonly OfferQueryContract $offers,
     ) {}
@@ -79,6 +85,7 @@ final class PublicProductBrowse
      *     page: int,
      *     per_page: int,
      *     last_page: int,
+     *     facets: array{brands: array<int, array<string, mixed>>, price: array{min: string|null, max: string|null}},
      * }
      */
     public function cards(
@@ -88,9 +95,26 @@ final class PublicProductBrowse
         string $sort = self::SORT_NEWEST,
         int $page = 1,
         int $perPage = 24,
+        ?int $priceMinMinor = null,
+        ?int $priceMaxMinor = null,
     ): array {
         $perPage = max(1, min($perPage, self::MAX_PER_PAGE));
         $page = max(1, $page);
+
+        /*
+        | **FACETS ARE COMPUTED WITHOUT THE BRAND AND PRICE THE SHOPPER PICKED**
+        | (ADR-080). A facet that hid its own siblings would be a one-way door:
+        | pick Maruderm and the brand list collapses to Maruderm, so the only way
+        | back is the browser's. The category and the search term DO scope them —
+        | those are the query, not a facet choice within it.
+        */
+        $facets = $this->facets($query, $categoryUuid);
+
+        $withinPrice = $this->uuidsWithinPrice($query, $categoryUuid, $priceMinMinor, $priceMaxMinor);
+
+        if ($withinPrice !== null && $withinPrice === []) {
+            return $this->empty($page, $perPage) + ['facets' => $facets];
+        }
 
         /*
         | **THE SELLABLE WALL IS NOW A COLUMN** (ADR-079). It used to collect every
@@ -104,9 +128,11 @@ final class PublicProductBrowse
         | so an unsold or unpublished product still cannot reach a buyer whatever
         | else the filters say.
         */
-        return $sort === self::SORT_NEWEST
-            ? $this->byNewest($query, $categoryUuid, $brandUuid, $page, $perPage)
-            : $this->byPrice($query, $categoryUuid, $brandUuid, $sort, $page, $perPage);
+        $result = $sort === self::SORT_NEWEST
+            ? $this->byNewest($query, $categoryUuid, $brandUuid, $page, $perPage, $withinPrice)
+            : $this->byPrice($query, $categoryUuid, $brandUuid, $sort, $page, $perPage, $withinPrice);
+
+        return $result + ['facets' => $facets];
     }
 
     /**
@@ -168,7 +194,133 @@ final class PublicProductBrowse
     }
 
     /**
+     * The choices a shopper can still make from here (ADR-080).
+     *
+     * **SCOPED BY CATEGORY AND SEARCH, NOT BY BRAND OR PRICE.** Those two are the
+     * facets themselves: a brand list that collapsed to the brand already picked
+     * would leave the browser's back button as the only way to switch, and price
+     * bounds that shrank to the filtered subset would make the range control
+     * unable to widen again.
+     *
+     * **CACHED BRIEFLY, BECAUSE THE SCOPE KEY IS SMALL AND THE READ IS NOT.** The
+     * price span asks Offer about every product in the category; the answer is the
+     * same for every visitor and changes only as prices do. Five minutes keeps a
+     * re-priced catalogue honest and keeps the listing off that read.
+     *
+     * @return array{brands: array<int, array<string, mixed>>, price: array{min: string|null, max: string|null}}
+     */
+    private function facets(string $query, ?string $categoryUuid): array
+    {
+        // `sha256`, not `md5`: the arch suite's security preset bans the weak
+        // digests outright rather than case by case, which is the right default
+        // even where — as here — the input is a search term and a uuid.
+        $key = 'catalog.facets.'.hash('sha256', $query.'|'.($categoryUuid ?? ''));
+
+        /** @var array{brands: array<int, array<string, mixed>>, price: array{min: string|null, max: string|null}} $facets */
+        $facets = Cache::remember($key, self::FACET_TTL, function () use ($query, $categoryUuid): array {
+            $scope = $this->baseQuery($query, $categoryUuid, null);
+
+            /*
+            | THE BRAND FACET IS CATALOG'S OWN — a grouped count over the same
+            | indexed `status`/`is_sellable` path the listing uses (ADR-079), with
+            | no offer read at all. Brands with nothing sellable never appear,
+            | which is the point: a filter that returns nothing is not a choice.
+            */
+            $brands = (clone $scope)->getQuery()
+                ->join('brands', 'brands.id', '=', 'products.brand_id')
+                ->select(['brands.uuid', 'brands.slug', 'brands.name'])
+                ->selectRaw('count(*) as total')
+                ->groupBy('brands.uuid', 'brands.slug', 'brands.name')
+                ->orderByDesc('total')
+                ->orderBy('brands.name')
+                ->limit(self::MAX_FACET_BRANDS)
+                ->get()
+                ->map(static fn (object $row): array => [
+                    'uuid' => (string) $row->uuid,
+                    'slug' => (string) $row->slug,
+                    'name' => (string) $row->name,
+                    'count' => (int) $row->total,
+                ])
+                ->all();
+
+            /** @var array<int, string> $uuids */
+            $uuids = (clone $scope)->pluck('uuid')->all();
+
+            $span = $this->offers->buyBoxPriceSpanFor($uuids);
+
+            return [
+                'brands' => $brands,
+                // DECIMAL STRINGS ON THE WIRE, minor units inside (ADR-005). The
+                // range control renders these; it never does arithmetic on them.
+                'price' => [
+                    'min' => $span['min'] === null ? null : $this->decimal($span['min']),
+                    'max' => $span['max'] === null ? null : $this->decimal($span['max']),
+                ],
+            ];
+        });
+
+        return $facets;
+    }
+
+    /**
+     * Which products in scope fall inside the requested price range.
+     *
+     * **NULL MEANS "NO RANGE WAS ASKED FOR"**, which is not the same as an empty
+     * array: one leaves the listing untouched, the other narrows it to nothing.
+     * Conflating them is how a filter nobody set empties a page.
+     *
+     * **BOUNDS ARE INCLUSIVE.** A shopper who types 100–200 means to see the thing
+     * that costs exactly 200, and a range control's handles sit ON the numbers it
+     * shows.
+     *
+     * @return array<int, string>|null
+     */
+    private function uuidsWithinPrice(
+        string $query,
+        ?string $categoryUuid,
+        ?int $priceMinMinor,
+        ?int $priceMaxMinor,
+    ): ?array {
+        if ($priceMinMinor === null && $priceMaxMinor === null) {
+            return null;
+        }
+
+        /** @var array<int, string> $uuids */
+        $uuids = $this->baseQuery($query, $categoryUuid, null)->pluck('uuid')->all();
+
+        $prices = $this->offers->buyBoxPricesFor($uuids);
+
+        $within = [];
+
+        foreach ($prices as $uuid => $price) {
+            $minor = (int) $price['price_minor'];
+
+            if ($priceMinMinor !== null && $minor < $priceMinMinor) {
+                continue;
+            }
+
+            if ($priceMaxMinor !== null && $minor > $priceMaxMinor) {
+                continue;
+            }
+
+            $within[] = (string) $uuid;
+        }
+
+        return $within;
+    }
+
+    /**
+     * Minor units → the decimal string the wire carries (ADR-005).
+     */
+    private function decimal(int $minor): string
+    {
+        return number_format($minor / 100, 2, '.', '');
+    }
+
+    /**
      * The default listing: newest published first, paginated by the database.
+     *
+     * @param array<int, string>|null $withinPrice
      *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
@@ -178,8 +330,9 @@ final class PublicProductBrowse
         ?string $brandUuid,
         int $page,
         int $perPage,
+        ?array $withinPrice = null,
     ): array {
-        $paginator = $this->baseQuery($query, $categoryUuid, $brandUuid)
+        $paginator = $this->baseQuery($query, $categoryUuid, $brandUuid, $withinPrice)
             // What just arrived, not what has sat unsold for a year — the same
             // default the seller-facing browse uses.
             ->orderByDesc('published_at')
@@ -210,6 +363,8 @@ final class PublicProductBrowse
      * alternative — a price column on the product — is exactly what ADR-037
      * forbids and what would make one product sellable at one price.
      *
+     * @param array<int, string>|null $withinPrice
+     *
      * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
      */
     private function byPrice(
@@ -219,11 +374,12 @@ final class PublicProductBrowse
         string $sort,
         int $page,
         int $perPage,
+        ?array $withinPrice = null,
     ): array {
         // Which of the sellable products also match the buyer's filters. Ids only:
         // the content for the page is fetched after the order is known.
         /** @var array<int, string> $matching */
-        $matching = $this->baseQuery($query, $categoryUuid, $brandUuid)
+        $matching = $this->baseQuery($query, $categoryUuid, $brandUuid, $withinPrice)
             ->pluck('uuid')
             ->all();
 
@@ -284,12 +440,15 @@ final class PublicProductBrowse
     /**
      * Published, sellable, and matching the buyer's filters.
      *
+     * @param array<int, string>|null $withinPrice
+     *
      * @return Builder<Product>
      */
     private function baseQuery(
         string $query,
         ?string $categoryUuid,
         ?string $brandUuid,
+        ?array $withinPrice = null,
     ): Builder {
         $builder = Product::query()
             ->where('status', ProductStatus::Published->value)
@@ -300,6 +459,16 @@ final class PublicProductBrowse
         $this->applyText($builder, $query);
         $this->applyCategory($builder, $categoryUuid);
         $this->applyBrand($builder, $brandUuid);
+
+        /*
+        | THE PRICE FILTER ARRIVES AS A UUID SET, not as a predicate, because the
+        | price is not a column here and never will be (ADR-037/042): it belongs
+        | to an Offer, and one product has as many prices as it has sellers. Offer
+        | answers which products fall in the range; Catalog narrows to them.
+        */
+        if ($withinPrice !== null) {
+            $builder->whereIn('uuid', $withinPrice);
+        }
 
         return $builder;
     }

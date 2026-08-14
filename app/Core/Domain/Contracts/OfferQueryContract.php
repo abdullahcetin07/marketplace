@@ -149,6 +149,27 @@ interface OfferQueryContract
     public function sellableProductUuids(array $productUuids = []): array;
 
     /**
+     * The cheapest and dearest buy-box price across these products (ADR-080).
+     *
+     * **THE BOUNDS OF A PRICE FILTER, WITHOUT SHIPPING EVERY PRICE TO GET THEM.**
+     * A listing's range control needs two numbers; `buyBoxPricesFor()` would
+     * answer them by building an array of seven thousand, which is the memory
+     * version of asking a question you did not need answered.
+     *
+     * **THE SAME ELIGIBILITY AS EVERY OTHER BUYER-FACING READ**: an active offer,
+     * a live store, stock that is not all reserved. A range whose floor came from
+     * a suspended merchant would set the control to a price nobody can pay.
+     *
+     * Both halves are null when nothing in the set is sellable — the caller then
+     * has no range to render, which is different from a range of zero.
+     *
+     * @param array<int, string> $productUuids
+     *
+     * @return array{min: int|null, max: int|null} minor units
+     */
+    public function buyBoxPriceSpanFor(array $productUuids): array;
+
+    /**
      * The buy-box price of each product, in one round trip (ADR-058).
      *
      * WHAT A LISTING NEEDS TO SAY "₺X'den başlayan fiyatlarla". Asking per card

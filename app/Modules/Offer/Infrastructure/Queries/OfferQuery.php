@@ -280,6 +280,29 @@ final class OfferQuery implements OfferQueryContract
     }
 
     /**
+     * @param array<int, string> $productUuids
+     *
+     * @return array{min: int|null, max: int|null}
+     */
+    public function buyBoxPriceSpanFor(array $productUuids): array
+    {
+        $prices = $this->cheapestEligiblePrices($productUuids);
+
+        if ($prices === []) {
+            return ['min' => null, 'max' => null];
+        }
+
+        /*
+        | MIN OF THE MINIMA AND MAX OF THE MINIMA. The dearest product in a
+        | listing is the one whose CHEAPEST offer is highest — not the dearest
+        | offer on the page, which belongs to a seller nobody is going to buy
+        | from and would stretch the range control past anything a shopper can
+        | actually pay.
+        */
+        return ['min' => min($prices), 'max' => max($prices)];
+    }
+
+    /**
      * The buy-box ordering and the eligibility rule, in one place so the
      * featured offer and the seller list can never disagree about who wins.
      *
@@ -356,6 +379,70 @@ final class OfferQuery implements OfferQueryContract
     private function storeIsLive(string $storeUuid): bool
     {
         return $this->liveStores[$storeUuid] ??= $this->stores->isLive($storeUuid);
+    }
+
+    /**
+     * The cheapest ELIGIBLE offer price per product, as `uuid => minor units`.
+     *
+     * **ONE LEAN READ, SHARED BY THE PRICE FACET AND THE BUY BOX** (ADR-079/080).
+     * Six columns, no models: the price-sorted listing and the range control both
+     * ask about the whole catalogue, and hydrating an `Offer` per row to reach one
+     * integer was 1.2 seconds.
+     *
+     * The eligibility rules are unchanged and still cross two boundaries — a live
+     * store (Store) and stock that is not all reserved (Inventory) — both asked in
+     * bulk, never per offer.
+     *
+     * @param array<int, string> $productUuids
+     *
+     * @return array<string, int>
+     */
+    private function cheapestEligiblePrices(array $productUuids): array
+    {
+        if ($productUuids === []) {
+            return [];
+        }
+
+        $prices = [];
+
+        foreach (array_chunk(array_values(array_unique($productUuids)), 5_000) as $chunk) {
+            $rows = DB::table('offers')
+                ->select([
+                    'offers.product_uuid',
+                    'offers.selling_org_uuid',
+                    'offers.variant_uuid',
+                    'offers.store_uuid',
+                    'offers.price_minor',
+                ])
+                ->whereIn('offers.product_uuid', $chunk)
+                ->where('offers.status', OfferStatus::Active->value)
+                ->whereNull('offers.deleted_at')
+                ->orderBy('offers.price_minor')
+                ->get();
+
+            $available = $this->inventory->availableKeysAmong($rows->pluck('variant_uuid')->all());
+
+            foreach ($rows as $row) {
+                $productUuid = (string) $row->product_uuid;
+
+                // Cheapest first, so the first survivor per product is the answer.
+                if (isset($prices[$productUuid])) {
+                    continue;
+                }
+
+                if (! $this->storeIsLive((string) $row->store_uuid)) {
+                    continue;
+                }
+
+                if (! isset($available[$row->selling_org_uuid.'|'.$row->variant_uuid])) {
+                    continue;
+                }
+
+                $prices[$productUuid] = (int) $row->price_minor;
+            }
+        }
+
+        return $prices;
     }
 
     /**

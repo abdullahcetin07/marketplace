@@ -101,6 +101,17 @@ function fakeOfferPort(?array $featured): void
         {
             return [];
         }
+
+        /*
+        | THE PRICE-SPAN PORT (ADR-080) IS NOT WHAT THIS FAKE IS ABOUT. It shares
+        | the interface because both answers come from the same offers; a
+        | stand-in for the BUY-BOX WINNER has nothing to say about a range.
+        */
+        /** @return array{min: int|null, max: int|null} */
+        public function buyBoxPriceSpanFor(array $productUuids): array
+        {
+            return ['min' => null, 'max' => null];
+        }
     });
 }
 
