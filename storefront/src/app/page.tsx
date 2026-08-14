@@ -1,12 +1,15 @@
 import type { Metadata } from 'next';
+import { Fragment } from 'react';
 import Link from 'next/link';
 import { fetchBrands, getBestSellers, getMostReviewed } from '@/lib/api';
 import { CategoryStrip } from '@/components/CategoryStrip';
 import { HeroSlider } from '@/components/HeroSlider';
 import { ProductRail } from '@/components/ProductRail';
+import { PromoBlock } from '@/components/PromoBlock';
 import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
+import { promoBlocks } from '@/lib/promo-banners';
 import { SITE_URL } from '@/lib/site';
 
 // A keyword-rich home title of its own (absolute, so it skips the "%s — Raftabul"
@@ -198,9 +201,13 @@ export default async function HomePage() {
       <ProductRail title="Çok Satanlar" items={bestSellers} />
       <ProductRail title="En Çok Değerlendirilenler" items={mostReviewed} />
 
-      {/* curated, always-on category strips (exact slugs; each hides if empty) */}
+      {/* curated category strips (exact slugs; each hides if empty), each followed by
+          its promo banner block (3 banners + a wide one) when configured */}
       {CATEGORY_STRIPS.map((strip) => (
-        <CategoryStrip key={strip.slug} title={strip.title} slug={strip.slug} href={`/${strip.slug}`} />
+        <Fragment key={strip.slug}>
+          <CategoryStrip title={strip.title} slug={strip.slug} href={`/${strip.slug}`} />
+          <PromoBlock block={promoBlocks[strip.slug]} />
+        </Fragment>
       ))}
     </div>
   );
