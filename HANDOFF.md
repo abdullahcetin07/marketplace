@@ -42,6 +42,19 @@ already built against the quote + `pay {points}` contract and stays hidden until
 ships. Delete this section once P2 lands and is verified on PayTR sandbox (including
 the `payable == 0` path and a refund re-credit).
 
+**Owner clarifications (2026-08-15, in answer to your two pre-start questions):**
+1. **No cap — confirmed.** A customer may pay 100% of the cart with points; the
+   platform absorbs it and the seller is paid in full (ADR-084 unchanged, no
+   amendment, no `max_percent` setting). Build the `payable == 0` path as specified.
+2. **PayTR: use the SANDBOX** already configured on this server (the same one Payment
+   went live against). Read your own `.env` to confirm the sandbox merchant creds are
+   present and report what you find; do **not** run the verification against live PayTR
+   / real charges. If sandbox creds are somehow missing, stop and say so rather than
+   falling back to live.
+
+Proceed with your stated order: Core port → hold/commit/release → quote → pay
+integration → callback → refund → tests → ADR/doc, `make check` each phase.
+
 ---
 
 ## How to work (autonomous)
