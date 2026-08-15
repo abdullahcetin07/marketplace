@@ -6,6 +6,7 @@ namespace App\Modules\Payment\Application\Actions;
 
 use App\Core\Application\Actions\BaseAction;
 use App\Core\Domain\Contracts\InventoryReservationContract;
+use App\Core\Domain\Contracts\LoyaltyContract;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
@@ -68,6 +69,9 @@ final class RefundLinesAction extends BaseAction
         private readonly PaymentGatewayContract $gateway,
         private readonly OrderQueryContract $orders,
         private readonly InventoryReservationContract $reservations,
+        /* The Core redemption port (ADR-084) — Payment drives it, as it does
+        | the hold and the commit. */
+        private readonly LoyaltyContract $loyalty,
     ) {}
 
     public function handle(mixed ...$arguments): PaymentRefund
@@ -354,6 +358,24 @@ final class RefundLinesAction extends BaseAction
             'refunded_at' => now(),
         ])->save();
 
+        /*
+        | **THE POINTS COME BACK WITH THE MONEY** (ADR-084). The customer ends
+        | whole: the card is refunded through PayTR as it always was, and what they
+        | spent in points is re-credited as a new positive row — the ledger is
+        | append-only, so a reversal is written rather than the spend erased.
+        |
+        | **THE FRACTION IS COMPUTED HERE BECAUSE ONLY PAYMENT HOLDS BOTH NUMBERS.**
+        | The basket the customer actually settled is the card charge PLUS the
+        | discount their points bought; refunding half of it must return half the
+        | points. Loyalty is handed the proportion rather than the amounts, so it
+        | never learns what a payment is.
+        */
+        $this->loyalty->reverse(
+            $payment->checkout_group_uuid,
+            $this->cause->value,
+            $this->refundedFraction($payment, $amountMinor, $fully),
+        );
+
         $this->refunded = new PaymentRefunded(
             paymentUuid: $payment->uuid,
             checkoutGroupUuid: $payment->checkout_group_uuid,
@@ -392,5 +414,27 @@ final class RefundLinesAction extends BaseAction
         }
 
         return true;
+    }
+
+    /**
+     * How much of the customer's basket this refund undid, as a fraction.
+     *
+     * **THE DENOMINATOR IS CARD + POINTS, NOT THE CARD ALONE.** A 100 TL basket
+     * settled with 60 TL of card and 40 TL of points, refunded in full, must return
+     * all the points — dividing by the card charge would return 100/60 of them, and
+     * clamping that to 1.0 would only hide the arithmetic being wrong.
+     *
+     * A fully-refunded payment is 1.0 outright rather than a division, so rounding
+     * can never leave a customer a point short of whole.
+     */
+    private function refundedFraction(Payment $payment, int $refundedMinor, bool $fully): float
+    {
+        if ($fully) {
+            return 1.0;
+        }
+
+        $settled = $payment->amount_minor + $payment->discount_minor;
+
+        return $settled <= 0 ? 0.0 : $refundedMinor / $settled;
     }
 }

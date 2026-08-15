@@ -7,6 +7,7 @@ namespace App\Modules\Payment;
 use App\Core\Domain\Contracts\CommissionQueryContract;
 use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Core\Domain\Contracts\OrderReturnContract;
+use App\Core\Domain\Contracts\PaymentQueryContract;
 use App\Modules\Payment\Application\Listeners\CreditSellerLedger;
 use App\Modules\Payment\Application\Listeners\OpenSettlementWindows;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
@@ -18,6 +19,7 @@ use App\Modules\Payment\Infrastructure\Commands\OrderCancellation;
 use App\Modules\Payment\Infrastructure\Commands\OrderReturn;
 use App\Modules\Payment\Infrastructure\Gateways\PayTrGateway;
 use App\Modules\Payment\Infrastructure\Queries\CommissionQuery;
+use App\Modules\Payment\Infrastructure\Queries\PaymentQuery;
 use App\Modules\Payment\Presentation\Console\DiagnosePaymentCommand;
 use App\Modules\Payment\Presentation\Policies\CommissionRulePolicy;
 use App\Modules\Payment\Presentation\Policies\PaymentPolicy;
@@ -81,6 +83,12 @@ final class PaymentServiceProvider extends ServiceProvider
         | the rules answer through Core and Order writes its own table.
         */
         $this->app->singleton(CommissionQueryContract::class, CommissionQuery::class);
+
+        /*
+        | THE DISCOUNT A BASKET'S POINTS BOUGHT (ADR-084). Order asks so the
+        | purchase sweep earns on cash rather than on money paid with points.
+        */
+        $this->app->singleton(PaymentQueryContract::class, PaymentQuery::class);
 
         /*
         | THE CANCELLATION COMMAND PORT (ADR-065, C1) — the platform's SECOND

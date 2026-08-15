@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Order\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Core\Domain\Contracts\PaymentQueryContract;
 use App\Core\Domain\Contracts\ShipmentQueryContract;
 use App\Modules\Order\Application\Services\CartPricingService;
 use App\Modules\Order\Domain\Enums\OrderStatus;
@@ -50,7 +51,14 @@ final class OrderQuery implements OrderQueryContract
      * knows a seller-order reached `Delivered`; the DATE lives on the shipment,
      * and the points sweep needs it to measure the return window from.
      */
-    public function __construct(private readonly ShipmentQueryContract $shipments) {}
+    public function __construct(
+        private readonly ShipmentQueryContract $shipments,
+        /*
+        | What a basket's points covered (ADR-084). Order asks Payment through Core
+        | so the purchase sweep earns on cash — neither module imports the other.
+        */
+        private readonly PaymentQueryContract $payments,
+    ) {}
 
     public function orderExists(string $orderUuid): bool
     {
@@ -407,17 +415,40 @@ final class OrderQuery implements OrderQueryContract
                 ->where('status', OrderStatus::Delivered->value)
                 ->get();
 
+            /*
+            | **THE POINTS DISCOUNT, PER BASKET, SPREAD ACROSS ITS SELLER-ORDERS**
+            | (ADR-082 §2.3, owner-confirmed 2026-08-15). Points must not
+            | regenerate on money that was paid with points, so the earn base is
+            | CASH: the order's own total minus its share of what the customer's
+            | points covered.
+            |
+            | Grouped and totalled first, because the share is proportional and a
+            | proportion needs the whole: a basket split 30/70 between two sellers
+            | carries 30% and 70% of the discount.
+            */
+            $discounts = [];
+            $groupTotals = [];
+
             foreach ($orders as $order) {
+                $group = (string) $order->checkout_group_uuid;
+                $discounts[$group] ??= $this->payments->redemptionDiscountFor($group);
+                $groupTotals[$group] = ($groupTotals[$group] ?? 0) + (int) $order->grand_total_minor;
+            }
+
+            foreach ($orders as $order) {
+                $group = (string) $order->checkout_group_uuid;
+                $orderTotal = (int) $order->grand_total_minor;
+
                 $rows[] = [
                     'order_uuid' => $order->uuid,
                     'customer_uuid' => $order->customer_uuid,
                     /*
-                    | What the buyer actually paid for THIS seller's half of the
-                    | basket, KDV included — the grand total is that number
-                    | (ADR-053). Read rather than recomputed, so Phase 2's
-                    | points-funded discount needs no change here.
+                    | **CASH, NOT THE INVOICE.** The order still SETTLES on its full
+                    | amount — the platform funds the discount and the seller is
+                    | paid in full (ADR-084) — but the customer only spent the
+                    | difference, and points are earned on what they spent.
                     */
-                    'paid_minor' => (int) $order->grand_total_minor,
+                    'paid_minor' => $this->cashPaidFor($orderTotal, $groupTotals[$group], $discounts[$group]),
                     'currency_code' => $order->currency->code,
                     'delivered_at' => (string) $delivered[$order->uuid],
                 ];
@@ -498,5 +529,24 @@ final class OrderQuery implements OrderQueryContract
             ->all();
 
         return $uuids;
+    }
+
+    /**
+     * One seller-order's share of the cash, after the basket's points discount.
+     *
+     * **FLOOR ON THE DISCOUNT SHARE, WHICH ROUNDS IN THE CUSTOMER'S FAVOUR.** The
+     * shares of a basket rarely divide evenly; flooring what is SUBTRACTED means
+     * the rounding remainder stays in the earn base rather than vanishing from it,
+     * and it can never push a share below zero.
+     */
+    private function cashPaidFor(int $orderTotalMinor, int $groupTotalMinor, int $discountMinor): int
+    {
+        if ($discountMinor <= 0 || $groupTotalMinor <= 0) {
+            return $orderTotalMinor;
+        }
+
+        $share = (int) floor($discountMinor * ($orderTotalMinor / $groupTotalMinor));
+
+        return max(0, $orderTotalMinor - $share);
     }
 }
