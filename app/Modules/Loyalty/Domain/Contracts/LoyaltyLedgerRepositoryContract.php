@@ -33,6 +33,15 @@ interface LoyaltyLedgerRepositoryContract
     public function balanceFor(string $customerUuid): int;
 
     /**
+     * The one row written for this source, or null.
+     *
+     * **THE ROW, NOT JUST ITS NUMBER.** A reversal needs what was spent AND whose
+     * points they were, and `(source_type, source_uuid)` is unique — so there is
+     * exactly one row to hand back and no ambiguity about which.
+     */
+    public function entryFor(LoyaltyPointSource $source, string $sourceUuid): ?LoyaltyLedgerEntry;
+
+    /**
      * @return LengthAwarePaginator<int, LoyaltyLedgerEntry>
      */
     public function historyFor(string $customerUuid, int $perPage): LengthAwarePaginator;

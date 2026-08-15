@@ -24,9 +24,9 @@ use Illuminate\Database\UniqueConstraintViolationException;
  * actually decides, and catching its violation turns the loser of that race into
  * the same no-op as the ordinary repeat.
  *
- * **NOTHING IS GRANTED WHEN THE PROGRAMME IS OFF**, and nothing when the points
- * round to zero: a ledger full of zero-point rows is history nobody can read, and
- * it would make "you earned points" an email about nothing.
+ * **NOTHING IS WRITTEN WHEN THE PROGRAMME IS OFF**, and nothing when the points
+ * round to zero. Negative rows ARE written: a redemption spends by recording
+ * (ADR-084), never by deleting what was earned.
  *
  * @see docs/modules/Loyalty.md
  */
@@ -43,7 +43,16 @@ final class GrantPointsAction extends BaseAction
             return null;
         }
 
-        if ($data->points <= 0 || $data->customerUuid === '') {
+        /*
+        | **ZERO IS REFUSED; NEGATIVE IS NOT.** A ledger full of zero-point rows is
+        | history nobody can read, and "you earned points" about nothing.
+        |
+        | This said `<= 0` until Phase 2, which is exactly the case it was blocking:
+        | a REDEMPTION is a negative row (ADR-084), because a spend is recorded
+        | rather than deleted. The guard was right for the three earns that existed
+        | and wrong the moment spending arrived.
+        */
+        if ($data->points === 0 || $data->customerUuid === '') {
             return null;
         }
 

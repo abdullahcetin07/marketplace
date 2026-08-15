@@ -27,6 +27,14 @@ final class LoyaltyLedgerRepository implements LoyaltyLedgerRepositoryContract
             ->exists();
     }
 
+    public function entryFor(LoyaltyPointSource $source, string $sourceUuid): ?LoyaltyLedgerEntry
+    {
+        return LoyaltyLedgerEntry::query()
+            ->where('source_type', $source->value)
+            ->where('source_uuid', $sourceUuid)
+            ->first();
+    }
+
     public function balanceFor(string $customerUuid): int
     {
         /*

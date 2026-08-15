@@ -12,10 +12,9 @@ namespace App\Modules\Loyalty\Domain\Enums;
  * read. An operator cannot invent "birthday points" from an admin screen and have
  * them appear; that is a release, so it is an enum.
  *
- * **PHASE 1 CARRIES THREE CASES AND NOT FIVE.** `Redemption` and `Reversal` belong
- * to ADR-084 and are deliberately absent: a case nothing can write is a promise the
- * ledger cannot keep, and the storefront would have to guess what an empty category
- * means.
+ * **FIVE CASES SINCE PHASE 2.** `Redemption` and `Reversal` were deliberately
+ * absent in Phase 1 — a case nothing can write is a promise the ledger cannot keep
+ * — and arrived with the code that writes them (ADR-084).
  */
 enum LoyaltyPointSource: string
 {
@@ -27,6 +26,19 @@ enum LoyaltyPointSource: string
 
     /** A seller-order whose return window closed without a return. */
     case Purchase = 'purchase';
+
+    /** Spent at checkout — the only case that writes a NEGATIVE row (ADR-084). */
+    case Redemption = 'redemption';
+
+    /**
+     * Given back because the purchase was refunded.
+     *
+     * **A SEPARATE CASE FROM `Purchase`**, though both are positive: one is a
+     * reward the customer earned and the other is their own points returning. A
+     * history that called them the same thing would tell somebody they had earned
+     * points for an order they sent back.
+     */
+    case Reversal = 'reversal';
 
     /**
      * The label a storefront shows beside the row.
@@ -41,6 +53,8 @@ enum LoyaltyPointSource: string
             self::Signup => 'Üyelik',
             self::Review => 'Değerlendirme',
             self::Purchase => 'Alışveriş',
+            self::Redemption => 'Harcama',
+            self::Reversal => 'İade',
         };
     }
 }

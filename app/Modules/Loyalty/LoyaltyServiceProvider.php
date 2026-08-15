@@ -4,9 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Loyalty;
 
+use App\Core\Domain\Contracts\LoyaltyContract;
 use App\Modules\Loyalty\Application\Listeners\AwardReviewPoints;
 use App\Modules\Loyalty\Application\Listeners\AwardSignupPoints;
 use App\Modules\Loyalty\Domain\Contracts\LoyaltyLedgerRepositoryContract;
+use App\Modules\Loyalty\Infrastructure\Commands\LoyaltyRedemption;
 use App\Modules\Loyalty\Infrastructure\Repositories\LoyaltyLedgerRepository;
 use App\Modules\Loyalty\Presentation\Commands\AwardPurchasePointsCommand;
 use App\Shared\Enums\UserType;
@@ -22,9 +24,9 @@ use Illuminate\Support\ServiceProvider;
  * Core contracts. `LayeringTest` fails the build in both directions, and the
  * strings are what let a listener react to an event whose class it may not name.
  *
- * **PHASE 1 EARNS AND DOES NOT SPEND.** There is no `LoyaltyContract` here, and
- * its absence is deliberate: redemption is ADR-084, and a port with nothing behind
- * it would invite checkout to depend on a promise nothing keeps.
+ * **PHASE 2 SPENDS AS WELL AS EARNS.** `LoyaltyContract` is bound below — the
+ * platform's fourth Core COMMAND port (ADR-084), after Inventory's reservation and
+ * Order's cancellation and return.
  *
  * @see docs/modules/Loyalty.md
  */
@@ -33,6 +35,12 @@ final class LoyaltyServiceProvider extends ServiceProvider
     public function register(): void
     {
         $this->app->singleton(LoyaltyLedgerRepositoryContract::class, LoyaltyLedgerRepository::class);
+
+        /*
+        | THE PLATFORM'S FOURTH CORE COMMAND PORT (ADR-084). Payment tells Loyalty
+        | to earmark, spend or give back points; neither module imports the other.
+        */
+        $this->app->singleton(LoyaltyContract::class, LoyaltyRedemption::class);
     }
 
     public function boot(): void
