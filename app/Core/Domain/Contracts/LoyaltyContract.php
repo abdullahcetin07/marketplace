@@ -47,7 +47,19 @@ interface LoyaltyContract
      *
      * @return array{points_applied: int, discount_minor: int, payable_minor: int, max_points: int}
      */
-    public function quote(string $customerUuid, int $cartTotalMinor, ?int $requestedPoints = null): array;
+    public function quote(
+        string $customerUuid,
+        int $cartTotalMinor,
+        ?int $requestedPoints = null,
+        /*
+        | **THE GROUP'S OWN HOLD IS NOT SUBTRACTED FROM ITS OWN QUOTE.** A caller
+        | that has already earmarked points for this checkout — the pay step does,
+        | before it prices the charge — would otherwise be quoted against a balance
+        | those very points have already left, and the discount would come back
+        | zero. Null for a pure preview, where no hold exists yet.
+        */
+        ?string $checkoutGroupUuid = null,
+    ): array;
 
     /**
      * Earmark points for this checkout group, against the live balance.

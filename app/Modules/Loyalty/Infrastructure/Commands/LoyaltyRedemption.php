@@ -42,8 +42,12 @@ final class LoyaltyRedemption implements LoyaltyContract
     /**
      * @return array{points_applied: int, discount_minor: int, payable_minor: int, max_points: int}
      */
-    public function quote(string $customerUuid, int $cartTotalMinor, ?int $requestedPoints = null): array
-    {
+    public function quote(
+        string $customerUuid,
+        int $cartTotalMinor,
+        ?int $requestedPoints = null,
+        ?string $checkoutGroupUuid = null,
+    ): array {
         $cartTotalMinor = max(0, $cartTotalMinor);
 
         if (! settings('loyalty.enabled', true)) {
@@ -55,7 +59,7 @@ final class LoyaltyRedemption implements LoyaltyContract
             return $this->answer(0, 0, $cartTotalMinor, 0);
         }
 
-        $spendable = $this->spendable($customerUuid);
+        $spendable = $this->spendable($customerUuid, exceptGroup: $checkoutGroupUuid);
 
         /*
         | **CLAMPED TO THE CART AS WELL AS TO THE BALANCE**, because change is not

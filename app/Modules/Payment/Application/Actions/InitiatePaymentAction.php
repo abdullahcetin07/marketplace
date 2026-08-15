@@ -125,7 +125,13 @@ final class InitiatePaymentAction extends BaseAction
         */
         $heldPoints = $this->loyalty->hold($customer['uuid'], max(0, $requestedPoints), $checkoutGroupUuid);
 
-        $quote = $this->loyalty->quote($customer['uuid'], $amountMinor, $heldPoints);
+        /*
+        | **PRICED FOR THIS GROUP, IGNORING THIS GROUP'S OWN HOLD.** The points were
+        | just earmarked a line above; quoting without excluding them would measure
+        | the discount against a balance they have already left, and every
+        | redemption would come back zero.
+        */
+        $quote = $this->loyalty->quote($customer['uuid'], $amountMinor, $heldPoints, $checkoutGroupUuid);
 
         $discountMinor = $quote['discount_minor'];
         $payableMinor = max(0, $amountMinor - $discountMinor);

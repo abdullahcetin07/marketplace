@@ -1,6 +1,62 @@
 # Loyalty (Puan) — Customer Points
 
-**Status: PHASE 1 BUILT (2026-08-15).** ADR-081–084. Earning, the append-only
+**Status: PHASE 2 BUILT (2026-08-15).** Earning, the ledger, the admin screen, the
+customer read API **and redemption at checkout** are live.
+
+## Phase 2 — what shipped, and what to know
+
+- **`LoyaltyContract` is the platform's fourth Core COMMAND port**, after Inventory's
+  reservation and Order's cancellation and return. `hold → commit → release` is
+  Inventory's shape on purpose: a shopper occupies something at the start of a payment
+  that may never finish, and it must come back on its own if it does not.
+- **A hold writes NO ledger row.** `loyalty_holds` is its own table, deleted rather
+  than soft-deleted. The ledger records what happened; a hold is a claim on what
+  might, and writing holds into it would make the balance a sum of intentions.
+- **The spendable balance is the ledger sum minus what is held**, neither stored. A
+  hold excludes its OWN group from that subtraction — and so does a **quote**, which
+  was a real bug for one build: the pay step holds and then prices, so quoting without
+  the exclusion measured the discount against a balance those points had already left
+  and every redemption came back zero.
+- **`amount_minor` becomes the reduced charge** rather than gaining a sibling. It is
+  what PayTR is asked for and what the callback verifies against; a discount beside it
+  would make every verified callback fail as the wrong amount. The discount lives on
+  the payment only — no seller-order, commission, KDV or payout moves, because the
+  platform funds it.
+- **No cap** (owner's decision, 2026-08-15): points may cover the whole cart. That path
+  skips PayTR — it rejects zero-amount orders — marks the payment paid with
+  `provider_reference = 'points'`, commits the stock and the points, and emits
+  `PaymentSucceeded` with a zero amount. `amount_minor = 0` is exactly what a later
+  refund needs: no card money to return, only points.
+- **A refund gives the points back, driven by Payment.** The fraction needs the card
+  charge AND the discount and only Payment holds both, so the port is called from both
+  refund actions rather than from a listener in Loyalty. The denominator is **card +
+  points**: a 100 TL basket settled 60/40, refunded in full, must return all the
+  points. A full refund is 1.0 outright rather than a division.
+- **The purchase sweep earns on CASH** (ADR-082 §2.3): the order total minus its share
+  of the basket's discount, spread proportionally across the seller-orders. It was
+  reading the grand total, which would hand back points for the discount the points
+  themselves bought. The share is floored, which rounds in the customer's favour.
+- **`GrantPointsAction`'s guard is `=== 0`, not `<= 0`.** It was right for the three
+  earns that existed and wrong the moment spending arrived: a redemption is negative
+  because a spend is recorded, never deleted.
+
+### Phase 2 deviations
+
+1. **The points-only path repeats `SettlePaymentCallbackAction::settle()`** rather than
+   restructuring it. That method is the verified-callback path for every real charge on
+   the platform; reshaping it for a case with no gateway result, no hash and no amount
+   to verify would put this feature's edge inside the code that settles everybody's
+   money. The duplication is named in the docblock and a test asserts both paths reach
+   the same end state.
+2. **Two Core reads were added that the work order did not list:**
+   `PaymentQueryContract::redemptionDiscountFor` (Order needs the discount to compute
+   the cash earn base, and may not import Payment) and
+   `OrderQueryContract::activeCartTotalFor` (the quote endpoint prices the live cart,
+   and Loyalty may not import Order).
+3. **`LoyaltyContract::quote()` takes an optional checkout group** — not in the work
+   order's signature, and required by the bug described above.
+
+**Phase 1 status (unchanged):** ADR-081–084. Earning, the append-only
 ledger, the admin rates screen and the customer read API are live; the storefront
 wiring ("Puanlarım") is a separate desktop task. **Phase 2 — redemption at
 checkout (ADR-084) — is NOT built**: there is deliberately no `LoyaltyContract`
