@@ -55,6 +55,15 @@ the `payable == 0` path and a refund re-credit).
 Proceed with your stated order: Core port → hold/commit/release → quote → pay
 integration → callback → refund → tests → ADR/doc, `make check` each phase.
 
+### Also queued (small, independent of P2): `BUILD_LOYALTY_EARN_PREVIEW.md`
+
+A tiny public read `GET /api/v1/loyalty/earn-preview?amount=<decimal>` →
+`{ enabled, points, currency }`, `points = floor(amount × loyalty.earn.purchase_rate)`
+(the SAME computation as the purchase sweep). Public (no auth), reads only `settings()`,
+no Core contract, imports nothing. The storefront product-page "Kampanyalar" card ("Bu
+ürünü alınca X puan kazan") is already built against it and stays hidden until it ships.
+Do it whenever convenient — it's not on the P2 critical path.
+
 ---
 
 ## How to work (autonomous)

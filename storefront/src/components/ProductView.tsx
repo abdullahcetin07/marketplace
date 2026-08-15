@@ -7,6 +7,7 @@ import { ProductQuestions } from '@/components/ProductQuestions';
 import { ProductRailSkeleton } from '@/components/ProductRailSkeleton';
 import { ProductReviews } from '@/components/ProductReviews';
 import { AlsoBought } from '@/components/AlsoBought';
+import { ProductCampaigns } from '@/components/ProductCampaigns';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { Stars } from '@/components/Stars';
 import { TrackRecentView } from '@/components/TrackRecentView';
@@ -219,6 +220,15 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                 </div>
               )}
             </dl>
+          )}
+
+          {/* Campaigns — below the features, the points this purchase earns. Streams so
+              the earn-preview fetch never blocks the page, and renders nothing until the
+              endpoint ships or if loyalty is off. */}
+          {featured !== null && (
+            <Suspense fallback={null}>
+              <ProductCampaigns amount={featured.price} currency={featured.currency} />
+            </Suspense>
           )}
 
           {product.variants.length > 1 && (

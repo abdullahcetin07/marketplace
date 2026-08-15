@@ -347,6 +347,25 @@ async function publicJson<T>(path: string): Promise<T | null> {
   return envelope.data;
 }
 
+/**
+ * The points a buyer earns on a given TL amount (Loyalty, ADR-082) — a PUBLIC read so
+ * the product page can show it to signed-out shoppers too. The backend computes the
+ * integer from the amount + the operator earn rate; the storefront never multiplies a
+ * price string itself. Degrades to null until the endpoint ships (or if loyalty is off),
+ * so the campaigns box simply doesn't render.
+ */
+export async function getEarnPreview(
+  amount: string,
+): Promise<{ enabled: boolean; points: number } | null> {
+  try {
+    return await publicJson<{ enabled: boolean; points: number }>(
+      `/api/v1/loyalty/earn-preview?amount=${encodeURIComponent(amount)}`,
+    );
+  } catch {
+    return null;
+  }
+}
+
 /** A public POST (the batch price read). Never cached — it takes a body. */
 async function publicPost<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(apiUrl(path), {
