@@ -30,6 +30,8 @@ import type {
   Country,
   EligibleReviewLine,
   GeoPlace,
+  LoyaltyBalance,
+  LoyaltyLedgerEntry,
   MyQuestion,
   MyReview,
   Order,
@@ -656,4 +658,23 @@ export function askQuestion(product: string, body: string): Promise<MyQuestion |
 /** A buyer may delete their own question. */
 export function deleteQuestion(questionId: string): Promise<null> {
   return request<null>(`/api/v1/questions/${encodeURIComponent(questionId)}`, { method: 'DELETE' });
+}
+
+/*
+|------------------------------------------------------------------------------
+| Loyalty points (Loyalty module, ADR-081/083 — Phase 1 read surface)
+|------------------------------------------------------------------------------
+| Both DEGRADE quietly: until the backend ships the endpoints they 404, which the
+| request helper turns into a throw — caught here so the points UI shows an empty
+| state rather than crashing the account area.
+*/
+
+/** The customer's own points balance + its TL value. */
+export function fetchLoyaltyBalance(): Promise<LoyaltyBalance | null> {
+  return request<LoyaltyBalance>('/api/v1/loyalty/balance').catch(() => null);
+}
+
+/** The customer's own points history, newest first (first page). */
+export async function fetchLoyaltyLedger(): Promise<LoyaltyLedgerEntry[]> {
+  return (await request<LoyaltyLedgerEntry[]>('/api/v1/loyalty/ledger').catch(() => null)) ?? [];
 }

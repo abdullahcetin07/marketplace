@@ -101,6 +101,7 @@ export function HeaderActions() {
               {[
                 { href: '/hesap', label: 'Hesabım' },
                 { href: '/hesap/siparislerim', label: 'Siparişlerim' },
+                { href: '/hesap/puanlarim', label: 'Puanlarım' },
                 { href: '/hesap/adreslerim', label: 'Adreslerim' },
               ].map((item) => (
                 <Link

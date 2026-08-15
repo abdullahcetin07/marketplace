@@ -316,3 +316,35 @@ export type PaymentView = {
   paid_at: string | null;
   created_at: string;
 };
+
+/**
+ * Loyalty points (ADR-081/083). A point is an integer COUNT, not money — only
+ * `value` is money-adjacent and arrives as a decimal string (005 §28), never parsed.
+ */
+export type LoyaltyBalance = {
+  points: number;
+  /** points × redeem value, as a decimal string, e.g. "26.00" */
+  value: string;
+  currency: string;
+};
+
+export type LoyaltyPointSource = 'signup' | 'review' | 'purchase' | 'redemption' | 'reversal';
+
+/** One ledger row (ADR-081). `points` is signed: earn positive, spend negative. */
+export type LoyaltyLedgerEntry = {
+  uuid: string;
+  points: number;
+  source_type: LoyaltyPointSource;
+  source_uuid: string | null;
+  /** optional human label the API may supply; the UI falls back to source_type */
+  label?: string | null;
+  created_at: string;
+};
+
+export const LOYALTY_SOURCE_LABELS: Record<LoyaltyPointSource, string> = {
+  signup: 'Üyelik bonusu',
+  review: 'Yorum puanı',
+  purchase: 'Alışveriş puanı',
+  redemption: 'Ödemede kullanıldı',
+  reversal: 'İade',
+};

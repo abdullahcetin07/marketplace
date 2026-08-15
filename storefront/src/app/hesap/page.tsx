@@ -62,6 +62,11 @@ export default function AccountPage() {
           note="Geçmiş siparişlerini görüntüle ve takip et"
         />
         <ShortcutCard
+          href="/hesap/puanlarim"
+          title="Puanlarım"
+          note="Kazandığın puanları ve geçmişini gör"
+        />
+        <ShortcutCard
           href="/hesap/adreslerim"
           title="Adreslerim"
           note="Teslimat ve fatura adreslerini yönet"
