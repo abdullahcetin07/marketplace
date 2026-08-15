@@ -14,29 +14,33 @@ pending.
 
 ## ▶ ACTIVE work order
 
-### `BUILD_LOYALTY_P1.md` — Loyalty (customer points), Phase 1 (ADR-081/082/083)
+### `BUILD_LOYALTY_P2.md` — Loyalty redemption at checkout (ADR-084)
 
-A NEW module: customer points. **Phase 1 only** — earning + an append-only ledger
-+ an admin "Puan Ayarları" page + a customer read API. **Redemption at checkout is
-Phase 2 (ADR-084) and is explicitly out of scope** — build no `LoyaltyContract`, no
-checkout change.
+Phase 1 (earning + ledger + admin + read API) is **BUILT and live**. Phase 2 adds
+**spending** points as a **platform-funded checkout discount**.
 
-- Standalone `Loyalty` module, **imports no module** (`LayeringTest`); append-only
-  ledger, **balance computed on read** (no `balance` column).
-- Earns three ways by **class-string** listeners / a sweep: signup (once),
-  `ReviewPublished` (once per review), and **purchase** — a daily
-  `loyalty:award-purchase-points` sweep over delivered seller-orders past their
-  return window, on the KDV-included paid TL. Needs **one Core `OrderQueryContract`
-  addition** (`pointsEligibleSellerOrders(asOf)`).
-- Rates + point value are **`settings()`** on one audited Filament page
-  (Admin/Finance), defaults = **5% back**. A point is an integer count; the value is
-  a DECIMAL rate.
-- **The scheduler is part of the feature** — the sweep is inert without cron (the
-  ADR-072 lesson); confirm it runs and say so.
+- A Core command port **`LoyaltyContract`** (`hold → commit → release` + `reverse`) —
+  Payment/Order call it; **nobody imports Loyalty and Loyalty imports nobody**
+  (`LayeringTest`). `LoyaltyPointSource` gains `Redemption` + `Reversal`. A hold is
+  transient (not a ledger row); only `commit` writes `−points`.
+- **Quote endpoint** `POST /api/v1/loyalty/redeem/quote` — pure preview (discount +
+  payable) over the caller's cart; no state.
+- **Apply at pay**: `POST /api/v1/checkout/{group}/pay` accepts `{ points }` → Payment
+  holds, charges PayTR **total − discount**; the **platform absorbs it** (no
+  seller-order/commission/KDV change).
+- **Callback** commits (success) / releases (fail+expiry). **`PaymentRefunded`**
+  re-credits the spent points (proportional on a partial refund).
+- **Edge that MUST be handled — `payable == 0`** (no cap, so reachable): no PayTR
+  charge; mark paid-via-points and run the same success path. Do not send a 0-amount
+  order to PayTR.
+- Confirm the P1 purchase sweep earns on the **really-paid** TL (total − discount), not
+  the pre-discount total.
 
-Full spec: **`docs/modules/Loyalty.md`**. Work order: **`BUILD_LOYALTY_P1.md`**.
-Decisions: **ADR-081–084** + amendment log #19. Delete this section once P1 lands
-and is verified; Phase 2 (redemption) will be queued as its own work order.
+Full detail: **`BUILD_LOYALTY_P2.md`**. Spec: `docs/modules/Loyalty.md` §5. Decision:
+**ADR-084** + amendment log #19. The storefront `/odeme` "Puanını kullan" control is
+already built against the quote + `pay {points}` contract and stays hidden until this
+ships. Delete this section once P2 lands and is verified on PayTR sandbox (including
+the `payable == 0` path and a refund re-credit).
 
 ---
 

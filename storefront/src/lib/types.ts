@@ -348,3 +348,17 @@ export const LOYALTY_SOURCE_LABELS: Record<LoyaltyPointSource, string> = {
   redemption: 'Ödemede kullanıldı',
   reversal: 'İade',
 };
+
+/**
+ * A redemption preview at checkout (ADR-084, Phase 2). Pure preview — no hold. All
+ * amounts are decimal strings (005 §28), never parsed; `points_applied`/`max_points`
+ * are integer counts.
+ */
+export type LoyaltyQuote = {
+  points_applied: number;
+  discount: string;
+  cart_total: string;
+  payable: string;
+  currency: string;
+  max_points: number;
+};

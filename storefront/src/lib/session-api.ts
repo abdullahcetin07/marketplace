@@ -32,6 +32,7 @@ import type {
   GeoPlace,
   LoyaltyBalance,
   LoyaltyLedgerEntry,
+  LoyaltyQuote,
   MyQuestion,
   MyReview,
   Order,
@@ -469,15 +470,30 @@ export async function fetchOrders(): Promise<Order[]> {
 
 export async function initiatePayment(
   checkoutGroupId: string,
+  points?: number,
 ): Promise<{ paymentId: string; iframeToken: string } | null> {
   const data = await request<{ payment_uuid?: string; id?: string; iframe_token: string }>(
     `/api/v1/checkout/${encodeURIComponent(checkoutGroupId)}/pay`,
-    { method: 'POST' },
+    // The reduced charge is the server's job (it holds the points and charges
+    // total − discount, ADR-084); the client only names how many points to spend.
+    { method: 'POST', body: points && points > 0 ? { points } : undefined },
   );
 
   if (data === null || !data.iframe_token) return null;
 
   return { paymentId: data.payment_uuid ?? data.id ?? '', iframeToken: data.iframe_token };
+}
+
+/**
+ * Preview a points redemption against the current cart (ADR-084 Phase 2) — pure, no
+ * hold. Returns null until the backend ships the endpoint (it 404s → throw → caught),
+ * so the checkout "Puanını kullan" control degrades to hidden before Phase 2 lands.
+ */
+export function quoteLoyaltyRedemption(useMax: boolean): Promise<LoyaltyQuote | null> {
+  return request<LoyaltyQuote>('/api/v1/loyalty/redeem/quote', {
+    method: 'POST',
+    body: { use_max: useMax },
+  }).catch(() => null);
 }
 
 export function fetchPayment(uuid: string): Promise<PaymentView | null> {

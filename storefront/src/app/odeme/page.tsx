@@ -10,7 +10,7 @@ import { formatMoney } from '@/lib/money';
 import { ui } from '@/lib/ui';
 import * as api from '@/lib/session-api';
 import { SessionApiError } from '@/lib/session-api';
-import type { Address, Country } from '@/lib/types';
+import type { Address, Country, LoyaltyBalance, LoyaltyQuote } from '@/lib/types';
 
 const PAYMENT_KEY = 'raftabul:payment';
 
@@ -46,6 +46,14 @@ export default function CheckoutPage() {
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  /** Points redemption (ADR-084). Hidden until the customer has a balance AND the
+   *  Phase-2 quote endpoint answers — so it degrades to nothing before P2 ships. */
+  const [balance, setBalance] = useState<LoyaltyBalance | null>(null);
+  const [quote, setQuote] = useState<LoyaltyQuote | null>(null);
+  const [usePoints, setUsePoints] = useState(false);
+  const [pointsBusy, setPointsBusy] = useState(false);
+  const [pointsUnavailable, setPointsUnavailable] = useState(false);
   /** Set when `checkout` succeeded — the handle `place`/`pay` need, kept across a retry. */
   const [pendingGroup, setPendingGroup] = useState<string | null>(null);
   /** Set once PayTR hands us a token — the page swaps to the payment iframe. */
@@ -70,7 +78,33 @@ export default function CheckoutPage() {
     })();
 
     void api.fetchCountries().then(setCountries);
+    void api.fetchLoyaltyBalance().then(setBalance);
   }, [status]);
+
+  async function togglePoints(next: boolean) {
+    setUsePoints(next);
+    if (!next) {
+      setQuote(null);
+
+      return;
+    }
+
+    // Ask the server what applying the balance would do (pure preview, no hold). A
+    // null answer means Phase 2 isn't live yet — hide the control rather than promise
+    // a discount we can't deliver.
+    setPointsBusy(true);
+    const preview = await api.quoteLoyaltyRedemption(true);
+    setPointsBusy(false);
+
+    if (preview === null || preview.points_applied <= 0) {
+      setUsePoints(false);
+      setPointsUnavailable(preview === null);
+
+      return;
+    }
+
+    setQuote(preview);
+  }
 
   if (status === 'loading' || loading) {
     return <p className="py-12 text-center text-ink-500">Yükleniyor…</p>;
@@ -126,7 +160,7 @@ export default function CheckoutPage() {
       // live payment per group — so a retry after either resumes cleanly.
       await api.placeCheckoutGroup(groupId);
 
-      const payment = await api.initiatePayment(groupId);
+      const payment = await api.initiatePayment(groupId, usePoints ? quote?.points_applied : undefined);
       if (payment === null) {
         throw new SessionApiError('Ödeme başlatılamadı. Lütfen tekrar deneyin.', 502);
       }
@@ -262,10 +296,48 @@ export default function CheckoutPage() {
             </span>
           </div>
 
+          {/* Points redemption — only when the customer has a balance. The discount and
+              the reduced total both come from the server's quote (never computed here). */}
+          {balance !== null && balance.points > 0 && (
+            <div className="rounded-xl border border-brand-200 bg-brand-50/60 p-3 dark:border-brand-500/30 dark:bg-brand-500/10">
+              <label className="flex cursor-pointer items-start gap-2.5 text-sm">
+                <input
+                  type="checkbox"
+                  checked={usePoints}
+                  disabled={pointsBusy}
+                  onChange={(event) => void togglePoints(event.target.checked)}
+                  className="mt-0.5 accent-brand-500"
+                />
+                <span>
+                  <span className="font-bold text-ink-700 dark:text-ink-200">Puanlarımı kullan</span>
+                  <span className="block text-xs text-ink-500">
+                    {balance.points.toLocaleString('tr-TR')} puan · ≈{' '}
+                    {formatMoney(balance.value, balance.currency)}
+                  </span>
+                </span>
+              </label>
+              {pointsBusy && <span className="mt-1 block text-xs text-ink-400">Hesaplanıyor…</span>}
+              {pointsUnavailable && (
+                <span className="mt-1 block text-xs text-ink-400">Puan kullanımı yakında.</span>
+              )}
+            </div>
+          )}
+
+          {usePoints && quote !== null && (
+            <div className="flex justify-between text-sm text-green-600">
+              <span className="font-bold">Puan indirimi</span>
+              <span className="font-bold">− {formatMoney(quote.discount, quote.currency)}</span>
+            </div>
+          )}
+
           <div className="flex items-baseline justify-between border-t border-ink-100 pt-3 dark:border-ink-800">
             <span className="font-extrabold">Ödenecek</span>
             <span className="text-xl font-extrabold tracking-tight text-brand-600">
-              {cart.currency === null ? '—' : formatMoney(cart.items_total, cart.currency)}
+              {usePoints && quote !== null
+                ? formatMoney(quote.payable, quote.currency)
+                : cart.currency === null
+                  ? '—'
+                  : formatMoney(cart.items_total, cart.currency)}
             </span>
           </div>
 
