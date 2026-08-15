@@ -14,12 +14,29 @@ pending.
 
 ## ▶ ACTIVE work order
 
-_None._ `BUILD_LISTING_FILTERS.md` (ADR-080) **landed 2026-08-14** — commit
-`1acc4a9`, verified live on `/cilt-bakimi`: 1,138 products, 40-brand facet, price
-span ₺31.85–₺9,576.00; picking a brand + ₺100–₺500 narrowed the grid to 6 while
-the facets stayed whole. Timings 0.19s / 0.22s.
+### `BUILD_LOYALTY_P1.md` — Loyalty (customer points), Phase 1 (ADR-081/082/083)
 
-Queue the next one here.
+A NEW module: customer points. **Phase 1 only** — earning + an append-only ledger
++ an admin "Puan Ayarları" page + a customer read API. **Redemption at checkout is
+Phase 2 (ADR-084) and is explicitly out of scope** — build no `LoyaltyContract`, no
+checkout change.
+
+- Standalone `Loyalty` module, **imports no module** (`LayeringTest`); append-only
+  ledger, **balance computed on read** (no `balance` column).
+- Earns three ways by **class-string** listeners / a sweep: signup (once),
+  `ReviewPublished` (once per review), and **purchase** — a daily
+  `loyalty:award-purchase-points` sweep over delivered seller-orders past their
+  return window, on the KDV-included paid TL. Needs **one Core `OrderQueryContract`
+  addition** (`pointsEligibleSellerOrders(asOf)`).
+- Rates + point value are **`settings()`** on one audited Filament page
+  (Admin/Finance), defaults = **5% back**. A point is an integer count; the value is
+  a DECIMAL rate.
+- **The scheduler is part of the feature** — the sweep is inert without cron (the
+  ADR-072 lesson); confirm it runs and say so.
+
+Full spec: **`docs/modules/Loyalty.md`**. Work order: **`BUILD_LOYALTY_P1.md`**.
+Decisions: **ADR-081–084** + amendment log #19. Delete this section once P1 lands
+and is verified; Phase 2 (redemption) will be queued as its own work order.
 
 ---
 

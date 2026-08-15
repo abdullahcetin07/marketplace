@@ -2576,6 +2576,157 @@ Full specification: `BUILD_LISTING_FILTERS.md`.
 
 ---
 
+# ADR-081 Loyalty Is a Standalone Module With a Compute-on-Read, Append-Only Points Ledger
+
+**Status:** Accepted (2026-08-15). Spec: `docs/modules/Loyalty.md`. Phase 1 work
+order: `BUILD_LOYALTY_P1.md`.
+
+## Context
+
+The platform needs customer points: earn on signup, on a published review, on a
+completed purchase; later spend as a checkout discount. The question that shapes
+everything is where the **balance** lives and how the module connects to the four
+contexts that generate points (Identity, Reviews, Order, Payment) without violating
+the layering rule that no module imports another.
+
+## Decision
+
+Loyalty is a **standalone module** (like Payment, Offer, Inventory, Order) that
+**imports no other module** — it reads through Core contracts and subscribes to
+other modules' events **by class-string** only. Its heart is an **append-only
+ledger** (`loyalty_ledger`), one row per event with a signed integer `points` and a
+`(source_type, source_uuid)` provenance key. The **balance is computed on read** as
+the signed sum of the ledger; there is no stored `balance` column. A reversal is a
+new negative (or positive) row, never an edit or a delete — the model refuses
+updates and deletes exactly as Audit, Activity and the seller ledger (ADR-062) do.
+
+## Consequences
+
+A deleted or reversed row changes the next read with nothing to invalidate — the
+same property that made the buy box (ADR-045) and the rating average (ADR-069)
+compute-on-read. `LayeringTest` guards the no-import boundary in both directions.
+The cost is that reading a balance sums the ledger every time; for a customer's own
+points this is trivially small, and if a hot aggregate ever appears it becomes a
+derived cache rebuilt from the ledger (ADR-079's rule), never a second source of
+truth. A point is an **integer count**, not money — the minor-units rule (ADR-005)
+does not reach the balance; only the redemption value is money-adjacent (ADR-083).
+
+---
+
+# ADR-082 Points Are Earned From Three Events; Purchase Points Finalize Only After the Return Window, and Only Really-Paid TL Earns
+
+**Status:** Accepted (2026-08-15). Spec: `docs/modules/Loyalty.md` §3.
+
+## Context
+
+Points are earned three ways, but the marketplace has returns, cancellations and
+payment expiry — so *when* a purchase grants points decides whether the platform
+ever has to claw points back from a balance a customer may already have spent.
+
+## Decision
+
+Three listeners, each subscribed by class-string:
+
+- **Signup** — on the customer-registration event, grant `loyalty.earn.signup`
+  once per customer (idempotent on `(customer_uuid, 'signup')`).
+- **Review** — on `ReviewPublished` (the moderation-approved event, NOT
+  review-submitted), grant `loyalty.earn.review` once per review. Reviews are
+  already one-per-delivered-line (ADR-067), so this cannot be farmed.
+- **Purchase** — written only when a delivered seller-order passes its return
+  window un-returned (`delivered_at + return_days`), by a **daily sweep** reading a
+  Core `OrderQueryContract` addition; the amount is
+  `floor(paid_tl × loyalty.earn.purchase_rate)` on the seller-order's KDV-included
+  amount, **excluding any part paid with points**.
+
+## Consequences
+
+A returned or cancelled order **never grants points**, so nothing is ever clawed
+back from a live balance — the whole reason the finalize point is the return window
+and not payment. This mirrors Payment's auto-payout timing (`delivered_at +
+payout_hold_days`), so the two "the sale is now real" clocks agree. **The scheduler
+is part of the feature**: like Order expiry (ADR-072) and auto-payout, purchase
+points are inert without cron. Excluding the redeemed TL from the earn base
+(§2.3/ADR-084) stops points from regenerating themselves — otherwise a large
+balance would earn on its own spending in a loop. The recorded trade-off: a review
+later removed by moderation keeps its points in v1 (no clawback), because the abuse
+surface is already closed by the one-per-line cap.
+
+---
+
+# ADR-083 Earn Rates and Point Value Are Operator Settings, Not Code; the Point Is an Integer, the Value a DECIMAL Rate
+
+**Status:** Accepted (2026-08-15). Spec: `docs/modules/Loyalty.md` §4.
+
+## Context
+
+The owner must tune how generous the program is — the signup bonus, the review
+bonus, the earn rate, and what a point is worth — without waiting for a release.
+The enum-or-lookup test in CLAUDE.md ("an operator must reconfigure it without a
+release → table/settings") puts these values squarely in configuration.
+
+## Decision
+
+Five keys in the platform `settings()` table, edited from **one Filament admin page
+("Puan Ayarları")** gated to Admin/Finance, every write audited:
+`loyalty.enabled`, `loyalty.earn.signup`, `loyalty.earn.review`,
+`loyalty.earn.purchase_rate`, `loyalty.redeem.value`. Defaults give **5% back**
+(earn 1 point/TL, value 0.05 TL/point). Points are earned as **integers** (floor);
+`loyalty.redeem.value` is the single money-adjacent number and is a **DECIMAL rate**
+(TL-per-point), treated like a tax or exchange rate (ADR-005), never an integer
+minor-unit.
+
+## Consequences
+
+The owner reaches any effective percentage by moving two numbers, with no deploy;
+`loyalty.enabled = false` halts earning and hides redemption while leaving balances
+intact. Rate changes are **not retroactive** — settings are read at the moment an
+event is priced and written into the ledger row, so already-earned points never
+shift when the rate does. Because `settings()` returns the caller's default when the
+table is unreachable (CLAUDE.md), a settings outage degrades to "no points priced"
+rather than a crash in a checkout or a listener.
+
+---
+
+# ADR-084 Redemption Is a Platform-Funded Checkout Discount Through a Core LoyaltyContract Command Port; a Refund Re-Credits the Spent Points
+
+**Status:** Accepted (2026-08-15). **Phase 2** — deferred behind Phase 1 (earn +
+display + admin). Spec: `docs/modules/Loyalty.md` §5.
+
+## Context
+
+A customer spends points as a checkout discount with no cap in v1. This touches the
+charged amount, the multi-seller split, and refunds — but Order/Payment must not
+import Loyalty and Loyalty must not import them.
+
+## Decision
+
+Redemption crosses through a **Core command contract** `LoyaltyContract` — the
+platform's next command port after Inventory's reservation and Order's
+cancellation/return ports — with `hold(customer, points, checkoutGroup)` →
+`commit(checkoutGroup)` → `release(checkoutGroup)`. A **hold** is transient (like an
+Inventory reservation); only `commit`, on payment success, writes the `−points` row.
+The discount is **platform-funded**: it lowers what the customer pays PayTR, and
+each seller-order still settles on its **full** amount — Loyalty writes no
+commission, KDV or payout figure. A refunded/returned/cancelled order **re-credits**
+the spent points (a new positive row keyed to the refund) while the TL charged is
+refunded through PayTR.
+
+## Consequences
+
+Keeping the discount platform-funded is what lets Loyalty stay out of the commission
+engine and the seller ledger entirely — the alternative (splitting the discount
+across seller-orders and re-deriving commission) was rejected as v1 complexity for
+no seller benefit, since the platform is the party running the program. The seam is
+a command, not an event, for the same reason Inventory's is: a customer pressing
+"use points" at checkout must be told **in that request** that their balance changed
+underneath them. Because the redeemed TL is excluded from the earn base (ADR-082), a
+customer cannot pay with points and earn points on that same money. A refund leaves
+the customer whole — points back, money back — with no net gain or loss, and the
+purchase points for a refunded order were never written (ADR-082), so there is
+nothing to reverse on the earn side.
+
+---
+
 END OF FILE
 
 ---
