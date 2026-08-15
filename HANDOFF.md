@@ -14,33 +14,12 @@ pending.
 
 ## ▶ ACTIVE work order
 
-### `BUILD_LISTING_FILTERS.md` — listing filters: price range + brand facet (ADR-080)
+_None._ `BUILD_LISTING_FILTERS.md` (ADR-080) **landed 2026-08-14** — commit
+`1acc4a9`, verified live on `/cilt-bakimi`: 1,138 products, 40-brand facet, price
+span ₺31.85–₺9,576.00; picking a brand + ₺100–₺500 narrowed the grid to 6 while
+the facets stayed whole. Timings 0.19s / 0.22s.
 
-Storefront category/brand/search listings gained a URL-driven filter bar
-(pushed, live). It needs the browse endpoint to supply the data:
-
-- `GET /api/v1/products` (`PublicProductBrowse`) gains **`price_min` / `price_max`**
-  request params — decimal-string TL, converted to minor units at the boundary,
-  applied against the buy-box (Offer) price (the same price `price_asc/desc`
-  already sorts by).
-- Response `meta` gains a **`facets`** block: `brands` (each with a `count`,
-  ordered count-desc, cap ~40) + `price` `{min,max}` as decimal strings.
-- **Faceting rule:** compute facets over the query **minus the applied
-  `brand`/`price_min/max`**; `category` and `q` DO scope them.
-- **Boundary:** price + price facet through `OfferQueryContract` (Catalog imports
-  no Offer — `LayeringTest` + `CatalogBoundaryTest` stay green). Brand facet is
-  Catalog's own. Stay on the **`is_sellable`** indexed path (ADR-079) — do NOT
-  reintroduce the per-offer walk.
-- Tests + timing note in the file. No migration (read-only). `make check` green,
-  then deploy (`git pull`, `optimize:clear`).
-
-Full spec: **`BUILD_LISTING_FILTERS.md`** at repo root. Decision: **ADR-080**
-(`docs/Architecture_Decision_Record.md`) + amendment log #18
-(`docs/001_Architecture.md`).
-
-Delete this section (or the whole file) once it's landed and verified live on a
-big category (e.g. `/cilt-bakimi`: pick a price range + brand, grid and total
-narrow, URL carries the filters).
+Queue the next one here.
 
 ---
 
