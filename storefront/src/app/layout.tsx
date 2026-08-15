@@ -72,11 +72,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
 
           <header className="sticky top-0 z-40 border-b border-ink-200 bg-white/95 backdrop-blur dark:border-ink-800 dark:bg-ink-950/95">
             <div className="mx-auto flex w-full max-w-page items-center gap-4 px-4 py-3 sm:gap-6">
-              <Link href="/" className="shrink-0 text-2xl font-extrabold tracking-tight">
-                <span className="text-brand-500">raf</span>tabul
-                <span className="ml-2 hidden rounded-md bg-brand-50 px-1.5 py-0.5 align-middle text-[.6rem] font-extrabold tracking-wide text-brand-700 dark:bg-brand-500/15 sm:inline">
-                  SAĞLIK
-                </span>
+              <Link href="/" className="shrink-0" aria-label="Raftabul ana sayfa">
+                {/* Monochrome black wordmark on transparent — dark:invert flips it to
+                    white so it stays legible on the near-black header in dark mode. */}
+                {/* eslint-disable-next-line @next/next/no-img-element */}
+                <img src="/logo.png" alt="Raftabul" className="h-8 w-auto dark:invert sm:h-9" />
               </Link>
 
               {/* search — a real GET into the listing, so it works without JS and the
