@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { PointsEarnedNote } from '@/components/PointsEarnedNote';
 import { RatingInput } from '@/components/Stars';
 import { fetchEligibleReviews, SessionApiError, submitReview } from '@/lib/session-api';
 import type { OrderLine } from '@/lib/types';
@@ -64,6 +65,10 @@ export function OrderReviewControl({ lines }: { lines: OrderLine[] }) {
           ✓ {line.title} — değerlendirmeniz onaya gönderildi
         </div>
       ))}
+
+      {justDone.length > 0 && (
+        <PointsEarnedNote>Değerlendirmen yayınlanınca puan kazanacaksın —</PointsEarnedNote>
+      )}
     </div>
   );
 }

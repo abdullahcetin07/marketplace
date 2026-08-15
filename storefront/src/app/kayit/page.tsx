@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useState } from 'react';
+import { PointsEarnedNote } from '@/components/PointsEarnedNote';
 import { register, SessionApiError } from '@/lib/session-api';
 import { ui } from '@/lib/ui';
 
@@ -77,6 +78,7 @@ export default function RegisterPage() {
           E-posta adresinize bir doğrulama bağlantısı gönderdik. Bağlantıya tıkladıktan sonra giriş
           yapabilirsiniz.
         </p>
+        <PointsEarnedNote>Üyeliğinle puan kazandın — giriş yaptıktan sonra</PointsEarnedNote>
         <Link href="/giris" className={`${ui.btnPrimary} mt-2`}>
           Giriş sayfasına git
         </Link>
