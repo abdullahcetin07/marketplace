@@ -8,6 +8,8 @@ use App\Core\Domain\Contracts\ShipmentQueryContract;
 use App\Modules\Shipping\Domain\Enums\ShipmentStatus;
 use App\Modules\Shipping\Domain\Models\CargoCompany;
 use App\Modules\Shipping\Domain\Models\Shipment;
+use Carbon\CarbonInterface;
+use Illuminate\Support\Facades\DB;
 
 /**
  * Shipping's implementation of the downstream read port (ADR-065, §10).
@@ -68,5 +70,24 @@ final class ShipmentQuery implements ShipmentQueryContract
         | Collection would tempt a caller into chaining Eloquent behind it.
         */
         return CargoCompany::query()->active()->ordered()->pluck('name', 'uuid')->all();
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function deliveredBefore(CarbonInterface $cutoff): array
+    {
+        /** @var array<string, string> $rows */
+        $rows = DB::table('shipments')
+            ->whereNotNull('delivered_at')
+            ->where('delivered_at', '<=', $cutoff)
+            // A parcel that came back is not a completed sale, and one that was
+            // cancelled never arrived at all.
+            ->whereNull('returned_at')
+            ->whereNull('cancelled_at')
+            ->pluck('delivered_at', 'order_uuid')
+            ->all();
+
+        return $rows;
     }
 }

@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Domain\Contracts;
 
+use Carbon\CarbonInterface;
+
 /**
  * The read port other modules use to ask where a parcel is — WITHOUT importing
  * Shipping (ADR-065, Shipping.md §10).
@@ -77,4 +79,22 @@ interface ShipmentQueryContract
      * @return array<string, string>
      */
     public function activeCargoCompanies(): array;
+
+    /**
+     * Order uuids delivered before this moment, with when (ADR-083).
+     *
+     * **A BULK READ, BECAUSE THE CALLER IS A NIGHTLY SWEEP.** Loyalty asks Order
+     * which seller-orders have finished their return window; Order knows the
+     * status but not the DATE — delivery is Shipping's fact (ADR-064) and lives on
+     * the shipment. Asking per order would be one query per delivered parcel on
+     * the platform, every night, to answer one timestamp.
+     *
+     * **A RETURNED OR CANCELLED PARCEL IS NOT DELIVERED ANY MORE.** Both are
+     * excluded here rather than by the caller: this contract answers "what arrived
+     * and stayed arrived", which is the only version of the question anybody has
+     * asked for.
+     *
+     * @return array<string, string> order uuid => delivered_at, ISO-8601
+     */
+    public function deliveredBefore(CarbonInterface $cutoff): array;
 }

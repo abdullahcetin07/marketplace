@@ -190,3 +190,21 @@ Schedule::command('catalog:refresh-sellability')
     ->everyTenMinutes()
     ->onOneServer()
     ->withoutOverlapping();
+
+/*
+| PURCHASE POINTS, NIGHTLY (ADR-083). Points are paid when a sale stops being
+| reversible — `delivered_at + return_days` elapsing with no return — which is a
+| DATE PASSING rather than something happening, so nothing emits an event for it
+| and a sweep is the only shape that fits.
+|
+| **IT IS MONEY-SHAPED AND SILENT WHEN UNSCHEDULED**, which is the ADR-072 lesson
+| this platform has already paid for once: eleven tasks sat unscheduled on this
+| server and every one of them looked exactly like a task with nothing to do.
+| Re-running is free — the ledger's unique key makes a repeat a no-op — so the
+| hour is a choice about load, not about correctness.
+*/
+Schedule::command('loyalty:award-purchase-points')
+    ->name('loyalty-award-purchase-points')
+    ->dailyAt('03:30')
+    ->onOneServer()
+    ->withoutOverlapping();

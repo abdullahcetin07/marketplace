@@ -1,8 +1,58 @@
 # Loyalty (Puan) — Customer Points
 
-**Status: SPEC — not yet built.** Design approved 2026-08-15. ADR-081–084.
-Built in two phases: **Phase 1** = earning + balance + admin config + storefront
-display (ADR-081/082/083); **Phase 2** = redemption at checkout (ADR-084).
+**Status: PHASE 1 BUILT (2026-08-15).** ADR-081–084. Earning, the append-only
+ledger, the admin rates screen and the customer read API are live; the storefront
+wiring ("Puanlarım") is a separate desktop task. **Phase 2 — redemption at
+checkout (ADR-084) — is NOT built**: there is deliberately no `LoyaltyContract`
+and no checkout change, because a port with nothing behind it invites checkout to
+depend on a promise nothing keeps.
+
+## What shipped, and what to know before touching it
+
+- **The ledger is `loyalty_ledger`, append-only, and the balance is `SUM(points)`.**
+  No `balance` column anywhere and a test asserts its absence: a stored total is a
+  second source of truth that drifts silently, and the customer is the one who
+  discovers it.
+- **`(source_type, source_uuid)` is UNIQUE, and that is the whole idempotency
+  story.** Signup keys on the customer, a review on the review, a purchase on the
+  seller-order. A replayed event, a queue retry, a sweep run twice — none can
+  credit twice, and the database decides rather than a check somebody remembered.
+  `GrantPointsAction` both checks and catches the violation, because a check alone
+  is a race between two workers.
+- **Three earns, two shapes.** Signup and review are class-string listeners on
+  `UserCreated` and `ReviewPublished`; purchase is a **sweep**, because the moment
+  that matters is a DATE PASSING (`delivered_at + return_days`) and nothing emits
+  an event for that.
+- **`ReviewPublished` does not carry the author**, so `ReviewQueryContract` gained
+  `authorCustomerUuidFor()`. Widening the event was the alternative and the worse
+  one: a payload is a promise to every listener.
+- **Order gained `pointsEligibleSellerOrders(asOf)`**, and it reads the delivery
+  DATE through a new `ShipmentQueryContract::deliveredBefore()` — delivery is
+  Shipping's fact (ADR-064). The reader knows nothing about points: already-credited
+  orders come back every night and the ledger's unique key absorbs them, because a
+  reader that filtered on Loyalty's table would be Order reaching into Loyalty.
+- **The scheduler is part of the feature.** `loyalty:award-purchase-points` runs
+  daily at 03:30 via `raftabul-scheduler` (systemd `schedule:work`, not cron —
+  verified running). Unscheduled it is money-shaped and silent, which is the
+  ADR-072 lesson this platform has already paid for once.
+- **`Customer::factory()->create()` earns nothing**, and that is correct:
+  `UserCreated` is dispatched by the registration action, not the model.
+- **`settings()->set()` updates, it does not create.** `seedAll()` does not seed
+  settings, so a test that toggles `loyalty.enabled` must seed `SettingsSeeder`
+  first or it silently asserts against the code's fallback default.
+
+### Recorded deviations from this spec
+
+1. **`SettingType::Decimal` and `SettingGroup::Loyalty` are new enum cases.** The
+   spec assumed the settings module could already hold a decimal rate; it could
+   not — `loyalty.redeem.value` is 0,05 TL per point, and storing it as an integer
+   or a float were both wrong (ADR-005: DECIMAL for rates). `cast()` returns the
+   digits as a STRING rather than a float, so what a point is worth never depends
+   on binary rounding.
+2. **The permission is `loyalty.settings.manage`, an ability rather than a
+   resource.** The generated CRUD set would produce `loyalty.delete` and
+   `loyalty.restore` — verbs an append-only ledger has no operation for.
+
 
 Loyalty is the platform's first **customer-facing rewards** context. A customer
 earns points for three things — **signing up, having a review published, and

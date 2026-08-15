@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Order\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Core\Domain\Contracts\ShipmentQueryContract;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Domain\Models\OrderLine;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
 /**
@@ -40,6 +42,13 @@ final class OrderQuery implements OrderQueryContract
         OrderStatus::Paid->value,
         OrderStatus::Delivered->value,
     ];
+
+    /**
+     * **DELIVERY IS SHIPPING'S FACT, ASKED THROUGH CORE** (ADR-064/083). Order
+     * knows a seller-order reached `Delivered`; the DATE lives on the shipment,
+     * and the points sweep needs it to measure the return window from.
+     */
+    public function __construct(private readonly ShipmentQueryContract $shipments) {}
 
     public function orderExists(string $orderUuid): bool
     {
@@ -344,6 +353,60 @@ final class OrderQuery implements OrderQueryContract
             'grand_total_minor' => $order->grand_total_minor,
             'currency_code' => $order->currency->code,
         ];
+    }
+
+    /**
+     * @return array<int, array{order_uuid: string, customer_uuid: string, paid_minor: int, currency_code: string, delivered_at: string}>
+     */
+    public function pointsEligibleSellerOrders(CarbonInterface $asOf): array
+    {
+        /*
+        | THE RETURN WINDOW IS SHIPPING'S SETTING, READ NOT COPIED. An operator who
+        | lengthens it from the panel must lengthen the wait for points too — a
+        | second number here would drift and pay for sales still inside their own
+        | return window.
+        */
+        $returnDays = max(0, (int) settings('shipping.return_days', (int) config('shipping.windows.return_days', 14)));
+
+        $delivered = $this->shipments->deliveredBefore($asOf->copy()->subDays($returnDays));
+
+        if ($delivered === []) {
+            return [];
+        }
+
+        $rows = [];
+
+        foreach (array_chunk(array_keys($delivered), 2_000) as $chunk) {
+            $orders = Order::query()
+                ->with('currency')
+                ->whereIn('uuid', $chunk)
+                /*
+                | **`Delivered` AND NOTHING ELSE.** A refund moves the order to
+                | `Refunded` and a cancellation to `Cancelled`, so the one status is
+                | the whole "not undone" test — there is no separate flag anybody
+                | can forget to check.
+                */
+                ->where('status', OrderStatus::Delivered->value)
+                ->get();
+
+            foreach ($orders as $order) {
+                $rows[] = [
+                    'order_uuid' => $order->uuid,
+                    'customer_uuid' => $order->customer_uuid,
+                    /*
+                    | What the buyer actually paid for THIS seller's half of the
+                    | basket, KDV included — the grand total is that number
+                    | (ADR-053). Read rather than recomputed, so Phase 2's
+                    | points-funded discount needs no change here.
+                    */
+                    'paid_minor' => (int) $order->grand_total_minor,
+                    'currency_code' => $order->currency->code,
+                    'delivered_at' => (string) $delivered[$order->uuid],
+                ];
+            }
+        }
+
+        return $rows;
     }
 
     /**

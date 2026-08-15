@@ -34,4 +34,18 @@ interface ReviewQueryContract
      *                            reviewed yet
      */
     public function mostReviewedProductUuids(int $limit): array;
+
+    /**
+     * Who wrote this review — the customer's uuid, or null (ADR-083).
+     *
+     * **ADDED SO LOYALTY CAN PAY THE RIGHT PERSON.** `ReviewPublished` carries the
+     * review, the product and the moderator; it never carried the buyer, because
+     * nothing had needed them. Widening the event was the alternative and the
+     * worse one: a payload is a promise to every listener, and one listener's need
+     * does not belong in it.
+     *
+     * Null when the review is gone — a deleted review pays nobody, and the caller
+     * treats that as "no grant" rather than an error.
+     */
+    public function authorCustomerUuidFor(string $reviewUuid): ?string;
 }

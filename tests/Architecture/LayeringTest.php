@@ -662,6 +662,36 @@ it('has no Domain/Data directories left', function (): void {
     expect(glob($modules.'/*/Domain/Data', GLOB_ONLYDIR))->toBe([]);
 })->group('arch');
 
+arch('Loyalty imports no module at all')
+    ->expect('App\Modules\Loyalty')
+    ->not->toUse([
+        /*
+        | **THE STRICTEST SHAPE ON THE PLATFORM, AND THE EASIEST TO HOLD.** Loyalty
+        | only ever REACTS: it hears Identity's registration and Reviews'
+        | publication by class-STRING, and reads Order, Shipping and the review's
+        | author through Core contracts. It owns one table nobody else touches, so
+        | there is no reason it would ever need a class from another context —
+        | which makes an import here a mistake rather than a trade-off.
+        */
+        'App\Modules\Identity',
+        'App\Modules\Reviews',
+        'App\Modules\Order',
+        'App\Modules\Shipping',
+        'App\Modules\Payment',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Questions',
+    ])
+    ->ignoring([
+        // Localization is platform-wide reference data, exempt by ADR.
+        'App\Modules\Localization',
+        // Settings is the same: the rates live there and `settings()` is a helper.
+        'App\Modules\Settings',
+    ]);
+
 arch('every module DTO carries the DTO suffix')
     ->expect('App\Modules')
     ->classes()
@@ -799,6 +829,15 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Order\Infrastructure',
         'App\Modules\Order\Presentation',
         'App\Modules\Order\OrderServiceProvider',
+        // Loyalty — non-DTO namespaces ignored so its Domain\DTOs stay covered
+        // (they must carry the suffix), like the modules above.
+        'App\Modules\Loyalty\Application',
+        'App\Modules\Loyalty\Domain\Models',
+        'App\Modules\Loyalty\Domain\Enums',
+        'App\Modules\Loyalty\Domain\Contracts',
+        'App\Modules\Loyalty\Infrastructure',
+        'App\Modules\Loyalty\Presentation',
+        'App\Modules\Loyalty\LoyaltyServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')

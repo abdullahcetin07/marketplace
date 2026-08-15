@@ -23,6 +23,15 @@ enum SettingType: string
     case String = 'string';
     case Integer = 'integer';
     case Boolean = 'boolean';
+    /**
+     * A rate or a fraction, stored as a string and cast with `decimal:`.
+     *
+     * **NOT `Integer`, AND NOT A FLOAT.** `loyalty.redeem.value` is 0,05 TL per
+     * point — money-adjacent, so ADR-005's "DECIMAL only for rates" applies and a
+     * float would make what a point is worth depend on binary rounding.
+     */
+    case Decimal = 'decimal';
+
     case Json = 'json';
     case Text = 'text';
 
@@ -42,6 +51,14 @@ enum SettingType: string
             // filter_var returns null (not false) for unrecognised input, which
             // is why the ?? is here rather than a bare cast.
             self::Boolean => filter_var($raw, FILTER_VALIDATE_BOOL, FILTER_NULL_ON_FAILURE) ?? false,
+            /*
+            | A STRING BACK, NOT A FLOAT. `0.05` as a float is 0.05000000000000000277
+            | and multiplying a balance by it is how a point becomes worth
+            | fractionally less than the panel says. Callers that need arithmetic
+            | cast deliberately; callers that render it get the digits an admin
+            | typed.
+            */
+            self::Decimal => $raw,
             self::Json => json_decode($raw, true, 512, JSON_THROW_ON_ERROR),
         };
     }
@@ -61,6 +78,7 @@ enum SettingType: string
             // '1'/'0' rather than 'true'/'false': unambiguous, and round-trips
             // through FILTER_VALIDATE_BOOL correctly.
             self::Boolean => $value ? '1' : '0',
+            self::Decimal => (string) $value,
             self::Json => json_encode($value, JSON_UNESCAPED_UNICODE | JSON_THROW_ON_ERROR),
         };
     }
@@ -77,6 +95,9 @@ enum SettingType: string
             self::Text => ['nullable', 'string', 'max:65535'],
             self::Integer => ['nullable', 'integer'],
             self::Boolean => ['nullable', 'boolean'],
+            // `numeric`, not `decimal:`: the value is a rate an admin types, and
+            // the digits are validated rather than the storage format.
+            self::Decimal => ['nullable', 'numeric', 'min:0'],
             self::Json => ['nullable', 'json'],
         };
     }
@@ -89,7 +110,7 @@ enum SettingType: string
         return match ($this) {
             self::String => 'TextInput',
             self::Text, self::Json => 'Textarea',
-            self::Integer => 'TextInput',
+            self::Integer, self::Decimal => 'TextInput',
             self::Boolean => 'Toggle',
         };
     }

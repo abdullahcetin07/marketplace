@@ -200,6 +200,7 @@ final class AdminPanelProvider extends PanelProvider
             ->discoverWidgets(in: app_path('Filament/Admin/Widgets'), for: 'App\\Filament\\Admin\\Widgets')
 
             ->pages([
+                \App\Modules\Loyalty\Presentation\Filament\Pages\LoyaltySettings::class,
                 Pages\Dashboard::class,
 
                 /*

@@ -79,6 +79,13 @@ return [
     App\Modules\Shipping\ShippingServiceProvider::class,
 
     /*
+    | Loyalty (ADR-081–083). Last because it only ever REACTS: it subscribes to
+    | Identity's registration and Reviews' publication by class-string and reads
+    | Order through Core, so every module it listens to is already booted.
+    */
+    App\Modules\Loyalty\LoyaltyServiceProvider::class,
+
+    /*
     | Reviews — after everything it reads, though the order matters less here
     | than anywhere above: it binds no contract another module resolves and
     | subscribes to nothing. It READS Catalog and Order through their Core

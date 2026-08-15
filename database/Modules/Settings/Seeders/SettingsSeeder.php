@@ -124,6 +124,24 @@ final class SettingsSeeder extends Seeder
         // allows — worth knowing before anyone edits this row.
         $settings->register('shipping.return_days', SettingGroup::Shipping, SettingType::Integer, 14, 'Days after delivery a buyer may still return');
 
+        // -------------------------------------------------------------- Loyalty
+        /*
+        | FIVE PER CENT BACK, AND THE TWO NUMBERS THAT MAKE IT (ADR-082). One
+        | point per lira spent, each point worth 0,05 TL — so a 1.000 TL basket
+        | returns 1.000 points and 50 TL of buying power. Splitting it into a rate
+        | and a value is what lets an operator run a campaign ("double points")
+        | without changing what a point is worth to the business.
+        |
+        | THEY ARE SETTINGS BECAUSE THEY CHANGE WITHOUT A RELEASE, and reads happen
+        | at event time, so a change is never retroactive: rows already written
+        | keep the rate they were computed with.
+        */
+        $settings->register('loyalty.enabled', SettingGroup::Loyalty, SettingType::Boolean, true, 'Puan programı açık mı');
+        $settings->register('loyalty.earn.signup', SettingGroup::Loyalty, SettingType::Integer, 100, 'Üyelik puanı (bir kez)');
+        $settings->register('loyalty.earn.review', SettingGroup::Loyalty, SettingType::Integer, 50, 'Yayınlanan değerlendirme puanı');
+        $settings->register('loyalty.earn.purchase_rate', SettingGroup::Loyalty, SettingType::Integer, 1, 'Alışverişte TL başına puan');
+        $settings->register('loyalty.redeem.value', SettingGroup::Loyalty, SettingType::Decimal, '0.05', 'Bir puanın TL değeri');
+
         // --------------------------------------------------------------- System
         // Locked: read by code at boot. Renaming or deleting one is a runtime
         // failure, not a configuration change.

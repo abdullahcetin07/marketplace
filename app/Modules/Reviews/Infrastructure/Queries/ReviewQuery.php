@@ -51,4 +51,11 @@ final class ReviewQuery implements ReviewQueryContract
 
         return $uuids;
     }
+
+    public function authorCustomerUuidFor(string $reviewUuid): ?string
+    {
+        $uuid = DB::table('reviews')->where('uuid', $reviewUuid)->value('customer_uuid');
+
+        return is_string($uuid) ? $uuid : null;
+    }
 }

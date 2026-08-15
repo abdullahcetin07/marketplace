@@ -226,6 +226,14 @@ final class RolePermissionSeeder extends Seeder
             'user.oversee_customers',
             ...PermissionRegistry::forResource('currency', ['view_any', 'view', 'update']),
             ...PermissionRegistry::forResource('user', ['view_any', 'view']),
+
+            /*
+            | THE POINTS RATES (ADR-082). Finance rather than marketing, because
+            | every point granted is a liability the business has promised to
+            | honour later — the five numbers on that screen decide how fast that
+            | liability grows.
+            */
+            'loyalty.settings.manage',
         ]);
     }
 

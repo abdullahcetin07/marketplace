@@ -17,6 +17,7 @@ use App\Modules\Identity\Presentation\Controllers\Api\SessionController;
 use App\Modules\Identity\Presentation\Controllers\Api\TwoFactorController;
 use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
+use App\Modules\Loyalty\Presentation\Controllers\Api\Customer\LoyaltyController;
 use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferFeedController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
@@ -392,6 +393,17 @@ Route::prefix('v1')
         | stateful origin, the session cookie.
         */
         Route::middleware(['auth:sanctum', 'throttle:api'])->group(function (): void {
+
+            /*
+            | "PUANLARIM" (ADR-081). Balance and history for the SIGNED-IN
+            | customer — there is no `{customer}` in either path and no id in the
+            | query, so reading somebody else's ledger is not denied but
+            | unexpressible. Under `auth:sanctum` like every other self-service
+            | route; the controller refuses a seller or an admin outright rather
+            | than showing them an empty balance they were never eligible for.
+            */
+            Route::get('/loyalty/balance', [LoyaltyController::class, 'balance'])->name('loyalty.balance');
+            Route::get('/loyalty/ledger', [LoyaltyController::class, 'ledger'])->name('loyalty.ledger');
 
             Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
             Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');

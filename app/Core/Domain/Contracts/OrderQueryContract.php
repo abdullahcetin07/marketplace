@@ -4,6 +4,8 @@ declare(strict_types=1);
 
 namespace App\Core\Domain\Contracts;
 
+use Carbon\CarbonInterface;
+
 /**
  * The read port other modules use to ask about orders — WITHOUT importing the
  * Order module (Order.md §5, reaffirming ADR-033/040).
@@ -295,6 +297,30 @@ interface OrderQueryContract
      * @return array<int, string> ranked, at most $limit, empty when nothing sold
      */
     public function bestSellingProductUuids(int $limit): array;
+
+    /**
+     * Seller-orders that have finished being reversible, as of this moment (ADR-083).
+     *
+     * **POINTS ARE PAID WHEN THE SALE STOPS BEING UNDOABLE**, not when the money
+     * arrives. A buyer who is refunded has bought nothing, and points already
+     * granted would have to be clawed back from a balance they may have spent —
+     * so the grant waits for `delivered_at + return_days` to elapse with no return
+     * (ADR-064/073). Paying at payment would have been simpler and wrong in the
+     * direction that reaches customers.
+     *
+     * **ORDER ANSWERS IT, THOUGH DELIVERY IS SHIPPING'S FACT.** Order owns what a
+     * seller-order is and what it was paid; it reads the delivery DATE through
+     * `ShipmentQueryContract`, so the caller asks one question instead of joining
+     * two contexts itself.
+     *
+     * **IT KNOWS NOTHING ABOUT POINTS.** Already-credited orders come back again
+     * every night; the ledger's unique key is what makes that a no-op (ADR-081).
+     * A reader that filtered on somebody else's table would be Order reaching into
+     * Loyalty to answer a question about orders.
+     *
+     * @return array<int, array{order_uuid: string, customer_uuid: string, paid_minor: int, currency_code: string, delivered_at: string}>
+     */
+    public function pointsEligibleSellerOrders(CarbonInterface $asOf): array;
 
     /**
      * Product uuids most often bought in the same BASKET as this one (ADR-077).

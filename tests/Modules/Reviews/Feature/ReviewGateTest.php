@@ -15,6 +15,7 @@ use App\Modules\Reviews\Domain\Events\ReviewPublished;
 use App\Modules\Reviews\Domain\Events\ReviewSubmitted;
 use App\Modules\Reviews\Domain\Exceptions\ReviewException;
 use App\Modules\Reviews\Domain\Models\Review;
+use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Str;
 
@@ -139,6 +140,17 @@ function fakeOrderPort(array $lines): void
 
         /** @return array<int, string> */
         public function coPurchasedProductUuids(string $productUuid, int $limit): array
+        {
+            return [];
+        }
+
+        /*
+        | THE POINTS READER (ADR-083) IS NOT WHAT THIS FAKE IS ABOUT EITHER. It
+        | shares the interface because Order owns what a seller-order was paid;
+        | a stand-in for the DELIVERY gate has nothing to say about loyalty.
+        */
+        /** @return array<int, array{order_uuid: string, customer_uuid: string, paid_minor: int, currency_code: string, delivered_at: string}> */
+        public function pointsEligibleSellerOrders(CarbonInterface $asOf): array
         {
             return [];
         }

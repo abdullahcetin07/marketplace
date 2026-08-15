@@ -55,6 +55,9 @@ enum SettingGroup: string
      */
     case Order = 'order';
 
+    /** Customer points: the earn rates and what a point is worth (ADR-082). */
+    case Loyalty = 'loyalty';
+
     case System = 'system';
 
     /**
@@ -103,6 +106,7 @@ enum SettingGroup: string
             self::Performance => 'heroicon-o-bolt',
             self::Shipping => 'heroicon-o-truck',
             self::Order => 'heroicon-o-shopping-bag',
+            self::Loyalty => 'heroicon-o-gift',
             self::System => 'heroicon-o-server-stack',
         };
     }
@@ -125,7 +129,9 @@ enum SettingGroup: string
             // Beside Shipping for the same reason: both are the operations
             // team's tab rather than an engineer's.
             self::Order => 11,
-            self::System => 12,
+            // Beside Order: what a sale earns a customer sits next to the sale.
+            self::Loyalty => 12,
+            self::System => 13,
         };
     }
 }
