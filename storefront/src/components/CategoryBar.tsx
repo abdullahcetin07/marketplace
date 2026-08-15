@@ -14,7 +14,14 @@ export async function CategoryBar() {
   // The menu sits in the shell on every page; an API blip should drop the menu, not
   // 500 the whole site — so a failed read renders an empty bar rather than throwing.
   // Catch-all buckets that shouldn't sit in the shopfront menu.
-  const hidden = new Set(['kategorisiz-urunler', 'setler']);
+  // 'magnezyum-...' is a malformed top-level category the catalog import created from a
+  // product name (note the doubled label) — its real home is under Besin Takviyeleri; an
+  // admin merge is the durable fix, this just keeps it out of the menu meanwhile.
+  const hidden = new Set([
+    'kategorisiz-urunler',
+    'setler',
+    'magnezyum-bisglisinatmagnezyum-bisglisinat',
+  ]);
 
   const tree = await fetchCategoryTree().catch(() => []);
   const top = tree
