@@ -50,6 +50,8 @@ use Illuminate\Support\Carbon;
  * @property int $customer_id
  * @property string $customer_uuid
  * @property int $amount_minor
+ * @property int $points_spent
+ * @property int $discount_minor
  * @property int $currency_id
  * @property PaymentStatus $status
  * @property string $provider
@@ -78,6 +80,8 @@ final class Payment extends Model
         'customer_id',
         'customer_uuid',
         'amount_minor',
+        'points_spent',
+        'discount_minor',
         'currency_id',
         'status',
         'provider',
@@ -148,6 +152,8 @@ final class Payment extends Model
         return [
             'customer_id' => 'integer',
             'amount_minor' => 'integer',
+            'points_spent' => 'integer',
+            'discount_minor' => 'integer',
             'currency_id' => 'integer',
             'status' => PaymentStatus::class,
             'provider_payload' => 'array',

@@ -6,7 +6,9 @@ namespace App\Modules\Order\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Core\Domain\Contracts\ShipmentQueryContract;
+use App\Modules\Order\Application\Services\CartPricingService;
 use App\Modules\Order\Domain\Enums\OrderStatus;
+use App\Modules\Order\Domain\Models\Cart;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Domain\Models\OrderLine;
 use Carbon\CarbonInterface;
@@ -353,6 +355,22 @@ final class OrderQuery implements OrderQueryContract
             'grand_total_minor' => $order->grand_total_minor,
             'currency_code' => $order->currency->code,
         ];
+    }
+
+    public function activeCartTotalFor(string $customerUuid): int
+    {
+        $cart = Cart::query()->with('items')->where('customer_uuid', $customerUuid)->first();
+
+        if ($cart === null || $cart->items->isEmpty()) {
+            return 0;
+        }
+
+        /*
+        | PRICED THROUGH THE SAME SERVICE CHECKOUT USES, not a second sum. Two
+        | places that add up a basket are two places for them to disagree, and the
+        | one the shopper is charged by is the one that must win.
+        */
+        return (int) app(CartPricingService::class)->price($cart)['items_total_minor'];
     }
 
     /**

@@ -6,6 +6,7 @@ namespace App\Modules\Payment\Application\Actions;
 
 use App\Core\Application\Actions\BaseAction;
 use App\Core\Domain\Contracts\InventoryReservationContract;
+use App\Core\Domain\Contracts\LoyaltyContract;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\DTOs\GatewayResultDTO;
@@ -68,6 +69,11 @@ final class SettlePaymentCallbackAction extends BaseAction
         private readonly PaymentGatewayContract $gateway,
         private readonly OrderQueryContract $orders,
         private readonly InventoryReservationContract $reservations,
+        /*
+        | The Core redemption port (ADR-084). Payment tells Loyalty to spend or
+        | give back; neither module imports the other.
+        */
+        private readonly LoyaltyContract $loyalty,
     ) {}
 
     /**
@@ -397,6 +403,14 @@ final class SettlePaymentCallbackAction extends BaseAction
             }
         }
 
+        /*
+        | **THE POINTS ARE SPENT HERE, BESIDE THE STOCK** (ADR-084). The
+        | hash-verified callback is the truth (ADR-060), so this is the moment the
+        | hold becomes a ledger row — and it is idempotent, because PayTR retries
+        | and the same success may arrive three times.
+        */
+        $this->loyalty->commit($payment->checkout_group_uuid);
+
         $payment->forceFill([
             'status' => PaymentStatus::Paid,
             'provider_reference' => $result->providerReference,
@@ -420,6 +434,13 @@ final class SettlePaymentCallbackAction extends BaseAction
      */
     private function fail(Payment $payment, GatewayResultDTO $result): bool
     {
+        /*
+        | **THE HELD POINTS GO BACK, AND NO LEDGER ROW IS WRITTEN** (ADR-084).
+        | Nothing was spent, so nothing is recorded — the same judgement as the
+        | reservation release below, and the reason a hold is not a ledger entry.
+        */
+        $this->loyalty->release($payment->checkout_group_uuid);
+
         $orderUuids = $this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid);
 
         /*

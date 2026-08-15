@@ -137,3 +137,49 @@ it('keeps the rates away from an actor without the ability', function (): void {
      */
     expect(LoyaltySettings::canAccess())->toBeFalse();
 });
+
+it('quotes a redemption against the live cart without moving anything', function (): void {
+    /** @var Customer $customer */
+    $customer = Customer::factory()->create();
+
+    LoyaltyLedgerEntry::factory()->create(['customer_uuid' => $customer->uuid, 'points' => 500]);
+
+    // No cart yet: nothing to discount, and that is an answer rather than an error.
+    $empty = $this->actingAs($customer, 'customer')
+        ->postJson('/api/v1/loyalty/redeem/quote', ['use_max' => true])
+        ->assertOk();
+
+    expect($empty->json('data.cart_total'))->toBe('0.00')
+        ->and($empty->json('data.max_points'))->toBe(0)
+        ->and($empty->json('data.payable'))->toBe('0.00')
+        /*
+         * **A PREVIEW MOVES NOTHING.** The checkout page calls this on every drag
+         * of the slider; a hold here would earmark a balance on a page the shopper
+         * may close.
+         */
+        ->and(App\Modules\Loyalty\Domain\Models\LoyaltyHold::query()->count())->toBe(0);
+});
+
+it('clamps the quote to the balance and answers in decimal strings', function (): void {
+    /** @var Customer $customer */
+    $customer = Customer::factory()->create();
+
+    LoyaltyLedgerEntry::factory()->create(['customer_uuid' => $customer->uuid, 'points' => 120]);
+
+    // Asking for more than the balance is not an error — a slider is allowed to be
+    // optimistic, and the port clamps.
+    $response = $this->actingAs($customer, 'customer')
+        ->postJson('/api/v1/loyalty/redeem/quote', ['points' => 9_999])
+        ->assertOk();
+
+    expect($response->json('data.currency'))->toBe('TRY')
+        // Money crosses as a decimal string; a point crosses as an integer (ADR-005).
+        ->and($response->json('data.discount'))->toBeString()
+        ->and($response->json('data.max_points'))->toBeInt();
+});
+
+it('keeps the quote to customers', function (): void {
+    $this->actingAs(Seller::factory()->create(), 'seller')
+        ->postJson('/api/v1/loyalty/redeem/quote', ['use_max' => true])
+        ->assertForbidden();
+});

@@ -5,13 +5,18 @@ declare(strict_types=1);
 namespace App\Modules\Payment\Application\Actions;
 
 use App\Core\Application\Actions\BaseAction;
+use App\Core\Domain\Contracts\InventoryReservationContract;
+use App\Core\Domain\Contracts\LoyaltyContract;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Localization\Domain\Contracts\CurrencyRepositoryContract;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\DTOs\PaymentIntentDTO;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
+use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payment;
+use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Open a payment session for one checkout group (Payment.md §3, step 1).
@@ -46,10 +51,20 @@ use App\Modules\Payment\Domain\Models\Payment;
  */
 final class InitiatePaymentAction extends BaseAction
 {
+    /** Emitted after commit, like every other event this module raises. */
+    private ?PaymentSucceeded $paidWithPoints = null;
+
     public function __construct(
         private readonly OrderQueryContract $orders,
         private readonly PaymentGatewayContract $gateway,
         private readonly CurrencyRepositoryContract $currencies,
+        /*
+        | THE CORE PORT, NOT THE MODULE (ADR-084). Payment tells Loyalty to earmark
+        | points and never learns what a ledger row is; `LayeringTest` fails the
+        | build if either side names the other.
+        */
+        private readonly LoyaltyContract $loyalty,
+        private readonly InventoryReservationContract $reservations,
     ) {}
 
     /**
@@ -61,6 +76,8 @@ final class InitiatePaymentAction extends BaseAction
         $checkoutGroupUuid = $arguments[0];
         /** @var string $buyerIp */
         $buyerIp = $arguments[1] ?? '0.0.0.0';
+        /** @var int $requestedPoints */
+        $requestedPoints = (int) ($arguments[2] ?? 0);
 
         $orderUuids = $this->orders->ordersForCheckoutGroup($checkoutGroupUuid);
         $customer = $this->orders->checkoutGroupCustomer($checkoutGroupUuid);
@@ -95,19 +112,60 @@ final class InitiatePaymentAction extends BaseAction
 
         $currency = $this->currencies->default();
 
+        /*
+        | **POINTS ARE EARMARKED BEFORE THE CARD IS TOUCHED** (ADR-084). The hold is
+        | clamped against the LIVE balance and is idempotent per checkout group, so
+        | a shopper who refreshes the payment page re-holds the same points rather
+        | than stacking a second claim — and a balance that moved in another tab
+        | reduces the discount here instead of overdrawing it.
+        |
+        | Held with zero points too: that RELEASES a hold from a previous attempt,
+        | so a customer who unticks "Puanını kullan" and pays again is not still
+        | occupying their own balance.
+        */
+        $heldPoints = $this->loyalty->hold($customer['uuid'], max(0, $requestedPoints), $checkoutGroupUuid);
+
+        $quote = $this->loyalty->quote($customer['uuid'], $amountMinor, $heldPoints);
+
+        $discountMinor = $quote['discount_minor'];
+        $payableMinor = max(0, $amountMinor - $discountMinor);
+
         $payment ??= new Payment;
 
         $payment->fill([
             'checkout_group_uuid' => $checkoutGroupUuid,
             'customer_id' => $customer['id'],
             'customer_uuid' => $customer['uuid'],
-            // Re-read every time: an order cancelled since the last attempt must
-            // not still be charged for.
-            'amount_minor' => $amountMinor,
+            /*
+            | **`amount_minor` IS THE CARD CHARGE, SO THE DISCOUNT REDUCES IT.** It
+            | is what PayTR is asked for and what the callback verifies against; a
+            | discount sitting beside it would make the two disagree and every
+            | verified callback would be rejected as the wrong amount.
+            |
+            | Re-read every time: an order cancelled since the last attempt must not
+            | still be charged for.
+            */
+            'amount_minor' => $payableMinor,
+            'points_spent' => $quote['points_applied'],
+            'discount_minor' => $discountMinor,
             'currency_id' => $currency->getKey(),
             'status' => PaymentStatus::Pending,
             'provider' => (string) config('payment.gateway', 'paytr'),
         ])->save();
+
+        /*
+        | **POINTS COVERED EVERYTHING: THERE IS NO CARD CHARGE** (ADR-084, and there
+        | is no cap so this is reachable — owner's decision, 2026-08-15). PayTR
+        | rejects a zero-amount order outright, so the gateway is skipped entirely
+        | and the same success path the callback runs is invoked here instead.
+        |
+        | The payment keeps `amount_minor = 0`, which is precisely what a later
+        | refund needs to know: there is no card money to send back, only points to
+        | re-credit.
+        */
+        if ($payableMinor === 0) {
+            return $this->settleWithPointsOnly($payment);
+        }
 
         /*
         | THE PSP CALL IS INSIDE THE TRANSACTION, unusually for this codebase —
@@ -120,7 +178,10 @@ final class InitiatePaymentAction extends BaseAction
         */
         $session = $this->gateway->initiate(new PaymentIntentDTO(
             reference: $payment->merchantReference(),
-            amountMinor: $amountMinor,
+            // THE REDUCED FIGURE. PayTR is asked for what the card must cover, and
+            // the hash is built from it — sending the pre-discount total here would
+            // charge the customer for points they just spent.
+            amountMinor: $payableMinor,
             currencyCode: $currency->code,
             buyerEmail: $customer['email'],
             buyerName: $customer['email'],
@@ -135,6 +196,80 @@ final class InitiatePaymentAction extends BaseAction
         ));
 
         return ['payment' => $payment->refresh(), 'token' => $session->token];
+    }
+
+    /**
+     * Events after commit, like every other action here (`BaseAction::after()`).
+     */
+    protected function after(mixed $result, mixed ...$arguments): void
+    {
+        if ($this->paidWithPoints !== null) {
+            event($this->paidWithPoints);
+        }
+    }
+
+    /**
+     * The success path when points covered the whole cart (ADR-084).
+     *
+     * **NO CARD, SO NO CALLBACK — AND THE CALLBACK IS NORMALLY THE TRUTH**
+     * (ADR-060). There is no PSP to hear from, so this is the one place a payment
+     * becomes paid without one, and it has to do everything that path does: commit
+     * the stock, spend the points, mark it paid, announce it.
+     *
+     * **IT DELIBERATELY REPEATS `SettlePaymentCallbackAction::settle()` RATHER THAN
+     * RESTRUCTURING IT.** That method is the verified-callback path for every real
+     * charge on the platform; reshaping it to serve a case with no gateway result,
+     * no hash and no amount to verify would put this feature's edge inside the code
+     * that settles everybody's money. The duplication is named here so it is
+     * maintained, and a test asserts both paths reach the same end state.
+     *
+     * @return array{payment: Payment, token: string|null}
+     */
+    private function settleWithPointsOnly(Payment $payment): array
+    {
+        foreach ($this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid) as $orderUuid) {
+            foreach ($this->orders->reservationReferencesFor($orderUuid) as $reference) {
+                try {
+                    $this->reservations->commit($reference);
+                } catch (Throwable $exception) {
+                    /*
+                    | LOGGED, NOT RETHROWN — the same judgement the callback path
+                    | makes. The customer has paid; refusing to record that because
+                    | one reservation would not commit leaves them charged with no
+                    | order.
+                    */
+                    Log::channel('errors')->error('Could not commit a reservation on a points-only payment', [
+                        'payment_uuid' => $payment->uuid,
+                        'order_uuid' => $orderUuid,
+                        'reference' => $reference,
+                        'exception' => $exception->getMessage(),
+                    ]);
+                }
+            }
+        }
+
+        $this->loyalty->commit($payment->checkout_group_uuid);
+
+        $payment->forceFill([
+            'status' => PaymentStatus::Paid,
+            // NAMED SO A HUMAN READING THE ROW KNOWS WHY THERE IS NO PSP REFERENCE.
+            'provider_reference' => 'points',
+            'paid_at' => now(),
+        ])->save();
+
+        $this->paidWithPoints = new PaymentSucceeded(
+            $payment->uuid,
+            $payment->checkout_group_uuid,
+            // ZERO, and honestly so: no card was charged. Every listener that adds
+            // up settlements must see the real figure, not the pre-discount total.
+            $payment->amount_minor,
+            $payment->currency->code,
+            $this->orders->ordersForCheckoutGroup($payment->checkout_group_uuid),
+        );
+
+        // NO TOKEN: there is no iFrame to open, and the storefront reads the null
+        // as "already paid, go to the thank-you page".
+        return ['payment' => $payment->refresh(), 'token' => null];
     }
 
     /**

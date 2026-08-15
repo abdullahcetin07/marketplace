@@ -4,8 +4,11 @@ declare(strict_types=1);
 
 namespace App\Modules\Loyalty\Presentation\Controllers\Api\Customer;
 
+use App\Core\Domain\Contracts\LoyaltyContract;
+use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
 use App\Modules\Loyalty\Domain\Contracts\LoyaltyLedgerRepositoryContract;
+use App\Modules\Loyalty\Presentation\Requests\RedeemQuoteRequest;
 use App\Modules\Loyalty\Presentation\Resources\LoyaltyLedgerEntryResource;
 use App\Shared\Enums\UserType;
 use Illuminate\Http\JsonResponse;
@@ -27,7 +30,11 @@ use Symfony\Component\HttpKernel\Exception\AccessDeniedHttpException;
  */
 final class LoyaltyController extends BaseController
 {
-    public function __construct(private readonly LoyaltyLedgerRepositoryContract $ledger) {}
+    public function __construct(
+        private readonly LoyaltyLedgerRepositoryContract $ledger,
+        private readonly LoyaltyContract $redemption,
+        private readonly OrderQueryContract $orders,
+    ) {}
 
     /**
      * GET /api/v1/loyalty/balance
@@ -74,6 +81,39 @@ final class LoyaltyController extends BaseController
     }
 
     /**
+     * POST /api/v1/loyalty/redeem/quote
+     *
+     * **A PREVIEW, AND NOTHING MOVES.** The checkout page calls this on every drag
+     * of the slider; holding points here would earmark a balance on a page the
+     * shopper may close, and releasing them would need a sweep for something the
+     * pay step already does properly.
+     *
+     * **THE CART IS PRICED LIVE** (ADR-052: a cart stores no prices), so the total
+     * this clamps against is the one the shopper is about to be charged rather than
+     * one that was true when they added the item.
+     */
+    public function quote(RedeemQuoteRequest $request): JsonResponse
+    {
+        $customerUuid = $this->customerUuid();
+
+        $cartTotal = $this->orders->activeCartTotalFor($customerUuid);
+
+        $quote = $this->redemption->quote($customerUuid, $cartTotal, $request->requestedPoints());
+
+        return $this->ok([
+            'points_applied' => $quote['points_applied'],
+            // Decimal strings on the wire, minor units inside (ADR-005).
+            'discount' => $this->decimal($quote['discount_minor']),
+            'cart_total' => $this->decimal($cartTotal),
+            'payable' => $this->decimal($quote['payable_minor']),
+            'currency' => 'TRY',
+            // What the slider's maximum should be — the smaller of the balance and
+            // what the basket can absorb.
+            'max_points' => $quote['max_points'],
+        ]);
+    }
+
+    /**
      * The signed-in customer's uuid, or a refusal.
      */
     private function customerUuid(): string
@@ -92,5 +132,10 @@ final class LoyaltyController extends BaseController
         $perPoint = (float) settings('loyalty.redeem.value', 0.05);
 
         return number_format($points * $perPoint, 2, '.', '');
+    }
+
+    private function decimal(int $minor): string
+    {
+        return number_format($minor / 100, 2, '.', '');
     }
 }

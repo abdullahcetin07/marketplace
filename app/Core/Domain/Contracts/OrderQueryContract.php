@@ -323,6 +323,20 @@ interface OrderQueryContract
     public function pointsEligibleSellerOrders(CarbonInterface $asOf): array;
 
     /**
+     * The KDV-included total of this customer's live basket, in minor units (ADR-084).
+     *
+     * **A CART STORES NO PRICES** (ADR-052), so this is priced live from the offers
+     * every time — which is the point: the number a redemption quote clamps against
+     * has to be the number the shopper is about to be charged, not one that was
+     * true when they added the item.
+     *
+     * **KDV IS INCLUDED**, because that is what a customer pays and what points
+     * discount. Zero for an empty basket or no basket at all — a quote against
+     * nothing offers nothing, which is not an error.
+     */
+    public function activeCartTotalFor(string $customerUuid): int;
+
+    /**
      * Product uuids most often bought in the same BASKET as this one (ADR-077).
      *
      * **THE UNIT IS THE CHECKOUT GROUP, NOT THE ORDER.** A basket splits into one

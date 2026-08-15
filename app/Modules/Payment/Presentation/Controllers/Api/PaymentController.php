@@ -51,7 +51,20 @@ final class PaymentController extends BaseController
             throw PaymentException::groupNotFound($group);
         }
 
-        $result = $this->initiate->run($group, (string) $request->ip());
+        /*
+        | **THE POINTS THE SHOPPER CHOSE, OR NONE** (ADR-084). Optional, so every
+        | existing caller keeps working unchanged; absent means zero, which also
+        | RELEASES a hold from a previous attempt — unticking "Puanını kullan" and
+        | paying again must not leave the balance occupied.
+        |
+        | Not validated beyond its shape: asking for more points than the balance
+        | is not an error, the port clamps. A slider is allowed to be optimistic.
+        */
+        $result = $this->initiate->run(
+            $group,
+            (string) $request->ip(),
+            max(0, (int) $request->integer('points')),
+        );
 
         /** @var Payment $payment */
         $payment = $result['payment'];

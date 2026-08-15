@@ -154,6 +154,11 @@ function fakeOrderPort(array $lines): void
         {
             return [];
         }
+
+        public function activeCartTotalFor(string $customerUuid): int
+        {
+            return 0;
+        }
     });
 }
 

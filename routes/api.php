@@ -404,6 +404,12 @@ Route::prefix('v1')
             */
             Route::get('/loyalty/balance', [LoyaltyController::class, 'balance'])->name('loyalty.balance');
             Route::get('/loyalty/ledger', [LoyaltyController::class, 'ledger'])->name('loyalty.ledger');
+            /*
+            | THE REDEMPTION PREVIEW (ADR-084). POST because it carries a body, not
+            | because it changes anything — nothing moves here. The checkout page
+            | calls it on every drag of the "Puanını kullan" slider.
+            */
+            Route::post('/loyalty/redeem/quote', [LoyaltyController::class, 'quote'])->name('loyalty.redeem.quote');
 
             Route::get('/auth/me', [AuthController::class, 'me'])->name('auth.me');
             Route::post('/auth/logout', [AuthController::class, 'logout'])->name('auth.logout');
