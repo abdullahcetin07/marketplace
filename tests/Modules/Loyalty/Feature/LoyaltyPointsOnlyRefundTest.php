@@ -38,13 +38,16 @@ beforeEach(function (): void {
  *
  * Named for this file: Pest shares ONE global function namespace.
  *
- * @return object{refundCalls: int}
+ * @return object{refundCalls: int, lastAmountMinor: int}
  */
 function countingGateway(): object
 {
     $spy = new class implements PaymentGatewayContract
     {
         public int $refundCalls = 0;
+
+        /** What the PSP was actually asked for — the card's share, not the goods value. */
+        public int $lastAmountMinor = 0;
 
         public function initiate(PaymentIntentDTO $intent): GatewaySessionDTO
         {
@@ -59,6 +62,7 @@ function countingGateway(): object
         public function refund(PaymentRefundDTO $refund): GatewayRefundResultDTO
         {
             $this->refundCalls++;
+            $this->lastAmountMinor = $refund->amountMinor;
 
             /*
              * WHAT PayTR ACTUALLY SAID. Returning the real refusal rather than a
@@ -227,4 +231,79 @@ it('still calls the gateway when there was real card money', function (): void {
     }
 
     expect((int) $gateway->refundCalls)->toBe(1);
+});
+
+it('splits a partial refund of a card+points basket between the card and the points', function (): void {
+    /*
+     * **THE PRODUCTION REPRO.** 2 units × ₺5 (basket ₺10), settled with ₺5 of card
+     * and ₺5 of points (100 pts). Refunding one unit is ₺5 of GOODS — but only
+     * ₺2.50 of it was ever paid by card, and 50 points paid the rest.
+     *
+     * Sending the goods value asked PayTR for ₺5.00 against a ₺5.00 charge and it
+     * answered *"iade yapilamiyor"*. Had it agreed, the customer would have been
+     * handed back more than they paid.
+     */
+    $fixture = pointsOnlyRefundFixture();
+
+    /** @var Payment $payment */
+    $payment = $fixture['payment'];
+
+    // Rewrite into the mixed shape: ₺10 basket, half card, half points.
+    $payment->forceFill([
+        'amount_minor' => 500,
+        'discount_minor' => 500,
+        'points_spent' => 100,
+    ])->save();
+
+    LoyaltyLedgerEntry::factory()->create(['customer_uuid' => $fixture['customerUuid'], 'points' => 100]);
+    app(LoyaltyContract::class)->hold($fixture['customerUuid'], 100, $fixture['group']);
+    app(LoyaltyContract::class)->commit($fixture['group']);
+
+    expect(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($fixture['customerUuid']))->toBe(0);
+
+    $gateway = countingGateway();
+
+    // Half the basket, the way a line-level refund of one of two units arrives.
+    app(App\Core\Domain\Contracts\LoyaltyContract::class)->reverse($fixture['group'], 'return', 0.5);
+
+    /*
+     * **HALF THE POINTS, FLOORED — NOT ALL OF THEM.** This is what the
+     * `amount_minor + discount_minor` denominator exists for: comparing against the
+     * card charge alone would have called this refund "full".
+     */
+    expect(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($fixture['customerUuid']))->toBe(50)
+        ->and((int) $gateway->refundCalls)->toBe(0);
+});
+
+it('asks the PSP for the card share of a mixed basket, not the goods value', function (): void {
+    $fixture = pointsOnlyRefundFixture();
+
+    /** @var Payment $payment */
+    $payment = $fixture['payment'];
+
+    $basket = $payment->discount_minor;
+
+    // ₺10 basket: half card, half points.
+    $payment->forceFill([
+        'amount_minor' => (int) ($basket / 2),
+        'discount_minor' => (int) ($basket / 2),
+        'points_spent' => 100,
+    ])->save();
+
+    $gateway = countingGateway();
+
+    try {
+        app(App\Modules\Payment\Application\Actions\RefundPaymentAction::class)
+            ->run(new App\Modules\Payment\Domain\DTOs\RefundRequestDTO(paymentUuid: $payment->uuid));
+    } catch (Throwable) {
+        // The spy refuses; what matters is WHAT it was asked for.
+    }
+
+    /*
+     * **THE CARD'S SHARE, FLOORED.** The goods are worth the whole basket; the card
+     * only ever held half of it. Asking for the goods value is what PayTR refused.
+     */
+    expect((int) $gateway->refundCalls)->toBe(1)
+        ->and((int) $gateway->lastAmountMinor)->toBe((int) floor($basket * (($basket / 2) / $basket)))
+        ->and((int) $gateway->lastAmountMinor)->toBe((int) ($basket / 2));
 });

@@ -60,21 +60,29 @@ real charge is possible without changing it):
    **→ RE-VERIFIED LIVE (2026-08-17):** the points-only refund re-credited **+100**
    (balance 0 → 100). ✅
 
-4. **🐛 SECOND REFUND BUG — partial (line-level) refund of a CARD+POINTS order 500s.**
-   Found live right after #3's fix. Repro: a **card + points** order — 2 units × ₺5
-   (basket ₺10), paid ₺5 card + ₺5 points (100 pts), callback committed −100, balance
-   0 — then **admin partial-refunds 1 of the 2 units** (₺5 of the ₺10 basket) → **500
-   Server Error**. This is the very path the `amount_minor + discount_minor` denominator
-   fix opened: partial → proportional card refund (≈₺2.50) + proportional points
-   re-credit (≈+50, floored). **Read `storage/logs/laravel.log` for the real
-   exception.** Prime suspects: the proportional split math (a division / rounding on
-   the ₺2.50 card share or the 50-point share), or the **PayTR partial `refund()` call**
-   for the ₺2.50 card portion (recall the S4 `merchant_id`-in-`paytr_token` iade bug —
-   is the partial amount / hash right?), or a type/null in the fraction when both card
-   AND points are present. Add a test: partial line refund of a mixed card+points order
-   re-credits the **proportional floored** points (NOT the full amount) and issues the
-   **proportional** card refund. Reply here when fixed so we re-verify live (the order
-   is still there, ready to refund again).
+4. **🐛 SECOND REFUND BUG — FIXED (2026-08-17). Please re-verify live.**
+   The exception was **`"iade yapilamiyor, daha sonra tekrar deneyin"`** (err_no
+   000, HTTP 200) — and the log line beside it names the cause:
+   `payment_amount: "5.00"`. **We asked PayTR for the GOODS value, not the card's
+   share.** The ₺10 basket was settled with ₺5 of card and ₺5 of points, so
+   refunding one ₺5 unit owes the card **₺2.50** and the customer **50 points** —
+   but the full ₺5.00 was sent, against a ₺5.00 charge. PayTR refused it. Had it
+   agreed, the buyer would have been handed back more than they paid.
+
+   Not the proportional points maths (that was already right, floored), not the
+   S4 hash bug, and no type/null.
+
+   **Fix:** the gateway leg is now scaled by the card's share of the settled basket
+   — `floor(amount × card / (card + points))` — in both refund actions. Only that
+   leg is scaled: the recorded refund, the seller-ledger reversal and the restock
+   stay on the full goods value, because the seller was paid in full and the
+   platform funded the discount. The share is floored, so a rounding remainder
+   stays with the platform rather than over-refunding. A share that rounds to zero
+   skips the PSP entirely, which also subsumes the points-only case from #3.
+
+   **Tests:** a partial refund of a mixed basket re-credits the proportional
+   floored points (50, not 100) and asks the PSP for the CARD share; confirmed to
+   fail with `3000 !== 1500` when the scaling is removed.
 
 **`POST /api/v1/checkout/{group}/pay` response — the shape the storefront binds to:**
 ```json

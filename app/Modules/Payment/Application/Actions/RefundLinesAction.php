@@ -198,31 +198,50 @@ final class RefundLinesAction extends BaseAction
     }
 
     /**
-     * Whether there is any card money to send back.
+     * The CARD's share of a refund, in minor units (ADR-084).
      *
-     * **A POINTS-ONLY PAYMENT WAS NEVER AT THE PSP, SO THERE IS NOTHING TO REVERSE
-     * THERE** (ADR-084). PayTR is asked by `merchant_oid`, and it has never seen
-     * this one: refunding a basket paid entirely with points answered
-     * *"merchant_oid ile basarili odeme bulunamadi"* and the admin got a 500.
+     * **THE GOODS VALUE IS NOT THE CARD VALUE ON A MIXED BASKET.** ₺10 of shopping
+     * settled with ₺5 of card and ₺5 of points: refunding one ₺5 unit returns
+     * ₺2.50 to the card and 50 points, not ₺5 to the card. Sending the goods value
+     * asked PayTR to refund ₺5.00 against a ₺5.00 charge and it answered *"iade
+     * yapilamiyor"* — and had it agreed, the customer would have been handed back
+     * more than they paid.
      *
-     * **THE TEST IS THE CARD AMOUNT, NOT THE PROVIDER STRING.** `amount_minor` is
-     * what was actually charged; a `provider_reference` of `'points'` is a label
-     * this module writes and could be renamed, while a zero charge is the fact
-     * itself. A partial card refund on a partly-points-funded basket still goes to
-     * the gateway, because there is real money in it.
+     * **ONLY THE GATEWAY LEG IS SCALED.** The recorded refund, the seller-ledger
+     * reversal and the restock all stay on the full goods value: the seller was
+     * paid in full and the platform funded the discount (ADR-084), so nothing about
+     * what the merchant owes back changes because the buyer used points.
+     *
+     * **FLOORED, WHICH ROUNDS TOWARDS THE PLATFORM.** A half-kuruş cannot be sent
+     * to a card; keeping it means the platform absorbs a rounding remainder it
+     * already chose to absorb the discount for, rather than over-refunding.
      */
-    private function hasCardMoney(Payment $payment): bool
+    private function cardShareOf(Payment $payment, int $basketAmountMinor): int
     {
-        return $payment->amount_minor > 0;
+        $settled = $payment->amount_minor + $payment->discount_minor;
+
+        if ($settled <= 0 || $payment->amount_minor <= 0) {
+            return 0;
+        }
+
+        return (int) floor($basketAmountMinor * $payment->amount_minor / $settled);
     }
 
     private function reverseAtGateway(Payment $payment, int $amountMinor): void
     {
-        if (! $this->hasCardMoney($payment)) {
+        /*
+        | **WHAT THE CARD IS OWED, NOT WHAT THE GOODS COST.** On a basket part-paid
+        | with points the two differ, and PayTR is only ever asked for the card's
+        | share — the rest comes back as points through `LoyaltyContract::reverse()`.
+        */
+        $cardMinor = $this->cardShareOf($payment, $amountMinor);
+
+        if ($cardMinor <= 0) {
             /*
-            | NOTHING TO ASK FOR, SO NOTHING IS ASKED. The points come back through
-            | `LoyaltyContract::reverse()` on the same path as any other refund;
-            | only the card leg is absent.
+            | NOTHING TO ASK FOR, SO NOTHING IS ASKED — either the basket was paid
+            | entirely with points, or this slice of it rounds to no card money at
+            | all. The points come back through `LoyaltyContract::reverse()` on the
+            | same path as any other refund; only the card leg is absent.
             */
             return;
         }
@@ -231,7 +250,7 @@ final class RefundLinesAction extends BaseAction
             // PayTR knows the charge by ONE name — the payment uuid (§4). A
             // partial refund is the same reference and a smaller amount.
             reference: $payment->merchantReference(),
-            amountMinor: $amountMinor,
+            amountMinor: $cardMinor,
         ));
 
         if (! $result->successful) {
