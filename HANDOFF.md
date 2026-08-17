@@ -27,9 +27,25 @@ real charge is possible without changing it):
 
 1. A cart + a points balance → apply points → the PayTR iFrame amount is the
    reduced figure → callback commits one `−points` row.
-2. The **`payable == 0`** path with a balance that covers a small cart: no iFrame,
-   `/pay` answers `paid: true`, the order reaches paid.
-3. A refund on a points-funded order → the points come back.
+2. **✅ VERIFIED LIVE (2026-08-17).** The **`payable == 0`** path: a 100-point
+   balance covered a ₺5,00 cart in full. Quote showed −₺5,00 / payable ₺0,00; pay
+   settled points-only (no iFrame), redirected to `/odeme/sonuc` ("₺0,00 tahsil
+   edildi"), and the ledger committed **−100 "Harcama"** → balance 0. Storefront
+   `paid`-branch redirect works.
+3. **🐛 BUG FOUND — refund of a points-only order 500s.** Admin refunding the very
+   order from #2 (points-funded, **`amount_minor = 0`**, `provider_reference =
+   'points'`, no card money, no PayTR `merchant_oid`) returns **500 Server Error**.
+   This is the one path P2's tests apparently didn't cover against a real refund.
+   **Read `storage/logs/laravel.log` for the actual exception** and fix. Prime
+   suspects: the refund action calls `PayTrGateway::refund()` with a **0.00 amount**
+   (PayTR rejects zero) or dereferences a **null gateway/merchant_oid** that a
+   points-only payment never had; or the re-credit fraction divides by a **zero card
+   denominator** (a full refund should be 1.0 outright, per your own HANDOFF note —
+   verify that branch is actually taken when the card charge is 0). The fix: a
+   points-only order has **no card refund to make** — skip the gateway entirely and
+   only run `LoyaltyContract::reverse()` to return the points. Add a test:
+   refunding an `amount_minor = 0` points-only order re-credits the points and calls
+   the gateway **zero times**. Then reply here so we re-verify live.
 
 **`POST /api/v1/checkout/{group}/pay` response — the shape the storefront binds to:**
 ```json
