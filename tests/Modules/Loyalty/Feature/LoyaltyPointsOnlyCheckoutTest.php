@@ -58,10 +58,18 @@ beforeEach(function (): void {
  *
  * Named for this file: Pest shares ONE global function namespace.
  *
- * @return array{group: string, variant: ProductVariant, orgUuid: string, customerUuid: string, totalMinor: int}
+ * @return array{customer: App\Models\Customer, group: string, variant: ProductVariant, orgUuid: string, customerUuid: string, totalMinor: int}
  */
 function pointsOnlyCheckout(int $priceMinor = 5_000): array
 {
+    /*
+     * A REAL CUSTOMER ROW, not a hardcoded id 1. The controller resolves the
+     * signed-in actor and compares it against the payment's owner, so the test
+     * needs somebody who can actually sign in.
+     */
+    /** @var App\Models\Customer $customer */
+    $customer = App\Models\Customer::factory()->create();
+
     $organization = Organization::factory()->create();
     $store = Store::factory()->create([
         'organization_id' => $organization->getKey(),
@@ -83,7 +91,7 @@ function pointsOnlyCheckout(int $priceMinor = 5_000): array
         stockQuantity: 10,
     ));
 
-    $customerId = 1;
+    $customerId = (int) $customer->getKey();
 
     $address = app(CreateCustomerAddressAction::class)->run($customerId, 'musteri', new CustomerAddressDTO(
         label: 'Ev',
@@ -111,14 +119,15 @@ function pointsOnlyCheckout(int $priceMinor = 5_000): array
      * action reads it through. Taking it off the order model instead would work
      * here and diverge the day either side changes whose uuid it carries.
      */
-    $customer = app(App\Core\Domain\Contracts\OrderQueryContract::class)
+    $payer = app(App\Core\Domain\Contracts\OrderQueryContract::class)
         ->checkoutGroupCustomer($orders[0]->checkout_group_uuid);
 
     return [
+        'customer' => $customer,
         'group' => $orders[0]->checkout_group_uuid,
         'variant' => $variant,
         'orgUuid' => $organization->uuid,
-        'customerUuid' => (string) $customer['uuid'],
+        'customerUuid' => (string) $payer['uuid'],
         'totalMinor' => (int) $orders[0]->grand_total_minor,
     ];
 }
@@ -237,4 +246,32 @@ it('releases a previous attempt’s hold when the customer unticks the control',
      */
     expect(LoyaltyHold::query()->count())->toBe(0)
         ->and(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($checkout['customerUuid']))->toBe(100);
+});
+
+it('tells the storefront it is paid, rather than leaving it to infer', function (): void {
+    $checkout = pointsOnlyCheckout();
+
+    LoyaltyLedgerEntry::factory()->create([
+        'customer_uuid' => $checkout['customerUuid'],
+        'points' => (int) ceil($checkout['totalMinor'] / 5) + 100,
+    ]);
+
+    $response = $this->actingAs($checkout['customer'], 'customer')
+        ->postJson('/api/v1/checkout/'.$checkout['group'].'/pay', ['points' => 999_999])
+        ->assertOk();
+
+    /*
+     * **`paid` IS AN ANSWER, NOT AN INFERENCE.** The storefront sends the shopper
+     * to the result page instead of opening an iFrame — and reading that off a
+     * null token would be wrong the first time a gateway failure also returns
+     * null.
+     */
+    expect($response->json('data.paid'))->toBeTrue()
+        ->and($response->json('data.status'))->toBe('paid')
+        ->and($response->json('data.iframe_token'))->toBeNull()
+        // Money as decimal strings; points as a count (ADR-005).
+        ->and($response->json('data.amount'))->toBe('0.00')
+        ->and($response->json('data.discount'))->toBeString()
+        ->and($response->json('data.points_spent'))->toBeInt()
+        ->and($response->json('data.currency'))->toBe('TRY');
 });

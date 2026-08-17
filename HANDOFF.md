@@ -14,55 +14,49 @@ pending.
 
 ## ▶ ACTIVE work order
 
-### `BUILD_LOYALTY_P2.md` — Loyalty redemption at checkout (ADR-084)
+### `BUILD_LOYALTY_P2.md` — redemption at checkout — **CODE DONE, AWAITING SANDBOX BROWSER VERIFICATION**
 
-Phase 1 (earning + ledger + admin + read API) is **BUILT and live**. Phase 2 adds
-**spending** points as a **platform-funded checkout discount**.
+All of P2 is built, tested and deployed (2026-08-17). `make check` green; 1,670+
+tests. Commits: `3c28fc6` (Core port), `8c70fbd` (quote + hold + callback),
+`22b0446` (refund re-credit + cash earn base), `41a24dd` (points-only path),
+`2c138f9` (pgsql uuid fix).
 
-- A Core command port **`LoyaltyContract`** (`hold → commit → release` + `reverse`) —
-  Payment/Order call it; **nobody imports Loyalty and Loyalty imports nobody**
-  (`LayeringTest`). `LoyaltyPointSource` gains `Redemption` + `Reversal`. A hold is
-  transient (not a ledger row); only `commit` writes `−points`.
-- **Quote endpoint** `POST /api/v1/loyalty/redeem/quote` — pure preview (discount +
-  payable) over the caller's cart; no state.
-- **Apply at pay**: `POST /api/v1/checkout/{group}/pay` accepts `{ points }` → Payment
-  holds, charges PayTR **total − discount**; the **platform absorbs it** (no
-  seller-order/commission/KDV change).
-- **Callback** commits (success) / releases (fail+expiry). **`PaymentRefunded`**
-  re-credits the spent points (proportional on a partial refund).
-- **Edge that MUST be handled — `payable == 0`** (no cap, so reachable): no PayTR
-  charge; mark paid-via-points and run the same success path. Do not send a 0-amount
-  order to PayTR.
-- Confirm the P1 purchase sweep earns on the **really-paid** TL (total − discount), not
-  the pre-discount total.
+**What is left is a browser, not code.** Verify on the PayTR **sandbox**
+(`test_mode = true`, confirmed present in `.env` and carried into the hash — no
+real charge is possible without changing it):
 
-Full detail: **`BUILD_LOYALTY_P2.md`**. Spec: `docs/modules/Loyalty.md` §5. Decision:
-**ADR-084** + amendment log #19. The storefront `/odeme` "Puanını kullan" control is
-already built against the quote + `pay {points}` contract and stays hidden until this
-ships. Delete this section once P2 lands and is verified on PayTR sandbox (including
-the `payable == 0` path and a refund re-credit).
+1. A cart + a points balance → apply points → the PayTR iFrame amount is the
+   reduced figure → callback commits one `−points` row.
+2. The **`payable == 0`** path with a balance that covers a small cart: no iFrame,
+   `/pay` answers `paid: true`, the order reaches paid.
+3. A refund on a points-funded order → the points come back.
 
-**Owner clarifications (2026-08-15, in answer to your two pre-start questions):**
-1. **No cap — confirmed.** A customer may pay 100% of the cart with points; the
-   platform absorbs it and the seller is paid in full (ADR-084 unchanged, no
-   amendment, no `max_percent` setting). Build the `payable == 0` path as specified.
-2. **PayTR: use the SANDBOX** already configured on this server (the same one Payment
-   went live against). Read your own `.env` to confirm the sandbox merchant creds are
-   present and report what you find; do **not** run the verification against live PayTR
-   / real charges. If sandbox creds are somehow missing, stop and say so rather than
-   falling back to live.
+**`POST /api/v1/checkout/{group}/pay` response — the shape the storefront binds to:**
+```json
+{ "success": true,
+  "data": {
+    "payment_id": "9f1c…",        // uuid
+    "paid": false,                 // TRUE only on the points-only path
+    "status": "pending",           // "paid" when paid is true
+    "iframe_token": "tok_…",       // NULL when paid — nothing to open
+    "amount": "95.00",             // what the CARD is charged, decimal string
+    "discount": "5.00",            // what points covered
+    "points_spent": 100,           // a count, not money
+    "currency": "TRY"
+  } }
+```
+**Branch on `paid`, not on a null `iframe_token`** — a gateway failure can also
+return null. When `paid` is true: skip the iFrame, go straight to the result page.
 
-Proceed with your stated order: Core port → hold/commit/release → quote → pay
-integration → callback → refund → tests → ADR/doc, `make check` each phase.
+Delete this section once the sandbox run passes.
 
-### Also queued (small, independent of P2): `BUILD_LOYALTY_EARN_PREVIEW.md`
+### `BUILD_LOYALTY_EARN_PREVIEW.md` — **DONE** (2026-08-17)
 
-A tiny public read `GET /api/v1/loyalty/earn-preview?amount=<decimal>` →
-`{ enabled, points, currency }`, `points = floor(amount × loyalty.earn.purchase_rate)`
-(the SAME computation as the purchase sweep). Public (no auth), reads only `settings()`,
-no Core contract, imports nothing. The storefront product-page "Kampanyalar" card ("Bu
-ürünü alınca X puan kazan") is already built against it and stays hidden until it ships.
-Do it whenever convenient — it's not on the P2 critical path.
+`GET /api/v1/loyalty/earn-preview?amount=129.90` → `{ enabled, points, currency }`,
+public, no auth. Same `floor(TL × rate)` the sweep uses, so the card cannot promise
+a point the ledger will not credit. A comma decimal is accepted; a non-numeric or
+negative amount is 422; `loyalty.enabled=false` answers `{enabled:false, points:0}`.
+The `ProductCampaigns` card should light up on its own.
 
 ---
 

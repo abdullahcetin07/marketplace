@@ -18,6 +18,7 @@ use App\Modules\Identity\Presentation\Controllers\Api\TwoFactorController;
 use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
 use App\Modules\Loyalty\Presentation\Controllers\Api\Customer\LoyaltyController;
+use App\Modules\Loyalty\Presentation\Controllers\Api\Storefront\EarnPreviewController;
 use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferFeedController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
@@ -237,6 +238,18 @@ Route::prefix('v1')
                 ->name('storefront.products.most-reviewed');
             Route::get('products/{product}/also-bought', [PublicProductRankingController::class, 'alsoBought'])
                 ->name('storefront.product.also-bought');
+
+            /*
+            | "BU ÜRÜNÜ ALINCA X PUAN KAZAN" (ADR-082). Public, because the product
+            | page is: a signed-out shopper is exactly who the card is arguing with.
+            | It reads only `settings()` — no ledger, no customer, no cart.
+            |
+            | The backend does the arithmetic so the storefront never multiplies a
+            | price string by a rate in JavaScript floats, and so the preview cannot
+            | disagree with what the nightly sweep actually credits.
+            */
+            Route::get('loyalty/earn-preview', [EarnPreviewController::class, 'show'])
+                ->name('storefront.loyalty.earn-preview');
 
             Route::get('products', [PublicProductController::class, 'index'])
                 ->name('storefront.products.index');

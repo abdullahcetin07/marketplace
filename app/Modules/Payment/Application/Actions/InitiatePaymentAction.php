@@ -68,7 +68,7 @@ final class InitiatePaymentAction extends BaseAction
     ) {}
 
     /**
-     * @return array{payment: Payment, token: string}
+     * @return array{payment: Payment, token: string|null}
      */
     public function handle(mixed ...$arguments): array
     {
@@ -229,7 +229,7 @@ final class InitiatePaymentAction extends BaseAction
      * that settles everybody's money. The duplication is named here so it is
      * maintained, and a test asserts both paths reach the same end state.
      *
-     * @return array{payment: Payment, token: string|null}
+     * @return array{payment: Payment, token: null}
      */
     private function settleWithPointsOnly(Payment $payment): array
     {

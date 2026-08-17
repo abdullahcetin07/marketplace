@@ -6,6 +6,7 @@ namespace App\Modules\Payment\Presentation\Controllers\Api;
 
 use App\Core\Presentation\Controllers\BaseController;
 use App\Modules\Payment\Application\Actions\InitiatePaymentAction;
+use App\Modules\Payment\Domain\Enums\PaymentStatus;
 use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Presentation\Resources\PaymentResource;
@@ -78,7 +79,28 @@ final class PaymentController extends BaseController
 
         return $this->ok([
             'payment_id' => $payment->uuid,
+            /*
+            | **`paid` IS AN ANSWER, NOT AN INFERENCE** (ADR-084). When points cover
+            | the whole basket there is no card charge and no iFrame, so the
+            | storefront must send the shopper to the result page instead of
+            | opening one. It could have read that off a null `iframe_token` — and
+            | that would be wrong the first time a gateway failure also returns
+            | null. The payment says what it is.
+            */
+            'paid' => $payment->status === PaymentStatus::Paid,
+            'status' => $payment->status->value,
+            // Null when there is nothing to open: paid with points, so no iFrame.
             'iframe_token' => $result['token'],
+            /*
+            | Money as decimal strings (ADR-005). `amount` is what the CARD is
+            | charged — zero on the points-only path — and `discount` is what the
+            | points covered. The two add up to the basket the shopper agreed to.
+            */
+            'amount' => $this->decimal($payment->amount_minor),
+            'discount' => $this->decimal($payment->discount_minor),
+            // A count, not money: points are things.
+            'points_spent' => $payment->points_spent,
+            'currency' => $payment->currency->code,
         ]);
     }
 
@@ -106,5 +128,10 @@ final class PaymentController extends BaseController
         }
 
         return $this->ok(new PaymentResource($model));
+    }
+
+    private function decimal(int $minor): string
+    {
+        return number_format($minor / 100, 2, '.', '');
     }
 }
