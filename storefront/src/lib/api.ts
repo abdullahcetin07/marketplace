@@ -366,13 +366,22 @@ export async function getEarnPreview(
   }
 }
 
-/** A public POST (the batch price read). Never cached — it takes a body. */
+/**
+ * A public POST (the batch price + ratings reads). Never cached — it takes a body.
+ *
+ * `credentials: 'omit'` is load-bearing: these reads need no session, and they run
+ * BOTH server-side (listings) and client-side (the homepage carousels). Same-origin,
+ * a browser fetch sends the session cookie by default — which makes Laravel treat the
+ * POST as stateful and demand a CSRF token the public read never has, answering 419.
+ * Omitting credentials keeps the request stateless so CSRF is skipped in both places.
+ */
 async function publicPost<T>(path: string, body: unknown): Promise<T> {
   const response = await fetch(apiUrl(path), {
     method: 'POST',
     headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
     cache: 'no-store',
+    credentials: 'omit',
   });
 
   if (!response.ok) {
