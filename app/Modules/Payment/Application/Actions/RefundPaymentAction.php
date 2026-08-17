@@ -120,7 +120,19 @@ final class RefundPaymentAction extends BaseAction
         }
 
         $refundedTotal = PaymentRefund::refundedMinorFor((int) $payment->getKey());
-        $fully = $refundedTotal >= $payment->amount_minor;
+        /*
+        | **"FULLY REFUNDED" MEANS THE WHOLE BASKET CAME BACK, AND THE BASKET IS
+        | CARD + POINTS** (ADR-084). `amount_minor` alone is the CARD charge, which
+        | is zero when points covered everything — so the first partial refund of a
+        | points-funded order would compare against zero, call itself full, and
+        | re-credit every point the customer spent.
+        |
+        | Found while fixing the 500 this same path used to throw: the gateway
+        | rejection was hiding it, and skipping the gateway would have turned a
+        | loud failure into a quiet overpayment.
+        */
+        $settledMinor = $payment->amount_minor + $payment->discount_minor;
+        $fully = $refundedTotal >= $settledMinor;
 
         $payment->forceFill([
             'status' => $fully ? PaymentStatus::Refunded : PaymentStatus::PartiallyRefunded,
@@ -241,8 +253,36 @@ final class RefundPaymentAction extends BaseAction
     /**
      * Ask the PSP to send the money back. Nothing is written unless it agrees.
      */
+    /**
+     * Whether there is any card money to send back.
+     *
+     * **A POINTS-ONLY PAYMENT WAS NEVER AT THE PSP, SO THERE IS NOTHING TO REVERSE
+     * THERE** (ADR-084). PayTR is asked by `merchant_oid`, and it has never seen
+     * this one: refunding a basket paid entirely with points answered
+     * *"merchant_oid ile basarili odeme bulunamadi"* and the admin got a 500.
+     *
+     * **THE TEST IS THE CARD AMOUNT, NOT THE PROVIDER STRING.** `amount_minor` is
+     * what was actually charged; a `provider_reference` of `'points'` is a label
+     * this module writes and could be renamed, while a zero charge is the fact
+     * itself. A partial card refund on a partly-points-funded basket still goes to
+     * the gateway, because there is real money in it.
+     */
+    private function hasCardMoney(Payment $payment): bool
+    {
+        return $payment->amount_minor > 0;
+    }
+
     private function reverseAtGateway(Payment $payment, int $amountMinor): void
     {
+        if (! $this->hasCardMoney($payment)) {
+            /*
+            | NOTHING TO ASK FOR, SO NOTHING IS ASKED. The points come back through
+            | `LoyaltyContract::reverse()` on the same path as any other refund;
+            | only the card leg is absent.
+            */
+            return;
+        }
+
         $result = $this->gateway->refund(new PaymentRefundDTO(
             // `merchant_oid` IS the payment uuid — the same reference the charge
             // was made under (§4). PayTR knows no other name for it.
