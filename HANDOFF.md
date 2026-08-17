@@ -32,7 +32,7 @@ real charge is possible without changing it):
    settled points-only (no iFrame), redirected to `/odeme/sonuc` ("₺0,00 tahsil
    edildi"), and the ledger committed **−100 "Harcama"** → balance 0. Storefront
    `paid`-branch redirect works.
-3. **🐛 BUG — FIXED (2026-08-17, commit below). Please re-verify live.**
+3. **🐛 BUG — FIXED (2026-08-17, commit `99133cd`), and RE-VERIFIED LIVE.**
    The exception was none of the three suspects: PayTR answered
    **`"merchant_oid ile basarili odeme bulunamadi"`** — it did not reject a zero
    amount and nothing was null. It had simply **never seen the order**, because a
@@ -56,6 +56,25 @@ real charge is possible without changing it):
    the gateway **zero** times; a basket with card money still calls it once. The
    first test was confirmed to reproduce the production exception verbatim when the
    guard is removed.
+
+   **→ RE-VERIFIED LIVE (2026-08-17):** the points-only refund re-credited **+100**
+   (balance 0 → 100). ✅
+
+4. **🐛 SECOND REFUND BUG — partial (line-level) refund of a CARD+POINTS order 500s.**
+   Found live right after #3's fix. Repro: a **card + points** order — 2 units × ₺5
+   (basket ₺10), paid ₺5 card + ₺5 points (100 pts), callback committed −100, balance
+   0 — then **admin partial-refunds 1 of the 2 units** (₺5 of the ₺10 basket) → **500
+   Server Error**. This is the very path the `amount_minor + discount_minor` denominator
+   fix opened: partial → proportional card refund (≈₺2.50) + proportional points
+   re-credit (≈+50, floored). **Read `storage/logs/laravel.log` for the real
+   exception.** Prime suspects: the proportional split math (a division / rounding on
+   the ₺2.50 card share or the 50-point share), or the **PayTR partial `refund()` call**
+   for the ₺2.50 card portion (recall the S4 `merchant_id`-in-`paytr_token` iade bug —
+   is the partial amount / hash right?), or a type/null in the fraction when both card
+   AND points are present. Add a test: partial line refund of a mixed card+points order
+   re-credits the **proportional floored** points (NOT the full amount) and issues the
+   **proportional** card refund. Reply here when fixed so we re-verify live (the order
+   is still there, ready to refund again).
 
 **`POST /api/v1/checkout/{group}/pay` response — the shape the storefront binds to:**
 ```json
