@@ -471,17 +471,34 @@ export async function fetchOrders(): Promise<Order[]> {
 export async function initiatePayment(
   checkoutGroupId: string,
   points?: number,
-): Promise<{ paymentId: string; iframeToken: string } | null> {
-  const data = await request<{ payment_uuid?: string; id?: string; iframe_token: string }>(
+): Promise<{ paymentId: string; iframeToken: string | null; paid: boolean } | null> {
+  const data = await request<{
+    payment_id?: string;
+    payment_uuid?: string;
+    id?: string;
+    iframe_token: string | null;
+    paid?: boolean;
+    status?: string;
+  }>(
     `/api/v1/checkout/${encodeURIComponent(checkoutGroupId)}/pay`,
     // The reduced charge is the server's job (it holds the points and charges
     // total − discount, ADR-084); the client only names how many points to spend.
     { method: 'POST', body: points && points > 0 ? { points } : undefined },
   );
 
-  if (data === null || !data.iframe_token) return null;
+  if (data === null) return null;
 
-  return { paymentId: data.payment_uuid ?? data.id ?? '', iframeToken: data.iframe_token };
+  // Check `paid`, NOT whether the token is null: paying the whole cart with points
+  // settles server-side with no iframe (ADR-084), but a gateway error ALSO returns a
+  // null token — and that one is a failure, not a paid order.
+  const paid = data.paid === true || data.status === 'paid';
+  if (!data.iframe_token && !paid) return null;
+
+  return {
+    paymentId: data.payment_id ?? data.payment_uuid ?? data.id ?? '',
+    iframeToken: data.iframe_token ?? null,
+    paid,
+  };
 }
 
 /**

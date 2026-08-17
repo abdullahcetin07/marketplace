@@ -173,6 +173,15 @@ export default function CheckoutPage() {
         // a storage that refuses us only costs the result page its confirmation
       }
 
+      // Paid entirely with points (ADR-084): there is no card step and no iframe —
+      // the order already settled server-side, so go straight to the result page.
+      if (payment.paid) {
+        await refreshCart();
+        window.location.href = '/odeme/sonuc';
+
+        return;
+      }
+
       setIframeToken(payment.iframeToken);
       await refreshCart();
     } catch (caught) {
