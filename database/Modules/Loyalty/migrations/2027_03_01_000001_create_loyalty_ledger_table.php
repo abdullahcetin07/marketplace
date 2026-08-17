@@ -41,7 +41,14 @@ return new class extends Migration
             $table->integer('points');
 
             $table->string('source_type', 32);
-            $table->uuid('source_uuid');
+            /*
+            | **A SOURCE IDENTIFIER, NOT A UUID** — widened in a later migration
+            | after PostgreSQL refused a reversal key (ADR-084). It is a customer
+            | uuid, a review uuid, an order uuid, or `"{group}:{cause}"` for a
+            | refund, which has to vary per refund so a basket partly cancelled and
+            | later partly returned credits twice rather than once.
+            */
+            $table->string('source_uuid', 191);
 
             // The rate that produced the row, for the audit trail. A rate change is
             // never retroactive, so the only way to explain an old row is to have

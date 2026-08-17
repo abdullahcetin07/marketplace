@@ -55,6 +55,13 @@ customer read API **and redemption at checkout** are live.
    and Loyalty may not import Order).
 3. **`LoyaltyContract::quote()` takes an optional checkout group** — not in the work
    order's signature, and required by the bug described above.
+4. **`loyalty_ledger.source_uuid` is a string, not a `uuid` column.** A reversal keys
+   on `"{group}:{cause}"`, which has to vary per refund so a basket partly cancelled
+   and later partly returned credits twice rather than once — and that is not a uuid.
+   PostgreSQL refused it with `SQLSTATE[22P02]` while the entire SQLite suite stayed
+   green. Fourth time this platform has shipped that shape of bug (ADR-059,
+   `PublicKey`); `tests/Integration/LoyaltyLedgerOnPostgresTest.php` is what stops a
+   fifth.
 
 **Phase 1 status (unchanged):** ADR-081–084. Earning, the append-only
 ledger, the admin rates screen and the customer read API are live; the storefront
