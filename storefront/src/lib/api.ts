@@ -367,21 +367,47 @@ export async function getEarnPreview(
 }
 
 /**
- * A public POST (the batch price + ratings reads). Never cached — it takes a body.
+ * These public batch reads are POST (they carry a list of ids), and they run BOTH
+ * server-side (the listings' `ProductGrid`) and client-side (the homepage carousels).
  *
- * `credentials: 'omit'` is load-bearing: these reads need no session, and they run
- * BOTH server-side (listings) and client-side (the homepage carousels). Same-origin,
- * a browser fetch sends the session cookie by default — which makes Laravel treat the
- * POST as stateful and demand a CSRF token the public read never has, answering 419.
- * Omitting credentials keeps the request stateless so CSRF is skipped in both places.
+ * The client-side case needs CSRF. Sanctum decides a request is "stateful" from its
+ * Origin/Referer, NOT its cookie — so a same-origin browser POST to `/api/v1/*` gets
+ * the `web` group and CSRF protection, and answers **419** without a token (this is
+ * why omitting credentials did nothing: the Origin still matched). SSR has no Origin,
+ * so it stays stateless and needs none. So: in the browser, prime the XSRF-TOKEN
+ * cookie and echo it back in the header, exactly as the session API does.
  */
+let csrfPrimed: Promise<unknown> | undefined;
+function ensurePublicCsrf(): Promise<unknown> {
+  csrfPrimed ??= fetch('/sanctum/csrf-cookie', { credentials: 'include' }).catch(() => {});
+  return csrfPrimed;
+}
+function xsrfCookie(): string | undefined {
+  return document.cookie
+    .split('; ')
+    .find((row) => row.startsWith('XSRF-TOKEN='))
+    ?.split('=')[1];
+}
+
 async function publicPost<T>(path: string, body: unknown): Promise<T> {
+  const inBrowser = typeof window !== 'undefined';
+  const headers: Record<string, string> = { Accept: 'application/json', 'Content-Type': 'application/json' };
+  let credentials: RequestCredentials = 'omit';
+
+  if (inBrowser) {
+    await ensurePublicCsrf();
+    const token = xsrfCookie();
+    // Laravel url-decodes this itself; the cookie arrives percent-encoded.
+    if (token !== undefined) headers['X-XSRF-TOKEN'] = decodeURIComponent(token);
+    credentials = 'include';
+  }
+
   const response = await fetch(apiUrl(path), {
     method: 'POST',
-    headers: { Accept: 'application/json', 'Content-Type': 'application/json' },
+    headers,
     body: JSON.stringify(body),
     cache: 'no-store',
-    credentials: 'omit',
+    credentials,
   });
 
   if (!response.ok) {
