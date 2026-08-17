@@ -38,11 +38,11 @@ export const promoBlocks: Record<string, PromoBlock> = {
   },
   'besin-takviyeleri': {
     triple: [
-      { image: '/banner/cocuk-gunes-urunleri.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk Güneş kremlerinde fırsat' },
-      { image: '/banner/bronzluk-urunleri.webp', href: '/saglikli-bronzlasma', alt: 'Sağlıklı Bronzlaşma ürünleri' },
-      { image: '/banner/after-sun-urunleri.webp', href: '/gunes-sonrasi-kremleri', alt: 'After Sun Fırsatı' },
+      { image: '/banner/omega3.webp', href: '/omega-yag-asitleri', alt: 'Omega 3 çeşitleri ile sağlığınız için doğru tercih' },
+      { image: '/banner/d3k2.webp', href: '/d3-k2-vitamini', alt: 'D3K2 vitamin fırsatları' },
+      { image: '/banner/magnezyum-vitamin.webp', href: '/magnezyum-mineralleri', alt: 'Magnezyum malat, sitrat, bisglisinat ve Taurant ürünleri' },
     ],
-    wide: { image: '/banner/renkli-gunes.webp', href: '/renkli-tinted-gunes-urunleri', alt: 'Renkli Güneş ürünleri kampanyası' },
+    wide: { image: '/banner/besin-takviyeleri.webp', href: '/besin-takviyeleri', alt: 'Takviye Edici Gıda Markaları ve yorumları' },
   },
   'cilt-bakimi': {
     triple: [
