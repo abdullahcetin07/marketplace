@@ -1,5 +1,6 @@
 import type { MetadataRoute } from 'next';
 import { browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
+import { contentPages } from '@/lib/pages';
 import { absoluteUrl } from '@/lib/site';
 
 /**
@@ -43,6 +44,12 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: absoluteUrl('/'), changeFrequency: 'daily', priority: 1 },
     { url: absoluteUrl('/urunler'), changeFrequency: 'daily', priority: 0.8 },
+    // The footer's content pages (Hakkımızda, SSS, KVKK…) — stable, low churn.
+    ...Object.keys(contentPages).map((slug) => ({
+      url: absoluteUrl(`/sayfa/${slug}`),
+      changeFrequency: 'monthly' as const,
+      priority: 0.3,
+    })),
   ];
 
   const slugs = [...flattenCategories(tree), ...brands.map((brand) => brand.slug), ...productSlugs];

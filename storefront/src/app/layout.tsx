@@ -43,9 +43,33 @@ export const metadata: Metadata = {
 };
 
 const footerCols = [
-  { h: 'Kurumsal', items: ['Hakkımızda', 'Satıcı Ol', 'Kariyer', 'İletişim'] },
-  { h: 'Yardım', items: ['Sipariş Takibi', 'İade & Değişim', 'Kargo', 'Sıkça Sorulanlar'] },
-  { h: 'Güven', items: ['Gizlilik', 'KVKK', 'Kullanım Şartları', 'Güvenli Alışveriş'] },
+  {
+    h: 'Kurumsal',
+    items: [
+      { label: 'Hakkımızda', href: '/sayfa/hakkimizda' },
+      { label: 'Satıcı Ol', href: '/sayfa/satici-ol' },
+      { label: 'Kariyer', href: '/sayfa/kariyer' },
+      { label: 'İletişim', href: '/sayfa/iletisim' },
+    ],
+  },
+  {
+    h: 'Yardım',
+    items: [
+      { label: 'Sipariş Takibi', href: '/hesap/siparislerim' },
+      { label: 'İade & Değişim', href: '/sayfa/iade-degisim' },
+      { label: 'Kargo', href: '/sayfa/kargo' },
+      { label: 'Sıkça Sorulanlar', href: '/sayfa/sss' },
+    ],
+  },
+  {
+    h: 'Güven',
+    items: [
+      { label: 'Gizlilik', href: '/sayfa/gizlilik' },
+      { label: 'KVKK', href: '/sayfa/kvkk' },
+      { label: 'Kullanım Şartları', href: '/sayfa/kullanim-sartlari' },
+      { label: 'Güvenli Alışveriş', href: '/sayfa/guvenli-alisveris' },
+    ],
+  },
 ];
 
 /**
@@ -127,9 +151,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <div key={col.h}>
                   <h5 className="mb-3 text-[.76rem] font-bold uppercase tracking-wider text-ink-400">{col.h}</h5>
                   <ul className="flex flex-col gap-2.5">
-                    {col.items.map((i) => (
-                      <li key={i}>
-                        <Link href="#" className="text-sm text-ink-500 hover:text-brand-600">{i}</Link>
+                    {col.items.map((item) => (
+                      <li key={item.href}>
+                        <Link href={item.href} className="text-sm text-ink-500 hover:text-brand-600">
+                          {item.label}
+                        </Link>
                       </li>
                     ))}
                   </ul>
