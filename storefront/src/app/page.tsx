@@ -85,10 +85,10 @@ export const dynamic = 'force-dynamic';
 // to earn points, so "puan kazan" is the shelf's headline. (Points are earned for real
 // via the Loyalty module; these cards just advertise it — they are not coupon codes.)
 const coupons = [
-  { amount: '0₺', title: 'Kargo Bedava', note: 'Tüm alışverişlerde' },
-  { amount: 'PUAN', title: 'Üye Ol Kazan', note: 'Hoş geldin puanı' },
-  { amount: 'PUAN', title: 'Yorum Yap Kazan', note: 'Onaylı her yorumda' },
-  { amount: 'PUAN', title: 'Aldıkça Kazan', note: 'Her alışverişte' },
+  { amount: '0₺', title: 'Kargo Bedava', note: 'Tüm alışverişlerde', href: '/urunler' },
+  { amount: 'PUAN', title: 'Üye Ol Kazan', note: 'Hoş geldin puanı', href: '/kayit' },
+  { amount: 'PUAN', title: 'Yorum Yap Kazan', note: 'Onaylı her yorumda', href: '/hesap/siparislerim' },
+  { amount: 'PUAN', title: 'Aldıkça Kazan', note: 'Her alışverişte', href: '/hesap/puanlarim' },
 ];
 
 /**
@@ -180,16 +180,17 @@ export default async function HomePage() {
       {/* coupons */}
       <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
         {coupons.map((c) => (
-          <div
+          <Link
             key={c.title}
-            className="flex items-center gap-3.5 rounded-2xl border border-dashed border-ink-300 bg-white p-4 dark:border-ink-700 dark:bg-ink-900"
+            href={c.href}
+            className="flex items-center gap-3.5 rounded-2xl border border-dashed border-ink-300 bg-white p-4 transition hover:border-brand-400 hover:shadow-sm dark:border-ink-700 dark:bg-ink-900"
           >
             <div className="whitespace-nowrap text-2xl font-extrabold tracking-tight text-brand-600">{c.amount}</div>
             <div className="border-l border-dashed border-ink-300 pl-3.5 dark:border-ink-700">
               <div className="text-sm font-bold">{c.title}</div>
               <div className="text-xs text-ink-500">{c.note}</div>
             </div>
-          </div>
+          </Link>
         ))}
       </div>
 
