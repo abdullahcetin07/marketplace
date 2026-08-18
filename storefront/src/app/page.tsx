@@ -80,14 +80,15 @@ const CATEGORY_STRIPS: { title: string; slug: string }[] = [
  */
 export const dynamic = 'force-dynamic';
 
-// Promotional coupons are static — they are merchandising, not live data — so they
-// live here rather than behind a fetch. The brand shortcuts, by contrast, are the real
-// brand list, fetched below and linked by slug; categories live in the menu bar above.
+// The perks row is static merchandising, not live data — it lives here rather than
+// behind a fetch. It leads with the loyalty programme: three of the four cards are ways
+// to earn points, so "puan kazan" is the shelf's headline. (Points are earned for real
+// via the Loyalty module; these cards just advertise it — they are not coupon codes.)
 const coupons = [
-  { amount: '50₺', title: '500 TL üzeri', note: 'Kod: SAGLIK50' },
-  { amount: '%15', title: 'Dermokozmetik', note: 'Sepette otomatik' },
-  { amount: '0₺', title: 'Kargo bedava', note: '200 TL üzeri' },
-  { amount: '%10', title: 'İlk siparişe', note: 'Kod: MERHABA' },
+  { amount: '0₺', title: 'Kargo Bedava', note: 'Tüm alışverişlerde' },
+  { amount: 'PUAN', title: 'Üye Ol Kazan', note: 'Hoş geldin puanı' },
+  { amount: 'PUAN', title: 'Yorum Yap Kazan', note: 'Onaylı her yorumda' },
+  { amount: 'PUAN', title: 'Aldıkça Kazan', note: 'Her alışverişte' },
 ];
 
 /**
