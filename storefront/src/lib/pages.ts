@@ -226,8 +226,7 @@ export const contentPages: Record<string, ContentPage> = {
     title: 'Ön Bilgilendirme Koşulları',
     description: 'Raftabul Ön Bilgilendirme Koşulları — Mesafeli Sözleşmeler Yönetmeliği kapsamında alıcıya sunulan asgari bilgiler.',
     body: [
-      { note: 'TASLAK — hukuki tavsiye değildir. Bu metin, Mesafeli Sözleşmeler Yönetmeliği’nin gerektirdiği başlıkları kapsayacak şekilde Raftabul’un işleyişine uyarlanmış bir başlangıç metnidir. Yayına almadan önce bir hukuk danışmanına inceletin. Köşeli parantezli alanları ([Şirket Unvanı], [MERSIS] vb.) ve siparişe özel bilgileri (satıcı, ürün, tutar, adres) kendi bilgilerinizle doldurun.' },
-
+     
       { h: '1. Taraflar ve Konu' },
       { p: 'İşbu Ön Bilgilendirme Formu’nun konusu, alıcı (bundan sonra “Alıcı”) ile ürünü satışa sunan satıcı (bundan sonra “Satıcı”) arasında kurulacak Mesafeli Satış Sözleşmesi öncesinde, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca Alıcı’nın bilgilendirilmesidir.' },
       { p: 'Raftabul, satışın tarafı değildir; Satıcı ile Alıcı arasında sözleşme kurulmasına aracılık eden elektronik ticaret aracı hizmet sağlayıcısıdır. Sözleşme, Alıcı ile ilgili Satıcı arasında kurulur.' },
@@ -238,7 +237,7 @@ export const contentPages: Record<string, ContentPage> = {
         ul: [
           'Alıcı: Bir ürün veya hizmeti ticari ya da mesleki olmayan amaçlarla edinen gerçek kişi.',
           'Satıcı: Ürün/hizmeti Platform üzerinden satışa sunan gerçek veya tüzel kişi (üçüncü taraf satıcı).',
-          'Aracı Hizmet Sağlayıcı / Platform işleticisi: Raftabul’u işleten [Şirket Unvanı].',
+          'Aracı Hizmet Sağlayıcı / Platform işleticisi: Raftabul’u işleten AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI.',
           'Platform: raftabul.com internet sitesi ve varsa mobil uygulaması.',
           'Kanun: 6502 sayılı Tüketicinin Korunması Hakkında Kanun.',
           'Yönetmelik: Mesafeli Sözleşmeler Yönetmeliği.',
@@ -246,7 +245,7 @@ export const contentPages: Record<string, ContentPage> = {
       },
 
       { h: '3. Satıcı ve Aracı Hizmet Sağlayıcı Bilgileri' },
-      { p: 'Aracı Hizmet Sağlayıcı: [Şirket Unvanı] — Adres: [Adres] — MERSIS: [MERSIS No] — Vergi No/Dairesi: [VKN / Vergi Dairesi] — Telefon: [Telefon] — E-posta: [E-posta].' },
+      { p: 'Aracı Hizmet Sağlayıcı: AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI — Adres: BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA — MERSIS: 0069110568500001 — Vergi No/Dairesi: 0691105685 / Antalya Kurumlar — Telefon: 08504553366 — E-posta: destek@raftabul.com' },
       { p: 'Satıcı bilgileri (ticaret unvanı, adres, MERSIS/vergi no, iletişim) her siparişe özel olarak, ilgili siparişin ön bilgilendirme/özet ekranında ve Sipariş Detayı sayfasında gösterilir.' },
 
       { h: '4. Ürün/Hizmet ve Ödeme Bilgileri' },
@@ -276,7 +275,7 @@ export const contentPages: Record<string, ContentPage> = {
       { p: 'Kişisel verileriniz, 6698 sayılı KVKK ve ilgili mevzuata uygun olarak işlenir. Ayrıntılar için KVKK Aydınlatma Metni ve Gizlilik Politikası sayfalarını inceleyebilirsiniz.' },
 
       { h: '9. Şikâyet ve Uyuşmazlıkların Çözümü' },
-      { p: 'Talep, şikâyet ve önerilerinizi [E-posta] adresi üzerinden iletebilirsiniz. Uyuşmazlıklarda, Ticaret Bakanlığı’nca ilan edilen parasal sınırlar çerçevesinde Alıcı’nın yerleşim yerindeki Tüketici Hakem Heyetleri ile Tüketici Mahkemeleri yetkilidir.' },
+      { p: 'Talep, şikâyet ve önerilerinizi destek@raftabul.com adresi üzerinden iletebilirsiniz. Uyuşmazlıklarda, Ticaret Bakanlığı’nca ilan edilen parasal sınırlar çerçevesinde Alıcı’nın yerleşim yerindeki Tüketici Hakem Heyetleri ile Tüketici Mahkemeleri yetkilidir.' },
     ],
   },
 
@@ -284,17 +283,16 @@ export const contentPages: Record<string, ContentPage> = {
     title: 'Mesafeli Satış Sözleşmesi',
     description: 'Raftabul Mesafeli Satış Sözleşmesi — alıcı ile satıcı arasında elektronik ortamda kurulan sözleşme.',
     body: [
-      { note: 'TASLAK — hukuki tavsiye değildir. Bu metin, Mesafeli Sözleşmeler Yönetmeliği’nin gerektirdiği başlıkları kapsayacak şekilde Raftabul’un işleyişine uyarlanmış bir başlangıç metnidir. Yayına almadan önce bir hukuk danışmanına inceletin. Sözleşme her siparişte, o siparişin tarafları, ürünü, tutarı ve adresiyle doldurularak kurulur; köşeli parantezli alanları kendi bilgilerinizle güncelleyin.' },
-
+     
       { h: '1. Taraflar' },
-      { p: 'İşbu Sözleşme; ürünü satışa sunan Satıcı ile ürünü satın alan Alıcı arasında, aşağıda ve ilgili sipariş özetinde belirtilen bilgiler çerçevesinde elektronik ortamda kurulmuştur. Raftabul’u işleten [Şirket Unvanı], sözleşmenin tarafı olmayıp yalnızca aracı hizmet sağlayıcısıdır.' },
+      { p: 'İşbu Sözleşme; ürünü satışa sunan Satıcı ile ürünü satın alan Alıcı arasında, aşağıda ve ilgili sipariş özetinde belirtilen bilgiler çerçevesinde elektronik ortamda kurulmuştur. Raftabul’u işleten AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI, sözleşmenin tarafı olmayıp yalnızca aracı hizmet sağlayıcısıdır.' },
 
       { h: '2. Tanımlar' },
       {
         ul: [
           'Alıcı: Ürünü ticari/mesleki olmayan amaçla satın alan gerçek kişi.',
           'Satıcı: Ürünü Platform üzerinden satışa sunan üçüncü taraf satıcı.',
-          'Platform / Aracı Hizmet Sağlayıcı: raftabul.com’u işleten [Şirket Unvanı].',
+          'Platform / Aracı Hizmet Sağlayıcı: raftabul.com’u işleten AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI.',
           'Kanun: 6502 sayılı Kanun; Yönetmelik: Mesafeli Sözleşmeler Yönetmeliği.',
         ],
       },
@@ -325,7 +323,7 @@ export const contentPages: Record<string, ContentPage> = {
       { p: 'Alıcı, aynı sepette birden fazla satıcıdan alışveriş yapabilir; her satıcı için ayrı fatura düzenlenebilir ve teslimatlar yasal süre içinde farklı zamanlarda gerçekleşebilir. Kurumsal fatura talep edilmesi hâlinde, girilen vergi bilgilerinin doğruluğu Alıcı’nın sorumluluğundadır.' },
 
       { h: '9. Kişisel Verilerin Korunması ve Fikri Haklar' },
-      { p: 'Kişisel veriler 6698 sayılı KVKK’ya uygun olarak işlenir (bkz. KVKK Aydınlatma Metni ve Gizlilik Politikası). Platform’a ait her türlü içerik ve hakkın kullanımı [Şirket Unvanı]’na aittir.' },
+      { p: 'Kişisel veriler 6698 sayılı KVKK’ya uygun olarak işlenir (bkz. KVKK Aydınlatma Metni ve Gizlilik Politikası). Platform’a ait her türlü içerik ve hakkın kullanımı AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI’na aittir.' },
 
       { h: '10. Cayma Hakkı' },
       { p: 'Alıcı, ürünü teslim aldığı günden itibaren 14 gün içinde gerekçe göstermeksizin ve cezai şart ödemeksizin cayma hakkına sahiptir. Cayma talebi “Siparişlerim” üzerinden oluşturulur; Satıcı’nın onayı ve iade koduyla ürün kargoya verilir. Ürün Satıcı’ya ulaşıp uygunluğu onaylandığında tahsil edilen tutar 14 gün içinde iade edilir; puanla ödenen kısım puan olarak geri yüklenir.' },
