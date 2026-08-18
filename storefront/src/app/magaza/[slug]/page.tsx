@@ -165,19 +165,20 @@ function StoreProductCard({ product }: { product: StoreProduct }) {
       href={href}
       className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:border-brand-300 hover:shadow-sm dark:border-ink-800 dark:bg-ink-900"
     >
-      <div className="relative aspect-square overflow-hidden bg-white dark:bg-ink-50">
-        {product.image ? (
-          // eslint-disable-next-line @next/next/no-img-element
+      {/* Only render the image frame once the payload carries an image — before the
+          backend supplies it, an all-"görsel yok" grid looks worse than the compact
+          text card, so the box appears with the data rather than ahead of it. */}
+      {product.image && (
+        <div className="relative aspect-square overflow-hidden bg-white dark:bg-ink-50">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={product.image}
             alt={product.title}
             className="h-full w-full object-contain mix-blend-multiply transition group-hover:scale-[1.04]"
             loading="lazy"
           />
-        ) : (
-          <div className="flex h-full items-center justify-center text-sm text-ink-400">görsel yok</div>
-        )}
-      </div>
+        </div>
+      )}
 
       <div className="flex flex-1 flex-col p-3.5">
         {product.brand !== null && (
