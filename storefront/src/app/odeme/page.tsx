@@ -54,6 +54,10 @@ export default function CheckoutPage() {
   const [usePoints, setUsePoints] = useState(false);
   const [pointsBusy, setPointsBusy] = useState(false);
   const [pointsUnavailable, setPointsUnavailable] = useState(false);
+
+  /** Mandatory pre-sale consent (mesafeli satış): the order can't be placed until the
+   *  customer confirms they've read the two agreements. */
+  const [agreed, setAgreed] = useState(false);
   /** Set when `checkout` succeeded — the handle `place`/`pay` need, kept across a retry. */
   const [pendingGroup, setPendingGroup] = useState<string | null>(null);
   /** Set once PayTR hands us a token — the page swaps to the payment iframe. */
@@ -370,10 +374,47 @@ export default function CheckoutPage() {
             </p>
           )}
 
+          {/* Mesafeli satış onayı — zorunlu. Sözleşmeler yeni sekmede açılır, checkout
+              hâli kaybolmaz. */}
+          <label className="flex items-start gap-2.5 text-[.82rem] leading-relaxed text-ink-600 dark:text-ink-300">
+            <input
+              type="checkbox"
+              checked={agreed}
+              onChange={(event) => setAgreed(event.target.checked)}
+              className="mt-0.5 accent-brand-500"
+            />
+            <span>
+              <Link
+                href="/sayfa/on-bilgilendirme"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-600 hover:underline"
+              >
+                Ön Bilgilendirme Koşulları
+              </Link>
+              ’nı ve{' '}
+              <Link
+                href="/sayfa/mesafeli-satis-sozlesmesi"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="font-bold text-brand-600 hover:underline"
+              >
+                Mesafeli Satış Sözleşmesi
+              </Link>
+              ’ni okudum, onaylıyorum.
+            </span>
+          </label>
+
           <button
             type="button"
             onClick={() => void submit()}
-            disabled={busy || shippingId === '' || (!sameAsShipping && billingId === '') || cart.has_unavailable_items}
+            disabled={
+              busy ||
+              !agreed ||
+              shippingId === '' ||
+              (!sameAsShipping && billingId === '') ||
+              cart.has_unavailable_items
+            }
             className={`${ui.btnPrimary} w-full`}
           >
             {busy ? 'Hazırlanıyor…' : pendingGroup !== null ? 'Ödemeyi tekrar dene' : 'Ödemeye geç'}

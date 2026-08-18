@@ -221,6 +221,42 @@ export const contentPages: Record<string, ContentPage> = {
       { p: '[Buraya resmi metin gelecek.]' },
     ],
   },
+
+  'on-bilgilendirme': {
+    title: 'Ön Bilgilendirme Koşulları',
+    description: 'Raftabul Ön Bilgilendirme Koşulları (Ön Bilgilendirme Formu).',
+    body: [
+      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Mesafeli Sözleşmeler Yönetmeliği kapsamındaki Ön Bilgilendirme Formu metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin. Sipariş özeti (ürün, fiyat, satıcı, teslimat) çoğunlukla siparişe özel üretilir.' },
+      { h: 'Satıcı bilgileri' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Ürün, toplam fiyat ve ödeme' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Teslimat ve kargo' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Cayma hakkı ve iade koşulları' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Şikâyet ve uyuşmazlık çözümü' },
+      { p: '[Buraya resmi metin gelecek.]' },
+    ],
+  },
+
+  'mesafeli-satis-sozlesmesi': {
+    title: 'Mesafeli Satış Sözleşmesi',
+    description: 'Raftabul Mesafeli Satış Sözleşmesi.',
+    body: [
+      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Mesafeli Satış Sözleşmesi metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin. Sözleşme genellikle her siparişe özel (taraflar, ürün, tutar, adres) üretilir; bu sayfa genel şablon içindir.' },
+      { h: 'Taraflar' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Sözleşmenin konusu' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Ürün, ödeme ve teslimat' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Cayma hakkı' },
+      { p: '[Buraya resmi metin gelecek.]' },
+      { h: 'Yürürlük ve uyuşmazlık' },
+      { p: '[Buraya resmi metin gelecek.]' },
+    ],
+  },
 };
 
 export function getContentPage(slug: string): ContentPage | undefined {
