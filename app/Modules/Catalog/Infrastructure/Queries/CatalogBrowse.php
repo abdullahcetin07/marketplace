@@ -155,7 +155,7 @@ final class CatalogBrowse implements CatalogBrowseContract
     /**
      * @param array<int, string> $productUuids
      *
-     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
+     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string, image: string|null, slug: string}>
      */
     public function productSummaries(array $productUuids): array
     {
@@ -173,13 +173,29 @@ final class CatalogBrowse implements CatalogBrowseContract
         foreach (Product::query()
             ->whereIn('uuid', $uuids)
             ->where('status', ProductStatus::Published->value)
-            ->with(['brand', 'category'])
+            /*
+            | `media` IS EAGER-LOADED, NOT REACHED PER ROW. Strict mode throws on a
+            | lazy load, and a store page is exactly the shape that would trip it:
+            | one product per card, every card asking for its own picture.
+            */
+            ->with(['brand', 'category', 'media'])
             ->get() as $product) {
             $summaries[$product->uuid] = [
                 'uuid' => $product->uuid,
                 'title' => $product->localized('title'),
                 'brand' => $product->brand?->name,
                 'category' => $product->category->localized('name'),
+                /*
+                | THE SAME CONVERSION THE LISTING CARD USES — `preview` (~620px),
+                | not `thumb`: a store card renders near 200px and an upscaled
+                | 119px thumbnail is visibly blurry. Null when nobody uploaded
+                | anything, so the caller draws its placeholder rather than a
+                | broken image.
+                */
+                'image' => $product->imageUrl('preview'),
+                // The canonical slug (ADR-059), so a card links to `/{slug}`
+                // rather than to a uuid that 301s to it.
+                'slug' => $product->slug,
             ];
         }
 

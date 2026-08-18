@@ -9,6 +9,8 @@ use App\Modules\Offer\Domain\Models\Offer;
 use App\Modules\Offer\Presentation\Storefront\OfferStorefrontContributor;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
+use Illuminate\Http\UploadedFile;
+use Illuminate\Support\Facades\Storage;
 
 /*
 |--------------------------------------------------------------------------
@@ -144,4 +146,52 @@ it('excludes paused and out-of-stock listings from the storefront', function ():
 
     expect($section['total'])->toBe(1)
         ->and(array_column($section['items'], 'id'))->toBe([$fixture['offer']->uuid]);
+});
+
+it('gives each store card a picture and a canonical link', function (): void {
+    $fixture = storeWithListing();
+
+    Storage::fake(config('marketplace.media.public_disk'));
+
+    app(App\Modules\Catalog\Application\Actions\AttachProductMediaAction::class)
+        ->run($fixture['product'], [UploadedFile::fake()->image('urun.jpg', 1600, 1600)]);
+
+    $items = app(OfferStorefrontContributor::class)
+        ->contribute(contextFor($fixture['store']))['items'];
+
+    /*
+     * **BOTH ARE CATALOG'S FACTS, ARRIVING WITH THE TITLE.** Without them a store
+     * card can only draw a placeholder and link through a uuid that 301s to the
+     * slug — working, and two things a shopper notices.
+     */
+    expect($items[0]['image'])->toBeString()
+        ->and($items[0]['image'])->toContain('preview')
+        // The canonical slug (ADR-059) — what `/{slug}` resolves without a hop.
+        ->and($items[0]['slug'])->toBe($fixture['product']->slug);
+});
+
+it('says null rather than inventing an image for a product without one', function (): void {
+    $fixture = storeWithListing();
+
+    $items = app(OfferStorefrontContributor::class)
+        ->contribute(contextFor($fixture['store']))['items'];
+
+    /*
+     * NULL IS THE ANSWER THE STOREFRONT IS BUILT FOR: it draws its own placeholder.
+     * An empty string or a made-up path would render as a broken image instead.
+     */
+    expect($items[0]['image'])->toBeNull()
+        ->and($items[0]['slug'])->toBe($fixture['product']->slug);
+});
+
+it('carries the fields all the way to the store page', function (): void {
+    $fixture = storeWithListing();
+
+    $item = $this->getJson('/api/v1/magaza/'.$fixture['store']->slug)
+        ->assertOk()
+        ->json('data.extensions.products.items.0');
+
+    // The composed read (ADR-036) is what the storefront actually calls.
+    expect($item)->toHaveKeys(['image', 'slug'])
+        ->and($item['slug'])->toBe($fixture['product']->slug);
 });

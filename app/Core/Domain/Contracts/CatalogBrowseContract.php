@@ -97,7 +97,15 @@ interface CatalogBrowseContract
      *
      * @param array<int, string> $productUuids
      *
-     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string}>
+     * **`image` AND `slug` RIDE ALONG BECAUSE THE CALLER ALREADY HAS THE ROW**
+     * (ADR-036/046). A store page renders a card per offer: it needs a picture and
+     * a link as much as it needs a title, and fetching those separately would be a
+     * second query for facts already in hand. `image` is null when the product has
+     * no media — the caller renders its placeholder — and `slug` is the canonical
+     * one (ADR-059), so a card links straight to `/{slug}` instead of bouncing
+     * through a uuid that 301s.
+     *
+     * @return array<string, array{uuid: string, title: string, brand: string|null, category: string, image: string|null, slug: string}>
      */
     public function productSummaries(array $productUuids): array;
 

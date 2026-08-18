@@ -101,6 +101,14 @@ final class OfferStorefrontContributor implements StorefrontContributorContract
                 'variant_id' => $offer['variant_uuid'],
                 'title' => $summary['title'],
                 'brand' => $summary['brand'],
+                /*
+                | THE PICTURE AND THE LINK, both Catalog's facts and both arriving
+                | in the summary the title already came from (ADR-036/046). Without
+                | them a store card could only draw a placeholder and link through
+                | a uuid that 301s — working, and two things a shopper notices.
+                */
+                'image' => $summary['image'],
+                'slug' => $summary['slug'],
                 'price' => MoneyString::from((int) $offer['price_minor'], $decimals),
                 'list_price' => $offer['list_price_minor'] === null
                     ? null
