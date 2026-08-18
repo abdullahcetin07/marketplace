@@ -224,37 +224,123 @@ export const contentPages: Record<string, ContentPage> = {
 
   'on-bilgilendirme': {
     title: 'Ön Bilgilendirme Koşulları',
-    description: 'Raftabul Ön Bilgilendirme Koşulları (Ön Bilgilendirme Formu).',
+    description: 'Raftabul Ön Bilgilendirme Koşulları — Mesafeli Sözleşmeler Yönetmeliği kapsamında alıcıya sunulan asgari bilgiler.',
     body: [
-      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Mesafeli Sözleşmeler Yönetmeliği kapsamındaki Ön Bilgilendirme Formu metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin. Sipariş özeti (ürün, fiyat, satıcı, teslimat) çoğunlukla siparişe özel üretilir.' },
-      { h: 'Satıcı bilgileri' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Ürün, toplam fiyat ve ödeme' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Teslimat ve kargo' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Cayma hakkı ve iade koşulları' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Şikâyet ve uyuşmazlık çözümü' },
-      { p: '[Buraya resmi metin gelecek.]' },
+      { note: 'TASLAK — hukuki tavsiye değildir. Bu metin, Mesafeli Sözleşmeler Yönetmeliği’nin gerektirdiği başlıkları kapsayacak şekilde Raftabul’un işleyişine uyarlanmış bir başlangıç metnidir. Yayına almadan önce bir hukuk danışmanına inceletin. Köşeli parantezli alanları ([Şirket Unvanı], [MERSIS] vb.) ve siparişe özel bilgileri (satıcı, ürün, tutar, adres) kendi bilgilerinizle doldurun.' },
+
+      { h: '1. Taraflar ve Konu' },
+      { p: 'İşbu Ön Bilgilendirme Formu’nun konusu, alıcı (bundan sonra “Alıcı”) ile ürünü satışa sunan satıcı (bundan sonra “Satıcı”) arasında kurulacak Mesafeli Satış Sözleşmesi öncesinde, 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve Mesafeli Sözleşmeler Yönetmeliği uyarınca Alıcı’nın bilgilendirilmesidir.' },
+      { p: 'Raftabul, satışın tarafı değildir; Satıcı ile Alıcı arasında sözleşme kurulmasına aracılık eden elektronik ticaret aracı hizmet sağlayıcısıdır. Sözleşme, Alıcı ile ilgili Satıcı arasında kurulur.' },
+      { p: 'Alıcı, bu forma ve sözleşmeye ilişkin bilgilere üyeliğine bağlı “Hesabım / Siparişlerim” sayfasından erişebilir; talep etmesi hâlinde bu belgeler e-posta ile de iletilebilir.' },
+
+      { h: '2. Tanımlar' },
+      {
+        ul: [
+          'Alıcı: Bir ürün veya hizmeti ticari ya da mesleki olmayan amaçlarla edinen gerçek kişi.',
+          'Satıcı: Ürün/hizmeti Platform üzerinden satışa sunan gerçek veya tüzel kişi (üçüncü taraf satıcı).',
+          'Aracı Hizmet Sağlayıcı / Platform işleticisi: Raftabul’u işleten [Şirket Unvanı].',
+          'Platform: raftabul.com internet sitesi ve varsa mobil uygulaması.',
+          'Kanun: 6502 sayılı Tüketicinin Korunması Hakkında Kanun.',
+          'Yönetmelik: Mesafeli Sözleşmeler Yönetmeliği.',
+        ],
+      },
+
+      { h: '3. Satıcı ve Aracı Hizmet Sağlayıcı Bilgileri' },
+      { p: 'Aracı Hizmet Sağlayıcı: [Şirket Unvanı] — Adres: [Adres] — MERSIS: [MERSIS No] — Vergi No/Dairesi: [VKN / Vergi Dairesi] — Telefon: [Telefon] — E-posta: [E-posta].' },
+      { p: 'Satıcı bilgileri (ticaret unvanı, adres, MERSIS/vergi no, iletişim) her siparişe özel olarak, ilgili siparişin ön bilgilendirme/özet ekranında ve Sipariş Detayı sayfasında gösterilir.' },
+
+      { h: '4. Ürün/Hizmet ve Ödeme Bilgileri' },
+      { p: 'Ürünün temel özellikleri (tür, adet, marka/model, fiyat) ürün sayfasında yer alır. Vergiler dâhil satış fiyatı, varsa indirimler ve ödenecek toplam tutar sipariş özetinde açıkça gösterilir.' },
+      { p: 'Ödeme, güvenli ödeme altyapısı (PayTR) üzerinden banka/kredi kartı ile alınır. Kart bilgileri Raftabul’a iletilmez ve saklanmaz.' },
+      { p: 'v1 kapsamında Raftabul üzerinden yapılan siparişlerde ayrı bir kargo ücreti tahsil edilmez; teslimat koşulları sipariş özetinde belirtilir.' },
+
+      { h: '5. Genel Hükümler' },
+      {
+        ul: [
+          'Ürün, taahhüt edilen süre içinde ve her hâlükârda yasal azami süre olan 30 gün içinde Alıcı’nın bildirdiği adrese kargo ile teslim edilir.',
+          'Sepette birden fazla satıcının ürünü varsa, her satıcı kendi siparişini ayrı hazırlar ve ayrı kargolar; teslim süreleri farklılaşabilir.',
+          'Alıcı teslim sırasında ürünü muayene etmeli; hasarlı, ayıplı veya eksik ürünü teslim almamalıdır. Teslim alınan ürünün sağlam olduğu kabul edilir.',
+          'Herhangi bir nedenle bedelin ödenmemesi/iptali hâlinde Satıcı’nın teslim yükümlülüğü sona erer.',
+        ],
+      },
+
+      { h: '6. Cayma Hakkı' },
+      { p: 'Alıcı, ürünü teslim aldığı günden itibaren 14 gün içinde hiçbir gerekçe göstermeksizin ve cezai şart ödemeksizin sözleşmeden cayma hakkına sahiptir.' },
+      { p: 'Cayma talebi “Siparişlerim” üzerinden oluşturulur; Satıcı’nın onayı ve iade koduyla ürün kargoya verilir. Ürün Satıcı’ya ulaşıp uygunluğu onaylandığında, tahsil edilen tutar Alıcı’nın ödeme yöntemine 14 gün içinde iade edilir. Puanla ödenen tutar, kullanılan puanlar olarak geri yüklenir.' },
+      { p: 'İade edilecek ürün; kutusu, ambalajı ve varsa aksesuarlarıyla, kullanılmamış ve satılabilir durumda gönderilmelidir.' },
+
+      { h: '7. Cayma Hakkının Kullanılamayacağı Haller' },
+      { p: 'Yönetmelik uyarınca, tesliminden sonra ambalaj/bant/mühür gibi koruyucu unsurları açılmış olup iadesi sağlık ve hijyen açısından uygun olmayan ürünler ile Alıcı’nın isteği doğrultusunda hazırlanan, çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünlerde cayma hakkı kullanılamaz. Bu ürünler için Platform üzerinden iade kodu oluşturulamaz.' },
+
+      { h: '8. Kişisel Verilerin Korunması' },
+      { p: 'Kişisel verileriniz, 6698 sayılı KVKK ve ilgili mevzuata uygun olarak işlenir. Ayrıntılar için KVKK Aydınlatma Metni ve Gizlilik Politikası sayfalarını inceleyebilirsiniz.' },
+
+      { h: '9. Şikâyet ve Uyuşmazlıkların Çözümü' },
+      { p: 'Talep, şikâyet ve önerilerinizi [E-posta] adresi üzerinden iletebilirsiniz. Uyuşmazlıklarda, Ticaret Bakanlığı’nca ilan edilen parasal sınırlar çerçevesinde Alıcı’nın yerleşim yerindeki Tüketici Hakem Heyetleri ile Tüketici Mahkemeleri yetkilidir.' },
     ],
   },
 
   'mesafeli-satis-sozlesmesi': {
     title: 'Mesafeli Satış Sözleşmesi',
-    description: 'Raftabul Mesafeli Satış Sözleşmesi.',
+    description: 'Raftabul Mesafeli Satış Sözleşmesi — alıcı ile satıcı arasında elektronik ortamda kurulan sözleşme.',
     body: [
-      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Mesafeli Satış Sözleşmesi metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin. Sözleşme genellikle her siparişe özel (taraflar, ürün, tutar, adres) üretilir; bu sayfa genel şablon içindir.' },
-      { h: 'Taraflar' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Sözleşmenin konusu' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Ürün, ödeme ve teslimat' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Cayma hakkı' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Yürürlük ve uyuşmazlık' },
-      { p: '[Buraya resmi metin gelecek.]' },
+      { note: 'TASLAK — hukuki tavsiye değildir. Bu metin, Mesafeli Sözleşmeler Yönetmeliği’nin gerektirdiği başlıkları kapsayacak şekilde Raftabul’un işleyişine uyarlanmış bir başlangıç metnidir. Yayına almadan önce bir hukuk danışmanına inceletin. Sözleşme her siparişte, o siparişin tarafları, ürünü, tutarı ve adresiyle doldurularak kurulur; köşeli parantezli alanları kendi bilgilerinizle güncelleyin.' },
+
+      { h: '1. Taraflar' },
+      { p: 'İşbu Sözleşme; ürünü satışa sunan Satıcı ile ürünü satın alan Alıcı arasında, aşağıda ve ilgili sipariş özetinde belirtilen bilgiler çerçevesinde elektronik ortamda kurulmuştur. Raftabul’u işleten [Şirket Unvanı], sözleşmenin tarafı olmayıp yalnızca aracı hizmet sağlayıcısıdır.' },
+
+      { h: '2. Tanımlar' },
+      {
+        ul: [
+          'Alıcı: Ürünü ticari/mesleki olmayan amaçla satın alan gerçek kişi.',
+          'Satıcı: Ürünü Platform üzerinden satışa sunan üçüncü taraf satıcı.',
+          'Platform / Aracı Hizmet Sağlayıcı: raftabul.com’u işleten [Şirket Unvanı].',
+          'Kanun: 6502 sayılı Kanun; Yönetmelik: Mesafeli Sözleşmeler Yönetmeliği.',
+        ],
+      },
+
+      { h: '3. Sözleşmenin Konusu ve Kapsamı' },
+      { p: 'Sözleşmenin konusu, Alıcı’nın Platform üzerinden elektronik ortamda siparişini verdiği ürünün satışı ve teslimi ile tarafların hak ve yükümlülüklerinin, Kanun ve Yönetmelik hükümleri uyarınca belirlenmesidir.' },
+
+      { h: '4. Alıcının Önceden Bilgilendirilmesi' },
+      { p: 'Alıcı; ürünün temel nitelikleri, vergiler dâhil toplam fiyatı, ödeme ve teslimat koşulları, cayma hakkı ile bu hakkın kullanım şartları ve şikâyet mercileri hakkında, siparişi tamamlamadan önce Ön Bilgilendirme Koşulları ile bilgilendirildiğini ve bunu teyit ettiğini kabul eder.' },
+
+      { h: '5. Taraf ve Fatura Bilgileri' },
+      { p: 'Alıcı bilgileri (ad, teslimat/fatura adresi, iletişim) ile Satıcı bilgileri (unvan, adres, MERSIS/vergi no, iletişim) ilgili siparişin özet ekranında ve Sipariş Detayı sayfasında gösterilir. Fatura, Satıcı tarafından düzenlenir.' },
+
+      { h: '6. Ürün/Hizmet Bilgileri' },
+      { p: 'Ürünün türü, adedi, satış fiyatı ve varsa indirimleri ile ödenecek toplam tutar sipariş özetinde yer alır. Ödeme, güvenli ödeme altyapısı (PayTR) üzerinden alınır; kart bilgileri Raftabul’a iletilmez.' },
+
+      { h: '7. Genel Hükümler' },
+      {
+        ul: [
+          'Satıcı, ürünü siparişte belirtilen niteliklere uygun, varsa garanti belgesi ve kullanım kılavuzuyla birlikte teslim etmeyi taahhüt eder.',
+          'Ürün, taahhüt edilen sürede ve her hâlükârda 30 günü aşmamak üzere Alıcı’nın adresine teslim edilir; bu süre içinde teslim edilmezse Alıcı sözleşmeyi feshedebilir.',
+          'Çok satıcılı sepette her satıcı kendi siparişini ayrı hazırlar ve kargolar.',
+          'Teslim alınırken ürün muayene edilmeli; hasarlı/ayıplı ürün teslim alınmamalıdır.',
+        ],
+      },
+
+      { h: '8. Özel Şartlar' },
+      { p: 'Alıcı, aynı sepette birden fazla satıcıdan alışveriş yapabilir; her satıcı için ayrı fatura düzenlenebilir ve teslimatlar yasal süre içinde farklı zamanlarda gerçekleşebilir. Kurumsal fatura talep edilmesi hâlinde, girilen vergi bilgilerinin doğruluğu Alıcı’nın sorumluluğundadır.' },
+
+      { h: '9. Kişisel Verilerin Korunması ve Fikri Haklar' },
+      { p: 'Kişisel veriler 6698 sayılı KVKK’ya uygun olarak işlenir (bkz. KVKK Aydınlatma Metni ve Gizlilik Politikası). Platform’a ait her türlü içerik ve hakkın kullanımı [Şirket Unvanı]’na aittir.' },
+
+      { h: '10. Cayma Hakkı' },
+      { p: 'Alıcı, ürünü teslim aldığı günden itibaren 14 gün içinde gerekçe göstermeksizin ve cezai şart ödemeksizin cayma hakkına sahiptir. Cayma talebi “Siparişlerim” üzerinden oluşturulur; Satıcı’nın onayı ve iade koduyla ürün kargoya verilir. Ürün Satıcı’ya ulaşıp uygunluğu onaylandığında tahsil edilen tutar 14 gün içinde iade edilir; puanla ödenen kısım puan olarak geri yüklenir.' },
+
+      { h: '11. Cayma Hakkının Kullanılamayacağı Haller' },
+      { p: 'Ambalajı/mührü açılmış olup iadesi sağlık ve hijyen açısından uygun olmayan ürünler, Alıcı’nın isteğine göre hazırlanan ürünler, çabuk bozulabilen veya son kullanma tarihi geçebilecek ürünler ile Yönetmelik’te sayılan diğer hâllerde cayma hakkı kullanılamaz.' },
+
+      { h: '12. Uyuşmazlıkların Çözümü' },
+      { p: 'Ticaret Bakanlığı’nca ilan edilen parasal sınırlar çerçevesinde, Alıcı’nın yerleşim yerindeki Tüketici Hakem Heyetleri ile Tüketici Mahkemeleri yetkilidir.' },
+
+      { h: '13. Bildirimler ve Delil Sözleşmesi' },
+      { p: 'Taraflar arasındaki bildirimler, sipariş sırasında verilen e-posta ve iletişim bilgileri üzerinden yapılır. Taraflar, Platform kayıtları ile elektronik kayıtların uyuşmazlıklarda geçerli, bağlayıcı ve kesin delil teşkil edeceğini kabul eder.' },
+
+      { h: '14. Yürürlük' },
+      { p: 'Alıcı’nın siparişi onaylaması ile bu Sözleşme, sipariş özetinde belirtilen ürün ve tutarlar üzerinden yürürlüğe girer.' },
     ],
   },
 };
