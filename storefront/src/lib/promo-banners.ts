@@ -46,9 +46,9 @@ export const promoBlocks: Record<string, PromoBlock> = {
   },
   'cilt-bakimi': {
     triple: [
-      { image: '/banner/cocuk-gunes-urunleri.webp', href: '/cocuk-gunes-urunleri', alt: 'Çocuk Güneş kremlerinde fırsat' },
-      { image: '/banner/bronzluk-urunleri.webp', href: '/saglikli-bronzlasma', alt: 'Sağlıklı Bronzlaşma ürünleri' },
-      { image: '/banner/after-sun-urunleri.webp', href: '/gunes-sonrasi-kremleri', alt: 'After Sun Fırsatı' },
+      { image: '/banner/nemlendiriciler.webp', href: '/nemlendiriciler', alt: 'Nemlendiriciler – Yüz ve Vücut İçin Nemlendirici Cilt Bakım Ürünleri' },
+      { image: '/banner/leke-giderici-urunler.jpg', href: '/leke-giderici-urunler', alt: 'Leke Giderici Ürünler – Cilt Lekelerine Karşı Bakım Ürünleri' },
+      { image: '/banner/cilt-temizleme-urunleri.webp', href: '/cilt-temizleme-urunleri', alt: 'Cilt Temizleme Ürünleri – Yüz Temizleme ve Cilt Bakım Ürünleri' },
     ],
     wide: { image: '/banner/renkli-gunes.webp', href: '/renkli-tinted-gunes-urunleri', alt: 'Renkli Güneş ürünleri kampanyası' },
   },
