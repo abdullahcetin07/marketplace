@@ -153,23 +153,41 @@ export default async function StorePage({ params }: Props) {
 }
 
 /**
- * One product on the store page. Links by product uuid: the storefront
- * contributor carries no slug, and `/urun/{id}` 301s to the canonical one.
+ * One product on the store page. Links straight to the canonical `/{slug}` when the
+ * contributor supplies it, and otherwise to `/urun/{uuid}`, which 301s to the same
+ * place. The image degrades to a placeholder when the payload carries none.
  */
 function StoreProductCard({ product }: { product: StoreProduct }) {
+  const href = product.slug ? `/${product.slug}` : `/urun/${product.product_id}`;
+
   return (
     <Link
-      href={`/urun/${product.product_id}`}
-      className="group flex flex-col rounded-2xl border border-ink-100 bg-white p-3.5 transition hover:border-brand-300 hover:shadow-sm dark:border-ink-800 dark:bg-ink-900"
+      href={href}
+      className="group flex flex-col overflow-hidden rounded-2xl border border-ink-100 bg-white transition hover:border-brand-300 hover:shadow-sm dark:border-ink-800 dark:bg-ink-900"
     >
-      {product.brand !== null && (
-        <span className="text-[.72rem] font-extrabold uppercase tracking-wide text-brand-600">{product.brand}</span>
-      )}
-      <span className="mt-0.5 line-clamp-2 min-h-[2.6em] text-[.9rem] font-bold leading-snug group-hover:text-brand-600">
-        {product.title}
-      </span>
+      <div className="relative aspect-square overflow-hidden bg-white dark:bg-ink-50">
+        {product.image ? (
+          // eslint-disable-next-line @next/next/no-img-element
+          <img
+            src={product.image}
+            alt={product.title}
+            className="h-full w-full object-contain mix-blend-multiply transition group-hover:scale-[1.04]"
+            loading="lazy"
+          />
+        ) : (
+          <div className="flex h-full items-center justify-center text-sm text-ink-400">görsel yok</div>
+        )}
+      </div>
 
-      <div className="mt-auto pt-3">
+      <div className="flex flex-1 flex-col p-3.5">
+        {product.brand !== null && (
+          <span className="text-[.72rem] font-extrabold uppercase tracking-wide text-brand-600">{product.brand}</span>
+        )}
+        <span className="mt-0.5 line-clamp-2 min-h-[2.6em] text-[.9rem] font-bold leading-snug group-hover:text-brand-600">
+          {product.title}
+        </span>
+
+        <div className="mt-auto pt-3">
         {product.list_price !== null && (
           <span className="mr-1.5 text-[.78rem] text-ink-400 line-through">
             {formatMoney(product.list_price, product.currency)}
@@ -184,6 +202,7 @@ function StoreProductCard({ product }: { product: StoreProduct }) {
           ) : (
             <span className="text-ink-400">Tükendi</span>
           )}
+        </div>
         </div>
       </div>
     </Link>

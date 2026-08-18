@@ -151,6 +151,11 @@ export type StoreProduct = {
   variant_id: string;
   title: string;
   brand: string | null;
+  /** The product's primary image; null → the card shows a placeholder. */
+  image?: string | null;
+  /** The canonical slug; when present the card links straight to `/{slug}` instead
+   *  of the `/urun/{uuid}` 301 hop. */
+  slug?: string | null;
   price: string;
   list_price: string | null;
   currency: string;
