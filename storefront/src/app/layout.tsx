@@ -90,7 +90,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <SessionProvider>
           <div className="bg-ink-950 text-ink-100">
             <div className="mx-auto flex w-full max-w-page items-center px-4 py-1.5 text-xs">
-              <span>Onaylı satıcılardan orijinal ürün · 200 TL üzeri kargo bedava</span>
+              <span>Onaylı satıcılardan orijinal ürün · Tüm siparişlerde kargo bedava</span>
             </div>
           </div>
 
