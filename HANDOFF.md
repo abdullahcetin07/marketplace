@@ -67,15 +67,29 @@ Full detail: **`BUILD_SECURITY_FIXES.md`**. The storefront XSS finding (JSON-LD
 From the pre-launch SEO audit. The **storefront** SEO fixes are done + deployed
 (product/store/category/brand JSON-LD + metadata, `shippingDetails`, store canonical,
 `Organization` type + breadcrumb, sitemap lastmod). What's left needs the backend or a
-content decision — do when convenient:
-1. **Small:** a public `GET /api/v1/stores` (live-store slugs, ideally `updated_at`) so
-   the sitemap can include `/magaza/*` pages (currently omitted).
-2. **Biggest SEO lever, a data decision:** `Product.description` is **empty across the
-   catalogue** → thin product pages, no meta substance, nothing for AI to cite. Populate
-   from GTIN/brand feed at import, or require it on authoring.
-3. Optional: expose `updated_at` on slug/list reads (real sitemap `lastmod`); seller
-   `aggregateRating` on `store/{slug}`; short editable description fields for
-   category/brand/store hubs.
+content decision. **Owner decisions recorded 2026-08-19:**
+
+1. **✅ DONE — store sitemap endpoint.** Shipped as `GET /api/v1/magazalar` (the
+   `/stores` path was the seller panel's own, behind `auth:sanctum`); 114 live stores +
+   `updated_at`. Desktop wired it into the sitemap (`4231c4c`).
+2. **Product descriptions — APPROVED: option (a), turuncukasa.com enrichment.** The feed
+   has no description column, so all 19,886 products are empty. **The owner CONSENTS to
+   the server fetching turuncukasa.com** (their own site) to source descriptions by GTIN.
+   Plan: check ONE barcode first — if turuncukasa.com carries descriptions for these
+   ~19,800 GTINs, write a **GTIN-matched, idempotent, admin-triggered, queued**
+   enrichment command (the catalog-import pattern) that fills `Product.description`. If
+   the sample shows no usable descriptions there, STOP and report rather than falling
+   back to naive bulk templates (Google penalises the "repeated template, no unique
+   value" pattern — worse than empty).
+3. **All three optionals — APPROVED:**
+   - **#3** expose `updated_at` on the catalogue slug/list reads so the sitemap can carry
+     real `lastmod` on product/category/brand entries (today only static + store pages
+     have it).
+   - **#4** seller **`aggregateRating`** on the `store/{slug}` payload (Reviews rollup by
+     seller, only when `reviewCount > 0`) — desktop then renders seller stars + adds it to
+     the store's `Organization` JSON-LD.
+   - **#5** short **editable description fields** for category / brand / store hubs —
+     desktop renders them as an intro paragraph + into the meta description.
 
 Full detail: **`BUILD_SEO_BACKEND.md`**. The launch-blocking SEO items are **owner/infra**
 (staging `noindex` + DNS cutover so `raftabul.com` serves this app not the WordPress
