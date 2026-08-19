@@ -117,10 +117,14 @@ it('accepts a reversal key that is not a uuid', function (): void {
 
 it('lets one basket be reversed twice under different causes', function (): void {
     /*
-     * **THE REASON THE KEY CARRIES THE CAUSE.** A basket can be partly cancelled
-     * before shipping and partly returned after (ADR-065/073). Keying the reversal
-     * on the group alone would make the second one a duplicate and silently keep
+     * **THE REASON THE KEY IS THE REFUND, NOT THE GROUP OR THE CAUSE.** A basket
+     * can be partly cancelled before shipping and partly returned after
+     * (ADR-065/073) — and it can be returned TWICE, which is what the audit caught:
+     * keying on group+cause made the second return a duplicate and silently kept
      * the customer's points.
+     *
+     * The fractions below are CUMULATIVE and each call credits the delta, so the
+     * two together land on exactly the quarter-then-half of what was spent.
      */
     $customer = (string) Str::uuid();
     $group = (string) Str::uuid();
@@ -139,9 +143,10 @@ it('lets one basket be reversed twice under different causes', function (): void
     app(LoyaltyContract::class)->commit($group);
 
     $cancelled = app(LoyaltyContract::class)->reverse($group, 'cancellation', 0.25, (string) Str::uuid());
+    // Half the basket refunded IN TOTAL — 200 owed, 100 already back, 100 to credit.
     $returned = app(LoyaltyContract::class)->reverse($group, 'return', 0.5, (string) Str::uuid());
 
     expect($cancelled)->toBe(100)
-        ->and($returned)->toBe(200)
-        ->and($ledger->balanceFor($customer))->toBe(1_000 - 400 + 100 + 200);
+        ->and($returned)->toBe(100)
+        ->and($ledger->balanceFor($customer))->toBe(1_000 - 400 + 200);
 });
