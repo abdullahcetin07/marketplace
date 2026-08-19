@@ -575,6 +575,15 @@ export function getStore(slug: string): Promise<StoreDetail | null> {
 }
 
 /**
+ * Every live store's slug + last-modified, for the sitemap. The endpoint is
+ * `/magazalar` (the `/stores` path is the seller panel's own, behind auth); the
+ * public surface is the localised `/magaza/{slug}`. Degrades to [] on error.
+ */
+export async function allStoreSlugs(): Promise<{ slug: string; updated_at: string | null }[]> {
+  return (await publicJson<{ slug: string; updated_at: string | null }[]>('/api/v1/magazalar')) ?? [];
+}
+
+/**
  * Prices for a whole listing in one call.
  *
  * An empty input short-circuits rather than posting an empty list, which the API

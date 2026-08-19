@@ -1,5 +1,5 @@
 import type { MetadataRoute } from 'next';
-import { browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
+import { allStoreSlugs, browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
 import { contentPages } from '@/lib/pages';
 import { absoluteUrl } from '@/lib/site';
 
@@ -35,10 +35,11 @@ async function allProductSlugs(): Promise<string[]> {
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [tree, brands, productSlugs] = await Promise.all([
+  const [tree, brands, productSlugs, stores] = await Promise.all([
     fetchCategoryTree(),
     fetchBrands(),
     allProductSlugs(),
+    allStoreSlugs(),
   ]);
 
   // `lastModified` only on the STATIC entries: these are the pages we can honestly
@@ -67,5 +68,14 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.7,
   }));
 
-  return [...staticPages, ...entries];
+  // Store pages carry a real `updated_at` from the backend, so they get an honest
+  // lastmod (unlike the catalogue entries above).
+  const storeEntries: MetadataRoute.Sitemap = stores.map((store) => ({
+    url: absoluteUrl(`/magaza/${store.slug}`),
+    lastModified: store.updated_at ? new Date(store.updated_at) : undefined,
+    changeFrequency: 'weekly',
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...entries, ...storeEntries];
 }
