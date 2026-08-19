@@ -53,6 +53,41 @@ enum OrganizationRole: string
     }
 
     /**
+     * Whether this role may be GRANTED by somebody holding `$granter`.
+     *
+     * **YOU CANNOT CONFER WHAT YOU DO NOT HOLD** (security audit, 2026-08-18). A
+     * Manager holds `MemberUpdateRole` but not `BankAccountUpdate`; Finance holds
+     * the latter. Without this rule a Manager could hand Finance to a throwaway
+     * invitee — or, before the policy also refused self-targeting, to itself — and
+     * then replace the payout IBAN. Two requests, and the platform's next payout
+     * goes to the attacker.
+     *
+     * The rule is a subset test rather than a list of forbidden pairs, so a
+     * capability added to Finance tomorrow is covered without anybody remembering
+     * to update a table.
+     *
+     * **THE OWNER GRANTS ANYTHING**, holding every capability by definition; and
+     * `Owner` itself is never grantable here — ownership moves only by transfer
+     * (ADR-029), which the action and both requests already refuse.
+     */
+    public function isGrantableBy(self $granter): bool
+    {
+        if ($granter === self::Owner) {
+            return true;
+        }
+
+        $held = $granter->capabilities();
+
+        foreach ($this->capabilities() as $capability) {
+            if (! in_array($capability, $held, true)) {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    /**
      * The capabilities this role grants (§5.1). Owner returns the full set.
      *
      * @return array<int, OrganizationCapability>

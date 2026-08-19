@@ -51,6 +51,21 @@ final class OrganizationMemberPolicy
             return Response::deny(__('errors.forbidden'));
         }
 
+        /*
+        | **NOBODY CHANGES THEIR OWN ROLE** (security audit, 2026-08-18). A Manager
+        | holds `MemberUpdateRole` but not `BankAccountUpdate`; Finance holds the
+        | latter. Self-targeting let a Manager PATCH itself to Finance and then
+        | replace the payout IBAN — a separation of duties defeated in two requests,
+        | ending in the platform wiring that seller's balance to the attacker.
+        |
+        | The Owner is exempt from nothing here because the Owner is refused above
+        | anyway; and an Owner who wants to change their own role has to do it
+        | through someone else, which is the point of the rule.
+        */
+        if ((int) $target->user_id === (int) $user->getKey()) {
+            return Response::deny(__('errors.forbidden'));
+        }
+
         return $this->decide($user, $target, OrganizationCapability::MemberUpdateRole);
     }
 
