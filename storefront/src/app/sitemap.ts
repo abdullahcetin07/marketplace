@@ -41,12 +41,19 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     allProductSlugs(),
   ]);
 
+  // `lastModified` only on the STATIC entries: these are the pages we can honestly
+  // date "now" (they change with each deploy). Product/category/brand entries below
+  // get no lastmod rather than a faked, identical one — a uniform timestamp across
+  // the whole catalogue is worse than none.
+  const now = new Date();
+
   const staticPages: MetadataRoute.Sitemap = [
-    { url: absoluteUrl('/'), changeFrequency: 'daily', priority: 1 },
-    { url: absoluteUrl('/urunler'), changeFrequency: 'daily', priority: 0.8 },
+    { url: absoluteUrl('/'), lastModified: now, changeFrequency: 'daily', priority: 1 },
+    { url: absoluteUrl('/urunler'), lastModified: now, changeFrequency: 'daily', priority: 0.8 },
     // The footer's content pages (Hakkımızda, SSS, KVKK…) — stable, low churn.
     ...Object.keys(contentPages).map((slug) => ({
       url: absoluteUrl(`/sayfa/${slug}`),
+      lastModified: now,
       changeFrequency: 'monthly' as const,
       priority: 0.3,
     })),

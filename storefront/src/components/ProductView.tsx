@@ -75,7 +75,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.title,
-    description: product.description ?? undefined,
+    // A blank editorial description is OMITTED, never emitted as "" — schema.org
+    // treats an empty string as a present-but-empty value.
+    description: product.description?.trim() || undefined,
     image: product.images.length > 0 ? product.images : undefined,
     sku: product.id,
     gtin: product.gtin ?? undefined,
@@ -121,6 +123,19 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
               merchantReturnDays: 14,
               returnMethod: 'https://schema.org/ReturnByMail',
               returnFees: 'https://schema.org/FreeReturn',
+            },
+            // v1 charges NO shipping fee (ADR-063), so the rate is a literal "0" —
+            // declared for the merchant-listing so Google stops flagging shipping as
+            // missing. Handling ≤1 gün, transit 1–3 gün, Türkiye.
+            shippingDetails: {
+              '@type': 'OfferShippingDetails',
+              shippingRate: { '@type': 'MonetaryAmount', value: '0', currency: featured.currency },
+              shippingDestination: { '@type': 'DefinedRegion', addressCountry: 'TR' },
+              deliveryTime: {
+                '@type': 'ShippingDeliveryTime',
+                handlingTime: { '@type': 'QuantitativeValue', minValue: 0, maxValue: 1, unitCode: 'DAY' },
+                transitTime: { '@type': 'QuantitativeValue', minValue: 1, maxValue: 3, unitCode: 'DAY' },
+              },
             },
           },
   };

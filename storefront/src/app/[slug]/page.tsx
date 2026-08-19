@@ -44,9 +44,10 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     // Many catalogue rows carry no editorial description; rather than ship a
     // product page with no meta description at all (Google then invents a snippet
     // from the page chrome), synthesize one from what we always know — title,
-    // brand and the marketplace's standing promises.
+    // brand and the marketplace's standing promises. A blank string counts as
+    // absent (`?? ""` would not fire), so `.trim() || …` falls through to it.
     const description =
-      product.description ??
+      product.description?.trim() ||
       `${product.title}${product.brand ? ` – ${product.brand.name}` : ''}, onaylı satıcılardan orijinal ve en uygun fiyatla Raftabul’da. Güvenli ödeme, hızlı kargo.`;
 
     return {
@@ -65,9 +66,17 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const category = await getCategory(slug);
     const name = category?.name ?? 'Kategori';
 
+    // A specific description reads better in results than boilerplate — name a few
+    // of the category's own sub-categories when it has them, so "Cilt Bakımı"
+    // advertises "temizleyici, nemlendirici, …" rather than a generic line.
+    const childNames = category?.children.slice(0, 4).map((c) => c.name).join(', ');
+    const description = childNames
+      ? `${name} kategorisinde ${childNames} ve daha fazlası — onaylı satıcılardan orijinal ürün, en uygun fiyatlarla Raftabul’da.`
+      : `${name} ürünleri — onaylı satıcılardan orijinal, en uygun fiyatlarla Raftabul’da.`;
+
     return {
-      title: name,
-      description: `${name} kategorisindeki ürünler — en uygun fiyat ve orijinal ürün garantisiyle.`,
+      title: `${name} Ürünleri ve Fiyatları`,
+      description,
       alternates: { canonical },
     };
   }
@@ -76,8 +85,8 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const name = brand?.name ?? 'Marka';
 
   return {
-    title: name,
-    description: `${name} ürünleri — onaylı satıcılardan orijinal, en uygun fiyatla.`,
+    title: `${name} Ürünleri ve Fiyatları`,
+    description: `${name} ürünleri Raftabul’da — onaylı satıcılardan orijinal ${name} ürünlerini en uygun fiyatlarla keşfedin. Güvenli ödeme, hızlı kargo.`,
     alternates: { canonical },
   };
 }

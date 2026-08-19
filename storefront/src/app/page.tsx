@@ -17,7 +17,7 @@ import { SITE_URL } from '@/lib/site';
 // A keyword-rich home title of its own (absolute, so it skips the "%s — Raftabul"
 // template) + a canonical, since this is the site's most-linked page.
 export const metadata: Metadata = {
-  title: { absolute: 'Raftabul — Dermokozmetik, Vitamin & Kişisel Bakım Pazaryeri' },
+  title: { absolute: 'Raftabul — Dermokozmetik & Kişisel Bakım Pazaryeri' },
   description:
     'Onaylı satıcılardan orijinal dermokozmetik, vitamin, cilt bakım ve kişisel bakım ürünleri — en uygun fiyatlarla Raftabul’da. Güvenli ödeme, hızlı kargo.',
   alternates: { canonical: '/' },
@@ -33,8 +33,11 @@ const ORG_SAME_AS: string[] = [];
 const organizationLd = {
   '@context': 'https://schema.org',
   '@type': 'Organization',
+  '@id': `${SITE_URL}/#organization`,
   name: 'Raftabul',
   url: SITE_URL,
+  description:
+    'Onaylı eczane ve mağazaların orijinal sağlık, dermokozmetik, vitamin ve kişisel bakım ürünlerini buluşturan pazaryeri.',
   // The brand's only image asset today. Swap for a dedicated square logo (on white,
   // ≥112px) when there is one — Google can surface it beside the brand in results.
   logo: `${SITE_URL}/og-default.jpg`,

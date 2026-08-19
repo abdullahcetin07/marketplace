@@ -87,10 +87,15 @@ export function ProductGallery({
           {/* The frame follows the IMAGE's own aspect (capped), not a forced square,
               so a portrait or landscape product photo fills naturally instead of
               being letterboxed into a box that isn't its shape. */}
+          {/* The main stage is usually the page's LCP element — hint the browser to
+              fetch it first and eagerly, so the hero image is not deprioritised
+              behind later, lazier assets. (Thumbnails below stay lazy.) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[active]}
             alt={alt}
+            fetchPriority="high"
+            loading="eager"
             className="max-h-[560px] max-w-full object-contain"
           />
 

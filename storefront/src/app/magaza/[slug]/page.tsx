@@ -31,15 +31,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
   if (store === null) return { title: 'Mağaza bulunamadı' };
 
+  // The canonical is ALWAYS built from our own production origin — the backend's
+  // `seo.canonical_url` echoes whatever host served it (the test host), so trusting
+  // it would canonicalise live pages to staging. `absoluteUrl` uses SITE_URL.
+  const ogImage = store.branding.logo ?? store.branding.banner ?? absoluteUrl('/og-default.jpg');
+
   return {
     title: store.seo.meta_title ?? store.name,
     description: store.seo.meta_description ?? `${store.name} — onaylı satıcının tüm ürünleri.`,
-    alternates: { canonical: store.seo.canonical_url ?? absoluteUrl(`/magaza/${store.slug}`) },
+    alternates: { canonical: absoluteUrl(`/magaza/${store.slug}`) },
     robots: store.seo.robots ?? 'index,follow',
     openGraph: {
       title: store.name,
       type: 'website',
-      images: store.branding.logo ? [store.branding.logo] : undefined,
+      images: [ogImage],
     },
   };
 }
@@ -55,19 +60,44 @@ export default async function StorePage({ params }: Props) {
   const contactEmail = store.contact.email;
   const contactPhone = store.contact.phone;
 
+  const storeUrl = absoluteUrl(`/magaza/${store.slug}`);
+  const storeDescription = `${store.name} — onaylı satıcının tüm ürünleri.`;
+
+  // Organization, NOT Store/LocalBusiness — a marketplace seller has no storefront
+  // address, so the physical-place types would be wrong. `@id` anchors the entity
+  // so other nodes can reference it.
   const storeLd = {
     '@context': 'https://schema.org',
-    '@type': 'Store',
+    '@type': 'Organization',
+    '@id': `${storeUrl}#organization`,
     name: store.name,
-    url: absoluteUrl(`/magaza/${store.slug}`),
+    url: storeUrl,
+    description: storeDescription,
+    logo: store.branding.logo ?? undefined,
     image: store.branding.logo ?? undefined,
     email: contactEmail ?? undefined,
     telephone: contactPhone ?? undefined,
   };
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { name: 'Ana Sayfa', url: absoluteUrl('/') },
+      { name: store.name, url: storeUrl },
+    ].map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, item: item.url })),
+  };
+
   return (
     <div className="flex flex-col gap-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(storeLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
+
+      <nav aria-label="Sayfa yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
+        <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>
+        <span className="px-1">/</span>
+        <span className="font-semibold text-ink-700 dark:text-ink-200">{store.name}</span>
+      </nav>
 
       {/* Hero — banner with the logo and identity laid over it. */}
       <header className="overflow-hidden rounded-2xl border border-ink-100 bg-white dark:border-ink-800 dark:bg-ink-900">

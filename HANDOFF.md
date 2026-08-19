@@ -46,6 +46,27 @@ The storefront XSS finding (JSON-LD `</script>` breakout) is **already fixed** (
 
 ---
 
+### `BUILD_SEO_BACKEND.md` — SEO backend items (post-launch, NOT launch-blocking)
+
+From the pre-launch SEO audit. The **storefront** SEO fixes are done + deployed
+(product/store/category/brand JSON-LD + metadata, `shippingDetails`, store canonical,
+`Organization` type + breadcrumb, sitemap lastmod). What's left needs the backend or a
+content decision — do when convenient:
+1. **Small:** a public `GET /api/v1/stores` (live-store slugs, ideally `updated_at`) so
+   the sitemap can include `/magaza/*` pages (currently omitted).
+2. **Biggest SEO lever, a data decision:** `Product.description` is **empty across the
+   catalogue** → thin product pages, no meta substance, nothing for AI to cite. Populate
+   from GTIN/brand feed at import, or require it on authoring.
+3. Optional: expose `updated_at` on slug/list reads (real sitemap `lastmod`); seller
+   `aggregateRating` on `store/{slug}`; short editable description fields for
+   category/brand/store hubs.
+
+Full detail: **`BUILD_SEO_BACKEND.md`**. The launch-blocking SEO items are **owner/infra**
+(staging `noindex` + DNS cutover so `raftabul.com` serves this app not the WordPress
+placeholder; Cloudflare AI-bot policy) — not code.
+
+---
+
 ### `BUILD_LOYALTY_P2.md` — redemption at checkout — **CODE DONE, AWAITING SANDBOX BROWSER VERIFICATION**
 
 All of P2 is built, tested and deployed (2026-08-17). `make check` green; 1,670+
