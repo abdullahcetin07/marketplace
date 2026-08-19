@@ -58,4 +58,34 @@ final class ReviewQuery implements ReviewQueryContract
 
         return is_string($uuid) ? $uuid : null;
     }
+
+    /**
+     * @return array{rating: float, count: int}|null
+     */
+    public function sellerRatingFor(string $sellingOrgUuid): ?array
+    {
+        $row = DB::table('reviews')
+            ->where('selling_org_uuid', $sellingOrgUuid)
+            ->where('status', ReviewStatus::Published->value)
+            ->selectRaw('count(*) as total, avg(rating) as average')
+            ->first();
+
+        $count = (int) ($row->total ?? 0);
+
+        if ($count === 0) {
+            // Nothing to show. The caller renders no stars and emits no
+            // `aggregateRating` rather than a fabricated zero.
+            return null;
+        }
+
+        return [
+            /*
+            | ONE DECIMAL, WHICH IS ALL A STAR ROW CAN SHOW. Rounding here rather
+            | than in the caller keeps the number in the payload identical to the
+            | number in the JSON-LD — two roundings are two ratings.
+            */
+            'rating' => round((float) ($row->average ?? 0), 1),
+            'count' => $count,
+        ];
+    }
 }

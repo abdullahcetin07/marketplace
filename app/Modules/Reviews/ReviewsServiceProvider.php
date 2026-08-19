@@ -5,11 +5,13 @@ declare(strict_types=1);
 namespace App\Modules\Reviews;
 
 use App\Core\Domain\Contracts\ReviewQueryContract;
+use App\Core\Support\StorefrontRegistry;
 use App\Modules\Reviews\Domain\Contracts\ReviewRepositoryContract;
 use App\Modules\Reviews\Domain\Models\Review;
 use App\Modules\Reviews\Infrastructure\Queries\ReviewQuery;
 use App\Modules\Reviews\Infrastructure\Repositories\ReviewRepository;
 use App\Modules\Reviews\Presentation\Policies\ReviewPolicy;
+use App\Modules\Reviews\Presentation\Storefront\ReviewsStorefrontContributor;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Gate;
@@ -60,6 +62,13 @@ final class ReviewsServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+        | THE SHOP'S RATING, ON ITS OWN PAGE (SEO audit #4). Store composes and
+        | other modules contribute (ADR-036) — Store is frozen and does not grow a
+        | read into Reviews' table; Reviews hands it over at the seam instead.
+        */
+        StorefrontRegistry::register(ReviewsStorefrontContributor::class);
+
         $this->loadMigrationsFrom(database_path('Modules/Reviews/migrations'));
 
         Gate::policy(Review::class, ReviewPolicy::class);

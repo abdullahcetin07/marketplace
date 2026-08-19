@@ -48,4 +48,25 @@ interface ReviewQueryContract
      * treats that as "no grant" rather than an error.
      */
     public function authorCustomerUuidFor(string $reviewUuid): ?string;
+
+    /**
+     * A shop's rating, rolled up from the reviews its buyers left (SEO audit #4).
+     *
+     * **REVIEWS ARE ABOUT THE PRODUCT, BUT THEY CARRY THE SELLER THEY WERE BOUGHT
+     * FROM** (ADR-066) — a tag copied from the delivered order line, never chosen
+     * by the buyer. That tag is what makes a shop-level rollup honest: it is the
+     * same reviews, grouped by who sold the thing, not a separate opinion nobody
+     * was asked for.
+     *
+     * **PUBLISHED ONLY** (ADR-068), like every other count on this port: a pending
+     * review is one nobody has read and a rejected one the platform refused.
+     *
+     * **NULL WHEN THERE ARE NO REVIEWS, NEVER A ZERO.** The caller renders stars
+     * and emits `aggregateRating` in JSON-LD; a shop with nothing to show must
+     * render nothing, because "0.0 out of 5" is a claim, and structured data that
+     * invents a rating is the kind of thing search engines penalise.
+     *
+     * @return array{rating: float, count: int}|null
+     */
+    public function sellerRatingFor(string $sellingOrgUuid): ?array;
 }
