@@ -72,24 +72,23 @@ content decision. **Owner decisions recorded 2026-08-19:**
 1. **✅ DONE — store sitemap endpoint.** Shipped as `GET /api/v1/magazalar` (the
    `/stores` path was the seller panel's own, behind `auth:sanctum`); 114 live stores +
    `updated_at`. Desktop wired it into the sitemap (`4231c4c`).
-2. **Product descriptions — APPROVED: option (a), turuncukasa.com enrichment.** The feed
-   has no description column, so all 19,886 products are empty. **The owner CONSENTS to
-   the server fetching turuncukasa.com** (their own site) to source descriptions by GTIN.
-   Plan: check ONE barcode first — if turuncukasa.com carries descriptions for these
-   ~19,800 GTINs, write a **GTIN-matched, idempotent, admin-triggered, queued**
-   enrichment command (the catalog-import pattern) that fills `Product.description`. If
-   the sample shows no usable descriptions there, STOP and report rather than falling
-   back to naive bulk templates (Google penalises the "repeated template, no unique
-   value" pattern — worse than empty).
-3. **All three optionals — APPROVED:**
-   - **#3** expose `updated_at` on the catalogue slug/list reads so the sitemap can carry
-     real `lastmod` on product/category/brand entries (today only static + store pages
-     have it).
-   - **#4** seller **`aggregateRating`** on the `store/{slug}` payload (Reviews rollup by
-     seller, only when `reviewCount > 0`) — desktop then renders seller stars + adds it to
-     the store's `Organization` JSON-LD.
-   - **#5** short **editable description fields** for category / brand / store hubs —
-     desktop renders them as an intro paragraph + into the meta description.
+2. **Product descriptions — DEFERRED (owner, 2026-08-19). Do NOT run the turuncukasa
+   enrichment now.** The whole content-writing effort is on hold and will be revisited
+   later. When it resumes, the settled approach is **generate ORIGINAL descriptions, do
+   NOT copy**: source facts from turuncukasa.com/manufacturer by GTIN as INPUT, then write
+   fresh unique Turkish copy per product (LLM synthesis, one description per GTIN, strict
+   NO-medical-claims guardrail for YMYL), not verbatim text and not naive bulk templates.
+   The generation-mechanism decision (backend LLM integration vs phased top-sellers-first)
+   is still open — don't start until the owner picks it up again.
+3. **Optionals:**
+   - **#3 — APPROVED.** Expose `updated_at` on the catalogue slug/list reads so the sitemap
+     can carry real `lastmod` on product/category/brand entries (today only static + store
+     pages have it).
+   - **#4 — APPROVED.** Seller **`aggregateRating`** on the `store/{slug}` payload (Reviews
+     rollup by seller, only when `reviewCount > 0`) — desktop then renders seller stars +
+     adds it to the store's `Organization` JSON-LD.
+   - **#5 — DEFERRED** (it's part of the deferred content effort): the category/brand/store
+     description *fields* wait until the owner resumes content work.
 
 Full detail: **`BUILD_SEO_BACKEND.md`**. The launch-blocking SEO items are **owner/infra**
 (staging `noindex` + DNS cutover so `raftabul.com` serves this app not the WordPress
