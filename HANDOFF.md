@@ -42,14 +42,15 @@ pending.
    every effect (no payment, no hold, no ledger row, order not paid), not just the
    status code.
 
-**⚠️ One control the audit assumed exists, does not — your call, not shipped.**
-`UpsertBankAccountAction` clears `verified_at` when the IBAN changes, but **nothing
-in the payout path reads it** and **nothing re-verifies one**. So today an IBAN
-change is visible (and now announced) but does not block the next payout. Making it
-block is the right anti-fraud control and a one-line guard in `CreatePayoutAction`
-— but with no re-verify lever it would strand every seller who corrects a typo
-until an admin re-approves their whole organization. Say the word and I will build
-the guard plus an admin "verify IBAN" action together.
+**#5 (payout-blocking guard when the IBAN changes un-reverified) — DEFERRED by the owner
+(2026-08-19). Do NOT build it now.** `UpsertBankAccountAction` clears `verified_at` on an
+IBAN change and now emits `OrganizationBankAccountChanged`, but nothing blocks the next
+payout — accepted: #3 already closes the Manager→Finance chain, payouts are
+manual/admin-reviewed, and the change is audited/evented. Revisit post-launch if wanted
+(a one-line guard in `CreatePayoutAction` + an admin "verify IBAN" action).
+
+Full detail: **`BUILD_SECURITY_FIXES.md`**. The storefront XSS finding (JSON-LD
+`</script>` breakout) is already fixed (`60887c2`).
 
 **OWNER `.env` checklist (production server — verify before go-live):**
 - `APP_DEBUG=false`, `APP_ENV=production` (the `.env.example` template ships `true`).
