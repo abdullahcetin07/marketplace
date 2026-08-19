@@ -33,6 +33,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property string $name
  * @property string $slug
  * @property bool $is_active
+ * @property \Illuminate\Support\Carbon $updated_at
  *
  * @see docs/modules/Catalog.md §2.2
  */

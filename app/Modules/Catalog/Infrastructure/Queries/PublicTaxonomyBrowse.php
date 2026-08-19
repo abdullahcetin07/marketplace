@@ -140,6 +140,7 @@ final class PublicTaxonomyBrowse
                 'slug' => $brand->slug,
                 'logo_url' => $brand->imageUrl('thumb'),
                 'product_count' => $counts[(int) $brand->getKey()] ?? 0,
+                'updated_at' => $brand->updated_at->toIso8601String(),
             ])
             ->values()
             ->all();
@@ -171,6 +172,7 @@ final class PublicTaxonomyBrowse
             'slug' => $brand->slug,
             'logo_url' => $brand->imageUrl('preview'),
             'product_count' => $counts[(int) $brand->getKey()] ?? 0,
+            'updated_at' => $brand->updated_at->toIso8601String(),
         ];
     }
 
@@ -199,6 +201,13 @@ final class PublicTaxonomyBrowse
                     ? null
                     : ($uuidById[(int) $category->parent_id] ?? null),
                 'product_count' => $counts[(int) $category->getKey()] ?? 0,
+                /*
+                | **FOR THE SITEMAP'S `lastmod`** (SEO audit #3). Uniform "now" on
+                | every URL is worse than none — it tells a crawler the whole
+                | catalogue changed at once, every crawl — so each entity dates
+                | itself or goes undated.
+                */
+                'updated_at' => $category->updated_at->toIso8601String(),
                 'children' => $this->branch($byParent, (int) $category->getKey(), $counts, $uuidById),
             ];
         }

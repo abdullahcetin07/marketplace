@@ -40,6 +40,12 @@ final class PublicBrandResource extends JsonResource
             // than a broken image.
             'logo' => $this->brand['logo_url'],
             'product_count' => $this->brand['product_count'],
+            /*
+            | NULL-TOLERANT because two producers build this shape — the list and
+            | the single-brand read. A missing key here used to be a 500 on a page
+            | that has nothing to do with sitemaps.
+            */
+            'updated_at' => $this->brand['updated_at'] ?? null,
         ];
     }
 }

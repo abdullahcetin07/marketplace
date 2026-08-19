@@ -56,6 +56,7 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
  * @property bool $accepts_products
  * @property bool $created_by_import
  * @property int $position
+ * @property \Illuminate\Support\Carbon $updated_at
  * @property-read Category|null $parent
  * @property-read Collection<int, Category> $children
  * @property-read Collection<int, Attribute> $attributes

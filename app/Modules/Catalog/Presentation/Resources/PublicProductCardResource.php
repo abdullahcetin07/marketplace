@@ -49,6 +49,9 @@ final class PublicProductCardResource extends JsonResource
         return [
             'id' => $this->card['uuid'],
             'slug' => $this->card['slug'],
+            // The sitemap's `lastmod` (SEO audit #3) — see the browse query for why
+            // it does not move when the price does.
+            'updated_at' => $this->card['updated_at'] ?? null,
             'title' => $this->card['title'],
             // Null when the seller uploaded nothing: a client renders a
             // placeholder rather than a broken image.

@@ -500,6 +500,17 @@ final class PublicProductBrowse
                 'uuid' => $product->brand->uuid,
                 'name' => $product->brand->name,
             ],
+            /*
+            | **FOR THE SITEMAP'S `lastmod`** (SEO audit #3), and it is the PRODUCT's
+            | own timestamp — when the catalogue entry changed.
+            |
+            | **IT DOES NOT MOVE WHEN THE PRICE DOES.** Price and stock live on the
+            | Offer (ADR-042), so a re-priced product carries the same date. That is
+            | the honest signal rather than the flattering one: dating a page "today"
+            | because somebody changed a number on a different table is how a
+            | sitemap stops being believed.
+            */
+            'updated_at' => $product->updated_at->toIso8601String(),
         ];
     }
 

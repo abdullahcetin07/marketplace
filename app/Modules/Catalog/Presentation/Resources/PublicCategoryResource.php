@@ -43,6 +43,7 @@ final class PublicCategoryResource extends JsonResource
             'name' => $this->node['name'],
             'slug' => $this->node['slug'],
             'product_count' => $this->node['product_count'],
+            'updated_at' => $this->node['updated_at'] ?? null,
         ];
 
         // The keys below exist on one shape or the other, never both. Emitting a

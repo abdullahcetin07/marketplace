@@ -77,6 +77,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property Carbon|null $submitted_at
  * @property Carbon|null $moderated_at
  * @property Carbon|null $published_at
+ * @property \Illuminate\Support\Carbon $updated_at
  * @property-read Category $category
  * @property-read Brand|null $brand
  * @property-read TaxRate|null $taxRate
