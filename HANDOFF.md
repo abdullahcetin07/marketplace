@@ -14,6 +14,28 @@ pending.
 
 ## ▶ ACTIVE work order
 
+### `BUILD_GO_LIVE.md` — production cutover runbook 🚀 (ordered; owner-gated)
+
+The owner is ready to launch. This is a **sequential runbook YOU (server session)
+execute** — it touches real money (live PayTR), a destructive data reset, and prod
+nginx/DNS. **Two 🛑 STOP gates need the owner's explicit "go" in chat**: (1) PayTR LIVE +
+one real payment/refund, (2) `marketplace:reset-commerce` on the prod DB. Do NOT run
+either without that go.
+
+Owner decisions baked in: **Option B** (deploy to a NEW prod dir alongside; delete nothing
+until verified) · **prod DB = a COPY of the current DB** (keeps catalogue/stores/sellers/
+offers) then `marketplace:reset-commerce` to purge test orders/payments/points · **`/test/`
+stays as staging** (own DB, `noindex`, PayTR sandbox) · **old WP retired** (backed up, then
+removed only after prod is stable).
+
+Full ordered checklist (backups → prod DB copy → deploy app+storefront → queue+scheduler →
+PayTR live → nginx+TLS → staging noindex → reset-commerce → smoke test → rollback plan →
+remove WP): **`BUILD_GO_LIVE.md`**. Folds in the `.env` prod checklist and the SEO
+staging-noindex/sitemap-host items. Desktop side is ready (canonicals target
+`raftabul.com`, sitemap has catalogue+stores, SEO metadata done).
+
+---
+
 ### `BUILD_SECURITY_FIXES.md` — **ALL FOUR DONE** (2026-08-19) 🔒
 
 `make check` green, 1,696 tests. Commits: `4d4328e` + `b0fa372` (#1), `5ad0bf5`
