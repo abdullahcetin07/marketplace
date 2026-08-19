@@ -11,6 +11,7 @@ import { RecentlyViewed } from '@/components/RecentlyViewed';
 import { RecommendedForYou } from '@/components/RecommendedForYou';
 import { campaigns } from '@/lib/campaigns';
 import { promoBlocks } from '@/lib/promo-banners';
+import { jsonLd } from '@/lib/jsonld';
 import { SITE_URL } from '@/lib/site';
 
 // A keyword-rich home title of its own (absolute, so it skips the "%s — Raftabul"
@@ -117,8 +118,8 @@ export default async function HomePage() {
 
   return (
     <div className="flex flex-col gap-9">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(organizationLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(websiteLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(organizationLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(websiteLd) }} />
 
       {/* The page's ONE h1. The hero is a campaign slider (or the fallback panel
           below) — neither is a reliable, stable heading for the crawler, so the

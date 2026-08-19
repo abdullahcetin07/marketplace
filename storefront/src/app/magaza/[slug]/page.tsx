@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { getStore, type StoreProduct } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
+import { jsonLd } from '@/lib/jsonld';
 import { absoluteUrl } from '@/lib/site';
 
 /**
@@ -66,7 +67,7 @@ export default async function StorePage({ params }: Props) {
 
   return (
     <div className="flex flex-col gap-6">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(storeLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(storeLd) }} />
 
       {/* Hero — banner with the logo and identity laid over it. */}
       <header className="overflow-hidden rounded-2xl border border-ink-100 bg-white dark:border-ink-800 dark:bg-ink-900">

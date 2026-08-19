@@ -4,6 +4,7 @@ import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
 import { browseProducts, getCategory, type ProductSort } from '@/lib/api';
+import { jsonLd } from '@/lib/jsonld';
 import { absoluteUrl } from '@/lib/site';
 
 /**
@@ -79,9 +80,9 @@ export async function CategoryView({
 
   return (
     <div className="flex flex-col gap-6">
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
       {itemListLd !== null && (
-        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(itemListLd) }} />
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(itemListLd) }} />
       )}
 
       <nav aria-label="Kategori yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">

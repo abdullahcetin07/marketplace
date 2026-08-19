@@ -14,6 +14,7 @@ import { TrackRecentView } from '@/components/TrackRecentView';
 import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
+import { jsonLd } from '@/lib/jsonld';
 
 /**
  * The product page body (§2.2) — the composed read at its clearest, now addressed
@@ -140,8 +141,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
             : null,
         }}
       />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbLd) }} />
-      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(productLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productLd) }} />
 
       <nav aria-label="Kategori yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
         <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>
