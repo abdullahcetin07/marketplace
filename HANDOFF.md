@@ -16,6 +16,12 @@ pending.
 
 ### `BUILD_GO_LIVE.md` — production cutover runbook 🚀 (ordered; owner-gated)
 
+**▶ CLEARED TO START (2026-08-19):** owner has pointed DNS (`raftabul.com` + `www`) at
+this server and has the PayTR **live** credentials ready. Begin the prep steps (0–4) now;
+the owner puts the PayTR live creds into the prod `.env` on the server directly (not via
+chat) and is standing by to say "go" at the two 🛑 gates. SEO #3/#4 are wired on the
+storefront, so the desktop side is fully ready.
+
 The owner is ready to launch. This is a **sequential runbook YOU (server session)
 execute** — it touches real money (live PayTR), a destructive data reset, and prod
 nginx/DNS. **Two 🛑 STOP gates need the owner's explicit "go" in chat**: (1) PayTR LIVE +
