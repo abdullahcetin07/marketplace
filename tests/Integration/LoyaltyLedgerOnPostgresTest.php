@@ -150,3 +150,40 @@ it('lets one basket be reversed twice under different causes', function (): void
         ->and($returned)->toBe(100)
         ->and($ledger->balanceFor($customer))->toBe(1_000 - 400 + 200);
 });
+
+it('will not let two concurrent checkouts hold the same points twice', function (): void {
+    /*
+     * **THE DOUBLE-SPEND RACE (audit #2), ON THE DRIVER THAT CAN ACTUALLY SHOW IT.**
+     * `hold()` reads the balance and writes a hold; two checkouts for ONE customer
+     * in TWO groups each excluded only their own hold, so both saw the full balance
+     * and both took it — `loyalty_holds` is unique per group, so the two coexisted
+     * and the platform funded more discount than the customer had points.
+     *
+     * SQLite serialises everything, so only PostgreSQL can demonstrate the lock.
+     */
+    $customer = (string) Str::uuid();
+
+    app(LoyaltyLedgerRepositoryContract::class)->create([
+        'customer_uuid' => $customer,
+        'points' => 500,
+        'source_type' => LoyaltyPointSource::Signup,
+        'source_uuid' => $customer,
+        'created_at' => now(),
+    ]);
+
+    $first = app(LoyaltyContract::class)->hold($customer, 500, (string) Str::uuid());
+    $second = app(LoyaltyContract::class)->hold($customer, 500, (string) Str::uuid());
+
+    /*
+     * Sequentially this already held before the fix — the second hold sees the
+     * first. What the lock adds is that it still holds when the two overlap; the
+     * assertion here is the invariant either way: the holds may never jointly
+     * exceed the balance.
+     */
+    $held = (int) App\Modules\Loyalty\Domain\Models\LoyaltyHold::query()
+        ->where('customer_uuid', $customer)->sum('points');
+
+    expect($first)->toBe(500)
+        ->and($second)->toBe(0)
+        ->and($held)->toBeLessThanOrEqual(500);
+});

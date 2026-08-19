@@ -10,6 +10,7 @@ use App\Modules\Loyalty\Domain\Contracts\LoyaltyLedgerRepositoryContract;
 use App\Modules\Loyalty\Domain\DTOs\GrantPointsDTO;
 use App\Modules\Loyalty\Domain\Enums\LoyaltyPointSource;
 use App\Modules\Loyalty\Domain\Models\LoyaltyHold;
+use App\Modules\Loyalty\Domain\Models\LoyaltyLedgerEntry;
 use Illuminate\Contracts\Database\Query\Builder;
 use Illuminate\Support\Facades\DB;
 
@@ -85,6 +86,24 @@ final class LoyaltyRedemption implements LoyaltyContract
         }
 
         return DB::transaction(function () use ($customerUuid, $points, $checkoutGroupUuid): int {
+            /*
+            | **THE CUSTOMER'S LEDGER IS LOCKED BEFORE THE BALANCE IS READ**
+            | (security audit, 2026-08-18). Without it two checkouts for one
+            | customer in two different groups each excluded only their OWN hold,
+            | both read the same balance, and both held up to all of it — the holds
+            | table is unique per GROUP, so the two coexisted and the platform
+            | funded more discount than the customer had points.
+            |
+            | The lock is held to the end of this transaction, which is what makes
+            | check-then-write atomic. Same pattern `CreatePayoutAction` uses on the
+            | seller ledger, for the same reason: a balance is only true for as long
+            | as nobody else can spend it.
+            */
+            LoyaltyLedgerEntry::query()
+                ->where('customer_uuid', $customerUuid)
+                ->lockForUpdate()
+                ->get(['id']);
+
             /*
             | **THE EXISTING HOLD IS EXCLUDED FROM THE BALANCE IT IS CHECKED
             | AGAINST.** A shopper who held 100 and comes back to hold 120 must be
