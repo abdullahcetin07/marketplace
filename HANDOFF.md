@@ -14,27 +14,42 @@ pending.
 
 ## ▶ ACTIVE work order
 
-### `BUILD_SECURITY_FIXES.md` — PRE-LAUNCH security fixes (do first) 🔒
+### `BUILD_SECURITY_FIXES.md` — **ALL FOUR DONE** (2026-08-19) 🔒
 
-A pre-launch security audit (2026-08-18) cleared the platform on almost everything —
-PayTR callback hash auth, amount tampering, IDOR surface, guard isolation, mass
-assignment, rate limiting, secrets, injection, CORS/session config are all SOUND. It
-found **four backend issues; three gate launch** (money integrity / money redirection):
+`make check` green, 1,696 tests. Commits: `4d4328e` + `b0fa372` (#1), `5ad0bf5`
+(#2), `802f094` (#3), `82069ca` (#4). Deployed.
 
-1. **HIGH-ish** — Loyalty points **mis-refunded across two partial returns** of one
-   order (reversal key `"{group}:{cause}"` collides → 2nd reversal dropped → customer
-   shorted points). Fix = incremental delta keyed per `PaymentRefund` uuid.
-2. **MEDIUM** — Points **double-spend race**: `hold()` reads the balance without
-   `lockForUpdate` → two concurrent checkouts for one customer over-hold. Fix = lock the
-   ledger rows like `CreatePayoutAction` already does.
-3. **MEDIUM** — A seller-org **Manager** (has `MemberUpdateRole`, not `BankAccountUpdate`)
-   can self-promote to **Finance** and change the **payout IBAN** → money redirection.
-   Fix = subset-of-own-capabilities rule + no self-role-change + IBAN-change re-verify.
-4. **LOW** — `pay` runs side effects before the ownership check.
+1. **Points mis-refunded across partial refunds — fixed.** The port now takes the
+   CUMULATIVE share refunded so far and credits the DELTA against what the basket
+   has already had back, keyed on the individual `PaymentRefund` uuid. Keying per
+   refund alone would have been the mirror bug (1.5× over-credit at the platform's
+   expense), so both directions are asserted: halves, thirds with the rounding
+   remainder, and a retried event crediting once. Needed a `group_uuid` column on
+   the ledger to hold the running total — **migrated, with a backfill**, so a refund
+   of an order paid before today measures against real history.
+   **→ This is the one for the desktop to re-verify on the sandbox.**
+2. **Double-spend race — fixed.** `hold()` takes `lockForUpdate()` on the customer's
+   ledger before reading the balance, the pattern `CreatePayoutAction` already uses.
+   Test lives in the pgsql integration file, since SQLite serialises everything and
+   cannot show a lock.
+3. **Manager → Finance → IBAN — closed.** Nobody changes their own role, and a role
+   is grantable only when its capabilities are a SUBSET of the granter's — enforced
+   on both the role change and the invite, since closing one alone only adds a step.
+   A Manager can still grant Editor. IBAN changes now emit
+   `OrganizationBankAccountChanged` with the destination masked to the last four.
+4. **`pay` ownership check — moved first.** The group's customer is read through the
+   Core port and compared before `initiate->run()`; the test asserts the absence of
+   every effect (no payment, no hold, no ledger row, order not paid), not just the
+   status code.
 
-Full detail (files, line numbers, exploit, fix, tests): **`BUILD_SECURITY_FIXES.md`**.
-The storefront XSS finding (JSON-LD `</script>` breakout) is **already fixed** (commit
-`60887c2`). Reply here when done; the desktop session re-verifies #1 live on the sandbox.
+**⚠️ One control the audit assumed exists, does not — your call, not shipped.**
+`UpsertBankAccountAction` clears `verified_at` when the IBAN changes, but **nothing
+in the payout path reads it** and **nothing re-verifies one**. So today an IBAN
+change is visible (and now announced) but does not block the next payout. Making it
+block is the right anti-fraud control and a one-line guard in `CreatePayoutAction`
+— but with no re-verify lever it would strand every seller who corrects a typo
+until an admin re-approves their whole organization. Say the word and I will build
+the guard plus an admin "verify IBAN" action together.
 
 **OWNER `.env` checklist (production server — verify before go-live):**
 - `APP_DEBUG=false`, `APP_ENV=production` (the `.env.example` template ships `true`).
