@@ -275,3 +275,31 @@ it('tells the storefront it is paid, rather than leaving it to infer', function 
         ->and($response->json('data.points_spent'))->toBeInt()
         ->and($response->json('data.currency'))->toBe('TRY');
 });
+
+it('refuses another customer’s checkout before anything happens to it', function (): void {
+    $checkout = pointsOnlyCheckout();
+
+    /** @var App\Models\Customer $stranger */
+    $stranger = App\Models\Customer::factory()->create();
+
+    LoyaltyLedgerEntry::factory()->create([
+        'customer_uuid' => $checkout['customerUuid'],
+        'points' => (int) ceil($checkout['totalMinor'] / 5) + 100,
+    ]);
+
+    $this->actingAs($stranger, 'customer')
+        ->postJson('/api/v1/checkout/'.$checkout['group'].'/pay', ['points' => 999_999])
+        ->assertNotFound();
+
+    /*
+     * **NOTHING HAPPENED, WHICH IS THE POINT** (security audit #4). The check used
+     * to run after the action: by then the victim's points were held, and on the
+     * points-only path spent, their stock committed and their order marked paid —
+     * none of which a later throw undoes.
+     */
+    expect(App\Modules\Payment\Domain\Models\Payment::query()->count())->toBe(0)
+        ->and(App\Modules\Loyalty\Domain\Models\LoyaltyHold::query()->count())->toBe(0)
+        ->and(LoyaltyLedgerEntry::query()->where('source_type', 'redemption')->count())->toBe(0)
+        ->and(Order::query()->where('checkout_group_uuid', $checkout['group'])->first()->status)
+        ->not->toBe(OrderStatus::Paid);
+});

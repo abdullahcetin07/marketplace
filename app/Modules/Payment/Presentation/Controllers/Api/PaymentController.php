@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Payment\Presentation\Controllers\Api;
 
+use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Core\Presentation\Controllers\BaseController;
 use App\Modules\Payment\Application\Actions\InitiatePaymentAction;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
@@ -33,7 +34,14 @@ use Illuminate\Http\Request;
  */
 final class PaymentController extends BaseController
 {
-    public function __construct(private readonly InitiatePaymentAction $initiate) {}
+    public function __construct(
+        private readonly InitiatePaymentAction $initiate,
+        /*
+        | Reading WHOSE basket this is, before anything acts on it. Through the
+        | Core port like every other cross-module read here.
+        */
+        private readonly OrderQueryContract $orders,
+    ) {}
 
     /**
      * POST /api/v1/checkout/{group}/pay
@@ -61,6 +69,23 @@ final class PaymentController extends BaseController
         | Not validated beyond its shape: asking for more points than the balance
         | is not an error, the port clamps. A slider is allowed to be optimistic.
         */
+        /*
+        | **THE OWNERSHIP CHECK COMES FIRST, BECAUSE THE ACTION HAS EFFECTS**
+        | (security audit, 2026-08-18). It used to run afterwards: by then the
+        | action had resolved the victim's customer, held their points, upserted a
+        | payment — and on the points-only path committed their stock, spent their
+        | points and marked their order paid. A throw after that rolls none of it
+        | back. Bounded by an unguessable checkout group, but "hard to reach" is not
+        | the same as "harmless once reached".
+        */
+        $customer = $this->orders->checkoutGroupCustomer($group);
+
+        if ($actor === null || $customer === null || (int) $customer['id'] !== (int) $actor->getKey()) {
+            // ONE ANSWER for "no such group" and "not yours" — the rule every
+            // public surface here keeps.
+            throw PaymentException::groupNotFound($group);
+        }
+
         $result = $this->initiate->run(
             $group,
             (string) $request->ip(),
@@ -69,13 +94,6 @@ final class PaymentController extends BaseController
 
         /** @var Payment $payment */
         $payment = $result['payment'];
-
-        // The customer who owns the orders is resolved inside the action from the
-        // group itself; this is the second half of the check — the signed-in actor
-        // must be that customer.
-        if ($actor === null || $payment->customer_id !== $actor->getKey()) {
-            throw PaymentException::groupNotFound($group);
-        }
 
         return $this->ok([
             'payment_id' => $payment->uuid,
