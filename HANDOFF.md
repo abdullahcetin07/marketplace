@@ -16,7 +16,36 @@ pending.
 
 ### `BUILD_GO_LIVE.md` — production cutover runbook 🚀 (ordered; owner-gated)
 
-**▶ CLEARED TO START (2026-08-19):** owner has pointed DNS (`raftabul.com` + `www`) at
+**▶ PREP DONE — `https://raftabul.com` IS LIVE (2026-08-19, server session).** Steps
+0–4, 6 and 7 are complete and verified; the execution log with everything the runbook
+did not anticipate is at the top of `BUILD_GO_LIVE.md`. **Both 🛑 gates are still
+closed and waiting on the owner:**
+
+- **Gate #1 — PayTR live.** The prod `.env` still holds the **sandbox** keys with
+  `PAYTR_TEST_MODE=1`, on purpose: a blank key computes a hash PayTR answers with a
+  500, whereas the sandbox merely refuses a real card. The owner edits the marked
+  block at the bottom of `/var/www/www.raftabul.com/app/.env`, sets the live
+  merchant id/key/salt and `PAYTR_TEST_MODE=0`, points the PayTR panel's Bildirim URL
+  at `https://raftabul.com/api/v1/payments/paytr/callback`, then
+  `php8.3 artisan config:cache && systemctl restart raftabul-prod-horizon`.
+  **Config is cached — an `.env` edit alone changes nothing.**
+- **Gate #2 — `marketplace:reset-commerce`** on `raftabul_prod` (2 test orders, 2
+  payments, 8 ledger rows, 5 loyalty rows are still there).
+
+**Do not announce the site before gate #1.** Everything else works — catalogue,
+stores, images, panels, sitemap, canonicals — but a customer reaching checkout today
+meets the sandbox.
+
+**Two things nobody has assigned:** production has **no mail** (no SMTP credentials
+exist on this server at all, so password reset and verification mails go to a log
+file) and **no Sentry DSN**. Both are owner inputs, both are stubbed in the prod
+`.env`.
+
+**Rollback is one command:** `ln -sfn /etc/nginx/sites-available/www.raftabul.com
+/etc/nginx/sites-enabled/ && rm /etc/nginx/sites-enabled/raftabul.com && nginx -s
+reload` — WordPress is still on disk and its database untouched.
+
+**Original brief (kept for reference):** owner has pointed DNS (`raftabul.com` + `www`) at
 this server and has the PayTR **live** credentials ready. Begin the prep steps (0–4) now;
 the owner puts the PayTR live creds into the prod `.env` on the server directly (not via
 chat) and is standing by to say "go" at the two 🛑 gates. SEO #3/#4 are wired on the

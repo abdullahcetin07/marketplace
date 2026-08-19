@@ -1,5 +1,61 @@
 # BUILD — Go-live cutover runbook (server-side, executed by the server session)
 
+---
+
+## ▶ EXECUTION LOG — steps 0–4, 6, 7 DONE (2026-08-19, server session)
+
+**`https://raftabul.com` now serves the marketplace.** WordPress stopped being
+served at 15:34 and is untouched on disk. Both 🛑 gates are still closed.
+
+| Step | State |
+|---|---|
+| 0 backups | ✅ `/root/go-live-backup-2026-08-19/` — WP files 98M, WP MySQL 2.2M, app pg dump (custom + plain), both nginx vhosts |
+| 1 prod DB | ✅ `raftabul_prod` restored from the dump; row counts verified identical (19,886 products · 9,510 offers · 114 stores · 74 migrations) |
+| 2 app | ✅ `/var/www/www.raftabul.com/app` @ `627e5b5` (same commit as staging), prod `.env`, `--no-dev` install, `migrate` = *nothing to migrate*, caches built |
+| 3 storefront | ✅ built with `NEXT_PUBLIC_SITE_URL=https://raftabul.com`, `raftabul-prod-storefront` on **:3001** |
+| 4 queue + scheduler | ✅ `raftabul-prod-horizon` + `raftabul-prod-scheduler`; **verified by watching a job go end to end**, not just `is-active` |
+| 5 🛑 PayTR live | ⏸ **WAITING FOR OWNER** — prod `.env` still holds the SANDBOX keys, `PAYTR_TEST_MODE=1` |
+| 6 nginx + TLS | ✅ apex + `www` → prod `public/`, existing certbot cert (valid to 2026-10-07), `www`/`http` → apex in one 301 |
+| 7 staging noindex | ✅ `X-Robots-Tag: noindex, nofollow` + `Disallow: /` on `test.raftabul.com` |
+| 8 🛑 reset-commerce | ⏸ **WAITING FOR OWNER** — prod DB still carries the 2 test orders/payments |
+| 9–11 | not started (smoke test needs step 5; WP removal needs prod stable) |
+
+### Five things this runbook did not list, that the cutover needed anyway
+
+1. **The 5.7 GB of product media had to be copied.** The prod app is a separate
+   directory, so its `storage/app/public` started empty while the copied database
+   referenced every file in it — 207,597 files, every product image on the site.
+   `rsync`'d and counted on both sides.
+2. **`php artisan filament:assets`.** `public/css` and `public/js` are generated,
+   not committed, so a fresh clone serves an unstyled admin and seller panel.
+3. **Prod and staging share one Redis.** Separate DB numbers *and* prefixes
+   (prod 4/5/6/7 + `raftabul_prod_` / `horizon:prod:`). Had they collided,
+   staging's Horizon would have popped production's jobs and run them against
+   the staging database — a failure that shows up as data quietly going to the
+   wrong place, not as an error.
+4. **`APP_KEY` MUST stay the staging one, and this is not optional.**
+   `organization_bank_accounts.iban` is an `encrypted` cast — as are
+   `organization_kyc.authorized_person_national_id`, `two_factor_secret` and
+   encrypted settings values. A fresh key on a copied database means 114
+   sellers' payout IBANs no longer decrypt.
+5. **A production loopback listener** (`127.0.0.1:8081`,
+   `sites-available/raftabul-prod-internal`) for the storefront's server-side
+   renders. Pointing prod's Next at staging's `:8080` would have rendered the
+   staging database under the live domain.
+
+### ⚠️ Open, and NOT this session's to decide
+
+- **There is no mail.** No SMTP credentials exist anywhere on this server — the
+  WP `fluent-smtp` plugin is installed but was never configured — so prod ships
+  `MAIL_MAILER=log`: no password reset, no email verification, no order mail is
+  delivered. The keys are stubbed in the prod `.env` awaiting the owner.
+- **`SENTRY_LARAVEL_DSN` is empty** (it is empty on staging too), so production
+  has no error reporting.
+- **PayTR is still the sandbox** until gate #1. A real card cannot be charged;
+  it will simply be refused. Do not announce the site until that block changes.
+
+---
+
 **This is an ordered runbook, not background work. It touches REAL MONEY (live PayTR),
 a destructive data reset, and the production DNS/webserver. Two hard STOP gates need the
 owner's explicit "go" in chat before proceeding (marked 🛑). Do them in order.**
