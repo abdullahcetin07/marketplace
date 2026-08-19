@@ -14,6 +14,38 @@ pending.
 
 ## ▶ ACTIVE work order
 
+### `BUILD_SECURITY_FIXES.md` — PRE-LAUNCH security fixes (do first) 🔒
+
+A pre-launch security audit (2026-08-18) cleared the platform on almost everything —
+PayTR callback hash auth, amount tampering, IDOR surface, guard isolation, mass
+assignment, rate limiting, secrets, injection, CORS/session config are all SOUND. It
+found **four backend issues; three gate launch** (money integrity / money redirection):
+
+1. **HIGH-ish** — Loyalty points **mis-refunded across two partial returns** of one
+   order (reversal key `"{group}:{cause}"` collides → 2nd reversal dropped → customer
+   shorted points). Fix = incremental delta keyed per `PaymentRefund` uuid.
+2. **MEDIUM** — Points **double-spend race**: `hold()` reads the balance without
+   `lockForUpdate` → two concurrent checkouts for one customer over-hold. Fix = lock the
+   ledger rows like `CreatePayoutAction` already does.
+3. **MEDIUM** — A seller-org **Manager** (has `MemberUpdateRole`, not `BankAccountUpdate`)
+   can self-promote to **Finance** and change the **payout IBAN** → money redirection.
+   Fix = subset-of-own-capabilities rule + no self-role-change + IBAN-change re-verify.
+4. **LOW** — `pay` runs side effects before the ownership check.
+
+Full detail (files, line numbers, exploit, fix, tests): **`BUILD_SECURITY_FIXES.md`**.
+The storefront XSS finding (JSON-LD `</script>` breakout) is **already fixed** (commit
+`60887c2`). Reply here when done; the desktop session re-verifies #1 live on the sandbox.
+
+**OWNER `.env` checklist (production server — verify before go-live):**
+- `APP_DEBUG=false`, `APP_ENV=production` (the `.env.example` template ships `true`).
+- `DEBUGBAR_ENABLED=false`.
+- `SESSION_SECURE_COOKIE=true` (auto when `APP_ENV=production` — confirm it really is).
+- `SANCTUM_STATEFUL_DOMAINS`, `SESSION_DOMAIN`, `CORS_ALLOWED_ORIGINS` = real prod
+  hostnames (templates are `localhost`).
+- Real PayTR/DB/mail credentials only in the server `.env`, never committed.
+
+---
+
 ### `BUILD_LOYALTY_P2.md` — redemption at checkout — **CODE DONE, AWAITING SANDBOX BROWSER VERIFICATION**
 
 All of P2 is built, tested and deployed (2026-08-17). `make check` green; 1,670+
