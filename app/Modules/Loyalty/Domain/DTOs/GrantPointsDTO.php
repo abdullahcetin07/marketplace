@@ -22,6 +22,11 @@ final class GrantPointsDTO extends BaseDTO
         public readonly int $points,
         public readonly LoyaltyPointSource $source,
         public readonly string $sourceUuid,
+        /**
+         * The basket a redemption or a reversal belongs to (ADR-084). Null for the
+         * three EARN sources — signing up has no checkout group.
+         */
+        public readonly ?string $groupUuid = null,
         /** @var array<string, mixed>|null the rate that produced it, for the audit trail */
         public readonly ?array $meta = null,
     ) {}

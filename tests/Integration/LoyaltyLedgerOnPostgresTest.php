@@ -109,7 +109,7 @@ it('accepts a reversal key that is not a uuid', function (): void {
      * THE LINE THAT THREW. Everything above works on either driver; this is the
      * one that needs the column to hold `"{uuid}:return"`.
      */
-    $back = app(LoyaltyContract::class)->reverse($group, 'return');
+    $back = app(LoyaltyContract::class)->reverse($group, 'return', 1.0, (string) Str::uuid());
 
     expect($back)->toBe(300)
         ->and($ledger->balanceFor($customer))->toBe(500);
@@ -138,8 +138,8 @@ it('lets one basket be reversed twice under different causes', function (): void
     app(LoyaltyContract::class)->hold($customer, 400, $group);
     app(LoyaltyContract::class)->commit($group);
 
-    $cancelled = app(LoyaltyContract::class)->reverse($group, 'cancellation', 0.25);
-    $returned = app(LoyaltyContract::class)->reverse($group, 'return', 0.5);
+    $cancelled = app(LoyaltyContract::class)->reverse($group, 'cancellation', 0.25, (string) Str::uuid());
+    $returned = app(LoyaltyContract::class)->reverse($group, 'return', 0.5, (string) Str::uuid());
 
     expect($cancelled)->toBe(100)
         ->and($returned)->toBe(200)

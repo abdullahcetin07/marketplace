@@ -25,6 +25,7 @@ use Illuminate\Support\Carbon;
  * @property int $points
  * @property LoyaltyPointSource $source_type
  * @property string $source_uuid
+ * @property string|null $group_uuid
  * @property array<string, mixed>|null $meta
  * @property Carbon $created_at
  */
@@ -51,6 +52,7 @@ final class LoyaltyLedgerEntry extends Model
         'points',
         'source_type',
         'source_uuid',
+        'group_uuid',
         'meta',
         'created_at',
     ];

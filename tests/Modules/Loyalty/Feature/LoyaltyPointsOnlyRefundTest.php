@@ -16,6 +16,7 @@ use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
 use App\Modules\Payment\Domain\DTOs\RefundRequestDTO;
 use App\Modules\Payment\Domain\Enums\PaymentStatus;
 use App\Modules\Payment\Domain\Models\Payment;
+use Illuminate\Support\Str;
 
 /*
 |--------------------------------------------------------------------------
@@ -264,7 +265,7 @@ it('splits a partial refund of a card+points basket between the card and the poi
     $gateway = countingGateway();
 
     // Half the basket, the way a line-level refund of one of two units arrives.
-    app(App\Core\Domain\Contracts\LoyaltyContract::class)->reverse($fixture['group'], 'return', 0.5);
+    app(App\Core\Domain\Contracts\LoyaltyContract::class)->reverse($fixture['group'], 'return', 0.5, (string) Str::uuid());
 
     /*
      * **HALF THE POINTS, FLOORED — NOT ALL OF THEM.** This is what the

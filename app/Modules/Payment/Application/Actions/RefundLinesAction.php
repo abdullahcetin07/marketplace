@@ -104,7 +104,7 @@ final class RefundLinesAction extends BaseAction
         $this->reverseLedger($payment, $refund, $priced);
         $this->restock($payment, $request->orderUuid, $priced);
 
-        $this->settle($payment, $request->orderUuid, $amountMinor);
+        $this->settle($payment, $request->orderUuid, $amountMinor, $refund->uuid);
 
         return $refund;
     }
@@ -395,7 +395,7 @@ final class RefundLinesAction extends BaseAction
      * Order asks to decide whether it is `refunded`. Neither should have to
      * recompute it from line quantities this module already summed.
      */
-    private function settle(Payment $payment, string $orderUuid, int $amountMinor): void
+    private function settle(Payment $payment, string $orderUuid, int $amountMinor, string $refundUuid): void
     {
         $refundedTotal = PaymentRefund::refundedMinorFor((int) $payment->getKey());
         /*
@@ -432,7 +432,14 @@ final class RefundLinesAction extends BaseAction
         $this->loyalty->reverse(
             $payment->checkout_group_uuid,
             $this->cause->value,
-            $this->refundedFraction($payment, $amountMinor, $fully),
+            /*
+            | **THE CUMULATIVE SHARE, NOT THIS SLICE.** Loyalty credits the delta
+            | against what the basket has already had back, so two partial returns
+            | sum to exactly what was spent instead of the second one being dropped
+            | as a duplicate key (security audit, 2026-08-18).
+            */
+            $this->refundedFraction($payment, $refundedTotal, $fully),
+            $refundUuid,
         );
 
         $this->refunded = new PaymentRefunded(
@@ -486,7 +493,7 @@ final class RefundLinesAction extends BaseAction
      * A fully-refunded payment is 1.0 outright rather than a division, so rounding
      * can never leave a customer a point short of whole.
      */
-    private function refundedFraction(Payment $payment, int $refundedMinor, bool $fully): float
+    private function refundedFraction(Payment $payment, int $refundedCumulativeMinor, bool $fully): float
     {
         if ($fully) {
             return 1.0;
@@ -494,6 +501,6 @@ final class RefundLinesAction extends BaseAction
 
         $settled = $payment->amount_minor + $payment->discount_minor;
 
-        return $settled <= 0 ? 0.0 : $refundedMinor / $settled;
+        return $settled <= 0 ? 0.0 : $refundedCumulativeMinor / $settled;
     }
 }

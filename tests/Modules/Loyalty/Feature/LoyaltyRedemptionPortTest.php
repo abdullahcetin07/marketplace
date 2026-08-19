@@ -150,7 +150,7 @@ it('re-credits everything a full refund undid', function (): void {
     app(LoyaltyContract::class)->hold($customer->uuid, 250, $group);
     app(LoyaltyContract::class)->commit($group);
 
-    $back = app(LoyaltyContract::class)->reverse($group, 'return');
+    $back = app(LoyaltyContract::class)->reverse($group, 'return', 1.0, (string) Str::uuid());
 
     /*
      * **THE CUSTOMER ENDS WHOLE**: points back, and the money goes back through
@@ -170,7 +170,7 @@ it('re-credits the floor of a partial refund, and never more than was spent', fu
 
     // Half of 101 is 50,5 — rounding up on every partial refund mints points out
     // of arithmetic.
-    expect(app(LoyaltyContract::class)->reverse($group, 'cancellation', 0.5))->toBe(50);
+    expect(app(LoyaltyContract::class)->reverse($group, 'cancellation', 0.5, (string) Str::uuid()))->toBe(50);
 
     // And a fraction that drifts over 1.0 through floating error hands back no
     // more than was committed.
@@ -178,7 +178,7 @@ it('re-credits the floor of a partial refund, and never more than was spent', fu
     app(LoyaltyContract::class)->hold($customer->uuid, 60, $group2);
     app(LoyaltyContract::class)->commit($group2);
 
-    expect(app(LoyaltyContract::class)->reverse($group2, 'return', 1.0000001))->toBe(60);
+    expect(app(LoyaltyContract::class)->reverse($group2, 'return', 1.0000001, (string) Str::uuid()))->toBe(60);
 });
 
 it('offers nothing at all when the programme is switched off', function (): void {
@@ -193,4 +193,60 @@ it('offers nothing at all when the programme is switched off', function (): void
     expect($quote['max_points'])->toBe(0)
         ->and($quote['payable_minor'])->toBe(10_000)
         ->and(app(LoyaltyContract::class)->hold($customer->uuid, 100, $group))->toBe(0);
+});
+
+it('sums two partial refunds to exactly what was spent, never half and never one and a half', function (): void {
+    /*
+     * **THE AUDIT FINDING (2026-08-18), FROM BOTH SIDES.** Two partial RETURNS of
+     * one order used to share the key `"{group}:return"`: the unique index dropped
+     * the second silently and the customer got back half their points. Keying per
+     * refund WITHOUT the delta is the mirror bug — the second refund's `fully`
+     * branch wants the whole amount and would credit it on top of the first, 1.5×
+     * at the platform's expense.
+     *
+     * A running total is the only shape that lands on exactly what was spent.
+     */
+    $customer = customerWithPoints(1_000);
+    $group = (string) Str::uuid();
+
+    app(LoyaltyContract::class)->hold($customer->uuid, 401, $group);
+    app(LoyaltyContract::class)->commit($group);
+
+    // Half the basket comes back, then the other half — two separate refunds.
+    $first = app(LoyaltyContract::class)->reverse($group, 'return', 0.5, (string) Str::uuid());
+    $second = app(LoyaltyContract::class)->reverse($group, 'return', 1.0, (string) Str::uuid());
+
+    expect($first)->toBe(200)
+        // 401 − 200 already back = 201, not another 401 and not nothing.
+        ->and($second)->toBe(201)
+        ->and(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($customer->uuid))->toBe(1_000);
+});
+
+it('lands on the same total however finely the refunds are sliced', function (): void {
+    $customer = customerWithPoints(1_000);
+    $group = (string) Str::uuid();
+
+    app(LoyaltyContract::class)->hold($customer->uuid, 300, $group);
+    app(LoyaltyContract::class)->commit($group);
+
+    // Thirds, with the rounding remainder landing wherever it falls.
+    foreach ([1 / 3, 2 / 3, 1.0] as $cumulative) {
+        app(LoyaltyContract::class)->reverse($group, 'return', $cumulative, (string) Str::uuid());
+    }
+
+    expect(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($customer->uuid))->toBe(1_000);
+});
+
+it('credits a retried refund event once', function (): void {
+    $customer = customerWithPoints(500);
+    $group = (string) Str::uuid();
+    $refund = (string) Str::uuid();
+
+    app(LoyaltyContract::class)->hold($customer->uuid, 200, $group);
+    app(LoyaltyContract::class)->commit($group);
+
+    // The same PaymentRefund delivered twice — the idempotency key is the refund.
+    expect(app(LoyaltyContract::class)->reverse($group, 'return', 1.0, $refund))->toBe(200)
+        ->and(app(LoyaltyContract::class)->reverse($group, 'return', 1.0, $refund))->toBe(0)
+        ->and(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($customer->uuid))->toBe(500);
 });

@@ -113,8 +113,11 @@ final class RefundPaymentAction extends BaseAction
 
         $this->reverseAtGateway($payment, $amountMinor);
 
+        /** @var PaymentRefund|null $lastRefund */
+        $lastRefund = null;
+
         foreach ($targets as $target) {
-            $this->record($payment, $target, $request);
+            $lastRefund = $this->record($payment, $target, $request);
             $this->reverseLedger($payment, $target);
             $this->restock($payment, (string) $target['order_uuid']);
         }
@@ -151,10 +154,20 @@ final class RefundPaymentAction extends BaseAction
         | points. Loyalty is handed the proportion rather than the amounts, so it
         | never learns what a payment is.
         */
+
+        /*
+        | **THE CUMULATIVE SHARE, KEYED ON A REFUND ROW.** Loyalty credits the
+        | delta against what this basket has already had back — two partial
+        | refunds sum to exactly what was spent instead of the second being
+        | dropped as a duplicate key (security audit, 2026-08-18). A
+        | whole-payment refund may write several rows (one per seller-order);
+        | any one of them is a stable, unique idempotency key for the event.
+        */
         $this->loyalty->reverse(
             $payment->checkout_group_uuid,
             'refund',
-            $this->refundedFraction($payment, $amountMinor, $fully),
+            $this->refundedFraction($payment, $refundedTotal, $fully),
+            $lastRefund->uuid,
         );
 
         $this->refunded = new PaymentRefunded(
@@ -319,9 +332,9 @@ final class RefundPaymentAction extends BaseAction
     /**
      * @param array{order_uuid: string, seller_org_uuid: string, amount_minor: int, commission_minor: int} $target
      */
-    private function record(Payment $payment, array $target, RefundRequestDTO $request): void
+    private function record(Payment $payment, array $target, RefundRequestDTO $request): PaymentRefund
     {
-        PaymentRefund::query()->create([
+        return PaymentRefund::query()->create([
             'payment_id' => $payment->getKey(),
             'payment_uuid' => $payment->uuid,
             'order_uuid' => $target['order_uuid'],
@@ -426,7 +439,7 @@ final class RefundPaymentAction extends BaseAction
      * A fully-refunded payment is 1.0 outright rather than a division, so rounding
      * can never leave a customer a point short of whole.
      */
-    private function refundedFraction(Payment $payment, int $refundedMinor, bool $fully): float
+    private function refundedFraction(Payment $payment, int $refundedCumulativeMinor, bool $fully): float
     {
         if ($fully) {
             return 1.0;
@@ -434,6 +447,6 @@ final class RefundPaymentAction extends BaseAction
 
         $settled = $payment->amount_minor + $payment->discount_minor;
 
-        return $settled <= 0 ? 0.0 : $refundedMinor / $settled;
+        return $settled <= 0 ? 0.0 : $refundedCumulativeMinor / $settled;
     }
 }

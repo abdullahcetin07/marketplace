@@ -132,7 +132,7 @@ it('gives back every point a full refund undid', function (): void {
 
     expect(app(LoyaltyLedgerRepositoryContract::class)->balanceFor($basket['customer']->uuid))->toBe(400);
 
-    app(LoyaltyContract::class)->reverse($basket['group'], 'return');
+    app(LoyaltyContract::class)->reverse($basket['group'], 'return', 1.0, (string) Str::uuid());
 
     /*
      * **THE CUSTOMER ENDS WHOLE**: the card goes back through PayTR as it always
@@ -157,7 +157,7 @@ it('re-credits a partial refund in proportion to the whole basket, card plus poi
     app(LoyaltyContract::class)->commit($basket['group']);
 
     // 50,00 TL of a 100,00 basket = 0.5.
-    $back = app(LoyaltyContract::class)->reverse($basket['group'], 'cancellation', 0.5);
+    $back = app(LoyaltyContract::class)->reverse($basket['group'], 'cancellation', 0.5, (string) Str::uuid());
 
     expect($back)->toBe(400);
 });

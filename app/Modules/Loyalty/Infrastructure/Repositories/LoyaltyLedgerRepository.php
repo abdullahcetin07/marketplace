@@ -35,6 +35,14 @@ final class LoyaltyLedgerRepository implements LoyaltyLedgerRepositoryContract
             ->first();
     }
 
+    public function reversedPointsFor(string $checkoutGroupUuid): int
+    {
+        return (int) LoyaltyLedgerEntry::query()
+            ->where('source_type', LoyaltyPointSource::Reversal->value)
+            ->where('group_uuid', $checkoutGroupUuid)
+            ->sum('points');
+    }
+
     public function balanceFor(string $customerUuid): int
     {
         /*

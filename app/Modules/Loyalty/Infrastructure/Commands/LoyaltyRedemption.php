@@ -133,6 +133,7 @@ final class LoyaltyRedemption implements LoyaltyContract
             points: -$points,
             source: LoyaltyPointSource::Redemption,
             sourceUuid: $checkoutGroupUuid,
+            groupUuid: $checkoutGroupUuid,
             meta: ['rule' => 'redemption', 'checkout_group_uuid' => $checkoutGroupUuid],
         ));
 
@@ -148,8 +149,12 @@ final class LoyaltyRedemption implements LoyaltyContract
         LoyaltyHold::query()->where('checkout_group_uuid', $checkoutGroupUuid)->delete();
     }
 
-    public function reverse(string $checkoutGroupUuid, string $cause, float $fraction = 1.0): int
-    {
+    public function reverse(
+        string $checkoutGroupUuid,
+        string $cause,
+        float $cumulativeFraction,
+        string $refundUuid,
+    ): int {
         $committed = $this->ledger->entryFor(LoyaltyPointSource::Redemption, $checkoutGroupUuid);
 
         if ($committed === null) {
@@ -159,14 +164,20 @@ final class LoyaltyRedemption implements LoyaltyContract
         $spent = abs($committed->points);
 
         /*
-        | **FLOOR, AND NEVER MORE THAN WAS COMMITTED.** Rounding a customer up on
-        | every partial refund mints points out of arithmetic, and a fraction that
-        | arrives fractionally over 1.0 through floating error must not hand back
-        | more than they spent.
+        | **THE TARGET IS WHERE THE BASKET SHOULD END UP; THE CREDIT IS THE DELTA.**
+        | Floored, and clamped so a fraction drifting over 1.0 through floating
+        | error cannot hand back more than was spent. N partial refunds then sum to
+        | exactly `$spent`, in any order and at any granularity — which is what
+        | keying per refund without the delta got wrong in the opposite direction.
         */
-        $points = (int) floor($spent * max(0.0, min(1.0, $fraction)));
+        $target = (int) floor($spent * max(0.0, min(1.0, $cumulativeFraction)));
+
+        $alreadyBack = $this->ledger->reversedPointsFor($checkoutGroupUuid);
+
+        $points = $target - $alreadyBack;
 
         if ($points <= 0) {
+            // Already whole — a retried event, or a refund that rounds to nothing.
             return 0;
         }
 
@@ -175,12 +186,19 @@ final class LoyaltyRedemption implements LoyaltyContract
             points: $points,
             source: LoyaltyPointSource::Reversal,
             /*
-            | KEYED TO THE GROUP AND THE CAUSE, so a cancellation and a later return
-            | of the same basket cannot collide under one key — and a retried refund
-            | event credits once.
+            | KEYED ON THE REFUND ITSELF, so two partial returns of one order are two
+            | rows rather than one silently dropped, and a retried refund event is
+            | still one credit.
             */
-            sourceUuid: $checkoutGroupUuid.':'.$cause,
-            meta: ['rule' => 'reversal', 'cause' => $cause, 'fraction' => $fraction, 'committed' => $spent],
+            sourceUuid: $refundUuid,
+            groupUuid: $checkoutGroupUuid,
+            meta: [
+                'rule' => 'reversal',
+                'cause' => $cause,
+                'cumulative_fraction' => $cumulativeFraction,
+                'committed' => $spent,
+                'already_reversed' => $alreadyBack,
+            ],
         ));
 
         return $entry === null ? 0 : $points;

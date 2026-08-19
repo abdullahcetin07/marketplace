@@ -67,6 +67,7 @@ final class GrantPointsAction extends BaseAction
                 'points' => $data->points,
                 'source_type' => $data->source,
                 'source_uuid' => $data->sourceUuid,
+                'group_uuid' => $data->groupUuid,
                 'meta' => $data->meta,
                 'created_at' => now(),
             ]);

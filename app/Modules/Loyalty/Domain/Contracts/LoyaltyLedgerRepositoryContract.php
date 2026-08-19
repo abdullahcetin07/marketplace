@@ -33,6 +33,16 @@ interface LoyaltyLedgerRepositoryContract
     public function balanceFor(string $customerUuid): int;
 
     /**
+     * How many points this basket has already had back.
+     *
+     * **THE RUNNING TOTAL A DELTA IS MEASURED AGAINST** (ADR-084). Partial refunds
+     * arrive one at a time and in any order; each credits the difference between
+     * where the basket should be and where it is, and this is the second half of
+     * that subtraction.
+     */
+    public function reversedPointsFor(string $checkoutGroupUuid): int;
+
+    /**
      * The one row written for this source, or null.
      *
      * **THE ROW, NOT JUST ITS NUMBER.** A reversal needs what was spent AND whose

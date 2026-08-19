@@ -95,12 +95,26 @@ interface LoyaltyContract
      * **A REVERSAL IS A NEW ROW, NEVER A DELETION** — the ledger is append-only, and
      * "what did I spend on that order" must stay answerable after the refund.
      *
-     * `$fraction` is the refunded share of the group (1.0 for a full refund). A
-     * partial refund re-credits the FLOOR of the proportion, and never more than
-     * was committed: rounding a customer up on every partial refund is a way to
-     * mint points out of arithmetic.
+     * **`$cumulativeFraction` IS THE SHARE OF THE BASKET REFUNDED SO FAR, NOT THIS
+     * REFUND'S SLICE**, and the credit is the DELTA against what has already come
+     * back. Two partial returns of one order used to share the key
+     * `"{group}:return"`, so the unique index silently dropped the second and the
+     * customer was shorted half their points; keying per refund alone would have
+     * been the mirror bug, since the second refund's `fully` branch wants the whole
+     * amount and would have credited it on top of the first. A running total is the
+     * only shape that sums to exactly what was spent, whatever order or granularity
+     * the refunds arrive in.
      *
-     * @return int the points re-credited
+     * `$refundUuid` is the individual `PaymentRefund` — the idempotency key, so a
+     * retried refund event credits once.
+     *
+     * @return int the points re-credited by THIS call (0 when the basket is already
+     *             whole)
      */
-    public function reverse(string $checkoutGroupUuid, string $cause, float $fraction = 1.0): int;
+    public function reverse(
+        string $checkoutGroupUuid,
+        string $cause,
+        float $cumulativeFraction,
+        string $refundUuid,
+    ): int;
 }
