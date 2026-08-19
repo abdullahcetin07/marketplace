@@ -136,7 +136,7 @@ export const contentPages: Record<string, ContentPage> = {
       { h: 'Teslimat süresi' },
       { p: 'Siparişleriniz genellikle 1–3 iş günü içinde kargoya verilir. Birden fazla satıcıdan ürün aldıysanız, her satıcı kendi siparişini ayrı hazırlar ve ayrı kargolar.' },
       { h: 'Ücretsiz kargo' },
-      { p: '200 TL ve üzeri alışverişlerde kargo ücretsizdir.' },
+      { p: 'Tüm siparişlerde kargo ücretsizdir.' },
       { h: 'Kargo takibi' },
       { p: '“Siparişlerim” sayfasından kargonuzun durumunu ve takip numarasını görebilirsiniz. Ürün elinize ulaştığında “Teslim aldım” ile teslimatı onaylayabilirsiniz.' },
     ],
@@ -149,7 +149,7 @@ export const contentPages: Record<string, ContentPage> = {
     body: [
       { qa: ['Siparişimi nasıl takip ederim?', 'Hesabınızdaki “Siparişlerim” bölümünden sipariş ve kargo durumunuzu takip edebilirsiniz.'] },
       { qa: ['Ödeme güvenli mi?', 'Evet. Kart bilgileriniz bize iletilmez; ödeme, güvenli ödeme altyapısının kendi ekranında alınır.'] },
-      { qa: ['Kargo ne zaman ücretsiz?', '200 TL ve üzeri alışverişlerde kargo ücretsizdir.'] },
+      { qa: ['Kargo ücreti var mı?', 'Hayır, tüm siparişlerde kargo ücretsizdir.'] },
       { qa: ['Nasıl iade yaparım?', '“Siparişlerim”den iade talebi oluşturursunuz; satıcı onayladığında iade kodunuzla ürünü kargoya verir, ürün ulaşınca ücretiniz iade edilir.'] },
       { qa: ['Puanları nasıl kazanır ve kullanırım?', 'Üye olduğunuzda, alışveriş yaptığınızda ve yorumunuz yayınlandığında puan kazanırsınız. Ödeme adımında puanlarınızı indirim olarak kullanabilirsiniz.'] },
       { qa: ['Birden fazla satıcıdan aldım, ne olur?', 'Sepetiniz satıcıya göre bölünür; her satıcı kendi siparişini ayrı hazırlar ve ayrı kargolar.'] },
