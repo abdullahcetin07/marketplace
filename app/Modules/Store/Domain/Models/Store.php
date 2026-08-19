@@ -54,6 +54,7 @@ use Illuminate\Database\Eloquent\SoftDeletes;
  * @property \Illuminate\Support\Carbon|null $suspended_at
  * @property int|null $suspended_by
  * @property string|null $suspension_reason
+ * @property \Illuminate\Support\Carbon $updated_at
  *
  * @see docs/modules/Store.md §2.1
  */

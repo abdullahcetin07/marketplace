@@ -248,6 +248,25 @@ Route::prefix('v1')
             | price string by a rate in JavaScript floats, and so the preview cannot
             | disagree with what the nightly sweep actually credits.
             */
+            /*
+            | EVERY LIVE SHOP'S SLUG, FOR THE SITEMAP. Public and read-only: the
+            | storefront cannot enumerate `/magaza/*` without it, so those pages
+            | were simply absent from the sitemap. Same visibility rule the store
+            | page itself uses — a suspended shop 404s there and must not be
+            | advertised here.
+            |
+            | **`magazalar`, NOT `stores`, AND THE COLLISION IS THE REASON.**
+            | `GET /api/v1/stores` already belongs to the SELLER panel — a
+            | merchant's own shops, behind `auth:sanctum`. Two routes with one
+            | method and URI do not both survive registration: the later one wins
+            | the lookup, so publishing this as `stores` silently took the seller
+            | endpoint's place (or, as it happened, lost to it and answered 401).
+            | The public surface is Turkish-segmented anyway — `/magaza/{slug}` is
+            | the page this enumerates.
+            */
+            Route::get('magazalar', [PublicStoreController::class, 'index'])
+                ->name('storefront.stores.index');
+
             Route::get('loyalty/earn-preview', [EarnPreviewController::class, 'show'])
                 ->name('storefront.loyalty.earn-preview');
 
