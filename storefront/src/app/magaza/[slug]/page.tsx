@@ -63,6 +63,11 @@ export default async function StorePage({ params }: Props) {
   const storeUrl = absoluteUrl(`/magaza/${store.slug}`);
   const storeDescription = `${store.name} — onaylı satıcının tüm ürünleri.`;
 
+  // Seller rating rollup (ADR-069): only real when there ARE published reviews —
+  // value is null otherwise, and a fabricated "0 stars" is worse than no rating.
+  const rating = store.extensions.rating;
+  const hasRating = rating != null && rating.count > 0 && rating.value !== null;
+
   // Organization, NOT Store/LocalBusiness — a marketplace seller has no storefront
   // address, so the physical-place types would be wrong. `@id` anchors the entity
   // so other nodes can reference it.
@@ -77,6 +82,15 @@ export default async function StorePage({ params }: Props) {
     image: store.branding.logo ?? undefined,
     email: contactEmail ?? undefined,
     telephone: contactPhone ?? undefined,
+    ...(hasRating
+      ? {
+          aggregateRating: {
+            '@type': 'AggregateRating',
+            ratingValue: rating!.value,
+            reviewCount: rating!.count,
+          },
+        }
+      : {}),
   };
 
   const breadcrumbLd = {
@@ -126,6 +140,18 @@ export default async function StorePage({ params }: Props) {
             </h1>
             <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-ink-500">
               <span className="flex items-center gap-1 font-bold text-green-600">✓ Onaylı satıcı</span>
+              {hasRating && (
+                <>
+                  <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
+                  <span className="flex items-center gap-1 font-bold text-ink-700 dark:text-ink-200">
+                    <svg viewBox="0 0 20 20" className="h-4 w-4 text-amber-400" fill="currentColor" aria-hidden="true">
+                      <path d="M10 1.6l2.47 5.01 5.53.8-4 3.9.94 5.5L10 14.2l-4.95 2.6.94-5.5-4-3.9 5.53-.8z" />
+                    </svg>
+                    {rating!.value}
+                    <span className="font-semibold text-ink-400">({rating!.count})</span>
+                  </span>
+                </>
+              )}
               <span className="h-3.5 w-px bg-ink-200 dark:bg-ink-700" />
               <span>
                 <span className="font-bold text-ink-700 dark:text-ink-200">{total}</span> ürün

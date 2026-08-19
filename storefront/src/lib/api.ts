@@ -41,6 +41,8 @@ export type ProductCard = {
   image: string | null;
   category: { id: string; name: string; slug?: string };
   brand: { id: string; name: string; slug?: string } | null;
+  /** For the sitemap's lastmod (the product's own content date, not price/stock). */
+  updated_at?: string;
 };
 
 /** A category or brand as it appears in a breadcrumb — id, name, and its slug URL. */
@@ -80,6 +82,7 @@ export type CategoryNode = {
   parent_id: string | null;
   product_count: number;
   children: CategoryNode[];
+  updated_at?: string;
 };
 
 /** One category's landing payload (`/categories/{slug}`). */
@@ -98,6 +101,7 @@ export type Brand = {
   slug: string;
   logo?: string | null;
   product_count: number;
+  updated_at?: string;
 };
 
 /** Keyed by product id — absent means "nobody sells it", never "free". */
@@ -199,6 +203,9 @@ export type StoreDetail = {
   };
   extensions: {
     products?: { items: StoreProduct[]; total: number };
+    /** Seller rating rollup (ADR-069): average of published reviews, computed on read.
+     *  `value` is null (not 0) when there are no reviews — the card then shows no stars. */
+    rating?: { value: string | null; count: number };
   };
 };
 

@@ -16,36 +16,38 @@ import { absoluteUrl } from '@/lib/site';
  */
 export const dynamic = 'force-dynamic';
 
-function flattenCategories(nodes: CategoryNode[]): string[] {
-  return nodes.flatMap((node) => [node.slug, ...flattenCategories(node.children ?? [])]);
+/** A catalogue URL for the sitemap, with the entity's own last-modified date. */
+type CatalogRef = { slug: string; updated_at?: string };
+
+function flattenCategories(nodes: CategoryNode[]): CatalogRef[] {
+  return nodes.flatMap((node) => [
+    { slug: node.slug, updated_at: node.updated_at },
+    ...flattenCategories(node.children ?? []),
+  ]);
 }
 
-async function allProductSlugs(): Promise<string[]> {
-  const slugs: string[] = [];
+async function allProductRefs(): Promise<CatalogRef[]> {
+  const refs: CatalogRef[] = [];
 
   // Walk the listing pages; capped so a large catalogue can't spin the build —
   // raise this into a sitemap index when it starts to bite.
   for (let page = 1; page <= 50; page++) {
     const result = await browseProducts({ page, perPage: 100 });
-    slugs.push(...result.items.map((product) => product.slug));
+    refs.push(...result.items.map((product) => ({ slug: product.slug, updated_at: product.updated_at })));
     if (page >= result.lastPage) break;
   }
 
-  return slugs;
+  return refs;
 }
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
-  const [tree, brands, productSlugs, stores] = await Promise.all([
+  const [tree, brands, productRefs, stores] = await Promise.all([
     fetchCategoryTree(),
     fetchBrands(),
-    allProductSlugs(),
+    allProductRefs(),
     allStoreSlugs(),
   ]);
 
-  // `lastModified` only on the STATIC entries: these are the pages we can honestly
-  // date "now" (they change with each deploy). Product/category/brand entries below
-  // get no lastmod rather than a faked, identical one — a uniform timestamp across
-  // the whole catalogue is worse than none.
   const now = new Date();
 
   const staticPages: MetadataRoute.Sitemap = [
@@ -60,10 +62,18 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     })),
   ];
 
-  const slugs = [...flattenCategories(tree), ...brands.map((brand) => brand.slug), ...productSlugs];
+  // Categories, brands and products all live at the root slug. Each carries its own
+  // `updated_at` now (the entity's content date — a product's price/stock lives on the
+  // Offer, ADR-042, so it does NOT move this), giving an honest per-URL lastmod.
+  const catalog: CatalogRef[] = [
+    ...flattenCategories(tree),
+    ...brands.map((brand) => ({ slug: brand.slug, updated_at: brand.updated_at })),
+    ...productRefs,
+  ];
 
-  const entries: MetadataRoute.Sitemap = slugs.map((slug) => ({
-    url: absoluteUrl(`/${slug}`),
+  const entries: MetadataRoute.Sitemap = catalog.map((ref) => ({
+    url: absoluteUrl(`/${ref.slug}`),
+    lastModified: ref.updated_at ? new Date(ref.updated_at) : undefined,
     changeFrequency: 'daily',
     priority: 0.7,
   }));
