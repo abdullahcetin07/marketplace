@@ -9,6 +9,7 @@ use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
 use Illuminate\Http\Response;
 use Illuminate\Support\Str;
+use Symfony\Component\HttpKernel\Exception\HttpExceptionInterface;
 use Throwable;
 
 /**
@@ -35,7 +36,7 @@ use Throwable;
  *
  * @see docs/error-handling.md
  */
-abstract class BaseException extends Exception
+abstract class BaseException extends Exception implements HttpExceptionInterface
 {
     /**
      * HTTP status used when this exception escapes to the HTTP layer.
@@ -66,6 +67,35 @@ abstract class BaseException extends Exception
     public function getStatus(): int
     {
         return $this->status;
+    }
+
+    /**
+     * The same status, under the name the framework looks for.
+     *
+     * WHY THIS INTERFACE EXISTS ON A DOMAIN CLASS: `render()` below deliberately
+     * returns null for a non-JSON request so Laravel can draw its own error page.
+     * But Laravel only knows the status of an exception that implements
+     * `HttpExceptionInterface`; anything else is a 500 by definition. So for
+     * years every domain failure — a missing store, an unapproved seller —
+     * answered a BROWSER with `500 Server Error` while answering the API with a
+     * correct 404 or 403. It surfaced the day 110 test stores were deleted and
+     * `/api/v1/magaza/{slug}` started 500ing in a browser (2026-08-20).
+     *
+     * A 500 is not a cosmetic difference from a 404: it tells a crawler the site
+     * is broken rather than the page is gone, and it tells an operator to go
+     * looking for an incident that never happened.
+     */
+    public function getStatusCode(): int
+    {
+        return $this->status;
+    }
+
+    /**
+     * @return array<string, string>
+     */
+    public function getHeaders(): array
+    {
+        return [];
     }
 
     /**
@@ -147,7 +177,10 @@ abstract class BaseException extends Exception
     public function render(Request $request): ?JsonResponse
     {
         if (! $request->expectsJson()) {
-            return null; // let the HTML error view handle it
+            // Let Laravel draw the HTML error page. It picks the right one
+            // because this class implements `HttpExceptionInterface` — see
+            // `getStatusCode()`; without it every one of these was a 500.
+            return null;
         }
 
         /*
