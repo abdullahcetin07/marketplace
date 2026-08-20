@@ -2,6 +2,48 @@
 
 ---
 
+## ▶ 🛑 GATE #1 CLOSED — live PayTR proven in BOTH directions (2026-08-20)
+
+Order **`SP-260820-4N72HJ`**, ₺5,00, one real card, one real refund.
+
+```
+11:25:26  awaiting_payment · reservation active     placement HOLDS (ADR-057)
+11:27:30  paid             · reservation committed  PayTR callback, 212.252.97.250 → 200
+11:36:21  refunded         · stock restocked        the refund that had never run live
+```
+
+| Checked | Result |
+|---|---|
+| callback POST from PayTR's IP, hash verified | ✅ — the truth is the callback, not the redirect |
+| `merchant_oid` = `payment.uuid`, hyphen-free | ✅ `2d2189c667da4f94a0676037ec49ea5d` |
+| Inventory reserve → commit (ADR-054/057) | ✅ 2 movements, commit in the same second as the callback |
+| KDV %20 inclusive → 83 kuruş of 500 | ✅ `500 − ⌊500/1.20⌋` |
+| Commission %18 on the **KDV-INCLUSIVE** base (ADR-061) | ✅ 90 kuruş — a KDV-exclusive base would have given 75 |
+| Seller ledger, append-only (ADR-062) | ✅ `+500 / −90 / −500 / +90` → balance exactly 0 |
+| Stock restocked (ADR-049's fourth verb, added by P5) | ✅ `restocked +1` |
+| Errors logged during the refund | **0** |
+
+**THE REFUND IS THE HEADLINE.** `PayTrGateway::refund()`'s `merchant_id` hash fix
+(2026-08-09) had never once run against live PayTR — every refund since S4 was
+refused with `err_no 004`, and the fix was pinned by a test and nothing else.
+Documentation flagged it "still unverified against live PayTR". It is verified now.
+
+**Recorded gap (not a blocker):** `payments.provider_reference` and
+`payment_refunds.provider_reference` are both **empty** — PayTR's own reference is
+never stored. Reconciliation works through `merchant_oid` (which is the payment
+uuid), but a dispute means matching against the PayTR panel by hand.
+
+**⛔ `marketplace:reset-commerce` MUST NOT BE RUN ON THIS SERVER.** Step 8 below
+describes it as purging test transactions and keeping the catalogue. It does the
+OPPOSITE: a `--dry-run` on the production database listed **19,886 products,
+9,510 offers, 547 categories, 889 brands, 21,322 slugs and 30,689 media rows —
+with their files**. Its own description says "Delete test **catalog** + commerce
+data". It also does NOT touch `loyalty_ledger` or `failed_jobs`. The commerce-only
+purge was done by hand instead (see the log below); if it is ever needed again,
+scope it by table and never trust the command's name.
+
+---
+
 ## ▶ EXECUTION LOG — steps 0–4, 6, 7 DONE (2026-08-19, server session)
 
 **`https://raftabul.com` now serves the marketplace.** WordPress stopped being
@@ -14,11 +56,53 @@ served at 15:34 and is untouched on disk. Both 🛑 gates are still closed.
 | 2 app | ✅ `/var/www/www.raftabul.com/app` @ `627e5b5` (same commit as staging), prod `.env`, `--no-dev` install, `migrate` = *nothing to migrate*, caches built |
 | 3 storefront | ✅ built with `NEXT_PUBLIC_SITE_URL=https://raftabul.com`, `raftabul-prod-storefront` on **:3001** |
 | 4 queue + scheduler | ✅ `raftabul-prod-horizon` + `raftabul-prod-scheduler`; **verified by watching a job go end to end**, not just `is-active` |
-| 5 🛑 PayTR live | ⏸ **WAITING FOR OWNER** — prod `.env` still holds the SANDBOX keys, `PAYTR_TEST_MODE=1` |
+| 5 🛑 PayTR live | ✅ **CLOSED 2026-08-20** — `test_mode=0`; live payment + refund verified end to end (see above) |
 | 6 nginx + TLS | ✅ apex + `www` → prod `public/`, existing certbot cert (valid to 2026-10-07), `www`/`http` → apex in one 301 |
 | 7 staging noindex | ✅ `X-Robots-Tag: noindex, nofollow` + `Disallow: /` on `test.raftabul.com` |
-| 8 🛑 reset-commerce | ⏸ **WAITING FOR OWNER** — prod DB still carries the 2 test orders/payments |
-| 9–11 | not started (smoke test needs step 5; WP removal needs prod stable) |
+| 8 🛑 reset-commerce | ✅ **DONE 2026-08-20, BY HAND** — the named command would have deleted the catalogue (see the warning above) |
+| 9 smoke test | ✅ money path proven; mail still sandbox-limited |
+| 10 rollback | ready — WP on disk, old vhost backed up |
+| 11 remove WP | not started (waiting on prod being called stable) |
+
+### Mail, on the way through
+
+Production had **no SMTP credentials at all**, and outbound SMTP turned out to be
+blocked upstream: ports 25/465/587/2465/2587 time out to *three different
+providers* while 22/53/443 are open, with `ufw` set to `ACCEPT` on output and no
+local rules. No credential would ever have fixed that. Moved to **SES over HTTPS**
+(`MAIL_MAILER=ses`), which needed three corrections nobody had listed: the region
+is **eu-west-1** (the domain identity exists there, not in the `us-east-1` first
+configured — SES names the *domain* identity only in the region that has it, which
+is how the region was found), an IAM policy granting `ses:SendRawEmail`, and
+production access. The first two are done and SES now returns Message IDs. **The
+account is still in the SANDBOX**, so only verified recipients receive mail:
+password reset and verification still do not reach a real customer. Notifications
+are queued (`BaseNotification implements ShouldQueue`), so nothing 500s — the job
+just fails silently. `queue:retry` once access is granted.
+
+### The commerce purge, as actually performed
+
+Two transactions, each preceded by its own `pg_dump`:
+
+1. **Commerce only** — 1,975 rows across 17 tables (orders, payments, refunds,
+   ledger, shipments, carts, reservations, `loyalty_ledger`, and 1,946
+   `failed_jobs` inherited from staging). `stock_movements` deliberately KEPT:
+   it is the source of truth for on-hand (ADR-050) and deleting it would zero
+   every seller's stock. Reservations gone means stock returns to the seller,
+   because `available = on_hand − reserved` is computed on read (ADR-048).
+2. **110 seeded test organizations** — factory data (`APP_FAKER_LOCALE=tr_TR`)
+   that rode in on the database copy, all `pending`, with **zero** offers,
+   members, documents, KYC, bank accounts or proposed products. Deleted behind a
+   `RAISE EXCEPTION` guard that would have aborted the whole transaction if any
+   of them had acquired real data since the survey. Cascades removed their
+   stores. Four real sellers remain: Turuncukasa (6,717 offers), Eczacıdan
+   (2,042), Ecza Sağlık (751), Eczaneden (0).
+
+**The deleted store pages kept answering 200 afterwards** — Next's fetch data
+cache (`revalidate: 60`) still held them, even though the page is `force-dynamic`;
+it is the *data*, not the route, that was cached. Cleared `.next/cache/fetch-cache`
+and restarted, and they now 404. Without that, the whole point of the deletion —
+fake shops disappearing from the live site — would not have happened.
 
 ### Five things this runbook did not list, that the cutover needed anyway
 

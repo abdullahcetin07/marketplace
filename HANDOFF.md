@@ -16,10 +16,42 @@ pending.
 
 ### `BUILD_GO_LIVE.md` — production cutover runbook 🚀 (ordered; owner-gated)
 
-**▶ PREP DONE — `https://raftabul.com` IS LIVE (2026-08-19, server session).** Steps
-0–4, 6 and 7 are complete and verified; the execution log with everything the runbook
-did not anticipate is at the top of `BUILD_GO_LIVE.md`. **Both 🛑 gates are still
-closed and waiting on the owner:**
+**▶ LIVE AND PROVEN — BOTH 🛑 GATES CLOSED (2026-08-20).** `https://raftabul.com`
+serves the marketplace and has taken **one real card payment and refunded it**
+(order `SP-260820-4N72HJ`, ₺5,00). Full evidence table at the top of
+`BUILD_GO_LIVE.md`.
+
+**The refund is the result that mattered.** `PayTrGateway::refund()`'s `merchant_id`
+hash fix had never run against live PayTR — every refund since S4 was refused with
+`err_no 004`, and the fix was held up by a test alone. It works: refund written,
+order `refunded`, commission reversed, stock restocked, **zero errors logged**.
+Payment.md's "still unverified against live PayTR" note can be retired.
+
+Also verified on that one order: callback from PayTR's own IP (the truth, not the
+redirect), `merchant_oid` = payment uuid hyphen-free, reserve→commit in Inventory
+(ADR-054/057), KDV %20 inclusive = 83 kuruş, commission %18 on the **KDV-inclusive**
+base = 90 kuruş (a KDV-exclusive base would have given 75), and an append-only
+ledger closing to exactly zero.
+
+**⛔ NEVER RUN `marketplace:reset-commerce` ON THIS SERVER.** Its name and the
+runbook both say "test transactions, keeps the catalogue". A `--dry-run` against
+production listed **19,886 products, 9,510 offers, 547 categories, 889 brands and
+30,689 media rows with their files**. The commerce purge was done by hand instead,
+table by table, in two guarded transactions with a `pg_dump` before each.
+
+**Open, and owner-owned:**
+- **SES is still in the sandbox** — mail reaches verified addresses only, so a real
+  customer still cannot reset a password. Production access requested. Region is
+  `eu-west-1` (not `us-east-1`), IAM now grants `ses:SendRawEmail`, SPF/DKIM/DMARC
+  green. Notifications are queued, so nothing 500s — failures are silent; run
+  `queue:retry` once access lands.
+- **`provider_reference` is empty** on both `payments` and `payment_refunds` —
+  PayTR's own reference is never stored. Reconciliation works via `merchant_oid`;
+  a dispute means matching by hand.
+- **Step 11** — old WordPress still on disk, unserved, awaiting the call that prod
+  is stable.
+
+**Historical (both now closed):**
 
 - **Gate #1 — PayTR live.** The prod `.env` still holds the **sandbox** keys with
   `PAYTR_TEST_MODE=1`, on purpose: a blank key computes a hash PayTR answers with a
