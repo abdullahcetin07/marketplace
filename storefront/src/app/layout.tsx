@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Manrope } from 'next/font/google';
 import { CategoryBar } from '@/components/CategoryBar';
+import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SessionProvider } from '@/components/SessionProvider';
 import { SITE_URL } from '@/lib/site';
@@ -87,6 +88,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
   return (
     <html lang="tr" className={manrope.variable}>
       <body className="flex min-h-screen flex-col antialiased">
+        <GoogleTagManager />
         <SessionProvider>
           <div className="bg-ink-950 text-ink-100">
             <div className="mx-auto flex w-full max-w-page items-center px-4 py-1.5 text-xs">
