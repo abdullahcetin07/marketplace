@@ -132,14 +132,17 @@ export default async function HomePage() {
         Onaylı satıcılardan orijinal dermokozmetik, vitamin ve kişisel bakım ürünleri
       </h1>
 
-      {/* brand shortcuts — round logos, linked by slug */}
+      {/* brand shortcuts — round logos, linked by slug. On mobile it is a single-row
+          horizontal carousel (full-bleed, snap, hidden scrollbar); from sm up it becomes
+          the static grid. `shrink-0 basis-*` only bite in the flex row — grid ignores
+          them — so one child markup serves both layouts. */}
       {topBrands.length > 0 && (
-        <div className="grid grid-cols-3 gap-2 sm:grid-cols-5 lg:grid-cols-9">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-9 [&::-webkit-scrollbar]:hidden">
           {topBrands.map((brand) => (
             <Link
               key={brand.id}
               href={`/${brand.slug}`}
-              className="flex flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
+              className="flex shrink-0 basis-[22%] snap-start flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900 sm:basis-auto"
             >
               <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-ink-100 dark:ring-ink-800">
                 {brand.logo ? (

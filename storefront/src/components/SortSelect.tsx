@@ -5,7 +5,7 @@ import type { ChangeEvent } from 'react';
 import type { ProductSort } from '@/lib/api';
 import { ui } from '@/lib/ui';
 
-const SORTS: { value: ProductSort; label: string }[] = [
+export const SORTS: { value: ProductSort; label: string }[] = [
   { value: 'newest', label: 'En yeni' },
   { value: 'price_asc', label: 'En düşük fiyat' },
   { value: 'price_desc', label: 'En yüksek fiyat' },
