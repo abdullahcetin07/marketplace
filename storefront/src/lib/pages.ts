@@ -212,13 +212,13 @@ export const contentPages: Record<string, ContentPage> = {
       { p: 'Çerezler, sahipleri, kullanım ömürleri ve kullanım amaçları açısında kategorize edilebilir:' },
 	  {
         ul: [
-			'Çerezi yerleştiren tarafa göre, Platform çerezleri ve üçüncü taraf Çerezler kullanılmaktadır. Platform çerezleri, Turuncukasa tarafından oluşturulurken, üçüncü taraf çerezlerini Turuncukasa ile iş birlikteliği olan farklı firmalar yönetmektedir.',
+			'Çerezi yerleştiren tarafa göre, Platform çerezleri ve üçüncü taraf Çerezler kullanılmaktadır. Platform çerezleri, raftabul tarafından oluşturulurken, üçüncü taraf çerezlerini raftabul ile iş birlikteliği olan farklı firmalar yönetmektedir.',
 			'Aktif olduğu süreye göre, oturum çerezleri ve kalıcı çerezler kullanılmaktadır. Oturum çerezleri ziyaretçinin Platform’u terk etmesiyle birlikte silinirken, kalıcı çerezler ise kullanım alanına bağlı olarak çeşitli sürelerle ziyaretçilerin cihazlarında kalabilmektedir.',
 			'Kullanım amaçlarına göre, Platform’da teknik çerezler, doğrulama çerezleri, hedefleme/reklam çerezleri, kişiselleştirme çerezleri ve analitik çerezler kullanılmaktadır.',
 		],
 	  },
 	  { h: 'Haklarınız' },
-      { p: '6698 Sayılı Kişisel Verilerin Korunması Kanunu’nun 11. maddesi uyarınca ziyaretçiler, Turuncukasa’ya başvurarak, kendileriyle ilgili,' },
+      { p: '6698 Sayılı Kişisel Verilerin Korunması Kanunu’nun 11. maddesi uyarınca ziyaretçiler, raftabul’a başvurarak, kendileriyle ilgili,' },
 	  {
         ul: [
 			'Kişisel veri işlenip işlenmediğini öğrenme,',
