@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import Link from 'next/link';
 import { Manrope } from 'next/font/google';
 import { CategoryBar } from '@/components/CategoryBar';
+import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SessionProvider } from '@/components/SessionProvider';
@@ -170,6 +171,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </footer>
         </SessionProvider>
+        {/* KVKK çerez onayı — only with a real GTM container (staging leaves it unset,
+            so no banner and nothing to consent to). */}
+        {process.env.NEXT_PUBLIC_GTM_ID && <CookieConsent />}
       </body>
     </html>
   );

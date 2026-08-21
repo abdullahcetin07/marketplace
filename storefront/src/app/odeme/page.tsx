@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { analyticsAmount, pushDataLayer } from '@/lib/analytics';
 import { AddressForm } from '@/components/AddressForm';
 import { PayTrCheckout } from '@/components/PayTrCheckout';
 import { useSession } from '@/components/SessionProvider';
@@ -84,6 +85,28 @@ export default function CheckoutPage() {
     void api.fetchCountries().then(setCountries);
     void api.fetchLoyaltyBalance().then(setBalance);
   }, [status]);
+
+  // GA4 begin_checkout — fire once, when the cart is loaded with lines. `value` and
+  // each `price` are decimal strings parsed to numbers for analytics only (analytics.ts).
+  const beginCheckoutFired = useRef(false);
+  useEffect(() => {
+    if (beginCheckoutFired.current || cart.items.length === 0) return;
+    beginCheckoutFired.current = true;
+
+    pushDataLayer({
+      event: 'begin_checkout',
+      ecommerce: {
+        currency: cart.currency ?? undefined,
+        value: analyticsAmount(cart.items_total),
+        items: cart.items.map((line) => ({
+          item_id: line.product_id,
+          item_name: line.title ?? undefined,
+          price: line.unit_price === null ? undefined : analyticsAmount(line.unit_price),
+          quantity: line.quantity,
+        })),
+      },
+    });
+  }, [cart]);
 
   async function togglePoints(next: boolean) {
     setUsePoints(next);

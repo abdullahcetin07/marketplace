@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
+import { analyticsAmount, pushDataLayer } from '@/lib/analytics';
 import { SessionApiError } from '@/lib/session-api';
 import { useSession } from './SessionProvider';
 
@@ -24,17 +25,32 @@ type Variant = 'primary' | 'secondary' | 'icon';
  * the secondary "Sepete ekle", and the compact "+" next to a rival seller.
  * `redirectOnAdd` turns a plain add into "add and take me there" (the basket for
  * "Hemen al").
+ *
+ * THE `item*`/`price` PROPS ARE ANALYTICS ONLY (ADR-085). When a caller has the
+ * product on hand it passes them so the GA4 `add_to_cart` event carries item name and
+ * value; when it doesn't, the event still fires with the offer id + quantity. They
+ * never touch the write itself — the basket is priced live server-side (ADR-053).
  */
 export function AddToCartButton({
   offerId,
   variant = 'primary',
   label = 'Sepete ekle',
   redirectOnAdd,
+  itemId,
+  itemName,
+  itemBrand,
+  price,
+  currency,
 }: {
   offerId: string;
   variant?: Variant;
   label?: string;
   redirectOnAdd?: string;
+  itemId?: string;
+  itemName?: string;
+  itemBrand?: string | null;
+  price?: string;
+  currency?: string;
 }) {
   const { status, addItem } = useSession();
   const router = useRouter();
@@ -55,6 +71,27 @@ export function AddToCartButton({
     try {
       await addItem(offerId);
       setAdded(true);
+
+      // GA4 add_to_cart — quantity is always 1 here (one press adds one). Price is a
+      // decimal string parsed to a number for analytics only (see analytics.ts).
+      const value = price === undefined ? undefined : analyticsAmount(price);
+      pushDataLayer({
+        event: 'add_to_cart',
+        ecommerce: {
+          currency,
+          value,
+          items: [
+            {
+              item_id: itemId ?? offerId,
+              item_name: itemName,
+              item_brand: itemBrand ?? undefined,
+              price: value,
+              quantity: 1,
+            },
+          ],
+        },
+      });
+
       if (redirectOnAdd) router.push(redirectOnAdd);
     } catch (caught) {
       setError(

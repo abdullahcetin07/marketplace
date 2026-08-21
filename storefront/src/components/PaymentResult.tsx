@@ -1,8 +1,9 @@
 'use client';
 
 import Link from 'next/link';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '@/components/SessionProvider';
+import { analyticsAmount, pushDataLayer } from '@/lib/analytics';
 import { fetchPayment } from '@/lib/session-api';
 import { formatMoney } from '@/lib/money';
 import { ui } from '@/lib/ui';
@@ -27,6 +28,26 @@ export function PaymentResult() {
   const { refreshCart } = useSession();
   const [payment, setPayment] = useState<PaymentView | null>(null);
   const [phase, setPhase] = useState<'checking' | 'done' | 'missing'>('checking');
+
+  // GA4 purchase — fire ONCE, and only on a confirmed-paid payment (never on
+  // pending/failed). `transaction_id` is the payment uuid; `value` is the paid amount,
+  // a decimal string parsed to a number for analytics only (analytics.ts). Items are
+  // not on hand here (the basket already became orders), so a transaction-level event
+  // is what we send — acceptable per GA4.
+  const purchaseFired = useRef(false);
+  useEffect(() => {
+    if (purchaseFired.current || payment === null || payment.status !== 'paid') return;
+    purchaseFired.current = true;
+
+    pushDataLayer({
+      event: 'purchase',
+      ecommerce: {
+        transaction_id: payment.id,
+        currency: payment.currency,
+        value: analyticsAmount(payment.amount),
+      },
+    });
+  }, [payment]);
 
   const clear = useCallback(() => {
     try {

@@ -2809,3 +2809,48 @@ product (7,025) and lands at ~0.35s rather than under 0.2s. The fix is the same 
 one level further — a denormalised minimum price — and it is deliberately not built
 here: this ADR already trades one derived column for correctness that a sweep must
 maintain, and a second one belongs to its own decision with its own measurement.
+
+# ADR-085 Analytics Is a Single GTM Container, Consent-Gated by Default, and the Only Place a Price Is Parsed
+
+**Status:** Accepted (2026-08-21). Storefront-only; extends ADR-058. Ships with the
+storefront (no backend change). Companion to the already-shipped GTM container commit.
+
+**Decision.** The storefront loads exactly one third-party tag: a **Google Tag Manager**
+container. GA4 and every future tag are configured *inside* GTM, so adding measurement
+never touches code. The integration has three load-bearing properties:
+
+1. **Env-gated on `NEXT_PUBLIC_GTM_ID`.** No id, no container — so `test.raftabul.com`
+   (which leaves it unset) never pollutes analytics with staging traffic, and the KVKK
+   banner does not appear where there is nothing to consent to. Only production carries
+   the real container id and is measured.
+2. **Consent Mode v2, denied by default.** A `beforeInteractive` script sets
+   `ad_storage`/`ad_user_data`/`ad_personalization`/`analytics_storage` to **denied**
+   *before* GTM loads, so no cookie-writing tag can fire until a shopper chooses. The
+   KVKK banner (`CookieConsent`) stores the choice in `localStorage` and, on "Kabul Et",
+   sends a Consent Mode `update` to granted. A returning grant is re-applied silently on
+   every load, because the default resets to denied each time. Denied is the safe state,
+   and it is the state a visitor who never answers stays in — measurement is opt-in, not
+   opt-out, which is the KVKK-correct stance.
+3. **GA4 ecommerce events cross the dataLayer, never a network call the code makes.**
+   `view_item` / `add_to_cart` / `begin_checkout` / `purchase` are pushed to
+   `window.dataLayer`; GTM (owner-configured GA4 Event tags + triggers) forwards them.
+   The code emits signals and owns none of the transport, so a tagging change is never a
+   deploy. Every push resets `ecommerce` first (GA4 guidance) and no-ops without a
+   dataLayer, so a broken analytics push can never break a page.
+
+**The one exception to "never parse a price."** `money.ts` forbids `Number(price)`
+because the API sends money as decimal strings and a float drifts (ADR-005). GA4's
+ecommerce spec, however, requires `value`/`price` to be **numeric**. So `analytics.ts`
+holds the single, quarantined `analyticsAmount()` — the only `Number()` on a price
+string in the storefront — with a comment stating why. It feeds a report, never a total
+a shopper sees or a figure the platform keeps, and a malformed amount degrades to `0`
+rather than the `NaN` GA4 would drop. Keeping it in one named file is what makes the
+rule enforceable: a reviewer greps `Number(` on a price and finds exactly one licensed
+site.
+
+**Cost, stated.** The measurement is only as good as the GTM container the owner wires by
+hand — the code guarantees the *signals* exist and consent gates them, not that any tag
+forwards them; a container published empty measures nothing and the code cannot tell.
+And Consent Mode's denied default means the analytics of visitors who decline (or never
+answer) are cookieless/absent, which is the correct privacy trade and also a real gap in
+the numbers, named here so it is not later mistaken for undercounting.

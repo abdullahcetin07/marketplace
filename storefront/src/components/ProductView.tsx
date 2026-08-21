@@ -11,6 +11,7 @@ import { ProductCampaigns } from '@/components/ProductCampaigns';
 import { RelatedProducts } from '@/components/RelatedProducts';
 import { Stars } from '@/components/Stars';
 import { TrackRecentView } from '@/components/TrackRecentView';
+import { TrackViewItem } from '@/components/TrackViewItem';
 import { getProduct, getProductOffers, getProductQuestions, getProductReviews } from '@/lib/api';
 import { formatMoney } from '@/lib/money';
 import { absoluteUrl } from '@/lib/site';
@@ -156,6 +157,16 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
             : null,
         }}
       />
+      {/* GA4 view_item — only when there's a live buy-box price to report as `value`. */}
+      {featured !== null && (
+        <TrackViewItem
+          id={product.id}
+          name={product.title}
+          brand={product.brand?.name}
+          price={featured.price}
+          currency={featured.currency}
+        />
+      )}
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(productLd) }} />
 
@@ -304,8 +315,27 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                   <span className="h-2 w-2 rounded-full bg-green-500" /> Stokta var · KDV dahil
                 </div>
                 <div className="flex flex-col gap-2.5">
-                  <AddToCartButton offerId={featured.id} variant="primary" label="Sepete Ekle" />
-                  <AddToCartButton offerId={featured.id} variant="secondary" label="Şimdi Al" redirectOnAdd="/sepet" />
+                  <AddToCartButton
+                    offerId={featured.id}
+                    variant="primary"
+                    label="Sepete Ekle"
+                    itemId={product.id}
+                    itemName={product.title}
+                    itemBrand={product.brand?.name}
+                    price={featured.price}
+                    currency={featured.currency}
+                  />
+                  <AddToCartButton
+                    offerId={featured.id}
+                    variant="secondary"
+                    label="Şimdi Al"
+                    redirectOnAdd="/sepet"
+                    itemId={product.id}
+                    itemName={product.title}
+                    itemBrand={product.brand?.name}
+                    price={featured.price}
+                    currency={featured.currency}
+                  />
                 </div>
 
                 {featured.store?.slug && (
@@ -343,7 +373,15 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                         {formatMoney(offer.price, offer.currency)}
                       </span>
                     </div>
-                    <AddToCartButton offerId={offer.id} variant="icon" />
+                    <AddToCartButton
+                      offerId={offer.id}
+                      variant="icon"
+                      itemId={product.id}
+                      itemName={product.title}
+                      itemBrand={product.brand?.name}
+                      price={offer.price}
+                      currency={offer.currency}
+                    />
                   </li>
                 ))}
               </ul>
@@ -411,7 +449,16 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
               </span>
             </div>
             <div className="ml-auto w-[54%] max-w-[260px]">
-              <AddToCartButton offerId={featured.id} variant="primary" label="Sepete Ekle" />
+              <AddToCartButton
+                offerId={featured.id}
+                variant="primary"
+                label="Sepete Ekle"
+                itemId={product.id}
+                itemName={product.title}
+                itemBrand={product.brand?.name}
+                price={featured.price}
+                currency={featured.currency}
+              />
             </div>
           </>
         )}
