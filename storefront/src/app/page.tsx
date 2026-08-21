@@ -184,16 +184,16 @@ export default async function HomePage() {
         </section>
       )}
 
-      {/* coupons */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      {/* coupons — two per row on mobile, up to four on desktop */}
+      <div className="grid grid-cols-2 gap-2.5 sm:gap-3 lg:grid-cols-4">
         {coupons.map((c) => (
           <Link
             key={c.title}
             href={c.href}
-            className="flex items-center gap-3.5 rounded-2xl border border-dashed border-ink-300 bg-white p-4 transition hover:border-brand-400 hover:shadow-sm dark:border-ink-700 dark:bg-ink-900"
+            className="flex items-center gap-3 rounded-2xl border border-dashed border-ink-300 bg-white p-3 transition hover:border-brand-400 hover:shadow-sm dark:border-ink-700 dark:bg-ink-900 sm:gap-3.5 sm:p-4"
           >
-            <div className="whitespace-nowrap text-2xl font-extrabold tracking-tight text-brand-600">{c.amount}</div>
-            <div className="border-l border-dashed border-ink-300 pl-3.5 dark:border-ink-700">
+            <div className="whitespace-nowrap text-xl font-extrabold tracking-tight text-brand-600 sm:text-2xl">{c.amount}</div>
+            <div className="min-w-0 border-l border-dashed border-ink-300 pl-3 dark:border-ink-700 sm:pl-3.5">
               <div className="text-sm font-bold">{c.title}</div>
               <div className="text-xs text-ink-500">{c.note}</div>
             </div>
