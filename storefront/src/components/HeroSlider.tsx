@@ -4,8 +4,15 @@ import Link from 'next/link';
 import { useCallback, useEffect, useState } from 'react';
 
 export type HeroSlide = {
-  /** Banner image under /public — e.g. "/kampanyalar/1.jpg". */
+  /** Wide desktop banner under /public — e.g. "/kampanyalar/1.webp" (≈16:5). */
   image: string;
+  /**
+   * Optional mobile-specific banner (< 640px). Shown at its OWN natural ratio,
+   * uncropped — so a portrait/square/2:1 mobile art fills the phone without the
+   * wide desktop image being cut. Use the SAME dimensions across all slides so the
+   * slider height stays consistent. Falls back to a 2:1 crop of `image` when absent.
+   */
+  mobileImage?: string;
   /** Where the banner links (a category/brand/listing/product URL). Omit for a non-clickable banner. */
   href?: string;
   /** Alt text — also the accessible name of the slide. */
@@ -61,18 +68,24 @@ export function HeroSlider({ slides, intervalMs = 5000 }: { slides: HeroSlide[];
         style={{ transform: `translateX(-${active * 100}%)` }}
       >
         {slides.map((slide, i) => {
-          // eslint-disable-next-line @next/next/no-img-element
+          // A dedicated mobile source (when set) shows at its natural ratio under
+          // 640px; from sm up the wide image is forced to 16:5. Without a mobile
+          // image, mobile falls back to a 2:1 crop of the wide one.
           const img = (
-            <img
-              src={slide.image}
-              alt={slide.alt}
-              className="aspect-[2/1] w-full object-cover sm:aspect-[16/5]"
-              loading={i === 0 ? 'eager' : 'lazy'}
-              // The first slide is the homepage LCP element. `eager` only says "don't
-              // lazy-load"; `fetchPriority=high` tells the browser to pull it ahead of
-              // the other slides and page assets — the single biggest lever on hero LCP.
-              fetchPriority={i === 0 ? 'high' : 'auto'}
-            />
+            <picture>
+              {slide.mobileImage && <source media="(max-width: 639px)" srcSet={slide.mobileImage} />}
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img
+                src={slide.image}
+                alt={slide.alt}
+                className={`w-full object-cover sm:aspect-[16/5] ${slide.mobileImage ? '' : 'aspect-[2/1]'}`}
+                loading={i === 0 ? 'eager' : 'lazy'}
+                // The first slide is the homepage LCP element. `eager` only says "don't
+                // lazy-load"; `fetchPriority=high` tells the browser to pull it ahead of
+                // the other slides and page assets — the single biggest lever on hero LCP.
+                fetchPriority={i === 0 ? 'high' : 'auto'}
+              />
+            </picture>
           );
           return (
             <div key={slide.image + i} className="w-full shrink-0" aria-hidden={i !== active}>
