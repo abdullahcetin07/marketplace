@@ -98,7 +98,6 @@ export const contentPages: Record<string, ContentPage> = {
       { p: 'Çalışma saatleri: Hafta içi 09:00 – 18:00' },
       { h: 'Siparişinizle mi ilgili?' },
       { p: 'Sipariş durumunuzu, kargo takibinizi ve iade taleplerinizi hesabınızdaki “Siparişlerim” bölümünden takip edebilirsiniz.' },
-      { note: 'Gerçek iletişim bilgilerinizi (e-posta, telefon, adres, sosyal medya) bu sayfadan güncelleyin.' },
     ],
   },
 
@@ -178,15 +177,61 @@ export const contentPages: Record<string, ContentPage> = {
     title: 'Gizlilik Politikası',
     description: 'Raftabul Gizlilik Politikası.',
     body: [
-      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Aşağıdaki başlıklar bir taslak iskelettir; bağlayıcı Gizlilik Politikası metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin.' },
+	  {
+        ul: [
+          'BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA adresinde mukim AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI ("Amiay "), kullanıcıların raftabul.com ("Websitesi") üzerinden ilettikleri kişisel bilgilerini, Gizlilik Politikası ile belirlenen amaçlar ve kapsam dışında kullanmayacak, ayrıca izinsiz olarak üçüncü kişilerle paylaşmayacaktır. Bununla beraber kullanıcı, paylaşmış olduğu bilgilerinin kendisine özel avantajların sunulabilmesi, satış, pazarlama ve benzer amaçlı her türlü iletişim faaliyetlerinin bildirimi maksatlarıyla, tüm Amiay iştirakleri ile de paylaşımına izin vermektedir.',
+          'Kişisel bilgiler; ad soyad, doğum tarihi, ev adresi, mobil ve sabit telefon numarası, e-posta adresi gibi kullanıcıyı doğrudan ya da dolaylı olarak tanımlamaya yönelik her türlü kişisel bilgiyi içermekte olup, kısaca “Gizli Bilgiler” olarak anılacaktır.',
+          'Amiay, kişisel bilgileri kendi bünyesinde profilleme, istatistiksel çalışmalar, reklam, tanıtım, pazarlama ve sair iletişim faaliyetleri amacıyla kullanabilecek ve sadece bu çalışmaların yapılması amacıyla bilginiz dahilinde olan 3.kişiler ile paylaşabilecektir.',
+          'Amiay, kişisel bilgileri kesinlikle gizli tutmayı, bunu bir sır saklama yükümlülüğü olarak addetmeyi, gizliliğin sağlanması ve sürdürülmesi, gizli bilginin tamamının veya herhangi bir kısmının kamu alanına girmesini veya yetkisiz kullanımını veya üçüncü bir kişiye ifşasını önlemek için gerekli tedbirleri almayı ve gerekli özeni göstermeyi taahhüt etmektedir. Amiay’ın gerekli bilgi güvenliği önlemlerini almasına karşın websitesine ve sisteme yapılan saldırılar sonucunda gizli bilgilerin zarar görmesi veya üçüncü kişilerin eline geçmesi durumunda, Amiay’ın herhangi bir sorumluluğu olmayacaktır.',
+          'Amiay, kullanıcılara ve kullanıcıların Web sitesinin kullanımına dair bilgileri, teknik bir iletişim dosyasını (Kurabiye-Cookie) kullanarak elde edebilir. Ancak, kullanıcılar dilerlerse teknik iletişim dosyasının gelmemesi veya teknik iletişim dosyası gönderildiğinde ikaz verilmesini sağlayacak biçimde tarayıcı ayarlarını değiştirebilirler.',
+          'Kullanıcılar, Üyelik/Kişisel bilgilerini ve iletişim tercihlerini her zaman sisteme giriş yaparak güncelleyebilirler. Bu konuda taleplerinizi ayrıca Websitemizde yer alan iletişim bilgilerinden bize ulaşarak da iletebilirsiniz. Talebiniz en kısa sürede değerlendirilerek uygulamaya alınacaktır.',
+          'raftabul.com dan promosyon ve duyuru mesajı içeren e-posta almak istemiyorsanız size ulaşan kampanya mailinin alt kısmında "mail listesinden ayrıl" bağlantısına tıklarak listeden ayrılabilirsiniz.',
+          'Her Kullanıcı, işbu Websitesini ziyaret ederek, işbu Gizlilik Politikası hükümlerini kabul etmiş sayılacaktır.',
+        ],
+      },
       { h: 'Toplanan veriler' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Verilerin kullanımı' },
-      { p: '[Buraya resmi metin gelecek.]' },
+      { p: 'Aşağıda raftabul.com tarafından işlenen ve Kanun uyarınca kişisel veri sayılan verilerin hangileri olduğu sıralanmıştır. Aksi açıkça belirtilmedikçe, işbu Politika kapsamında arz edilen hüküm ve koşullar kapsamında “kişisel veri” ifadesi aşağıda yer alan bilgileri kapsayacaktır.' },
+      {
+        ul: [
+			'Kimlik Bilgisi',
+			'İletişim Bilgisi',
+			'Kullanıcı Bilgisi',
+			'Kullanıcı İşlem Bilgisi',
+			'İşlem Güvenliği Bilgisi',
+			'Finansal Bilgi',
+			'Pazarlama Bilgisi',
+			'Talep/Şikayet Yönetimi Bilgisi',
+		],
+	  },
+	  { p: 'Kişisel Verilerin Korunması Kanunu’nun 3. ve 7. maddeleri dairesince, geri döndürülemeyecek şekilde anonim hale getirilen veriler, anılan kanun hükümleri uyarınca kişisel veri olarak kabul edilmeyecek ve bu verilere ilişkin işleme faaliyetleri işbu Politika hükümleri ile bağlı olmaksızın gerçekleştirecektir.' },
+	  { h: 'Verilerin kullanımı' },
+      { p: 'Amiay, Veri Sahibi tarafından sağlanan kişisel verileri, üyelik kaydı ve hesabının oluşturulması ve buna ilişkin kayıtların tutulması, Veri Sahibi’nin Websitesi üzerinden sağlanan hizmetlerden faydalandırılması sistem hatalarının tespit edilerek performans takibinin yapılması ve Platform’un işleyişinin iyileştirilmesi, bakım ve destek hizmetleri ile yedekleme hizmetlerinin sunulması amaçları dahil olmak üzere Amiay tarafından sunulan ürün ve hizmetlerden ilgili kişileri faydalandırmak için gerekli çalışmaların iş birimleri tarafından yapılması ve ilgili iş süreçlerinin yürütülmesi ile bu ürün ve hizmetlerin ilgili kişilerin beğeni, kullanım alışkanlıkları ve ihtiyaçlarına göre özelleştirilerek ilgili kişilere önerilmesi ve tanıtılması için gerekli olan aktivitelerin planlanması ve icrası, Amiay tarafından yürütülen ticari faaliyetlerin gerçekleştirilmesi için ilgili iş birimleri tarafından gerekli çalışmaların yapılması ve buna bağlı iş süreçlerinin yürütülmesi, Amiay ve iş ilişkisi içerisinde bulunduğu kişilerin hukuki, teknik ve ticari-iş güvenliğinin temini ile Amiay’nın ticari ve/veya iş stratejilerinin planlanması ve icrası amaçlarıyla işlenebilecektir.' },
       { h: 'Çerezler' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Haklarınız' },
-      { p: '[Buraya resmi metin gelecek.]' },
+      { p: 'AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI. (“Amiay”) olarak, kullanıcılarımızın hizmetlerimizden güvenli ve eksiksiz şekilde faydalanmalarını sağlamak amacıyla sitemizi kullanan kişilerin gizliliğini korumak için çalışıyoruz. Çoğu web sitesinde olduğu gibi, raftabul.com (“Site”) ziyaretçilere kişisel içerik ve reklamlar göstermek, site içinde analitik faaliyetler gerçekleştirmek ve ziyaretçi kullanım alışkanlıklarını takip etmek amacıyla Çerezler kullanılmaktadır. İşbu Çerez Politakası raftabul.com Gizlilik Politikası’nın ayrılmaz bir parçasıdır. Amiay, bu Çerez Politikası’nı (“Politika”) Site’de hangi Çerezlerin kullanıldığını ve kullanıcıların bu konudaki tercihlerini nasıl yönetebileceğini açıklamak amacıyla hazırlamıştır. ' },
+      { h: 'Hangi Çerezler Kullanılmaktadır?' },
+      { p: 'Çerezler, sahipleri, kullanım ömürleri ve kullanım amaçları açısında kategorize edilebilir:' },
+	  {
+        ul: [
+			'Çerezi yerleştiren tarafa göre, Platform çerezleri ve üçüncü taraf Çerezler kullanılmaktadır. Platform çerezleri, Turuncukasa tarafından oluşturulurken, üçüncü taraf çerezlerini Turuncukasa ile iş birlikteliği olan farklı firmalar yönetmektedir.',
+			'Aktif olduğu süreye göre, oturum çerezleri ve kalıcı çerezler kullanılmaktadır. Oturum çerezleri ziyaretçinin Platform’u terk etmesiyle birlikte silinirken, kalıcı çerezler ise kullanım alanına bağlı olarak çeşitli sürelerle ziyaretçilerin cihazlarında kalabilmektedir.',
+			'Kullanım amaçlarına göre, Platform’da teknik çerezler, doğrulama çerezleri, hedefleme/reklam çerezleri, kişiselleştirme çerezleri ve analitik çerezler kullanılmaktadır.',
+		],
+	  },
+	  { h: 'Haklarınız' },
+      { p: '6698 Sayılı Kişisel Verilerin Korunması Kanunu’nun 11. maddesi uyarınca ziyaretçiler, Turuncukasa’ya başvurarak, kendileriyle ilgili,' },
+	  {
+        ul: [
+			'Kişisel veri işlenip işlenmediğini öğrenme,',
+			'Kişisel verileri işlenmişse buna ilişkin bilgi talep etme,',
+			'Kişisel verilerin işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme,',
+			'Yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme,',
+			'Kişisel verilerin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme ve bu kapsamda yapılan işlemin kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme,',
+			'Kanun ve ilgili diğer kanun hükümlerine uygun olarak işlenmiş olmasına rağmen, işlenmesini gerektiren sebeplerin ortadan kalkması hâlinde kişisel verilerin silinmesini veya yok edilmesini isteme ve bu kapsamda yapılan işlemin kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme,',
+			'İşlenen verilerin münhasıran otomatik sistemler vasıtasıyla analiz edilmesi suretiyle kişinin kendisi aleyhine bir sonucun ortaya çıkmasına itiraz etme,',
+			'Kişisel verilerin kanuna aykırı olarak işlenmesi sebebiyle zarara uğraması hâlinde zararın giderilmesini talep etme haklarına sahiptir',
+		],
+	  },
+	  { p: 'Söz konusu haklar, kişisel veri sahipleri tarafından 6698 sayılı Kanun Kapsamında Amiay tarafından hazırlanan Kişisel Verilerin İşlenmesi ve Korunmasına ilişkin Politika’da belirtilen yöntemlerle iletildiğinde her hâlükârda 30 (otuz) gün içerisinde değerlendirilerek sonuçlandırılacaktır. Taleplere ilişkin olarak herhangi bir ücret talep edilmemesi esas olmakla birlikte, Amiay, Kişisel Verileri Koruma Kurulu tarafından belirlenen ücret tarifesi üzerinden ücret talep etme hakkını saklı tutar.' },
     ],
   },
 
@@ -196,13 +241,89 @@ export const contentPages: Record<string, ContentPage> = {
     body: [
       { note: 'Bu sayfanın resmi metni henüz eklenmedi. 6698 sayılı KVKK kapsamındaki aydınlatma metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin.' },
       { h: 'Veri sorumlusu' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'İşleme amaçları ve hukuki sebepler' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Veri aktarımı' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'İlgili kişinin hakları' },
-      { p: '[Buraya resmi metin gelecek.]' },
+      { p: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, kişisel verileriniz veri sorumlusu sıfatıyla AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI tarafından işlenmektedir.' },
+      { p: 'Veri sorumlusunun iletişim bilgileri: Adres: BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA, E-posta:destek@raftabul.com' },
+	  {h: '2. İşlenen Kişisel Veriler',},
+		{
+		p: 'Raftabul internet sitesi ve ilgili hizmetler üzerinden gerçekleştirilen işlemler kapsamında; kimlik bilgileri, iletişim bilgileri, adres bilgileri, müşteri işlem bilgileri, sipariş ve alışveriş bilgileri, fatura bilgileri, işlem güvenliği bilgileri, internet sitesi kullanım bilgileri ve mevzuatın izin verdiği ölçüde işlem güvenliğine ilişkin teknik veriler işlenebilmektedir.'
+		},
+		{
+		p: 'Ödeme işlemlerinde kullanılan banka veya ödeme kuruluşlarına ait kart bilgileriniz, ödeme hizmetinin niteliğine göre doğrudan ilgili ödeme hizmeti sağlayıcısı tarafından işlenebilir. Raftabul tarafından gerekli olmadığı sürece kart bilgilerinizin tamamı saklanmaz.'
+		},
+
+		{
+		h: '3. Kişisel Verilerin İşlenme Amaçları',
+		},
+		{
+		p: 'Kişisel verileriniz; üyelik ve hesap işlemlerinin yürütülmesi, siparişlerin alınması ve sonuçlandırılması, ürün ve hizmetlerin sunulması, ödeme ve faturalandırma işlemlerinin gerçekleştirilmesi, ürünlerin teslim edilmesi, müşteri hizmetlerinin yürütülmesi, talep ve şikâyetlerin değerlendirilmesi, satış sonrası destek hizmetlerinin sağlanması, iletişim faaliyetlerinin yürütülmesi, bilgi güvenliğinin sağlanması, internet sitesinin güvenliğinin ve işleyişinin sağlanması, dolandırıcılık ve kötüye kullanımın önlenmesi, muhasebe ve finans işlemlerinin yürütülmesi ve yasal yükümlülüklerin yerine getirilmesi amaçlarıyla işlenebilir.'
+		},
+		{
+		p: 'Ayrıca, gerekli hukuki şartların bulunması ve gerektiğinde açık rızanızın alınması koşuluyla; kampanya, indirim, tanıtım ve pazarlama faaliyetlerinin yürütülmesi, size özel tekliflerin oluşturulması ve elektronik ileti gönderilmesi amacıyla da kişisel verileriniz işlenebilir.'
+		},
+
+		{
+		h: '4. Kişisel Verilerin Toplanma Yöntemi ve Hukuki Sebebi',
+		},
+		{
+		p: 'Kişisel verileriniz; Raftabul internet sitesi, üyelik ve sipariş formları, iletişim kanalları, müşteri hizmetleri, elektronik iletişim araçları, ödeme işlemleri, teslimat süreçleri, çerezler ve benzeri çevrimiçi teknolojiler aracılığıyla otomatik veya kısmen otomatik yöntemlerle toplanabilir.'
+		},
+		{
+		p: 'Kişisel verileriniz; KVKK’nın 5. maddesinde belirtilen kanunlarda açıkça öngörülmesi, sözleşmenin kurulması veya ifası için gerekli olması, veri sorumlusunun hukuki yükümlülüğünü yerine getirmesi, bir hakkın tesisi, kullanılması veya korunması için veri işlemenin zorunlu olması, ilgili kişinin temel hak ve özgürlüklerine zarar vermemek kaydıyla veri sorumlusunun meşru menfaatleri için zorunlu olması ve gerekli hallerde açık rızanın bulunması hukuki sebeplerine dayanılarak işlenmektedir.'
+		},
+
+		{
+		h: '5. Kişisel Verilerin Aktarılması',
+		},
+		{
+		p: 'Kişisel verileriniz; sipariş ve teslimat süreçlerinin yürütülmesi amacıyla kargo ve lojistik hizmet sağlayıcılarına, ödeme işlemlerinin gerçekleştirilmesi amacıyla ödeme kuruluşlarına ve bankalara, faturalandırma ve muhasebe süreçlerinin yürütülmesi amacıyla yetkili hizmet sağlayıcılara, teknik altyapı ve bilişim hizmetlerinin sağlanması amacıyla hizmet sağlayıcılara ve mevzuatın izin verdiği ölçüde yetkili kamu kurum ve kuruluşlarına aktarılabilir.'
+		},
+		{
+		p: 'Kişisel verileriniz, hizmetlerin sunulması için gerekli olması halinde Raftabul adına hizmet veren teknoloji, barındırma, e-posta, analiz, güvenlik ve benzeri hizmet sağlayıcılarına da aktarılabilir. Yurt dışına veri aktarımı söz konusu olması halinde KVKK’da öngörülen şartlara uygun hareket edilir.'
+		},
+
+		{
+		h: '6. Kişisel Verilerin Saklanma Süresi',
+		},
+		{
+		p: 'Kişisel verileriniz, ilgili mevzuatta öngörülen saklama süreleri boyunca veya işleme amacının gerektirdiği süre kadar saklanır. Saklama süresinin sona ermesi veya kişisel verilerin işlenmesini gerektiren sebeplerin ortadan kalkması halinde kişisel veriler, ilgili mevzuata uygun şekilde silinir, yok edilir veya anonim hale getirilir.'
+		},
+
+		{
+		h: '7. Çerezler ve Benzeri Teknolojiler',
+		},
+		{
+		p: 'Raftabul internet sitesinde kullanıcı deneyiminin geliştirilmesi, sitenin güvenli ve düzgün şekilde çalışmasının sağlanması, tercihlerin hatırlanması ve gerekli durumlarda site kullanımının analiz edilmesi amacıyla çerezler ve benzeri teknolojiler kullanılabilir.'
+		},
+		{
+		p: 'Zorunlu olmayan çerezlerin kullanımı ve kişisel verilerin bu teknolojiler aracılığıyla işlenmesi bakımından ilgili mevzuatta öngörülen şartlara uygun hareket edilir. Çerez tercihlerinizi internet tarayıcınızın veya sitemizde sunulan çerez yönetim araçlarının izin verdiği ölçüde değiştirebilirsiniz.'
+		},
+
+		{
+		h: '8. İlgili Kişinin KVKK Kapsamındaki Hakları',
+		},
+		{
+		p: 'KVKK’nın 11. maddesi kapsamında ilgili kişi olarak; kişisel verilerinizin işlenip işlenmediğini öğrenme, işlenmişse buna ilişkin bilgi talep etme, işlenme amacını ve bunların amacına uygun kullanılıp kullanılmadığını öğrenme, yurt içinde veya yurt dışında kişisel verilerin aktarıldığı üçüncü kişileri bilme, kişisel verilerin eksik veya yanlış işlenmiş olması hâlinde bunların düzeltilmesini isteme ve KVKK’da öngörülen şartlar çerçevesinde kişisel verilerin silinmesini veya yok edilmesini isteme haklarına sahipsiniz.'
+		},
+		{
+		p: 'Bunun yanında; düzeltme, silme veya yok etme işlemlerinin kişisel verilerin aktarıldığı üçüncü kişilere bildirilmesini isteme, münhasıran otomatik sistemler vasıtasıyla analiz edilmesi sonucunda aleyhinize bir sonucun ortaya çıkmasına itiraz etme ve kanuna aykırı veri işlenmesi nedeniyle zarara uğramanız hâlinde zararın giderilmesini talep etme haklarına da sahipsiniz.'
+		},
+
+		{
+		h: '9. Başvuru Yöntemi',
+		},
+		{
+		p: 'KVKK kapsamındaki haklarınızı kullanmak için talebinizi destek@raftabul.com adresine e-posta yoluyla veya BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA adresine yazılı olarak iletebilirsiniz.'
+		},
+		{
+		p: 'Başvurularınız, KVKK ve ilgili ikincil mevzuatta öngörülen usul ve esaslar çerçevesinde değerlendirilerek sonuçlandırılır. Başvurunun niteliğine göre kimlik doğrulaması yapılması veya ek bilgi ve belge talep edilmesi mümkündür.'
+		},
+
+		{
+		h: '10. Yürürlük',
+		},
+		{
+		p: 'Bu Aydınlatma Metni, kişisel verilerin işlenmesine ilişkin uygulamalarımızdaki değişiklikler veya mevzuat gereklilikleri doğrultusunda güncellenebilir. Güncel metin Raftabul internet sitesinde yayımlandığı tarih itibarıyla geçerlidir.'
+		}
     ],
   },
 
@@ -210,15 +331,62 @@ export const contentPages: Record<string, ContentPage> = {
     title: 'Kullanım Şartları',
     description: 'Raftabul Kullanım Şartları.',
     body: [
-      { note: 'Bu sayfanın resmi metni henüz eklenmedi. Bağlayıcı Kullanım Şartları (Üyelik Sözleşmesi / Mesafeli Satış koşulları dahil) metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin.' },
-      { h: 'Taraflar ve konu' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Üyelik ve kullanım' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Sipariş, ödeme ve teslimat' },
-      { p: '[Buraya resmi metin gelecek.]' },
-      { h: 'Sorumluluğun sınırı' },
-      { p: '[Buraya resmi metin gelecek.]' },
+		{ h: '1. Taraflar ve Konu' },
+		{ p: 'Bu Kullanım Şartları, Raftabul internet sitesi ve bu site üzerinden sunulan hizmetlerin kullanımına ilişkin koşulları düzenlemektedir. Raftabul internet sitesini ziyaret eden, üye olan veya site üzerinden alışveriş yapan tüm kullanıcılar bu Kullanım Şartları’nı kabul etmiş sayılır.' },
+		{ p: 'AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI ("Raftabul", "Şirket", "biz") tarafından işletilen Raftabul internet sitesi üzerinden sunulan ürün ve hizmetlerden yararlanabilmek için kullanıcıların işbu Kullanım Şartları’na, yürürlükteki mevzuata ve internet sitesinde yayımlanan diğer politika ve sözleşmelere uygun hareket etmesi gerekmektedir.' },
+
+		{ h: '2. Üyelik ve Kullanım' },
+		{ p: 'Raftabul üzerinden alışveriş yapmak için üyelik oluşturulması gerekli olan işlemlerde kullanıcıların doğru, güncel ve eksiksiz bilgi vermesi gerekir. Kullanıcı, hesabına ilişkin bilgilerin doğruluğundan ve hesap bilgilerinin güvenliğinden sorumludur.' },
+		{ p: 'Üyelik hesabının kullanıcı adına gerçekleştirdiği işlemlerden, aksi kanıtlanmadıkça hesap sahibi sorumludur. Kullanıcı, hesap bilgilerinin üçüncü kişiler tarafından ele geçirildiğini veya yetkisiz kullanıldığını fark etmesi halinde durumu Raftabul’a derhal bildirmelidir.' },
+		{ p: 'Kullanıcı; internet sitesini hukuka aykırı amaçlarla, üçüncü kişilerin haklarını ihlal edecek şekilde, sistemlerin güvenliğini tehlikeye düşürecek biçimde veya sitenin normal çalışmasını engelleyecek herhangi bir yöntemle kullanamaz.' },
+		{ p: 'Raftabul, gerekli gördüğü hallerde; mevzuata aykırı kullanım, kötüye kullanım, güvenlik riski veya işbu Kullanım Şartları’na aykırılık tespit edilmesi durumunda ilgili hesabı geçici olarak sınırlandırma, askıya alma veya kapatma hakkını saklı tutar.' },
+
+		{ h: '3. Ürün Bilgileri ve Fiyatlar' },
+		{ p: 'Raftabul internet sitesinde yer alan ürün açıklamaları, görseller, stok bilgileri, fiyatlar, kampanyalar ve diğer bilgiler mümkün olduğunca güncel ve doğru tutulmaya çalışılır. Ancak teknik nedenlerle veya veri güncellemelerinden kaynaklanan hatalar meydana gelebilir.' },
+		{ p: 'Ürün fiyatları ve kampanya koşulları, aksi belirtilmedikçe KDV dahil olarak gösterilir. Raftabul, ürün fiyatlarında ve kampanya koşullarında önceden bildirimde bulunmaksızın değişiklik yapma hakkını saklı tutar. Siparişin tamamlanmasıyla oluşan sözleşmesel hak ve yükümlülükler bakımından yürürlükteki mevzuat hükümleri uygulanır.' },
+		{ p: 'Stokta bulunmayan veya tedarik edilemeyen ürünler bakımından Raftabul, ilgili siparişi mevzuata uygun şekilde iptal etme ve ödenmiş tutarı kullanıcıya iade etme hakkına sahiptir.' },
+
+		{ h: '4. Sipariş, Ödeme ve Teslimat' },
+		{ p: 'Kullanıcı tarafından verilen sipariş, sipariş bilgilerinin ve ödeme işleminin sistem tarafından alınmasıyla oluşturulur. Siparişin kabulü, hazırlanması, gönderilmesi ve teslimine ilişkin süreçler yürürlükteki tüketici mevzuatına uygun olarak gerçekleştirilir.' },
+		{ p: 'Ödeme işlemleri, Raftabul tarafından sunulan ödeme yöntemleri üzerinden veya yetkili ödeme hizmeti sağlayıcıları aracılığıyla gerçekleştirilebilir. Ödeme işlemlerinin güvenliği ve teknik olarak gerçekleştirilmesi amacıyla ilgili ödeme kuruluşlarının kendi güvenlik ve kullanım koşulları da uygulanabilir.' },
+		{ p: 'Ürünlerin teslimatı, sipariş sırasında kullanıcı tarafından belirtilen teslimat adresine, seçilen veya Raftabul tarafından belirlenen kargo ya da lojistik hizmet sağlayıcısı aracılığıyla gerçekleştirilir.' },
+		{ p: 'Teslimat süreleri ürünün niteliği, stok durumu, ödeme onayı, kargo süreçleri ve mücbir sebepler gibi durumlara bağlı olarak değişebilir. Tüketicinin mevzuattan doğan teslimat, cayma, iade ve diğer hakları saklıdır.' },
+
+		{ h: '5. İptal, İade ve Cayma Hakkı' },
+		{ p: 'Tüketicilerin sipariş, teslimat, cayma hakkı, iade, değişim ve bedel iadesine ilişkin hakları 6502 sayılı Tüketicinin Korunması Hakkında Kanun ve ilgili ikincil mevzuat kapsamında belirlenir.' },
+		{ p: 'Cayma hakkının kullanılamadığı ürün ve hizmetler bakımından ilgili mevzuatta yer alan istisnalar uygulanır. İade ve cayma işlemlerine ilişkin ayrıntılı koşullar Raftabul internet sitesinde yayımlanan ilgili politika ve sözleşmelerde belirtilir.' },
+
+		{ h: '6. Fikri Mülkiyet Hakları' },
+		{ p: 'Raftabul internet sitesinde yer alan tasarım, logo, marka, metin, grafik, görsel, yazılım, kod, veri tabanı, içerik ve diğer unsurlar üzerindeki fikri ve sınai mülkiyet hakları, ilgili hak sahiplerine aittir.' },
+		{ p: 'Site içeriği; Raftabul’un veya ilgili hak sahibinin yazılı izni olmaksızın kopyalanamaz, çoğaltılamaz, dağıtılamaz, yayımlanamaz, ticari amaçlarla kullanılamaz veya başka bir internet sitesinde ya da dijital ortamda yeniden yayınlanamaz.' },
+
+		{ h: '7. Kullanıcı İçerikleri' },
+		{ p: 'Kullanıcıların ürün değerlendirmeleri, yorumlar veya diğer alanlarda paylaştığı içeriklerin hukuka uygun, doğru ve üçüncü kişilerin haklarını ihlal etmeyecek nitelikte olması gerekir.' },
+		{ p: 'Kullanıcılar; hakaret, tehdit, ayrımcı ifade, kişisel veri, telif hakkıyla korunan ve paylaşma yetkisi bulunmayan içerik, reklam, spam veya hukuka aykırı herhangi bir içerik paylaşamaz.' },
+		{ p: 'Raftabul, mevzuata veya site kurallarına aykırı olduğunu değerlendirdiği kullanıcı içeriklerini kaldırma veya erişime kapatma hakkını saklı tutar.' },
+
+		{ h: '8. Sorumluluğun Sınırı' },
+		{ p: 'Raftabul, internet sitesinin kesintisiz, hatasız veya her zaman erişilebilir olacağını garanti etmez. Bakım, güncelleme, teknik arıza, internet altyapısındaki sorunlar, üçüncü taraf hizmet sağlayıcılarından kaynaklanan kesintiler ve mücbir sebepler nedeniyle hizmetlerde geçici kesintiler meydana gelebilir.' },
+		{ p: 'Raftabul, yürürlükteki emredici mevzuat hükümleri saklı kalmak kaydıyla; kullanıcı tarafından sağlanan yanlış veya eksik bilgilerden, kullanıcının hesap güvenliğini korumamasından, üçüncü taraf sistemlerden veya kullanıcının internet bağlantısı ve cihazlarından kaynaklanan sorunlardan sorumlu tutulamaz.' },
+		{ p: 'Raftabul’un kanunen sorumlu olduğu hallerde tüketicilerin ve kullanıcıların mevzuattan doğan hakları saklıdır.' },
+
+		{ h: '9. Üçüncü Taraf Hizmetleri ve Bağlantılar' },
+		{ p: 'Raftabul internet sitesinde ödeme kuruluşları, kargo firmaları, teknoloji sağlayıcıları veya diğer üçüncü taraf hizmet sağlayıcılarına ait sistemlere ve internet sitelerine yönlendiren bağlantılar bulunabilir. Bu hizmetlerin kullanımında ilgili üçüncü tarafların kendi koşulları ve politikaları geçerli olabilir.' },
+		{ p: 'Raftabul, üçüncü taraf internet sitelerinin içeriklerinden, güvenlik uygulamalarından veya hizmetlerin kesintisiz çalışmasından sorumlu değildir.' },
+
+		{ h: '10. Kişisel Verilerin Korunması' },
+		{ p: 'Raftabul tarafından gerçekleştirilen kişisel veri işleme faaliyetleri, 6698 sayılı Kişisel Verilerin Korunması Kanunu ve ilgili mevzuata uygun olarak yürütülür. Kişisel verilerin işlenmesine ilişkin ayrıntılı bilgiler Raftabul KVKK Aydınlatma Metni ve ilgili gizlilik politikalarında açıklanmaktadır.' },
+
+		{ h: '11. Değişiklikler' },
+		{ p: 'Raftabul, yürürlükteki mevzuat, teknik altyapı, hizmet kapsamı veya ticari faaliyetlerde meydana gelen değişiklikler doğrultusunda bu Kullanım Şartları’nı güncelleme hakkını saklı tutar.' },
+		{ p: 'Güncellenen Kullanım Şartları internet sitesinde yayımlandığı tarihten itibaren geçerli olur. Kullanıcıların siteyi kullanmaya devam etmesi, güncel şartları kabul ettiği anlamına gelir.' },
+
+		{ h: '12. Uygulanacak Hukuk ve Uyuşmazlıkların Çözümü' },
+		{ p: 'Bu Kullanım Şartları’nın uygulanmasında Türkiye Cumhuriyeti mevzuatı geçerlidir.' },
+		{ p: 'Tüketici işlemlerinden doğan uyuşmazlıklarda, yürürlükteki mevzuat uyarınca Tüketici Hakem Heyetleri ve Tüketici Mahkemelerinin görev ve yetkilerine ilişkin hükümler uygulanır.' },
+
+		{ h: '13. İletişim' },
+		{ p: 'Kullanım Şartları hakkında sorularınız, talepleriniz veya bildirimleriniz için destek@raftabul.com adresinden veya BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA üzerinden Raftabul ile iletişime geçebilirsiniz.' }
     ],
   },
 
