@@ -10,6 +10,7 @@ use App\Modules\Reviews\Domain\Contracts\ReviewRepositoryContract;
 use App\Modules\Reviews\Domain\Models\Review;
 use App\Modules\Reviews\Infrastructure\Queries\ReviewQuery;
 use App\Modules\Reviews\Infrastructure\Repositories\ReviewRepository;
+use App\Modules\Reviews\Presentation\Commands\RequestPendingReviewsCommand;
 use App\Modules\Reviews\Presentation\Policies\ReviewPolicy;
 use App\Modules\Reviews\Presentation\Storefront\ReviewsStorefrontContributor;
 use App\Shared\Enums\UserType;
@@ -70,6 +71,10 @@ final class ReviewsServiceProvider extends ServiceProvider
         StorefrontRegistry::register(ReviewsStorefrontContributor::class);
 
         $this->loadMigrationsFrom(database_path('Modules/Reviews/migrations'));
+
+        if ($this->app->runningInConsole()) {
+            $this->commands([RequestPendingReviewsCommand::class]);
+        }
 
         Gate::policy(Review::class, ReviewPolicy::class);
     }

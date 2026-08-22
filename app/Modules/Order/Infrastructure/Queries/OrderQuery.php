@@ -532,6 +532,56 @@ final class OrderQuery implements OrderQueryContract
     }
 
     /**
+     * @return array<int, array{order_line_uuid: string, order_uuid: string, customer_id: int, customer_uuid: string, product_uuid: string, product_title: string, delivered_at: string}>
+     */
+    public function deliveredLinesForReviewInvitation(CarbonInterface $deliveredBefore, int $limit = 500): array
+    {
+        $delivered = $this->shipments->deliveredBefore($deliveredBefore);
+
+        if ($delivered === []) {
+            return [];
+        }
+
+        /*
+        | THE QUERY BUILDER, NOT ELOQUENT. The sweep wants six scalars per line;
+        | hydrating Order models would pull every frozen snapshot column and both
+        | address blobs for a mail that names one product. `$limit` bounds the
+        | nightly batch, and the oldest lines go first so a backlog drains in the
+        | order it accumulated rather than starving on the newest rows.
+        */
+        $rows = DB::table('order_lines')
+            ->join('orders', 'orders.id', '=', 'order_lines.order_id')
+            ->whereIn('orders.uuid', array_keys($delivered))
+            ->where('orders.status', OrderStatus::Delivered->value)
+            ->orderBy('order_lines.id')
+            ->limit($limit)
+            ->get([
+                'order_lines.uuid as order_line_uuid',
+                'orders.uuid as order_uuid',
+                'orders.customer_id',
+                'orders.customer_uuid',
+                'order_lines.product_uuid',
+                'order_lines.product_title',
+            ]);
+
+        $lines = [];
+
+        foreach ($rows as $row) {
+            $lines[] = [
+                'order_line_uuid' => (string) $row->order_line_uuid,
+                'order_uuid' => (string) $row->order_uuid,
+                'customer_id' => (int) $row->customer_id,
+                'customer_uuid' => (string) $row->customer_uuid,
+                'product_uuid' => (string) $row->product_uuid,
+                'product_title' => (string) $row->product_title,
+                'delivered_at' => $delivered[(string) $row->order_uuid],
+            ];
+        }
+
+        return $lines;
+    }
+
+    /**
      * One seller-order's share of the cash, after the basket's points discount.
      *
      * **FLOOR ON THE DISCOUNT SHARE, WHICH ROUNDS IN THE CUSTOMER'S FAVOUR.** The

@@ -128,6 +128,19 @@ function fakeOrderPort(array $lines): void
         }
 
         /*
+        | THE INVITATION SWEEP'S READ (ADR-087) IS NOT WHAT THIS FAKE IS ABOUT
+        | either. It shares the interface because Order owns the lines both
+        | answers read; a stand-in for the DELIVERY gate has nothing to say about
+        | who should be emailed tonight.
+        |
+        | @return array<int, array<string, mixed>>
+        */
+        public function deliveredLinesForReviewInvitation(CarbonInterface $deliveredBefore, int $limit = 500): array
+        {
+            return [];
+        }
+
+        /*
         | THE RANKING PORTS (ADR-077/078) ARE NOT WHAT THIS FAKE IS ABOUT. They
         | belong to the same interface because Order owns the lines both answers
         | read; a stand-in for the DELIVERY gate has nothing to say about either.

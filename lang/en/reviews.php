@@ -35,4 +35,12 @@ return [
         'submitted_at' => 'Submitted',
         'has_photos' => 'With photos',
     ],
+
+    'request' => [
+        'subject' => 'How was your :product?',
+        'intro' => 'Your :product arrived a few days ago. We would like to know how it is — would you take a minute to review it?',
+        'points' => 'You will earn :points points once your review is published.',
+        'action' => 'Write a review',
+        'outro' => 'Your review helps other shoppers looking at the same product decide. If you would rather not receive emails like this, you can update your notification preferences in your account settings.',
+    ],
 ];

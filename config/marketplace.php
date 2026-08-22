@@ -38,6 +38,12 @@ return [
         'password_reset_path' => env('FRONTEND_PASSWORD_RESET_PATH', '/reset-password/{token}'),
         'email_verify_path' => env('FRONTEND_EMAIL_VERIFY_PATH', '/verify-email/{id}/{hash}'),
         'organization_invitation_path' => env('FRONTEND_ORG_INVITATION_PATH', '/organizations/invitations/{token}'),
+
+        // Where a post-delivery review invitation sends the buyer (ADR-087). The
+        // orders page, not a deep link into one review form: the storefront owns
+        // that flow and its URL, and a backend that guesses at a frontend route is
+        // how a mail campaign starts 404ing after a redesign.
+        'orders_path' => env('FRONTEND_ORDERS_PATH', '/hesap/siparislerim'),
     ],
 
     /*

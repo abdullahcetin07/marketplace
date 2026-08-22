@@ -2914,3 +2914,72 @@ failure — though this one is louder than most, because Merchant Center reports
 feed. And the whole thing is gated on catalogue copy: **at the time of writing every one
 of the 7,025 sellable products has an empty description**, so the first build published
 nothing at all, exactly as designed.
+
+---
+
+# ADR-087 The Review Invitation Is a Nightly Sweep, Asked Once Per Delivered Line, and an Opt-Out Is Recorded Rather Than Skipped
+
+**Status:** Accepted (2026-08-22). Backend; extends ADR-064/066/067. Work order:
+`BUILD_REVIEW_REQUEST.md`.
+
+**Decision.** A buyer is emailed once, `settings('reviews.request_delay_days')` (default
+3) after delivery, asking them to review what arrived. Five properties carry it:
+
+1. **A sweep, not a delayed job.** The obvious shape — subscribe to `ShipmentDelivered`,
+   dispatch a job with a three-day delay — puts the platform's entire review funnel
+   inside a queue for three days, where a restarted worker, a flushed Redis or a changed
+   setting loses it with nothing to show. A sweep holds no state between runs: it asks
+   the same question every night and the answer moves on its own. This is the ADR-072
+   shape chosen for the ADR-072 reason, and the same one `loyalty:award-purchase-points`
+   already uses for the same class of problem.
+2. **The delay is a setting.** Asking on the doorstep asks about a parcel, not a product.
+   How long to wait differs by what is being sold, so it is an operator dial rather than
+   a constant, read at sweep time — a change moves tomorrow's invitations and never
+   re-sends yesterday's. `reviews.request_enabled` is the off switch, so stopping the
+   mail is never a deploy.
+3. **Idempotent twice over, on `review_requests.order_line_uuid`.** Order re-offers every
+   delivered line every night *by design* — a reader that filtered on `review_requests`
+   would be Order reaching into Reviews, the same reason `pointsEligibleSellerOrders()`
+   re-offers already-credited orders. So Reviews filters, and a UNIQUE index sits
+   underneath in case two runs overlap. The check alone is a race; the constraint alone
+   is an exception inside a scheduled command. A buyer emailed once is being served; a
+   buyer emailed nightly unsubscribes and takes the marketing list with them.
+4. **An opt-out is recorded, not skipped.** `BaseNotification` already filters channels by
+   preference, so an unsubscribed buyer would receive a notification with no channels —
+   nothing sent, but nothing said about why, and the row would read as an invitation that
+   went out. The sweep therefore asks first and writes the suppression down:
+   `sent_at` null plus `suppressed_reason`. That is what stops the sweep re-evaluating
+   the same declining customer nightly forever, and the count is the only measure the
+   platform has of what opt-out costs its review funnel. The mail is a service message
+   about the recipient's own order, but it sits close enough to the ETK line that
+   honouring the marketing opt-out is cheaper than arguing the distinction.
+5. **Reviews imports no module.** Delivered lines arrive through a new
+   `OrderQueryContract::deliveredLinesForReviewInvitation()` — Order answers it, reading
+   the delivery date through `ShipmentQueryContract` exactly as it already does for
+   points, so the caller joins one context instead of two. "Already reviewed" is this
+   module's own table. The recipient is an `App\Models\Customer`, the authentication tier
+   every module may reach.
+
+The invitation links to the storefront's orders page from configuration
+(`marketplace.frontend.orders_path`), not to a deep link into one review form: the
+storefront owns that flow and its URL, and a backend guessing at a frontend route is how
+a mail campaign starts 404ing after a redesign (ADR-025).
+
+**One correction to the work order, recorded rather than silently applied.** The brief
+called for "a new `NotificationType::ReviewRequested`". `NotificationType` is the
+platform's **channel** enum (ADR-006) — `Database`, `Mail`, `Sms`, `Push`, `Broadcast` —
+and its `channel()`, `queue()` and `icon()` maps are exhaustive over it; a notification
+*kind* added there would not compile as one and would not mean anything if it did. The
+intent is served by a `ReviewRequestedNotification` class on `NotificationType::Mail`,
+which is how every other notification on the platform is built.
+
+**Cost, stated.** One invitation per purchase and no reminder: a second email about the
+same parcel is where a service message starts reading as marketing, and v1 declines to
+find out where that line is — at the price of the reviews a reminder would have won.
+Suppressed buyers are never asked again even if they later opt back in, because the row
+means "handled" rather than "sent". The sweep is **inert without the scheduler**, and
+this is the quietest such failure on the platform: no error, no backlog, no complaint,
+just no reviews arriving — indistinguishable from customers who did not feel like
+writing one. And it is gated on **SES production access**: until that lands the
+invitations queue and fail rather than deliver, so the funnel this exists to open stays
+shut.

@@ -231,3 +231,26 @@ Schedule::command('feed:build-google-merchant')
     ->dailyAt('04:15')
     ->onOneServer()
     ->withoutOverlapping();
+
+/*
+| THE POST-DELIVERY REVIEW INVITATION, DAILY (ADR-087).
+|
+| A SWEEP RATHER THAN A DELAYED JOB, and the choice is the whole design. Listening
+| for `ShipmentDelivered` and dispatching a job with a three-day delay would put
+| the platform's review funnel inside a queue for three days, where a restarted
+| worker, a flushed Redis or a changed setting loses it with nothing to show. A
+| sweep holds no state between runs.
+|
+| **THE QUIETEST ADR-072 FAILURE ON THE PLATFORM.** Unscheduled, this produces no
+| error, no backlog and no complaint — just no reviews ever arriving, which looks
+| exactly like customers who did not feel like writing one. Nothing else on the
+| platform makes an absence this convincing.
+|
+| 10:00 rather than the small hours: it sends mail to people, and mail that lands
+| at four in the morning is mail that is read at the bottom of a pile.
+*/
+Schedule::command('reviews:request-pending')
+    ->name('request-pending-reviews')
+    ->dailyAt('10:00')
+    ->onOneServer()
+    ->withoutOverlapping();

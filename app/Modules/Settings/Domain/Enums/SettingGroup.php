@@ -58,6 +58,16 @@ enum SettingGroup: string
     /** Customer points: the earn rates and what a point is worth (ADR-082). */
     case Loyalty = 'loyalty';
 
+    /**
+     * The post-delivery review invitation: whether it goes out, and how long it
+     * waits (ADR-087).
+     *
+     * NOT PUBLICLY READABLE. How many days after delivery the platform emails a
+     * buyer is an operational detail; publishing it tells nobody anything useful
+     * and tells a spammer when the mail lands.
+     */
+    case Reviews = 'reviews';
+
     case System = 'system';
 
     /**
@@ -107,6 +117,7 @@ enum SettingGroup: string
             self::Shipping => 'heroicon-o-truck',
             self::Order => 'heroicon-o-shopping-bag',
             self::Loyalty => 'heroicon-o-gift',
+            self::Reviews => 'heroicon-o-star',
             self::System => 'heroicon-o-server-stack',
         };
     }
@@ -131,7 +142,10 @@ enum SettingGroup: string
             self::Order => 11,
             // Beside Order: what a sale earns a customer sits next to the sale.
             self::Loyalty => 12,
-            self::System => 13,
+            // Beside Loyalty: asking for a review and paying points for one are
+            // the same conversation with the same customer.
+            self::Reviews => 13,
+            self::System => 14,
         };
     }
 }

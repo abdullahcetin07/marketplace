@@ -357,4 +357,37 @@ interface OrderQueryContract
      * @return array{items_total_minor: int, tax_total_minor: int, grand_total_minor: int, currency_code: string}|null
      */
     public function orderTotals(string $orderUuid): ?array;
+
+    /**
+     * Delivered order lines old enough to be worth asking about (ADR-087).
+     *
+     * **THE SWEEP'S READ, AND IT STARTS FROM DELIVERY RATHER THAN FROM A BUYER.**
+     * `deliveredPurchaseLines()` next door answers "may THIS person review THAT
+     * product" — it takes a customer and a product because it serves a product
+     * page and a session. A nightly invitation knows neither in advance: it starts
+     * from "what arrived $n days ago" and works outwards, so it needs its own
+     * method rather than a loop over the other one.
+     *
+     * **ORDER ANSWERS IT THOUGH DELIVERY IS SHIPPING'S FACT**, the same division
+     * `pointsEligibleSellerOrders()` already makes: Order owns lines and knows
+     * which orders are delivered, and reads the DATE through
+     * `ShipmentQueryContract` so the caller joins one context instead of two.
+     *
+     * **`Delivered` AND NOTHING ELSE.** A refunded order is `Refunded` and a
+     * cancelled one `Cancelled`, so the single status is the whole "still stands"
+     * test — there is no second flag to forget.
+     *
+     * **IT KNOWS NOTHING ABOUT REVIEWS OR INVITATIONS.** Lines already reviewed
+     * and lines already invited come back every night; the caller filters them
+     * against its own tables. A reader that excluded them here would be Order
+     * reaching into Reviews to answer a question about orders — the same reason
+     * `pointsEligibleSellerOrders()` re-offers already-credited orders.
+     *
+     * `customer_id` rides along beside the uuid (ADR-040): the caller has to
+     * notify a person, and resolving an internal id from a uuid would be a query
+     * per row on a sweep that already has the row in hand.
+     *
+     * @return array<int, array{order_line_uuid: string, order_uuid: string, customer_id: int, customer_uuid: string, product_uuid: string, product_title: string, delivered_at: string}>
+     */
+    public function deliveredLinesForReviewInvitation(CarbonInterface $deliveredBefore, int $limit = 500): array;
 }

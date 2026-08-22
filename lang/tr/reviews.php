@@ -35,4 +35,12 @@ return [
         'submitted_at' => 'Gönderim',
         'has_photos' => 'Fotoğraflı',
     ],
+
+    'request' => [
+        'subject' => 'Aldığınız :product nasıldı?',
+        'intro' => 'Sipariş ettiğiniz :product elinize geçeli birkaç gün oldu. Nasıl olduğunu merak ediyoruz — birkaç dakikanızı ayırıp değerlendirir misiniz?',
+        'points' => 'Değerlendirmeniz yayınlandığında :points puan hesabınıza eklenir.',
+        'action' => 'Değerlendir',
+        'outro' => 'Yorumunuz, aynı ürüne bakan diğer alıcıların karar vermesine yardımcı olur. Bu tür e-postaları almak istemiyorsanız hesap ayarlarınızdan bildirim tercihlerinizi güncelleyebilirsiniz.',
+    ],
 ];

@@ -142,6 +142,21 @@ final class SettingsSeeder extends Seeder
         $settings->register('loyalty.earn.purchase_rate', SettingGroup::Loyalty, SettingType::Integer, 1, 'Alışverişte TL başına puan');
         $settings->register('loyalty.redeem.value', SettingGroup::Loyalty, SettingType::Decimal, '0.05', 'Bir puanın TL değeri');
 
+        /*
+        |------------------------------------------------------------- Reviews
+        | THE POST-DELIVERY INVITATION (ADR-087).
+        |
+        | The delay is a setting rather than a constant because the right wait
+        | differs by what is being sold — a cream needs a week to have an opinion
+        | about, a phone case needs a day. Read at sweep time, so a change moves
+        | tomorrow's invitations and never re-sends yesterday's.
+        |
+        | `request_enabled` is the off switch: an operator who needs the mail to
+        | stop should not need a deploy to stop it.
+        */
+        $settings->register('reviews.request_enabled', SettingGroup::Reviews, SettingType::Boolean, true, 'Teslimat sonrası değerlendirme daveti gönderilsin mi');
+        $settings->register('reviews.request_delay_days', SettingGroup::Reviews, SettingType::Integer, 3, 'Teslimattan kaç gün sonra davet gönderilsin');
+
         // --------------------------------------------------------------- System
         // Locked: read by code at boot. Renaming or deleting one is a runtime
         // failure, not a configuration change.
