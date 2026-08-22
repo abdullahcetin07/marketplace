@@ -28,7 +28,10 @@ export const metadata: Metadata = {
 // The brand's public accounts, once they exist — `sameAs` is how Google ties this
 // storefront to the same brand entity across the web. Empty for now, so it is
 // omitted below rather than emitting an empty field; add URLs here to light it up.
-const ORG_SAME_AS: string[] = [];
+const ORG_SAME_AS: string[] = [
+  'https://www.facebook.com/raftabul/',
+  'https://www.instagram.com/raftabulcom/',
+];
 
 const organizationLd = {
   '@context': 'https://schema.org',
