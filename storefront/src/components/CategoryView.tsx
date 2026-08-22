@@ -4,6 +4,7 @@ import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
 import { browseProducts, getCategory, type ProductSort } from '@/lib/api';
+import { categoryContent } from '@/lib/category-content';
 import { jsonLd } from '@/lib/jsonld';
 import { absoluteUrl } from '@/lib/site';
 
@@ -70,6 +71,23 @@ export async function CategoryView({
         }
       : null;
 
+  // Curated buying guide + FAQ for the top categories, page 1 only (paginated pages
+  // must not repeat the block — keeps it out of the ?page=N canonicals). The FAQ is
+  // emitted as text (an accordion) AND as FAQPage JSON-LD so it is quotable by AI.
+  const guide = page === 1 ? categoryContent[slug] : undefined;
+  const faqLd =
+    guide && guide.faq.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: guide.faq.map((f) => ({
+            '@type': 'Question',
+            name: f.q,
+            acceptedAnswer: { '@type': 'Answer', text: f.a },
+          })),
+        }
+      : null;
+
   const hrefForPage = (next: number) => {
     const query = new URLSearchParams();
     if (sort !== 'newest') query.set('sort', sort);
@@ -86,6 +104,9 @@ export async function CategoryView({
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
       {itemListLd !== null && (
         <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(itemListLd) }} />
+      )}
+      {faqLd !== null && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(faqLd) }} />
       )}
 
       <nav aria-label="Kategori yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
@@ -129,6 +150,45 @@ export async function CategoryView({
       <ProductGrid products={listing.items} />
 
       <Pagination page={listing.page} lastPage={listing.lastPage} hrefForPage={hrefForPage} />
+
+      {guide && (
+        <section className="mt-4 flex flex-col gap-8 border-t border-ink-100 pt-8 dark:border-ink-800">
+          <div className="max-w-3xl">
+            <h2 className="text-lg font-extrabold tracking-tight">{category.name} — Alışveriş Rehberi</h2>
+            <p className="mt-3 text-[.95rem] leading-relaxed text-ink-600 dark:text-ink-300">{guide.intro}</p>
+          </div>
+
+          {guide.faq.length > 0 && (
+            <div className="max-w-3xl">
+              <h2 className="text-lg font-extrabold tracking-tight">Sıkça Sorulan Sorular</h2>
+              <div className="mt-3 flex flex-col gap-2">
+                {guide.faq.map((item) => (
+                  <details
+                    key={item.q}
+                    className="group rounded-xl border border-ink-100 bg-white px-4 py-3 dark:border-ink-800 dark:bg-ink-900"
+                  >
+                    <summary className="flex cursor-pointer list-none items-center justify-between gap-3 font-bold text-ink-800 marker:hidden dark:text-ink-100">
+                      {item.q}
+                      <svg
+                        viewBox="0 0 24 24"
+                        className="h-5 w-5 shrink-0 text-ink-400 transition-transform group-open:rotate-180"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth={2}
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                      >
+                        <path d="m6 9 6 6 6-6" />
+                      </svg>
+                    </summary>
+                    <p className="mt-2 text-[.92rem] leading-relaxed text-ink-600 dark:text-ink-300">{item.a}</p>
+                  </details>
+                ))}
+              </div>
+            </div>
+          )}
+        </section>
+      )}
     </div>
   );
 }
