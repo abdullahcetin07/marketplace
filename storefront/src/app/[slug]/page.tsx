@@ -3,7 +3,7 @@ import { notFound, permanentRedirect } from 'next/navigation';
 import { BrandView } from '@/components/BrandView';
 import { CategoryView } from '@/components/CategoryView';
 import { ProductView } from '@/components/ProductView';
-import { getBrand, getCategory, getProduct, resolveSlug, type ProductSort } from '@/lib/api';
+import { browseProducts, getBrand, getCategory, getProduct, resolveSlug, type ProductSort } from '@/lib/api';
 import { absoluteUrl } from '@/lib/site';
 
 /**
@@ -29,8 +29,9 @@ type Props = {
   searchParams: Promise<Record<string, string | string[] | undefined>>;
 };
 
-export async function generateMetadata({ params }: Props): Promise<Metadata> {
+export async function generateMetadata({ params, searchParams }: Props): Promise<Metadata> {
   const { slug } = await params;
+  const sp = await searchParams;
   const match = await resolveSlug(slug);
 
   if (match === null) return { title: 'Bulunamadı' };
@@ -43,12 +44,13 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 
     // Many catalogue rows carry no editorial description; rather than ship a
     // product page with no meta description at all (Google then invents a snippet
-    // from the page chrome), synthesize one from what we always know — title,
-    // brand and the marketplace's standing promises. A blank string counts as
-    // absent (`?? ""` would not fire), so `.trim() || …` falls through to it.
+    // from the page chrome), synthesize one from what we always know — brand,
+    // category and title, so the line differs product to product instead of being
+    // boilerplate across 20k pages. A blank string counts as absent (`?? ""` would
+    // not fire), so `.trim() || …` falls through to it.
     const description =
       product.description?.trim() ||
-      `${product.title}${product.brand ? ` – ${product.brand.name}` : ''}, onaylı satıcılardan orijinal ve en uygun fiyatla Raftabul’da. Güvenli ödeme, hızlı kargo.`;
+      `${product.brand ? `${product.brand.name} ` : ''}${product.title} — ${product.category.name} kategorisinde onaylı satıcılardan orijinal ürün, en uygun fiyatla Raftabul’da. Güvenli ödeme, hızlı kargo.`;
 
     return {
       title: product.title,
@@ -56,7 +58,11 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       alternates: { canonical },
       openGraph: {
         title: product.title,
-        type: 'website',
+        // A product page is an OG "product", not a generic "website" — it lets
+        // Facebook/Pinterest treat the share as a product card. Next 15's typed
+        // OpenGraph union has no `product` member, so the value is cast; the
+        // rendered `<meta property="og:type" content="product">` is what matters.
+        type: 'product' as 'website',
         images: product.images.length > 0 ? [product.images[0] as string] : undefined,
       },
     };
@@ -67,17 +73,28 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
     const name = category?.name ?? 'Kategori';
 
     // A specific description reads better in results than boilerplate — name a few
-    // of the category's own sub-categories when it has them, so "Cilt Bakımı"
-    // advertises "temizleyici, nemlendirici, …" rather than a generic line.
+    // of the category's own sub-categories when it has them, and the live product
+    // count, so "Cilt Bakımı" advertises "342 ürün · temizleyici, nemlendirici, …"
+    // rather than a line identical to every other category. The count is a cheap,
+    // cached read that degrades to 0 (then it is simply omitted from the line).
     const childNames = category?.children.slice(0, 4).map((c) => c.name).join(', ');
-    const description = childNames
-      ? `${name} kategorisinde ${childNames} ve daha fazlası — onaylı satıcılardan orijinal ürün, en uygun fiyatlarla Raftabul’da.`
+    let count = 0;
+    try {
+      count = (await browseProducts({ category: slug, perPage: 1 })).total;
+    } catch {
+      count = 0;
+    }
+    const facts = [count > 0 ? `${count.toLocaleString('tr-TR')} ürün` : null, childNames || null]
+      .filter(Boolean)
+      .join(' · ');
+    const description = facts
+      ? `${name} kategorisinde ${facts} — onaylı satıcılardan orijinal ürün, en uygun fiyatlarla Raftabul’da.`
       : `${name} ürünleri — onaylı satıcılardan orijinal, en uygun fiyatlarla Raftabul’da.`;
 
     return {
       title: `${name} Ürünleri ve Fiyatları`,
       description,
-      alternates: { canonical },
+      alternates: { canonical: listingCanonical(match.canonical_slug, sp) },
     };
   }
 
@@ -87,8 +104,32 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   return {
     title: `${name} Ürünleri ve Fiyatları`,
     description: `${name} ürünleri Raftabul’da — onaylı satıcılardan orijinal ${name} ürünlerini en uygun fiyatlarla keşfedin. Güvenli ödeme, hızlı kargo.`,
-    alternates: { canonical },
+    alternates: { canonical: listingCanonical(match.canonical_slug, sp) },
   };
+}
+
+/**
+ * The canonical URL for a category/brand listing (§SEO — pagination).
+ *
+ * A PURE `?page=N` (N>1) page SELF-CANONICALIZES so Google indexes page 2+ instead
+ * of treating it as a duplicate of page 1 and dropping it. Page 1 stays the clean
+ * `/{slug}` (no `?page=1`). A FILTERED variant (brand/price/non-default sort) keeps
+ * collapsing to the clean hub — its existing de-dup, deliberately unchanged — so
+ * only genuine pagination gains a self-reference.
+ */
+function listingCanonical(
+  slug: string,
+  sp: Record<string, string | string[] | undefined>,
+): string {
+  const page = Math.max(1, Number(single(sp.page) ?? 1) || 1);
+  const sort = single(sp.sort);
+  const filtered = Boolean(
+    single(sp.brand) || single(sp.price_min) || single(sp.price_max) || (sort && sort !== 'newest'),
+  );
+
+  return page > 1 && !filtered
+    ? absoluteUrl(`/${slug}?page=${page}`)
+    : absoluteUrl(`/${slug}`);
 }
 
 export default async function SlugPage({ params, searchParams }: Props) {

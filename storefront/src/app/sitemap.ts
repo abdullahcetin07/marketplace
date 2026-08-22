@@ -16,6 +16,17 @@ import { absoluteUrl } from '@/lib/site';
  */
 export const dynamic = 'force-dynamic';
 
+/**
+ * A STABLE lastmod for the static/informational pages (`/`, `/urunler`, `/sayfa/*`).
+ *
+ * These pages have no per-entity `updated_at`, so they used `now()` — which changed
+ * on every fetch and told crawlers the homepage was edited each time the sitemap was
+ * requested, training them to distrust the signal. A fixed date (bumped by hand when
+ * this content actually changes) is honest. Catalogue and store entries keep their
+ * real `updated_at`.
+ */
+const STATIC_LASTMOD = new Date('2026-08-21');
+
 /** A catalogue URL for the sitemap, with the entity's own last-modified date. */
 type CatalogRef = { slug: string; updated_at?: string };
 
@@ -48,15 +59,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     allStoreSlugs(),
   ]);
 
-  const now = new Date();
-
   const staticPages: MetadataRoute.Sitemap = [
-    { url: absoluteUrl('/'), lastModified: now, changeFrequency: 'daily', priority: 1 },
-    { url: absoluteUrl('/urunler'), lastModified: now, changeFrequency: 'daily', priority: 0.8 },
+    { url: absoluteUrl('/'), lastModified: STATIC_LASTMOD, changeFrequency: 'daily', priority: 1 },
+    { url: absoluteUrl('/urunler'), lastModified: STATIC_LASTMOD, changeFrequency: 'daily', priority: 0.8 },
     // The footer's content pages (Hakkımızda, SSS, KVKK…) — stable, low churn.
     ...Object.keys(contentPages).map((slug) => ({
       url: absoluteUrl(`/sayfa/${slug}`),
-      lastModified: now,
+      lastModified: STATIC_LASTMOD,
       changeFrequency: 'monthly' as const,
       priority: 0.3,
     })),

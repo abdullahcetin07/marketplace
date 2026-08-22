@@ -110,9 +110,23 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
             priceValidUntil,
             url: absoluteUrl(`/${product.slug}`),
             // The buy-box winner IS the seller of record for this price — name it so
-            // the listing attributes the offer to the merchant, not the platform.
+            // the listing attributes the offer to the merchant, not the platform. When
+            // the offer carries the store slug the seller also gets a `url`/`@id`
+            // pointing at its storefront (the same `/magaza/{slug}` the page links),
+            // so the crawler ties the offer to a real, indexable merchant entity.
             ...(featured.store?.name
-              ? { seller: { '@type': 'Organization', name: featured.store.name } }
+              ? {
+                  seller: {
+                    '@type': 'Organization',
+                    name: featured.store.name,
+                    ...(featured.store.slug
+                      ? {
+                          '@id': absoluteUrl(`/magaza/${featured.store.slug}#organization`),
+                          url: absoluteUrl(`/magaza/${featured.store.slug}`),
+                        }
+                      : {}),
+                  },
+                }
               : {}),
             // The platform-wide 14-day return the page already promises ("14 gün
             // iade"), expressed for the merchant-listing so Google stops flagging it

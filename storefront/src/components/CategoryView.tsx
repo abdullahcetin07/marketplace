@@ -58,6 +58,9 @@ export async function CategoryView({
       ? {
           '@context': 'https://schema.org',
           '@type': 'ItemList',
+          // The full result count across all pages, not just this page's slice —
+          // tells the crawler the collection's real size.
+          numberOfItems: listing.total,
           itemListElement: listing.items.map((item, index) => ({
             '@type': 'ListItem',
             position: (page - 1) * 24 + index + 1,

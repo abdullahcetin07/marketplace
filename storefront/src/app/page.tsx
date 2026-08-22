@@ -38,9 +38,10 @@ const organizationLd = {
   url: SITE_URL,
   description:
     'Onaylı eczane ve mağazaların orijinal sağlık, dermokozmetik, vitamin ve kişisel bakım ürünlerini buluşturan pazaryeri.',
-  // The brand's only image asset today. Swap for a dedicated square logo (on white,
-  // ≥112px) when there is one — Google can surface it beside the brand in results.
-  logo: `${SITE_URL}/og-default.jpg`,
+  // A SQUARE logomark, not the wide OG banner — Google wants the logo roughly
+  // square to surface it beside the brand in results, and a 1200×630 banner reads
+  // as cropped. `app/icon.png` (512×512) is served at `/icon.png`.
+  logo: `${SITE_URL}/icon.png`,
   ...(ORG_SAME_AS.length > 0 ? { sameAs: ORG_SAME_AS } : {}),
 };
 

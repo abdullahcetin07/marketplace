@@ -165,9 +165,17 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 </div>
               ))}
             </div>
-            <div className="mx-auto mt-7 flex w-full max-w-page flex-wrap justify-between gap-2 border-t border-ink-100 px-4 pt-4 text-[.8rem] text-ink-400 dark:border-ink-800">
-              <span>© {new Date().getFullYear()} Raftabul. Tüm hakları saklıdır.</span>
-              <span>Orijinal ürün garantisi · Onaylı satıcılar</span>
+            <div className="mx-auto mt-7 w-full max-w-page border-t border-ink-100 px-4 pt-4 dark:border-ink-800">
+              {/* Regulatory disclaimer — kept quiet, but present site-wide: these are
+                  cosmetics and food supplements, not medicine. */}
+              <p className="mb-3 text-[.72rem] leading-relaxed text-ink-400">
+                Kozmetik ve takviye edici gıdalar hastalıkların teşhis, tedavi ve önlenmesi
+                amacıyla kullanılamaz. Sağlık sorunlarınız için hekiminize danışın.
+              </p>
+              <div className="flex flex-wrap justify-between gap-2 text-[.8rem] text-ink-400">
+                <span>© {new Date().getFullYear()} Raftabul. Tüm hakları saklıdır.</span>
+                <span>Orijinal ürün garantisi · Onaylı satıcılar</span>
+              </div>
             </div>
           </footer>
         </SessionProvider>

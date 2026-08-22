@@ -20,10 +20,15 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const params = await searchParams;
   const q = single(params.q);
-  const faceted = Boolean(
+  const page = Math.max(1, Number(single(params.page) ?? 1) || 1);
+
+  // A search/sort/filter variant is a thin near-duplicate — noindex,follow. But a
+  // PURE pagination page (`?page=N`, nothing else) is a distinct slice of the
+  // catalogue, so it stays indexable and self-canonicalizes to `?page=N` rather
+  // than collapsing to page 1 (which would leave page 2+ under-indexed).
+  const filtered = Boolean(
     q ||
       single(params.sort) ||
-      single(params.page) ||
       single(params.category) ||
       single(params.brand) ||
       single(params.price_min) ||
@@ -32,9 +37,10 @@ export async function generateMetadata({
 
   const title = q ? `“${q}” için sonuçlar` : 'Tüm ürünler';
 
-  return faceted
-    ? { title, robots: { index: false, follow: true } }
-    : { title, alternates: { canonical: '/urunler' } };
+  if (filtered) return { title, robots: { index: false, follow: true } };
+  if (page > 1) return { title, alternates: { canonical: `/urunler?page=${page}` } };
+
+  return { title, alternates: { canonical: '/urunler' } };
 }
 
 /**

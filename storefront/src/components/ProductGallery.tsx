@@ -37,6 +37,20 @@ export function ProductGallery({
   // the smaller `images`. Same order + length, so `active` indexes both.
   const zoomImages = largeImages?.length === images.length ? largeImages : images;
 
+  // A responsive `srcset` for the main stage, built from the derivatives the media
+  // pipeline already produces (thumb ~160w / preview ~480w / large ~1000w). The
+  // browser then downloads the size the layout actually needs — a small phone never
+  // pulls the 1000px file — which is most of the hero's LCP cost. Widths are the
+  // pipeline's nominal sizes; only the derivatives that exist are listed.
+  const heroSrcSet = (i: number): string | undefined => {
+    const parts: string[] = [];
+    if (thumbImages?.[i]) parts.push(`${thumbImages[i]} 160w`);
+    parts.push(`${images[i]} 480w`);
+    if (largeImages?.[i]) parts.push(`${largeImages[i]} 1000w`);
+    // A single candidate is no better than a plain `src` — let it fall through.
+    return parts.length > 1 ? parts.join(', ') : undefined;
+  };
+
   const show = useCallback(
     (i: number) => setActive(((i % images.length) + images.length) % images.length),
     [images.length],
@@ -76,7 +90,7 @@ export function ProductGallery({
           type="button"
           onClick={() => setZoomed(true)}
           aria-label="Görseli büyüt"
-          className="group relative flex min-h-[380px] w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-50"
+          className="group relative flex aspect-square w-full cursor-zoom-in items-center justify-center overflow-hidden rounded-2xl border border-ink-100 bg-white p-4 dark:border-ink-800 dark:bg-ink-50"
         >
           {discount ? (
             <span className="absolute left-4 top-4 z-10 rounded-lg bg-red-500 px-2.5 py-1 text-[.8rem] font-extrabold text-white">
@@ -84,19 +98,24 @@ export function ProductGallery({
             </span>
           ) : null}
 
-          {/* The frame follows the IMAGE's own aspect (capped), not a forced square,
-              so a portrait or landscape product photo fills naturally instead of
-              being letterboxed into a box that isn't its shape. */}
+          {/* The stage is a fixed SQUARE so its box is reserved before the image
+              loads — that is the CLS fix (the image no longer pushes the buy box and
+              everything below it down on arrival). `object-contain` keeps the photo's
+              real aspect inside that square, so a portrait or landscape shot is
+              letterboxed on white rather than distorted. */}
           {/* The main stage is usually the page's LCP element — hint the browser to
-              fetch it first and eagerly, so the hero image is not deprioritised
-              behind later, lazier assets. (Thumbnails below stay lazy.) */}
+              fetch it first and eagerly, and give it a responsive `srcset`/`sizes` so
+              it pulls the right-sized derivative instead of the on-page default.
+              (Thumbnails below stay lazy.) */}
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
             src={images[active]}
+            srcSet={heroSrcSet(active)}
+            sizes="(min-width: 1280px) 420px, (min-width: 1024px) 40vw, 100vw"
             alt={alt}
             fetchPriority="high"
             loading="eager"
-            className="max-h-[560px] max-w-full object-contain"
+            className="max-h-full max-w-full object-contain"
           />
 
           {/* zoom affordance */}
@@ -120,8 +139,18 @@ export function ProductGallery({
                   i === active ? 'border-brand-500' : 'border-ink-100 hover:border-ink-300 dark:border-ink-800'
                 }`}
               >
+                {/* Rendered at ~54px; the preview derivative rides along as the 2×
+                    candidate so the strip stays crisp on retina without shipping it
+                    to everyone. */}
                 {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img src={thumbImages?.[i] ?? src} alt="" className="max-h-full w-auto object-contain" loading="lazy" />
+                <img
+                  src={thumbImages?.[i] ?? src}
+                  srcSet={thumbImages?.[i] ? `${thumbImages[i]} 66w, ${src} 132w` : undefined}
+                  sizes="66px"
+                  alt=""
+                  className="max-h-full w-auto object-contain"
+                  loading="lazy"
+                />
               </button>
             ))}
           </div>
