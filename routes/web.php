@@ -2,6 +2,7 @@
 
 declare(strict_types=1);
 
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\GoogleMerchantFeedController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -73,3 +74,22 @@ Route::get('/login', static function (Request $request) {
         ? redirect('/seller/login')
         : redirect('/admin/login');
 })->name('login');
+
+/*
+| THE GOOGLE MERCHANT CENTER PRODUCT FEED.
+|
+| A `web` route rather than an API one because the URL is what gets typed into
+| Merchant Center's scheduled fetch, and `/api/v1/feed/google-merchant.xml` reads
+| as an internal endpoint somebody may version or move. This one is a file at a
+| stable address.
+|
+| **NGINX HAS TO KNOW ABOUT IT TOO.** `/feed` is not in the vhost's Laravel
+| prefix list, and everything not in that list belongs to the Next.js storefront
+| — so without a `location ^~ /feed` block this route returns the storefront's
+| 404 page and nothing fails at deploy time. That is exactly how `/magaza` was
+| served by the wrong application for months.
+|
+| No CSRF concern: GET, sessionless, and no state to protect.
+*/
+Route::get('/feed/google-merchant.xml', [GoogleMerchantFeedController::class, 'show'])
+    ->name('feed.google-merchant');

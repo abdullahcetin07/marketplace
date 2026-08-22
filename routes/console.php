@@ -208,3 +208,26 @@ Schedule::command('loyalty:award-purchase-points')
     ->dailyAt('03:30')
     ->onOneServer()
     ->withoutOverlapping();
+
+/*
+| THE GOOGLE MERCHANT FEED, NIGHTLY (BUILD_GOOGLE_MERCHANT_FEED.md).
+|
+| Google fetches a FILE; this is what writes it. Price and stock move through the
+| day and v1 accepts a day's staleness — a shopper who clicks through to a changed
+| price sees the storefront's, and Merchant Center tolerates that far better than
+| it tolerates a fetch that times out.
+|
+| **INERT WITHOUT THE SCHEDULER**, the lesson this platform has already paid for
+| twice (ADR-072): the failure is a feed that quietly stops ageing, which looks
+| identical to a feed with nothing to change. It fails LOUDLY in one direction
+| though — Merchant Center reports a stale feed — which is more than most of the
+| sweeps beside it get.
+|
+| 04:15 keeps it clear of the 03:00–03:45 pruning block and the 03:30 points
+| sweep, so the nightly heavy reads do not stack.
+*/
+Schedule::command('feed:build-google-merchant')
+    ->name('build-google-merchant-feed')
+    ->dailyAt('04:15')
+    ->onOneServer()
+    ->withoutOverlapping();

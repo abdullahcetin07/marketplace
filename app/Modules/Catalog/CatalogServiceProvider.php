@@ -26,6 +26,7 @@ use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\ProductRepository;
+use App\Modules\Catalog\Presentation\Commands\BuildGoogleMerchantFeedCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSellabilityCommand;
 use App\Modules\Catalog\Presentation\Policies\CategoryPolicy;
 use App\Modules\Catalog\Presentation\Policies\ProductPolicy;
@@ -110,7 +111,10 @@ final class CatalogServiceProvider extends ServiceProvider
         $this->listenForSellability();
 
         if ($this->app->runningInConsole()) {
-            $this->commands([RefreshSellabilityCommand::class]);
+            $this->commands([
+                RefreshSellabilityCommand::class,
+                BuildGoogleMerchantFeedCommand::class,
+            ]);
         }
 
         /*

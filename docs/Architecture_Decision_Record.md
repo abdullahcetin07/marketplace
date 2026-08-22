@@ -2854,3 +2854,63 @@ forwards them; a container published empty measures nothing and the code cannot 
 And Consent Mode's denied default means the analytics of visitors who decline (or never
 answer) are cookieless/absent, which is the correct privacy trade and also a real gap in
 the numbers, named here so it is not later mistaken for undercounting.
+
+---
+
+# ADR-086 The Google Merchant Feed Is a Nightly FILE Built From Core Contracts, and It Refuses to Publish Itself Empty
+
+**Status:** Accepted (2026-08-22). Backend; extends ADR-058/060. Work order:
+`BUILD_GOOGLE_MERCHANT_FEED.md`.
+
+**Decision.** Google Shopping is fed by an RSS 2.0 file (the `g:` namespace) built by a
+scheduled command — `feed:build-google-merchant`, nightly at 04:15 — written to
+`storage/app/public/feeds/google-merchant.xml` and handed over by
+`GET /feed/google-merchant.xml`. Five properties carry the decision:
+
+1. **A file, not a rendered response.** Twenty thousand items assembled inside a request
+   is a request that times out, and it times out *against Google*, whose fetcher records
+   the failure against the Merchant Center account. The route does no work: it checks a
+   token if one is configured, then streams a file off disk.
+2. **Single merchant, buy-box priced.** The platform is the merchant of record
+   (ADR-060), so a feed row carries the **buy box winner's** price and never says which
+   seller won it. The price is **KDV-inclusive** (ADR-055/061) and therefore carries *no*
+   `tax` node — adding one would have Google apply VAT to a VAT-inclusive price.
+3. **It lives in Catalog and imports no module.** Title, description, images, brand,
+   category path and GTIN are Catalog's own columns, read off its own models; a module
+   does not ask itself a question through a Core port. The two facts it does not own
+   arrive the way every module gets them — **price through `OfferQueryContract`,
+   availability through `InventoryQueryContract`** — batched once per chunk, never per
+   row (the ADR-079 lesson). No price or stock *column* enters Catalog, so
+   `CatalogBoundaryTest` and `LayeringTest` both stay green.
+4. **The build drops what Google would reject, and counts it.** No description (under
+   `feed.google.min_description_length`), no image, no live offer, or a category listed
+   in `feed.google.excluded_category_slugs` (which excludes its descendants — a policy
+   strike lands on a branch, not a leaf). A *rejected* item is worse than an absent one
+   because it counts against the account. The drop counts are printed and logged, and
+   the "no description" number is the only measure the platform has of its Turkish-copy
+   backlog.
+5. **An empty feed never replaces a good one.** A run that writes zero items is
+   well-formed XML meaning *this merchant sells nothing*, and Google acts on it: the
+   catalogue goes from listed to withdrawn, and coming back is a re-review rather than a
+   re-fetch. The causes are ordinary and temporary — an unrebuilt `is_sellable` after a
+   deploy, an Offer outage, a bad migration — so the build keeps the previous file and
+   the command **exits non-zero**. Yesterday's prices are wrong by a day; an empty feed
+   is wrong about everything. On a first run there is nothing to keep and the route
+   404s, which surfaces as a fetch failure somebody investigates rather than a
+   successful fetch of nothing that nobody sees.
+
+The published identifier is the **variant uuid** (ADR-005 §7) and a test asserts no
+internal integer id reaches the file. `link` is the flat storefront slug (ADR-059) on
+`feed.google.storefront_url` — not `app.url`, which is the API. Shipping is written
+explicitly as `0.00 TRY` for TR (ADR-063) rather than left to the Merchant Center
+account setting, because the two can disagree and it is the feed a shopper sees quoted.
+
+**Cost, stated.** Price and stock are **a day stale** — a shopper who clicks through to a
+changed price sees the storefront's, which Merchant Center tolerates far better than a
+fetch that times out; a real-time supplemental feed is deferred. `google_product_category`
+is left empty in v1, so Google auto-assigns and some assignments will be wrong until the
+mapping is done. The feed is **inert without the scheduler** — the recurring ADR-072
+failure — though this one is louder than most, because Merchant Center reports a stale
+feed. And the whole thing is gated on catalogue copy: **at the time of writing every one
+of the 7,025 sellable products has an empty description**, so the first build published
+nothing at all, exactly as designed.
