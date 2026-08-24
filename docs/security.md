@@ -71,11 +71,29 @@ The properties that matter here:
 
 ## Passwords
 
-`App\Shared\Rules\StrongPassword` — 14 chars + symbols for staff, 12 for
-everyone else, both checked against Have I Been Pwned via k-anonymity.
+`App\Shared\Rules\StrongPassword` — **three tiers, one per blast radius**:
+
+| Actor | Rule | What a compromise costs |
+|---|---|---|
+| Admin (`staff()`) | 14 chars, mixed case, digits, symbols | the platform |
+| Seller (`seller()`) | 12 chars, mixed case, digits | a merchant's catalogue, prices, payout details |
+| Customer (`customer()`) | 8 chars, a letter and a digit | one person's order history |
+
+All three check Have I Been Pwned via k-anonymity, and that is the check doing
+the work: a breached password is compromised at any length, while composition
+rules mostly move where the sticky note goes.
+
+**The customer tier was relaxed on 2026-08-24** (from the 12 + mixed-case rule
+sellers still use) because it sat on a shopper's signup and password-reset form,
+where the abandoned reset is itself a security outcome — the customer who gives
+up keeps whatever they had. Seller and admin were deliberately left alone; the
+split is the point of the change, not a side effect of it.
 
 Registered as the framework default (`Password::defaults()`), so any rule using
-`Password::defaults()` gets the policy without opting in.
+`Password::defaults()` gets the policy without opting in. **That default is the
+SELLER tier, not the customer one** — an unknown actor type errs strict, which
+is what it did before the relaxation and would silently have stopped doing if
+the default had been left pointing at `customer()`.
 
 Hashing: bcrypt, 12 rounds (4 in tests).
 
