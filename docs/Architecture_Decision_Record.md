@@ -3111,3 +3111,21 @@ built.
 the `RESEND_API_KEY` in the production `.env`, and Resend's DKIM records in Cloudflare
 DNS. Until both land, mail continues to queue and fail — visibly, in `failed_jobs`, rather
 than silently.
+
+**Live since 2026-08-24.** Both owner steps landed the same day — the key is in the
+production `.env` and the Resend domain is verified — so prod now runs
+`MAIL_MAILER=failover`. Verified in that order: a raw send through the `resend` mailer
+**by name**, not through the chain, so the success proves Resend accepted it rather than
+SES quietly catching a fall; then a real registration and a real password reset against
+the live API, both delivered with nothing new in `failed_jobs`. The **six** notifications
+that had accumulated there were all `VerifyEmailNotification` refused by SES with `403`
+between 20 and 21 August — real people who signed up and never got a link. `queue:retry
+all` cleared them to zero, and their links were **not** stale: the signed URL is built
+when the job runs, not when it is queued.
+
+**One failure mode the chain does not cover, learned here.** A missing or unset
+`RESEND_API_KEY` does not fail over to SES — it kills the send outright.
+`resend-laravel` resolves its client lazily and throws `ApiKeyIsMissing extends
+InvalidArgumentException`, while Symfony's failover transport catches only
+`TransportExceptionInterface`. So `MAIL_MAILER=failover` without the key is **worse than
+`ses`**, not a degraded version of it, and the two must be set in that order.
