@@ -2983,3 +2983,82 @@ just no reviews arriving — indistinguishable from customers who did not feel l
 writing one. And it is gated on **SES production access**: until that lands the
 invitations queue and fail rather than deliver, so the funnel this exists to open stays
 shut.
+
+---
+
+# ADR-088 Product Descriptions Are Generated From the Product's Own Fields, Deterministically, and Say Nothing They Cannot Prove
+
+**Status:** Accepted (2026-08-24). Backend; unblocks ADR-086. Work order:
+`BUILD_PRODUCT_DESCRIPTION_TEMPLATE.md`.
+
+**Decision.** The catalogue arrived from a supplier file with six columns and no
+description (ADR-074), so every sellable product carried an empty one — which kept the
+entire catalogue out of the Google Merchant feed, because Google rejects an item with no
+description and the rejection counts against the account. `catalog:fill-descriptions`
+writes one for each, assembled from fields the row already holds.
+
+1. **Deterministic, not generated.** Every clause comes from the product's own title,
+   brand and category, plus tokens parsed out of that title. Nothing is inferred: a
+   product whose title does not state a volume gets a sentence that does not mention
+   volume. An LLM would have produced better prose and occasional confident fiction
+   across seven thousand rows nobody will read first; this produces plainer sentences
+   that are all true.
+2. **It claims nothing, and that is law rather than taste.** In Turkey a cosmetic or a
+   food supplement asserting that it treats or prevents a disease is a regulatory
+   offence. The templates say what a product IS and close with the footer its family is
+   required to carry. A test scans every producible string against
+   `forbidden_claims` — **which are phrase-shaped patterns, not bare words**, because the
+   mandatory supplement footer contains "hastalıkların *tedavisinde kullanılmaz*" and a
+   scan for `tedavi` would fail the build on the exact sentence the law requires. A
+   negation is the opposite of a claim.
+3. **It drives `UpdateProductAction` and writes no model.** The same load-bearing rule as
+   the bulk importer (ADR-074) and the seller feed (ADR-076): a query-builder
+   `->update()` fires no model events, so Scout never hears — the row would be right in
+   the table and stale in search, right in the admin list and wrong to every shopper
+   using the search box. The moderation lifecycle is untouched; these products are
+   published and stay published, and `UpdateProductAction` carries no status field
+   precisely so a content edit cannot move one.
+4. **Only empty, never overwritten.** The command fills a hole. Once real copy arrives —
+   an editor, a GTIN content source — a run that ignored this would flatten it in bulk
+   with no undo. That also makes it idempotent for free: a second run finds nothing.
+5. **A family that mixes regulations is not a family.** `anne-ve-bebek` holds baby
+   shampoo *and* infant formula. Mapped wholesale to `cosmetic` it produced, on the live
+   catalogue, "SMA Comfort 3 Devam Sütü … Haricen kullanım içindir" — a legal footer
+   telling a parent that formula is for external use. It is deliberately left unmapped
+   and falls through to a family that states only what is true and adds no footer.
+
+**Three corrections the live catalogue forced, recorded because each was silently wrong:**
+
+- **`mg` is not a net quantity.** In a supplement title a milligram figure is the dose per
+  capsule; "Tru Niagen 300mg 30 Kapsül" became "Net miktarı 300 mg". The unit is excluded.
+- **A multiplier means the parsed figure is not the total.** "12 x 5 ml Ampul" is 60 ml and
+  the pattern sees the 5. When a multiplier is present the quantity sentence is dropped.
+- **Turkish agglutinates, so whole-word matching finds nothing.** Titles say "Kremi",
+  "Jeli", "Şampuanı", "Macunu" — the stem never appears bare, and the form sentence was
+  silently never produced. A short **closed** suffix set is allowed; an open one would
+  have `jel` match `jelatin` and `toz` match `tozluk`.
+
+**Two deviations from the work order, both deliberate.**
+
+*Scope is every PUBLISHED product, not only the sellable ones.* `is_sellable` is a cache
+of current stock and store state rebuilt every ten minutes (ADR-079); scoping a one-off
+content backfill to it would make the result depend on the minute it ran, and a product
+out of stock that afternoon would be silently missing from the feed when it came back.
+
+*A missing brand does not skip the row.* The brief listed "brand + category" as the
+critical pair. Half the catalogue — 3,359 of 7,025 — has no brand, and skipping those
+would have left the feed half empty for a sentence that is perfectly true without a
+manufacturer's name. Only a missing title or category skips, because only then is there
+nothing truthful left to say.
+
+**Cost, stated.** These are template sentences and they read like it: this is **feed
+eligibility and an honest floor, not content that ranks**. Organic weight has to come from
+category FAQs and accumulated reviews. The same text renders on the product page, so the
+product page gains a paragraph of no rhetorical value — accepted, because an empty
+description there was worse. When a per-GTIN content source arrives it should overwrite
+these, which will need a marker distinguishing generated text from written text; none
+exists yet, and adding one later means matching on the closing sentence.
+
+**Result on the live catalogue:** 19,886 descriptions written in under three minutes; the
+Merchant feed went from **0 items to 6,967**, with the only remaining exclusions being 58
+products that have no image.
