@@ -277,6 +277,30 @@ export async function resetPassword(input: {
   });
 }
 
+/**
+ * Redeem an email-verification link. The SIGNATURE (`expires` + `signature`) is the
+ * authorisation and was signed over the API callback URL — so `signedQuery` (the raw
+ * `?…` from the email link, leading `?` included) is forwarded VERBATIM; changing it
+ * breaks `hasValidSignature()` (403). Idempotent server-side, so a repeat click is safe.
+ * Throws `SessionApiError` (403) on a tampered/expired link.
+ */
+export async function verifyEmail(uuid: string, hash: string, signedQuery: string): Promise<void> {
+  await request<null>(`/api/v1/auth/email/verify/${uuid}/${hash}${signedQuery}`, {
+    method: 'POST',
+  });
+}
+
+/**
+ * Ask for a fresh verification link. Enumeration-safe like the reset request — the
+ * API answers the same way for any address (ADR-025), so this resolves on success.
+ */
+export async function resendVerification(email: string): Promise<void> {
+  await request<null>('/api/v1/auth/email/resend', {
+    method: 'POST',
+    body: { email, type: 'customer' },
+  });
+}
+
 /*
 |------------------------------------------------------------------------------
 | Cart
