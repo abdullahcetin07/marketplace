@@ -242,6 +242,41 @@ export async function logout(): Promise<void> {
   await request<null>('/api/v1/auth/logout', { method: 'POST' });
 }
 
+/**
+ * "I forgot my password." The API answers the SAME way whether the address is
+ * registered or not (ADR-025) — so this resolves on success and the page shows one
+ * neutral message either way, never confirming who has an account.
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  await request<null>('/api/v1/auth/password/forgot', {
+    method: 'POST',
+    body: { email, type: 'customer' },
+  });
+}
+
+/**
+ * Redeem a reset token. Throws `SessionApiError` on an invalid/expired token
+ * (`RESET_TOKEN_INVALID`, one message for every failure) or a 422 with the password
+ * policy under `errors.password`. No session is returned — the user signs in after.
+ */
+export async function resetPassword(input: {
+  email: string;
+  token: string;
+  password: string;
+  passwordConfirmation: string;
+}): Promise<void> {
+  await request<null>('/api/v1/auth/password/reset', {
+    method: 'POST',
+    body: {
+      email: input.email,
+      token: input.token,
+      password: input.password,
+      password_confirmation: input.passwordConfirmation,
+      type: 'customer',
+    },
+  });
+}
+
 /*
 |------------------------------------------------------------------------------
 | Cart
