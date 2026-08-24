@@ -74,7 +74,10 @@ report-uri.com, veya bir Cloudflare Worker) ihlalleri akıtabiliriz. v1 için De
 
 ---
 
-## Enforce'a geçiş (birkaç gün temizlik sonrası)
-İhlaller sıfırlandığında header adını **`Content-Security-Policy`** yap (aynı değer). 
+## Enforce'a geçiş — ✅ YAPILDI (2026-08-24)
+Rev3 ile canlı test temiz (ana/kategori/ürün/sepet/**/odeme PayTR** — ödeme tamamlandı,
+CSP filtresi temiz). Header adı **`Content-Security-Policy-Report-Only`** → **`Content-Security-Policy`**
+yapılarak enforce edildi (değer aynı rev3). **Geri alma:** bir şey bozulursa adı tekrar
+`-Report-Only` yap (rebuild yok, anında). 
 İleride sıkılaştırma: `'unsafe-inline'`/`'unsafe-eval'` yerine Next.js **nonce** (middleware)
 + GTM'i nonce ile yükleme — ayrı bir iş.
