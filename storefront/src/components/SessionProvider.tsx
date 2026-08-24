@@ -57,16 +57,26 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
     let cancelled = false;
 
     (async () => {
-      const me = await sessionApi.fetchMe();
+      try {
+        const me = await sessionApi.fetchMe();
 
-      if (cancelled) return;
+        if (cancelled) return;
 
-      setUser(me);
-      setStatus(me === null ? 'anonymous' : 'authenticated');
+        setUser(me);
+        setStatus(me === null ? 'anonymous' : 'authenticated');
 
-      // No basket call for a visitor who is not signed in: the endpoint would
-      // 401, and asking is a round trip that tells us nothing we do not know.
-      if (me !== null) await loadCart();
+        // No basket call for a visitor who is not signed in: the endpoint would
+        // 401, and asking is a round trip that tells us nothing we do not know.
+        if (me !== null) await loadCart();
+      } catch {
+        // The session probe must never crash the app or throw an unhandled
+        // rejection — a 5xx or a network blip falls back to "not signed in" and
+        // the shopper keeps browsing.
+        if (!cancelled) {
+          setUser(null);
+          setStatus('anonymous');
+        }
+      }
     })();
 
     return () => {
@@ -89,7 +99,14 @@ export function SessionProvider({ children }: { children: React.ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    await sessionApi.logout();
+    // Best-effort: "sign out" means forget this session. A server error (or a
+    // 500 from the logout endpoint) must not strand a signed-in user on screen
+    // or throw an unhandled rejection — the client is cleared either way.
+    try {
+      await sessionApi.logout();
+    } catch {
+      // ignored on purpose — local state is reset below regardless
+    }
 
     setUser(null);
     setStatus('anonymous');
