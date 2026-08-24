@@ -5,12 +5,14 @@ declare(strict_types=1);
 namespace App\Providers;
 
 use App\Core\Domain\Events\BaseEvent;
+use App\Core\Infrastructure\Mail\BlockedRecipientGuard;
 use App\Models\User;
 use Illuminate\Auth\Events\Failed;
 use Illuminate\Auth\Events\Lockout;
 use Illuminate\Auth\Events\Login;
 use Illuminate\Auth\Events\Logout;
 use Illuminate\Foundation\Support\Providers\EventServiceProvider as ServiceProvider;
+use Illuminate\Mail\Events\MessageSending;
 use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Log;
 
@@ -37,6 +39,7 @@ final class EventServiceProvider extends ServiceProvider
     {
         $this->auditDomainEvents();
         $this->auditAuthentication();
+        $this->guardMailRecipients();
     }
 
     /**
@@ -116,5 +119,20 @@ final class EventServiceProvider extends ServiceProvider
                 'user_id' => $event->user?->getAuthIdentifier(),
             ]);
         });
+    }
+
+    /**
+     * Keep undeliverable recipients away from the transports.
+     *
+     * Wired here rather than in a module because it is a property of sending
+     * mail at all, and because the thing it protects — the failover chain — is
+     * platform configuration. `MessageSending` is dispatched with `until()`, so
+     * the guard can cancel a send by returning false.
+     *
+     * @see App\Core\Infrastructure\Mail\BlockedRecipientGuard
+     */
+    private function guardMailRecipients(): void
+    {
+        Event::listen(MessageSending::class, [BlockedRecipientGuard::class, 'handle']);
     }
 }

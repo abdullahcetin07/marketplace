@@ -3123,6 +3123,34 @@ between 20 and 21 August — real people who signed up and never got a link. `qu
 all` cleared them to zero, and their links were **not** stale: the signed URL is built
 when the job runs, not when it is queued.
 
+**A rejected RECIPIENT is not a local failure, and that is the second thing this chain
+taught (2026-08-24).** `retry_after` is not a backoff, it is a **blast radius**: Symfony's
+round-robin marks a transport that threw as dead for that many seconds and will not ask
+it again in the window. Four leftover `@example.com` registrations proved what that
+means — Resend rejected the address, SES answered `403` behind it, and the next real
+notifications in the same burst died with **"No transports found"** without either
+provider being contacted. Sixty seconds of a marketplace's order and password mail, lost
+to an address nobody was ever going to read.
+
+Two changes, in that order of importance. **`BlockedRecipientGuard` drops undeliverable
+recipients before a transport is asked** — a `MessageSending` listener reading
+`mail.blocked_recipient_domains` (the RFC 2606 reserved domains plus the common
+disposable ones). It **removes recipients rather than cancelling messages**, so a real
+customer who happens to share a CC with a test address still gets their mail, and it
+**never throws**, because a queued notification that raised here would retry an address
+that will never exist until it exhausted its tries. And **`retry_after` drops 60 → 5**,
+which keeps the point of the round-robin — a provider in a genuine outage is not hammered
+once per message — while making the window too short to swallow a burst. Belt and braces,
+deliberately: the guard stops the messages we can predict, the shorter window limits what
+an unpredicted one costs.
+
+The same config list defines what `users:purge-test-accounts` treats as disposable, so
+"not a real address" has **one** definition here rather than two that drift — at the cost
+that adding a domain to it now does two things. That command soft-deletes only test-domain
+customers with **no orders, payments, points, reviews, questions or returns**; a fake-looking
+address with history behind it is kept, because a soft-deleted user under a real order is a
+support call rather than a tidy database. Work order: `BUILD_MAIL_RESILIENCE.md`.
+
 **One failure mode the chain does not cover, learned here.** A missing or unset
 `RESEND_API_KEY` does not fail over to SES — it kills the send outright.
 `resend-laravel` resolves its client lazily and throws `ApiKeyIsMissing extends
