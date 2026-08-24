@@ -16,12 +16,15 @@ Kapsanan kaynaklar: GTM + GA4 + Google Ads dönüşüm/remarketing, **PayTR ifra
 **Değer (tek satır — aşağıdaki `;`-ayrık direktiflerin tamamı tek satırda):**
 
 ```
-default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://static.cloudflareinsights.com https://www.paytr.com https://*.paytr.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.google-analytics.com https://*.analytics.google.com https://www.googletagmanager.com https://www.google.com https://www.google.com.tr https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://www.google.com https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://cloudflareinsights.com https://static.cloudflareinsights.com; frame-src 'self' https://www.paytr.com https://*.paytr.com https://www.googletagmanager.com https://td.doubleclick.net https://www.google.com https://bid.g.doubleclick.net; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://www.paytr.com https://*.paytr.com; object-src 'none'; worker-src 'self' blob:
+default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://www.googletagmanager.com https://www.google-analytics.com https://ssl.google-analytics.com https://www.googleadservices.com https://www.google.com https://googleads.g.doubleclick.net https://pagead2.googlesyndication.com https://static.cloudflareinsights.com https://www.paytr.com https://*.paytr.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; img-src 'self' data: blob: https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.googletagmanager.com https://www.google.com https://www.google.com.tr https://*.doubleclick.net https://googleads.g.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com; font-src 'self' data: https://fonts.gstatic.com; connect-src 'self' https://www.googletagmanager.com https://*.google-analytics.com https://*.analytics.google.com https://analytics.google.com https://www.google.com https://googleads.g.doubleclick.net https://*.doubleclick.net https://www.googleadservices.com https://pagead2.googlesyndication.com https://cloudflareinsights.com https://static.cloudflareinsights.com; frame-src 'self' https://www.paytr.com https://*.paytr.com https://www.googletagmanager.com https://td.doubleclick.net https://www.google.com https://bid.g.doubleclick.net; frame-ancestors 'self'; base-uri 'self'; form-action 'self' https://www.paytr.com https://*.paytr.com; object-src 'none'; worker-src 'self' blob:
 ```
 
-> **Rev 2 (canlı test sonrası):** `script-src`'ye `static.cloudflareinsights.com` (Cloudflare
-> Web Analytics beacon) ve `www.paytr.com`/`*.paytr.com` (PayTR `iframeResizer.min.js`);
-> `connect-src`'ye `cloudflareinsights.com` + `static.cloudflareinsights.com` eklendi.
+> **Rev 2:** `script-src` += `static.cloudflareinsights.com` (Cloudflare Web Analytics),
+> `www.paytr.com`/`*.paytr.com` (PayTR `iframeResizer.min.js`); `connect-src` += cloudflareinsights.
+>
+> **Rev 3 (canlı test):** GA4/Ads telemetri uçları — `connect-src` (ve `img-src`) +=
+> `https://analytics.google.com` (çıplak; `*.analytics.google.com` onu kapsamaz) ve
+> `https://*.doubleclick.net` (stats.g / ad. / bid.g doubleclick collect uçları).
 
 ### Direktif gerekçeleri
 - `script-src` — GTM/GA/Ads host'ları + Next.js inline hydration ve GTM için
