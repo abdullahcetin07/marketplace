@@ -5,6 +5,7 @@ import { useState } from 'react';
 import { PointsEarnedNote } from '@/components/PointsEarnedNote';
 import { register, SessionApiError } from '@/lib/session-api';
 import { ui } from '@/lib/ui';
+import { PasswordInput } from '@/components/PasswordInput';
 
 /**
  * Create a customer account (§2.2).
@@ -115,11 +116,21 @@ export default function RegisterPage() {
           </Field>
 
           <Field label="Parola" error={errors.password?.[0]}>
-            <input type="password" required autoComplete="new-password" {...field('password')} className={ui.field} />
+            <PasswordInput
+              value={form.password}
+              onChange={(value) => setForm((current) => ({ ...current, password: value }))}
+              autoComplete="new-password"
+              required
+            />
           </Field>
 
           <Field label="Parola (tekrar)">
-            <input type="password" required autoComplete="new-password" {...field('passwordConfirmation')} className={ui.field} />
+            <PasswordInput
+              value={form.passwordConfirmation}
+              onChange={(value) => setForm((current) => ({ ...current, passwordConfirmation: value }))}
+              autoComplete="new-password"
+              required
+            />
           </Field>
 
           {message !== null && (

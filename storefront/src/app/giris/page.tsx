@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { SessionApiError } from '@/lib/session-api';
 import { ui } from '@/lib/ui';
+import { PasswordInput } from '@/components/PasswordInput';
 import { useSession } from '@/components/SessionProvider';
 
 /**
@@ -82,13 +83,11 @@ export default function LoginPage() {
 
           <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-700 dark:text-ink-200">
             Parola
-            <input
-              type="password"
-              required
-              autoComplete="current-password"
+            <PasswordInput
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
-              className={ui.field}
+              onChange={setPassword}
+              autoComplete="current-password"
+              required
             />
           </label>
 

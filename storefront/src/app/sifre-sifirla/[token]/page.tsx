@@ -5,6 +5,7 @@ import { useParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { resetPassword, SessionApiError } from '@/lib/session-api';
 import { ui } from '@/lib/ui';
+import { PasswordInput } from '@/components/PasswordInput';
 
 /**
  * "Şifre sıfırla" — redeem the token from the reset email (§2.2, ADR-025).
@@ -106,25 +107,21 @@ export default function ResetPasswordPage() {
           <form onSubmit={(event) => void onSubmit(event)} className="flex flex-col gap-4">
             <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-700 dark:text-ink-200">
               Yeni şifre
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
+              <PasswordInput
                 value={password}
-                onChange={(event) => setPassword(event.target.value)}
-                className={ui.field}
+                onChange={setPassword}
+                autoComplete="new-password"
+                required
               />
             </label>
 
             <label className="flex flex-col gap-1.5 text-sm font-semibold text-ink-700 dark:text-ink-200">
               Yeni şifre (tekrar)
-              <input
-                type="password"
-                required
-                autoComplete="new-password"
+              <PasswordInput
                 value={confirm}
-                onChange={(event) => setConfirm(event.target.value)}
-                className={ui.field}
+                onChange={setConfirm}
+                autoComplete="new-password"
+                required
               />
             </label>
 
