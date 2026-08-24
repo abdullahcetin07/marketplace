@@ -37,6 +37,8 @@ use Illuminate\Notifications\Notifiable;
 use Illuminate\Support\Carbon;
 use Illuminate\Support\Str;
 use Laravel\Sanctum\HasApiTokens;
+use Laravel\Sanctum\PersonalAccessToken;
+use Laravel\Sanctum\TransientToken;
 use LogicException;
 use Spatie\Permission\Exceptions\PermissionDoesNotExist;
 use Spatie\Permission\Traits\HasRoles;
@@ -103,6 +105,18 @@ class User extends Authenticatable implements MustVerifyEmail
     // (password, remember_token, two_factor_secret, two_factor_recovery_codes)
     // are on the trait's global exclusion list and never reach the trail.
     use Auditable;
+
+    /*
+    | **BOTH TOKEN TYPES, BECAUSE BOTH REALLY OCCUR.** Sanctum's default binds
+    | this to `PersonalAccessToken`, and that annotation was a lie on this
+    | platform: a cookie-authenticated storefront request carries a
+    | `TransientToken` — no row, no id — and `currentAccessToken()` hands it
+    | back like any other. The untruth is not academic. It is why static
+    | analysis had nothing to say about `LogoutAction` calling `getKey()` on
+    | whatever came out of there, which 500'd every storefront logout until
+    | 2026-08-24.
+    */
+    /** @use HasApiTokens<PersonalAccessToken|TransientToken> */
     use HasApiTokens;
 
     /** @use HasFactory<UserFactory> */

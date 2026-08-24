@@ -8,6 +8,7 @@ use App\Core\Application\Actions\BaseAction;
 use App\Models\User;
 use App\Modules\Identity\Domain\Events\UserLoggedOut;
 use App\Modules\Identity\Domain\Models\UserSession;
+use Illuminate\Database\Eloquent\Model;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\DB;
@@ -31,10 +32,27 @@ final class LogoutAction extends BaseAction
 
         $this->closeSessionRow($user, $request, $guard, $reason);
 
-        // API token sessions: delete the token that authorised this request.
+        /*
+        | API token sessions: delete the token that authorised this request.
+        |
+        | **A COOKIE SESSION HAS A TOKEN HERE TOO, AND IT IS NOT A ROW.** Sanctum
+        | stamps a `TransientToken` on a session-authenticated user so
+        | `tokenCan()` answers uniformly whichever way the request arrived. It
+        | has no id, so the old `$token !== null` test walked straight into
+        | `Call to undefined method TransientToken::getKey()` — a 500 on every
+        | storefront logout, AFTER `closeSessionRow()` had already marked the
+        | session revoked and BEFORE the guard was told to log out. The worst
+        | shape a bug can take: the user is still signed in, their session row
+        | says otherwise, and the response says the server broke.
+        |
+        | The check is `instanceof Model` rather than `not TransientToken`
+        | because what this branch needs is not "a real token" in the abstract
+        | but a persisted row with a key — and it keeps working if the
+        | `Sanctum::$personalAccessTokenModel` is ever swapped.
+        */
         $token = $user->currentAccessToken();
 
-        if ($token !== null) {
+        if ($token instanceof Model) {
             DB::table('personal_access_tokens')->where('id', $token->getKey())->delete();
         }
 
