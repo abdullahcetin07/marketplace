@@ -344,8 +344,20 @@ final class GoogleMerchantFeed
         | unidentifiable rather than sloppily submitted. Saying `yes` without a
         | GTIN gets the item disapproved; saying `no` when one exists throws away
         | the strong match that makes a listing rank.
+        |
+        | **IT ANSWERS FOR THE GTIN, NOT THE BRAND** (2026-08-24). This used to
+        | require both, and a GTIN is a unique identifier ON ITS OWN — brand+MPN
+        | is the ALTERNATIVE to it, not a second half of it. Measured on the live
+        | feed: every one of the 6,933 items carries a GTIN and 3,329 of them
+        | (48%) still said `no`, because that many have no brand row in the
+        | catalogue. Each of those told Google to disregard the barcode — on a
+        | new domain, the strongest matching signal the platform has.
+        |
+        | The `brand && mpn` half of Google's rule is not written here because
+        | the catalogue has no MPN column; adding it as dead code would read as
+        | though it did.
         */
-        $lines[] = $this->tag('g:identifier_exists', $gtin !== null && $brand !== null ? 'yes' : 'no');
+        $lines[] = $this->tag('g:identifier_exists', $gtin !== null ? 'yes' : 'no');
         $lines[] = $this->tag('g:condition', 'new');
         $lines[] = $this->tag('g:product_type', $this->breadcrumbFor($product));
 

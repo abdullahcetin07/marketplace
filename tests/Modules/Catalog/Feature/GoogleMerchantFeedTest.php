@@ -111,6 +111,24 @@ function builtFeed(): string
     return Storage::disk('public')->get('feeds/google-merchant.xml');
 }
 
+/**
+ * The one `<item>` block belonging to a product.
+ *
+ * A feed is one string holding every product, so `expect($xml)->toContain(...)`
+ * answers "somebody's item says this", which is not the question when the point
+ * is that THIS item does.
+ */
+function itemFor(string $xml, Product $product): string
+{
+    foreach (explode('<item>', $xml) as $item) {
+        if (str_contains($item, '/'.$product->slug.'</link>')) {
+            return $item;
+        }
+    }
+
+    throw new RuntimeException("No feed item for product {$product->slug}.");
+}
+
 it('writes one item per sellable product and reports what it dropped', function (): void {
     // TWO ROWS MINIMUM, always. Laravel arms the lazy-loading guard in
     // `Builder::hydrate()` behind `count($items) > 1`, so a single-product
@@ -195,6 +213,29 @@ it('writes the gtin and says so through identifier_exists', function (): void {
     expect($xml)->toContain('<g:gtin>'.$gtin.'</g:gtin>')
         ->and($xml)->toContain('<g:identifier_exists>yes</g:identifier_exists>')
         ->and($xml)->toContain('<g:identifier_exists>no</g:identifier_exists>');
+});
+
+it('claims an identifier for a GTIN with no brand behind it', function (): void {
+    /*
+    | The 2026-08-24 regression, measured on the live feed: every one of 6,933
+    | items had a GTIN and 3,329 of them said `identifier_exists: no`, because
+    | the flag was answering for the BRAND. A GTIN is a unique identifier on its
+    | own — brand+MPN is the alternative to it, not a second half of it — and
+    | each `no` told Google to disregard the barcode, which on a new domain is
+    | the strongest matching signal there is.
+    |
+    | Two products so the assertion cannot pass on the other one's tag.
+    */
+    $brandless = feedableProduct('Marks1z', overrides: ['brand_id' => null]);
+    feedableProduct('Markal1');
+
+    $xml = builtFeed();
+
+    $item = itemFor($xml, $brandless);
+
+    expect($item)->not->toContain('<g:brand>')
+        ->and($item)->toContain('<g:gtin>')
+        ->and($item)->toContain('<g:identifier_exists>yes</g:identifier_exists>');
 });
 
 it('never leaks an internal integer id', function (): void {
