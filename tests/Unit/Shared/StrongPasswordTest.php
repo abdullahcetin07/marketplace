@@ -48,30 +48,43 @@ function fakeCleanBreachCorpus(): void
 }
 
 it('lets a shopper use eight characters with a letter and a digit', function (): void {
-    fakeCleanBreachCorpus();
-
     expect(passwordPasses(StrongPassword::customer(), 'parola12'))->toBeTrue();
 });
 
-it('still refuses a shopper password that is too short or all digits', function (): void {
-    fakeCleanBreachCorpus();
-
+it('still refuses a shopper password that is too short, all digits or all letters', function (): void {
     expect(passwordPasses(StrongPassword::customer(), 'kisa1'))->toBeFalse()
-        ->and(passwordPasses(StrongPassword::customer(), '00000000'))->toBeFalse()
+        ->and(passwordPasses(StrongPassword::customer(), '12345678'))->toBeFalse()
         ->and(passwordPasses(StrongPassword::customer(), 'parolaparola'))->toBeFalse();
 });
 
-it('refuses a shopper password that is already in a breach corpus', function (): void {
+it('asks Have I Been Pwned nothing about a shopper password', function (): void {
     /*
-    | The one check that survived the relaxation, and the one that does the
-    | work: "sifre123" is long enough and mixes letters with digits, so every
-    | composition rule here says yes. Only the corpus says no.
+    | The owner dropped `uncompromised()` from the customer tier on 2026-08-24,
+    | for the friction AND for the synchronous third-party call on every signup
+    | and reset. Both halves are asserted here: nothing leaves the process, and
+    | a password that IS in the breach corpus is now accepted.
+    |
+    | "sifre123" is the case that makes it concrete — eight characters, letters
+    | and digits, so every remaining rule says yes and only the corpus said no.
     */
-    $suffix = mb_substr(mb_strtoupper(sha1('sifre123')), 5);
+    fakeCleanBreachCorpus();
 
-    Http::fake(['api.pwnedpasswords.com/*' => Http::response($suffix.':1337', 200)]);
+    expect(passwordPasses(StrongPassword::customer(), 'sifre123'))->toBeTrue();
 
-    expect(passwordPasses(StrongPassword::customer(), 'sifre123'))->toBeFalse();
+    Http::assertNothingSent();
+});
+
+it('still asks about a seller password', function (): void {
+    /*
+    | The tiers now differ in KIND, not only in length — so this is the other
+    | half of the previous test, and the one that fails if a future tidy-up
+    | "unifies" the rules.
+    */
+    fakeCleanBreachCorpus();
+
+    expect(passwordPasses(StrongPassword::seller(), 'ParolaGuclu12'))->toBeTrue();
+
+    Http::assertSent(fn ($request): bool => str_contains($request->url(), 'pwnedpasswords.com'));
 });
 
 it('keeps the seller tier where the customer tier used to be', function (): void {

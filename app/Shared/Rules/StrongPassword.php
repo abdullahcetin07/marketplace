@@ -16,10 +16,11 @@ use Illuminate\Validation\Rules\Password;
  * order history. A rule that treats them alike is either hostile to shoppers or
  * negligent about admins.
  *
- * Every tier checks the password against the Have I Been Pwned k-anonymity API,
- * which catches far more real-world compromise than any composition rule — a
- * long, mixed-case password that has already appeared in a breach is worse than
- * a short one that has not.
+ * The staff and seller tiers check the password against the Have I Been Pwned
+ * k-anonymity API, which catches far more real-world compromise than any
+ * composition rule — a long, mixed-case password that has already appeared in a
+ * breach is worse than a short one that has not. **The customer tier does not**
+ * (owner's decision, 2026-08-24): see `customer()` for what that costs.
  *
  *     'password' => ['required', 'confirmed', StrongPassword::for($type)],
  *
@@ -93,7 +94,7 @@ final class StrongPassword
     }
 
     /**
-     * Customers: 8 characters, at least one letter and one digit, not breached.
+     * Customers: 8 characters, at least one letter and one digit. Nothing else.
      *
      * **A deliberate relaxation (2026-08-24), not an oversight.** Twelve
      * characters with mixed case is a rule for an account that guards other
@@ -102,17 +103,23 @@ final class StrongPassword
      * itself a security outcome, because the customer who gives up keeps using
      * whatever they had.
      *
-     * `uncompromised(3)` is the part that survives, and it is the part that
-     * works: it rejects "12345678" and "password1" by checking the breach
-     * corpus rather than by guessing at shapes. `letters()` + `numbers()` only
-     * rules out the degenerate "00000000" case.
+     * **The breach check went too, by the owner's decision, and it is the part
+     * worth naming.** `uncompromised()` is the only rule here that measures a
+     * password against reality rather than shape: it is what refused
+     * "sifre123" and "password1". Dropping it means a shopper may now choose a
+     * password that is known to be in a public breach corpus, and it removes a
+     * synchronous HTTPS call to a third party from every signup and reset —
+     * which is the other half of why it went. Sellers and admins still make
+     * that call; the tiers now differ in kind, not only in length.
+     *
+     * What is left is a floor, not a filter: `letters()` + `numbers()` rules
+     * out "12345678" and "parolaparola", and nothing rules out "parola12".
      */
     public static function customer(): Password
     {
         return Password::min(8)
             ->letters()
-            ->numbers()
-            ->uncompromised(3);
+            ->numbers();
     }
 
     /**

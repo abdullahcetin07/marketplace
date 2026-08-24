@@ -79,15 +79,23 @@ The properties that matter here:
 | Seller (`seller()`) | 12 chars, mixed case, digits | a merchant's catalogue, prices, payout details |
 | Customer (`customer()`) | 8 chars, a letter and a digit | one person's order history |
 
-All three check Have I Been Pwned via k-anonymity, and that is the check doing
-the work: a breached password is compromised at any length, while composition
-rules mostly move where the sticky note goes.
+**Admin and seller** check Have I Been Pwned via k-anonymity, and that is the
+check doing the work: a breached password is compromised at any length, while
+composition rules mostly move where the sticky note goes.
 
 **The customer tier was relaxed on 2026-08-24** (from the 12 + mixed-case rule
 sellers still use) because it sat on a shopper's signup and password-reset form,
 where the abandoned reset is itself a security outcome — the customer who gives
 up keeps whatever they had. Seller and admin were deliberately left alone; the
 split is the point of the change, not a side effect of it.
+
+**The customer tier does not call HIBP at all** — the owner's decision the same
+day, and the cost belongs in writing: a shopper may now choose a password known
+to be in a public breach corpus, because the only rule that measured a password
+against reality rather than shape is gone from that tier. What it buys is no
+synchronous third-party HTTPS call on any signup or reset. The tiers now differ
+in kind, not only in length, and a test asserts exactly that: nothing leaves the
+process for a customer password, and a request still goes out for a seller's.
 
 Registered as the framework default (`Password::defaults()`), so any rule using
 `Password::defaults()` gets the policy without opting in. **That default is the
