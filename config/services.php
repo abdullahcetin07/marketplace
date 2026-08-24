@@ -25,8 +25,15 @@ return [
         'region' => env('AWS_DEFAULT_REGION', 'eu-central-1'),
     ],
 
+    /*
+    | TWO ENV NAMES, ON PURPOSE. `resend/resend-laravel` reads its own
+    | `config('resend.api_key')` — which is `RESEND_API_KEY` — and falls back to
+    | this key, which Laravel documents as `RESEND_KEY`. Accepting both means an
+    | owner who types the name from either set of docs gets a working mailer
+    | instead of "The Resend API key is missing" at three in the morning.
+    */
     'resend' => [
-        'key' => env('RESEND_KEY'),
+        'key' => env('RESEND_KEY', env('RESEND_API_KEY')),
     ],
 
     'slack' => [

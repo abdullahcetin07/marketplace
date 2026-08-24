@@ -23,6 +23,7 @@
         "opensearch-project/opensearch-php": "^2.3",
         "pragmarx/google2fa": "^8.0",
         "predis/predis": "^2.2",
+        "resend/resend-laravel": "^1.4",
         "spatie/laravel-medialibrary": "^11.11",
         "spatie/laravel-permission": "^6.10"
     },

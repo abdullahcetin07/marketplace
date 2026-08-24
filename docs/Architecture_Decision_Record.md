@@ -3062,3 +3062,52 @@ exists yet, and adding one later means matching on the closing sentence.
 **Result on the live catalogue:** 19,886 descriptions written in under three minutes; the
 Merchant feed went from **0 items to 6,967**, with the only remaining exclusions being 58
 products that have no image.
+
+---
+
+# ADR-089 Transactional Mail Leaves Over HTTP, Never SMTP, Behind a Failover Chain
+
+**Status:** Accepted (2026-08-24). Backend; supersedes the SMTP assumption in the
+go-live runbook. Work order: `BUILD_MAIL_FALLBACK.md`.
+
+**Decision.** Every outbound mail path on this platform is an **HTTP API**, and the
+default mailer is a **failover chain: Resend, then SES**.
+
+**The constraint is the host, not the configuration.** Outbound SMTP is blocked upstream:
+ports 25, 465, 587, 2465 and 2587 all time out to three separate providers, while 22, 53
+and 443 are open, `ufw` is `ACCEPT` on output and the local chains are empty. No
+credential fixes that, which is why the platform moved to SES over HTTPS in the first
+place — and why any fallback provider must also be an HTTP API rather than another SMTP
+host.
+
+**Resend leads because it is the one that can deliver.** AWS **refused** SES production
+access, leaving that account able to reach only verified addresses — fine for a smoke
+test, useless for a customer resetting a password. SES stays in the chain behind Resend:
+it costs nothing while it cannot deliver, and the day the account is approved it becomes
+a real second provider with no deploy.
+
+**`smtp` is removed from the chain, and that is a fix rather than tidying.** The failover
+transport tries each mailer in turn, so a dead port in the list is not a harmless extra
+attempt — every message burned a full connection timeout on a port that cannot open
+before reaching the mailer that works, turning a fast failure into a slow one, per
+message, on a queue.
+
+**The API key is read under both documented names.** `resend/resend-laravel` reads
+`RESEND_API_KEY` through its own merged config; Laravel documents `RESEND_KEY` via
+`services.resend.key`. Both resolve, because an owner typing the name from either set of
+docs should get a working mailer rather than "The Resend API key is missing" — and the
+credential is typed on the server by its owner, never through this repository or a chat.
+
+**Cost, stated.** Two providers means two DNS identities to keep valid: Resend's DKIM
+records join the existing SPF/DMARC in Cloudflare, and a lapse there fails silently into
+spam rather than loudly into an error. Deliverability now depends on a vendor the platform
+has no contract-level control over, and the failover only covers **transport** failures —
+a message Resend accepts and then bounces never reaches SES, because as far as the
+application is concerned it was sent. Suppression and bounce handling live with the
+provider rather than in this codebase; the webhooks that would bring them back in are not
+built.
+
+**Nothing is delivered until the owner completes two steps this repository cannot do:**
+the `RESEND_API_KEY` in the production `.env`, and Resend's DKIM records in Cloudflare
+DNS. Until both land, mail continues to queue and fail — visibly, in `failed_jobs`, rather
+than silently.

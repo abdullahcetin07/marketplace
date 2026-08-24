@@ -37,10 +37,24 @@ return [
         | Tries each mailer in turn. Transactional mail on a marketplace is not
         | optional — a password reset that silently fails because one provider
         | is down is a support ticket per user.
+        |
+        | **RESEND FIRST, AND `smtp` IS GONE FROM THE CHAIN** (2026-08-24).
+        |
+        | This host blocks outbound SMTP: ports 25/465/587/2465/2587 time out to
+        | every provider tried, with `ufw` set to ACCEPT on output and no local
+        | rules — an upstream block, not something configuration can fix. Leaving
+        | `smtp` in the chain meant every failover burned a full connection
+        | timeout on a port that cannot open, turning a fast failure into a slow
+        | one, per message.
+        |
+        | SES stays as the second line even though its production access was
+        | REFUSED and it can currently only reach verified addresses. It costs
+        | nothing while it cannot deliver, and the day the account is approved it
+        | becomes a real second provider with no deploy.
         */
         'failover' => [
             'transport' => 'failover',
-            'mailers' => ['ses', 'smtp'],
+            'mailers' => ['resend', 'ses'],
             'retry_after' => 60,
         ],
 
