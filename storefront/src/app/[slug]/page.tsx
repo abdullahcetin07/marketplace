@@ -58,11 +58,12 @@ export async function generateMetadata({ params, searchParams }: Props): Promise
       alternates: { canonical },
       openGraph: {
         title: product.title,
-        // A product page is an OG "product", not a generic "website" — it lets
-        // Facebook/Pinterest treat the share as a product card. Next 15's typed
-        // OpenGraph union has no `product` member, so the value is cast; the
-        // rendered `<meta property="og:type" content="product">` is what matters.
-        type: 'product' as 'website',
+        // NOTE: og:type stays the site default "website". Next 15's Metadata API
+        // VALIDATES openGraph.type against its own union at render time and THROWS
+        // "Invalid OpenGraph type: product" for any value outside it (website,
+        // article, book, profile, music.*, video.*) — a cast fools TypeScript but
+        // not the runtime, which crashed every product page. The Product rich data
+        // that actually matters is the JSON-LD Product/Offer block below, not og:type.
         images: product.images.length > 0 ? [product.images[0] as string] : undefined,
       },
     };
