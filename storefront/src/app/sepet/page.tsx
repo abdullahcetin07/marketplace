@@ -76,7 +76,7 @@ export default function CartPage() {
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_21rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_21rem]">
         <ul className={`divide-y divide-ink-100 dark:divide-ink-800 ${ui.card}`}>
           {cart.items.map((line) => (
             <CartRow

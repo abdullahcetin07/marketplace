@@ -9,7 +9,7 @@ import { AccountNav } from '@/components/AccountNav';
  */
 export default function AccountLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-[220px_minmax(0,1fr)]">
       <aside className="lg:sticky lg:top-[130px] lg:self-start">
         <AccountNav />
       </aside>

@@ -194,7 +194,13 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
         ))}
       </nav>
 
-      <div className="grid items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.2fr] xl:grid-cols-[minmax(0,1fr)_1.4fr_250px]">
+      {/* `grid-cols-1` on mobile is load-bearing: without an explicit track the
+          grid falls back to ONE IMPLICIT `auto` column, whose min-width is the
+          widest child's min-content (~446px on a phone) — that overflowed the
+          375px viewport and scrolled the whole page sideways. `grid-cols-1` is
+          `repeat(1,minmax(0,1fr))`, so the track may shrink to 0 and the inner
+          overflow-x-auto strips (thumbnails, category rails) clip instead. */}
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_1.2fr] xl:grid-cols-[minmax(0,1fr)_1.4fr_250px]">
         <ProductGallery
           images={product.images}
           largeImages={product.images_large}

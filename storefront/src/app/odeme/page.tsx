@@ -236,7 +236,7 @@ export default function CheckoutPage() {
         </p>
       )}
 
-      <div className="grid gap-6 lg:grid-cols-[1fr_20rem]">
+      <div className="grid grid-cols-1 gap-6 lg:grid-cols-[1fr_20rem]">
         <div className="flex flex-col gap-6">
           <section className={`flex flex-col gap-3 p-5 ${ui.card}`}>
             <h2 className={ui.h2}>Teslimat adresi</h2>
