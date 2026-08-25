@@ -268,6 +268,34 @@ it('keeps an excluded category and its descendants out', function (): void {
         ->and($xml)->not->toContain('Vitamin');
 });
 
+it('ships with the supplement branch excluded, and with the strays that escaped it', function (): void {
+    /*
+    | The exclusion list is a POLICY decision (owner, 2026-08-24), not a local
+    | setting, so the shipped default is asserted rather than left to whatever
+    | an environment happens to define.
+    |
+    | The three doubled slugs are the part worth pinning. They are supplement
+    | categories sitting at the ROOT of the catalogue instead of under
+    | `besin-takviyeleri` — an import artefact — so excluding the parent branch
+    | alone left D3-K2 (79 products) and magnesium (44) in the feed. If the
+    | catalogue tree is ever repaired, these entries become harmless no-ops and
+    | this test is the note explaining why they were there.
+    */
+    $config = require base_path('config/feed.php');
+
+    $slugs = $config['google']['excluded_category_slugs'];
+
+    expect($slugs)
+        ->toContain('besin-takviyeleri')
+        ->toContain('d3-k2-vitaminid3-k2-vitamini')
+        ->toContain('magnezyum-bisglisinatmagnezyum-bisglisinat')
+        ->toContain('zayiflama-ve-diyet-urunleri')
+        // The health root is NOT excluded: medical devices and the rest of
+        // `saglik-ve-medikal` stay in the feed, only the slimming branch under
+        // it goes.
+        ->and($slugs)->not->toContain('saglik-ve-medikal');
+});
+
 it('serves the built file as xml, and 404s before it exists', function (): void {
     $this->get('/feed/google-merchant.xml')->assertNotFound();
 

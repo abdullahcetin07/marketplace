@@ -39,12 +39,43 @@ return [
         |
         | Google restricts parts of the health and supplement space, and a feed
         | that keeps submitting a disapproved category is a feed with a standing
-        | policy strike. Empty in v1: the owner adds a slug when Merchant Center
-        | actually flags one, rather than guessing at the policy in advance.
+        | policy strike. **Supplements are excluded as of 2026-08-24** (owner's
+        | decision): `besin-takviyeleri` and everything under it — 2,409
+        | published products, vitamins, minerals, omega and the rest.
+        |
+        | **THE FOUR SLUGS AFTER IT ARE NOT A SECOND DECISION, THEY ARE THE SAME
+        | ONE.** The catalogue has a handful of ROOT categories whose slug is its
+        | own name repeated — `d3-k2-vitaminid3-k2-vitamini` (79 products),
+        | `magnezyum-bisglisinatmagnezyum-bisglisinat` (44),
+        | `antioksidan-iceren-e-vitaminleriantioksidan-iceren-e-vitaminleri` (9),
+        | `takviye-edici-gida-urunleri` (2). They are supplement categories that
+        | landed at the TOP of the tree instead of under `besin-takviyeleri`, so
+        | excluding the parent branch alone would have left D3-K2 and magnesium —
+        | the two the owner named — in the feed. Fixing the tree is a catalogue
+        | job; until it happens, the policy has to name where the products
+        | actually are.
+        |
+        | The env var REPLACES this list rather than adding to it, so anything
+        | set there must repeat what is still wanted.
         */
-        'excluded_category_slugs' => array_values(array_filter(
-            explode(',', (string) env('FEED_GOOGLE_EXCLUDED_CATEGORY_SLUGS', '')),
-        )),
+        'excluded_category_slugs' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('FEED_GOOGLE_EXCLUDED_CATEGORY_SLUGS', implode(',', [
+                'besin-takviyeleri',
+                'd3-k2-vitaminid3-k2-vitamini',
+                'magnezyum-bisglisinatmagnezyum-bisglisinat',
+                'antioksidan-iceren-e-vitaminleriantioksidan-iceren-e-vitaminleri',
+                'takviye-edici-gida-urunleri',
+                // Weight loss, restricted by Google in its own right (owner,
+                // 2026-08-24). TWO entries for one idea again: the real branch
+                // sits under `saglik-ve-medikal` (16 products) and the doubled
+                // stray sits at the root (10). Naming the branch rather than
+                // the health root is deliberate — medical devices and the rest
+                // of `saglik-ve-medikal` stay in the feed.
+                'zayiflama-ve-diyet-urunleri',
+                'zayiflama-ve-diyet-urunlerizayiflama-ve-diyet-urunleri',
+            ]))),
+        ))),
 
         /*
         | Below this many characters a description is treated as absent and the
