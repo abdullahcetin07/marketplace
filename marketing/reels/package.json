@@ -1,0 +1,23 @@
+{
+  "name": "raftabul-reels",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Raftabul branded Instagram reels, rendered from code with Remotion.",
+  "scripts": {
+    "studio": "remotion studio src/index.ts",
+    "render": "remotion render src/index.ts",
+    "monday": "remotion render src/index.ts monday out/monday.mp4",
+    "friday": "remotion render src/index.ts friday out/friday.mp4"
+  },
+  "dependencies": {
+    "@remotion/cli": "4.0.290",
+    "@remotion/google-fonts": "4.0.290",
+    "react": "19.0.0",
+    "react-dom": "19.0.0",
+    "remotion": "4.0.290"
+  },
+  "devDependencies": {
+    "@types/react": "19.0.0",
+    "typescript": "5.5.4"
+  }
+}
