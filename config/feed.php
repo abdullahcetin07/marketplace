@@ -74,6 +74,15 @@ return [
                 // of `saglik-ve-medikal` stay in the feed.
                 'zayiflama-ve-diyet-urunleri',
                 'zayiflama-ve-diyet-urunlerizayiflama-ve-diyet-urunleri',
+                // Supplements filed under non-supplement parents (owner,
+                // 2026-08-25). `outlet-besin-takviyeleri` (393 products) hangs
+                // off `outlet-urunler` and `sac-bakim-vitamin-takviyeleri` (37)
+                // off `sac-bakimi`. Their PARENTS stay in the feed on purpose:
+                // outlet is mostly cosmetics and hair care is not a supplement
+                // aisle, so excluding either branch would drop hundreds of
+                // items Google is happy to take.
+                'outlet-besin-takviyeleri',
+                'sac-bakim-vitamin-takviyeleri',
             ]))),
         ))),
 

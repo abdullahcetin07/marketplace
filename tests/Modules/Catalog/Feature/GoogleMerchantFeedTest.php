@@ -290,10 +290,15 @@ it('ships with the supplement branch excluded, and with the strays that escaped 
         ->toContain('d3-k2-vitaminid3-k2-vitamini')
         ->toContain('magnezyum-bisglisinatmagnezyum-bisglisinat')
         ->toContain('zayiflama-ve-diyet-urunleri')
-        // The health root is NOT excluded: medical devices and the rest of
-        // `saglik-ve-medikal` stay in the feed, only the slimming branch under
-        // it goes.
-        ->and($slugs)->not->toContain('saglik-ve-medikal');
+        ->toContain('outlet-besin-takviyeleri')
+        ->toContain('sac-bakim-vitamin-takviyeleri')
+        // The PARENTS are not excluded, and that is the whole shape of this
+        // list: supplements go, the aisles they were filed under stay. Naming
+        // `saglik-ve-medikal`, `outlet-urunler` or `sac-bakimi` here would drop
+        // hundreds of items Google is happy to take.
+        ->and($slugs)->not->toContain('saglik-ve-medikal')
+        ->and($slugs)->not->toContain('outlet-urunler')
+        ->and($slugs)->not->toContain('sac-bakimi');
 });
 
 it('serves the built file as xml, and 404s before it exists', function (): void {
