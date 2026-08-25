@@ -130,10 +130,12 @@ export async function CategoryView({
         </p>
       </div>
 
-      <ListingFilters facets={listing.facets} sort={sort} />
+      <ListingFilters facets={listing.facets} sort={sort} categories={category.children} />
 
+      {/* Desktop keeps the sub-category pill row; on mobile these move into the
+          ListingFilters "Kategoriler" sheet so they don't stack into many rows. */}
       {category.children.length > 0 && (
-        <div className="flex flex-wrap gap-2">
+        <div className="hidden flex-wrap gap-2 sm:flex">
           {category.children.map((child) => (
             <Link
               key={child.id}
