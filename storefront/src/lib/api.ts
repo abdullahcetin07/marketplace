@@ -538,6 +538,46 @@ export async function getMostReviewed(): Promise<ProductCard[]> {
   }
 }
 
+/**
+ * Type-ahead suggestions for the header search (ADR-090 Tier 2 / Meilisearch).
+ *
+ * A CLIENT-SIDE read, called on every debounced keystroke, so it uses a plain
+ * relative fetch (same-origin, no cache) rather than the SSR `publicJson`. It
+ * DEGRADES TO EMPTY on any error or before the engine ships — an autocomplete that
+ * cannot reach the endpoint simply shows no dropdown, and the form's real GET to
+ * `/urunler` still works. `products` carry a slug (→ `/{slug}`); `brands` and
+ * `categories` are names only, so the UI runs them as a `?q=` search.
+ */
+export type SearchSuggestions = {
+  products: { uuid: string; title: string; slug: string }[];
+  brands: string[];
+  categories: string[];
+};
+
+export async function searchSuggest(q: string): Promise<SearchSuggestions> {
+  const empty: SearchSuggestions = { products: [], brands: [], categories: [] };
+  if (q.trim().length < 2) return empty;
+
+  try {
+    const response = await fetch(`/api/v1/search/suggest?q=${encodeURIComponent(q)}`, {
+      headers: { Accept: 'application/json' },
+      cache: 'no-store',
+    });
+    if (!response.ok) return empty;
+
+    const envelope = (await response.json()) as Envelope<Partial<SearchSuggestions>>;
+    const data = envelope.data ?? {};
+
+    return {
+      products: Array.isArray(data.products) ? data.products : [],
+      brands: Array.isArray(data.brands) ? data.brands : [],
+      categories: Array.isArray(data.categories) ? data.categories : [],
+    };
+  } catch {
+    return empty;
+  }
+}
+
 /*
 |------------------------------------------------------------------------------
 | Flat slug URLs (ADR-059)

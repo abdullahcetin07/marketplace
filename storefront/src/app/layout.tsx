@@ -5,6 +5,7 @@ import { CategoryBar } from '@/components/CategoryBar';
 import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { HeaderActions } from '@/components/HeaderActions';
+import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { SessionProvider } from '@/components/SessionProvider';
 import { SITE_URL } from '@/lib/site';
 import './globals.css';
@@ -106,22 +107,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
                 <img src="/logo.png" alt="Raftabul" className="h-8 w-auto dark:invert sm:h-9" />
               </Link>
 
-              {/* search — a real GET into the listing, so it works without JS and the
-                  URL is shareable (Storefront.md §2.2). */}
-              <form action="/urunler" className="hidden min-w-0 flex-1 items-center rounded-xl border-2 border-ink-200 bg-ink-50 focus-within:border-brand-500 dark:border-ink-700 dark:bg-ink-900 md:flex">
-                <input
-                  name="q"
-                  placeholder="Ürün, marka veya kategori ara"
-                  className="min-w-0 flex-1 bg-transparent px-4 py-2.5 text-[.94rem] outline-none placeholder:text-ink-400"
-                  aria-label="Ürün ara"
-                />
-                <button className="grid place-items-center rounded-r-[10px] bg-brand-500 px-5 py-2.5 text-white hover:bg-brand-600" aria-label="Ara">
-                  <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round">
-                    <circle cx="11" cy="11" r="7" />
-                    <path d="m20 20-3.5-3.5" />
-                  </svg>
-                </button>
-              </form>
+              {/* search — a real GET into the listing (works without JS, shareable URL,
+                  Storefront.md §2.2), enhanced with type-ahead suggestions (ADR-090). */}
+              <SearchAutocomplete />
 
               <div className="ml-auto shrink-0">
                 <HeaderActions />
