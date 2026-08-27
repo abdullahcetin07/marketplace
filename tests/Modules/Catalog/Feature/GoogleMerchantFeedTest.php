@@ -300,6 +300,8 @@ it('ships with the supplement branch excluded, and with the strays that escaped 
         | branch goes (owner, 2026-08-27, after GMC refused the products).
         */
         ->toContain('saglik-ve-medikal')
+        // Wound care filed outside the health root, in oral care.
+        ->toContain('agiz-yarasiaft-urunleri')
         /*
         | The other two parents still stay: outlet is mostly cosmetics and hair
         | care is not a supplement aisle, so excluding either would drop
@@ -309,7 +311,8 @@ it('ships with the supplement branch excluded, and with the strays that escaped 
         ->and($slugs)->not->toContain('outlet-urunler')
         ->and($slugs)->not->toContain('sac-bakimi')
         ->and($slugs)->not->toContain('cilt-bakimi')
-        ->and($slugs)->not->toContain('makyaj');
+        ->and($slugs)->not->toContain('makyaj')
+        ->and($slugs)->not->toContain('agiz-bakim-urunleri');
 });
 
 it('serves the built file as xml, and 404s before it exists', function (): void {

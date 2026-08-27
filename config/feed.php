@@ -102,6 +102,18 @@ return [
                 | first.
                 */
                 'saglik-ve-medikal',
+                /*
+                | The one wound-care aisle that is NOT under the health root
+                | (owner, 2026-08-27). `agiz-yarasiaft-urunleri` — 15 published
+                | products of mouth-ulcer treatment — hangs off
+                | `agiz-bakim-urunleri` in personal care, where the rest of the
+                | shelf is toothpaste. It surfaced by reading the rebuilt feed's
+                | breadcrumbs rather than the tree, which is the only way a
+                | mis-filed aisle like this shows up.
+                |
+                | Its PARENT stays: oral care is not a medical category.
+                */
+                'agiz-yarasiaft-urunleri',
             ]))),
         ))),
 
