@@ -292,13 +292,24 @@ it('ships with the supplement branch excluded, and with the strays that escaped 
         ->toContain('zayiflama-ve-diyet-urunleri')
         ->toContain('outlet-besin-takviyeleri')
         ->toContain('sac-bakim-vitamin-takviyeleri')
-        // The PARENTS are not excluded, and that is the whole shape of this
-        // list: supplements go, the aisles they were filed under stay. Naming
-        // `saglik-ve-medikal`, `outlet-urunler` or `sac-bakimi` here would drop
-        // hundreds of items Google is happy to take.
-        ->and($slugs)->not->toContain('saglik-ve-medikal')
+        /*
+        | THE HEALTH ROOT IS EXCLUDED WHOLE, and it is the exception that shows
+        | the rule. Everywhere else this list names a LEAF and leaves the aisle
+        | it was filed under alone. Here the whole branch — 38 categories, sexual
+        | health, medical devices, wound care — is what Google forbids, so the
+        | branch goes (owner, 2026-08-27, after GMC refused the products).
+        */
+        ->toContain('saglik-ve-medikal')
+        /*
+        | The other two parents still stay: outlet is mostly cosmetics and hair
+        | care is not a supplement aisle, so excluding either would drop
+        | hundreds of items Google is happy to take. Every cosmetic root sits
+        | OUTSIDE the health subtree, which is why that one can go whole.
+        */
         ->and($slugs)->not->toContain('outlet-urunler')
-        ->and($slugs)->not->toContain('sac-bakimi');
+        ->and($slugs)->not->toContain('sac-bakimi')
+        ->and($slugs)->not->toContain('cilt-bakimi')
+        ->and($slugs)->not->toContain('makyaj');
 });
 
 it('serves the built file as xml, and 404s before it exists', function (): void {

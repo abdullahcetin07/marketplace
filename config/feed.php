@@ -69,9 +69,10 @@ return [
                 // Weight loss, restricted by Google in its own right (owner,
                 // 2026-08-24). TWO entries for one idea again: the real branch
                 // sits under `saglik-ve-medikal` (16 products) and the doubled
-                // stray sits at the root (10). Naming the branch rather than
-                // the health root is deliberate — medical devices and the rest
-                // of `saglik-ve-medikal` stay in the feed.
+                // stray sits at the root (10). The first of the two is now
+                // REDUNDANT — the health root below covers it — and is kept
+                // only because the doubled stray beside it is not, and a pair
+                // that reads as one decision should not be split in half.
                 'zayiflama-ve-diyet-urunleri',
                 'zayiflama-ve-diyet-urunlerizayiflama-ve-diyet-urunleri',
                 // Supplements filed under non-supplement parents (owner,
@@ -83,6 +84,24 @@ return [
                 // items Google is happy to take.
                 'outlet-besin-takviyeleri',
                 'sac-bakim-vitamin-takviyeleri',
+                /*
+                | **THE WHOLE HEALTH ROOT — the one place this list takes a
+                | PARENT** (owner, 2026-08-27, after Merchant Center refused the
+                | account's products). `saglik-ve-medikal` is 38 categories and
+                | 1,127 published products of sexual health, medical devices,
+                | wound care and slimming: not items Google disapproves one by
+                | one, but categories Shopping does not allow at all, which is
+                | how a rejection becomes a suspended account.
+                |
+                | Checked against the live tree before taking it — every
+                | cosmetic root (`cilt-bakimi`, `gunes-kremleri`,
+                | `kisisel-bakim`, `makyaj`, `sac-bakimi`, `anne-ve-bebek`) is
+                | its OWN root and sits outside this subtree, so the feed keeps
+                | all of them. Safe branches underneath (ear plugs and the like)
+                | can return one at a time under their own review; approval
+                | first.
+                */
+                'saglik-ve-medikal',
             ]))),
         ))),
 
