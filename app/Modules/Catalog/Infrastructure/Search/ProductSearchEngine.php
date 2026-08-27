@@ -35,11 +35,17 @@ final class ProductSearchEngine implements ProductSearchContract
     /**
      * How deep the ranked set goes.
      *
-     * A listing shows at most 48 per page, so this is roughly ten pages of
-     * relevance. Past it the tail is cut — stated here rather than discovered,
-     * because a silent cap reads as "that is everything".
+     * **A CAP THAT WAS MEASURED, NOT GUESSED.** At 500 the live `gunes` query
+     * lost recall the fold used to have: Meilisearch holds 782 hits for it, the
+     * listing took the first 500, and the sellable filter cut those to 243
+     * where the fold had answered 343. A shopper cannot tell a truncated total
+     * from a real one, so the cap has to sit above the queries people actually
+     * type. A thousand is twenty pages of a 48-row listing and matches
+     * Meilisearch's own `maxTotalHits` default; broader queries — `krem` has
+     * 2,434 — are still cut, and that is the stated limit of this design rather
+     * than a surprise.
      */
-    private const RANKED_LIMIT = 500;
+    private const RANKED_LIMIT = 1000;
 
     /**
      * Product uuids in relevance order, or null when the engine cannot answer.
@@ -53,8 +59,18 @@ final class ProductSearchEngine implements ProductSearchContract
         }
 
         try {
+            /*
+            | ONLY THE KEY COMES BACK. Without this Meilisearch returns a
+            | thousand full documents — titles, both descriptions, attributes —
+            | to build a list of uuids, which is megabytes across the loopback
+            | on the busiest query the site has.
+            */
             /** @var array<int, string> $keys */
-            $keys = Product::search($query)->take($limit)->keys()->all();
+            $keys = Product::search($query)
+                ->options(['attributesToRetrieve' => ['uuid']])
+                ->take($limit)
+                ->keys()
+                ->all();
 
             return array_values(array_map('strval', $keys));
         } catch (Throwable $e) {

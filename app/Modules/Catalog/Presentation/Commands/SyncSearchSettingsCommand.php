@@ -63,6 +63,7 @@ final class SyncSearchSettingsCommand extends Command
                 'filterableAttributes' => $search['filterable_attributes'] ?? [],
                 'sortableAttributes' => $search['sortable_attributes'] ?? [],
                 'rankingRules' => $search['ranking_rules'] ?? [],
+                'pagination' => $search['pagination'] ?? [],
                 'typoTolerance' => $search['typo_tolerance'] ?? [],
                 'synonyms' => $search['synonyms'] ?? [],
             ]);

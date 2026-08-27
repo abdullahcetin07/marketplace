@@ -145,10 +145,16 @@ return [
         'ranking_rules' => ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness', 'is_sellable:desc'],
 
         /*
+        | Meilisearch will not return past this however large a `limit` is
+        | asked for, so it is the real ceiling on `ranked_limit` below.
+        */
+        'pagination' => ['maxTotalHits' => 1000],
+
+        /*
         | One edit from five characters, two from nine. Shorter than five is
         | left exact on purpose: at three or four letters almost everything is
-        | one edit from everything else, and "krem" would find "kram", "kram"
-        | and "krom" as confidently as itself.
+        | one edit from everything else, and "krem" would find "kram" and
+        | "krom" as confidently as itself.
         */
         'typo_tolerance' => [
             'enabled' => true,
@@ -178,10 +184,16 @@ return [
         ],
 
         /*
-        | How deep the ranked set goes before the listing filters it. Ten pages
-        | of a 48-row listing; past this the relevance tail is cut.
+        | How deep the ranked set goes before the listing filters it.
+        |
+        | MEASURED, not guessed: at 500 the live `gunes` query came back with
+        | 243 results where the fold had 343, because Meilisearch holds 782 hits
+        | for it and the sellable filter then bit into a truncated set. A
+        | shopper cannot tell a cut total from a real one. A thousand is twenty
+        | pages of a 48-row listing and is Meilisearch's own `maxTotalHits`
+        | default; a query as broad as `krem` (2,434 hits) is still cut.
         */
-        'ranked_limit' => 500,
+        'ranked_limit' => 1000,
     ],
 
 ];
