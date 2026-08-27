@@ -401,6 +401,26 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
+     * The document is keyed by UUID, not by the internal id.
+     *
+     * Scout otherwise stamps the primary key onto every document and would
+     * overwrite the `id` below with the integer — putting an internal
+     * identifier into an external system for no gain (non-negotiable #7). With
+     * these two overrides the engine speaks the same identifier the rest of the
+     * platform does, and `whereIn('uuid', …)` maps a result set back with no
+     * translation step.
+     */
+    public function getScoutKey(): string
+    {
+        return $this->uuid;
+    }
+
+    public function getScoutKeyName(): string
+    {
+        return 'uuid';
+    }
+
+    /**
      * The document.
      *
      * `id` is the UUID, never the internal key — the search index is read by
@@ -426,6 +446,13 @@ final class Product extends Model implements HasMediaContract
             'category_path' => $this->category->path,
             'gtin' => $this->gtin,
             'status' => $this->status->value,
+            /*
+            | CATALOG'S OWN BUYABILITY FLAG (ADR-079), and the only reason the
+            | ranking can lift products somebody can actually buy: it is derived
+            | inside this module from events, so no Offer or Inventory field
+            | crosses the boundary into the index (ADR-037/090).
+            */
+            'is_sellable' => (bool) $this->is_sellable,
             // Facets, ready for Offer (§10).
             'attributes' => $this->searchableAttributeValues(),
             'skus' => $this->variants->pluck('sku')->values()->all(),

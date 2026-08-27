@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Catalog\Infrastructure\Queries;
 
 use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Modules\Catalog\Domain\Contracts\ProductSearchContract;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
@@ -72,8 +73,16 @@ final class PublicProductBrowse
 
     private const int FACET_TTL = 300;
 
+    /**
+     * Ranked uuids per query string, for the life of this instance.
+     *
+     * @var array<string, array<int, string>|null>
+     */
+    private array $ranked = [];
+
     public function __construct(
         private readonly OfferQueryContract $offers,
+        private readonly ProductSearchContract $search,
     ) {}
 
     /**
@@ -128,9 +137,19 @@ final class PublicProductBrowse
         | so an unsold or unpublished product still cannot reach a buyer whatever
         | else the filters say.
         */
-        $result = $sort === self::SORT_NEWEST
-            ? $this->byNewest($query, $categoryUuid, $brandUuid, $page, $perPage, $withinPrice)
-            : $this->byPrice($query, $categoryUuid, $brandUuid, $sort, $page, $perPage, $withinPrice);
+        /*
+        | **RELEVANCE IS THE DEFAULT ORDER OF A SEARCH, AND ONLY OF A SEARCH**
+        | (ADR-090). With a text query the engine has already ranked the set, so
+        | "newest" would throw that away and hand back a chronological list of
+        | things that merely matched. Without a query there is nothing to rank
+        | and newest is right again. An explicit price sort always wins: the set
+        | is the engine's, the order is the shopper's.
+        */
+        $result = match (true) {
+            $sort === self::SORT_NEWEST && $this->rankedUuids($query) !== null => $this->byRelevance($query, $categoryUuid, $brandUuid, $page, $perPage, $withinPrice),
+            $sort === self::SORT_NEWEST => $this->byNewest($query, $categoryUuid, $brandUuid, $page, $perPage, $withinPrice),
+            default => $this->byPrice($query, $categoryUuid, $brandUuid, $sort, $page, $perPage, $withinPrice),
+        };
 
         return $result + ['facets' => $facets];
     }
@@ -564,6 +583,24 @@ final class PublicProductBrowse
      */
     private function applyText(Builder $builder, string $query): void
     {
+        $ranked = $this->rankedUuids($query);
+
+        if ($ranked !== null) {
+            /*
+            | THE ENGINE DECIDED THE MATCH SET (ADR-090). Everything after this
+            | — category, brand, price, the sellable wall — still applies, so a
+            | typo-tolerant hit that nobody stocks still does not reach a buyer.
+            | An engine hit list of `[]` correctly narrows to nothing.
+            |
+            | **QUALIFIED**: the facet query joins `brands`, which also has a
+            | `uuid`, and an unqualified column there is "ambiguous column name"
+            | — a 500 on every faceted search rather than a wrong answer.
+            */
+            $builder->whereIn('products.uuid', $ranked);
+
+            return;
+        }
+
         $tokens = TurkishFold::tokens($query);
 
         if ($tokens === []) {
@@ -575,6 +612,104 @@ final class PublicProductBrowse
         foreach ($tokens as $token) {
             $builder->where('search_text', 'LIKE', '%'.$token.'%');
         }
+    }
+
+    /**
+     * The engine's answer for this request, asked once.
+     *
+     * `cards()` reads it up to four times — facets, the price window, the match
+     * set and the ordering — and each would otherwise be its own round trip to
+     * Meilisearch for an identical question. Memoised per instance, which is
+     * per request: the browse is resolved fresh each time.
+     *
+     * @return array<int, string>|null null means NO ENGINE, and the caller falls
+     *                                 back to the fold. It never means "no hits".
+     */
+    private function rankedUuids(string $query): ?array
+    {
+        $key = trim($query);
+
+        if ($key === '') {
+            return null;
+        }
+
+        if (! array_key_exists($key, $this->ranked)) {
+            $this->ranked[$key] = $this->search->rankedUuids(
+                $key,
+                (int) config('catalog.search.ranked_limit', 500),
+            );
+        }
+
+        return $this->ranked[$key];
+    }
+
+    /**
+     * The engine's order, kept — the reason a search result looks searched.
+     *
+     * Mirrors `byPrice()` exactly, and for the same reason: the ORDER is decided
+     * before the content is fetched, because it comes from outside the database.
+     * There the number is Offer's price; here it is Meilisearch's relevance.
+     *
+     * @param array<int, string>|null $withinPrice
+     *
+     * @return array{items: array<int, array<string, mixed>>, total: int, page: int, per_page: int, last_page: int}
+     */
+    private function byRelevance(
+        string $query,
+        ?string $categoryUuid,
+        ?string $brandUuid,
+        int $page,
+        int $perPage,
+        ?array $withinPrice = null,
+    ): array {
+        $position = array_flip($this->rankedUuids($query) ?? []);
+
+        /** @var array<int, string> $matching */
+        $matching = $this->baseQuery($query, $categoryUuid, $brandUuid, $withinPrice)
+            ->pluck('uuid')
+            ->all();
+
+        if ($matching === []) {
+            return $this->empty($page, $perPage);
+        }
+
+        usort(
+            $matching,
+            static fn (string $a, string $b): int => ($position[$a] ?? PHP_INT_MAX) <=> ($position[$b] ?? PHP_INT_MAX),
+        );
+
+        $total = count($matching);
+        $pageUuids = array_slice($matching, ($page - 1) * $perPage, $perPage);
+
+        if ($pageUuids === []) {
+            return $this->empty($page, $perPage, $total);
+        }
+
+        $products = Product::query()
+            ->with(['brand', 'category', 'media'])
+            ->whereIn('uuid', $pageUuids)
+            ->get()
+            ->keyBy('uuid');
+
+        $items = [];
+
+        foreach ($pageUuids as $uuid) {
+            $product = $products->get($uuid);
+
+            if ($product instanceof Product) {
+                // `whereIn` returns database order; the relevance order is
+                // reapplied here, the same way the price path does it.
+                $items[] = $this->card($product);
+            }
+        }
+
+        return [
+            'items' => $items,
+            'total' => $total,
+            'page' => $page,
+            'per_page' => $perPage,
+            'last_page' => (int) max(1, ceil($total / $perPage)),
+        ];
     }
 
     /**

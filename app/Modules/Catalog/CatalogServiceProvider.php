@@ -13,6 +13,7 @@ use App\Modules\Catalog\Domain\Contracts\BrandRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategoryRepositoryContract;
 use App\Modules\Catalog\Domain\Contracts\CategorySlugGeneratorContract;
 use App\Modules\Catalog\Domain\Contracts\ProductRepositoryContract;
+use App\Modules\Catalog\Domain\Contracts\ProductSearchContract;
 use App\Modules\Catalog\Domain\Contracts\SkuGeneratorContract;
 use App\Modules\Catalog\Domain\Contracts\SlugRegistryContract;
 use App\Modules\Catalog\Domain\Models\Category;
@@ -26,11 +27,13 @@ use App\Modules\Catalog\Infrastructure\Repositories\AttributeRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\BrandRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\ProductRepository;
+use App\Modules\Catalog\Infrastructure\Search\ProductSearchEngine;
 use App\Modules\Catalog\Presentation\Commands\BuildGoogleMerchantFeedCommand;
 use App\Modules\Catalog\Presentation\Commands\FillProductDescriptionsCommand;
 use App\Modules\Catalog\Presentation\Commands\FixDoubledCategoriesCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSearchTextCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSellabilityCommand;
+use App\Modules\Catalog\Presentation\Commands\SyncSearchSettingsCommand;
 use App\Modules\Catalog\Presentation\Policies\CategoryPolicy;
 use App\Modules\Catalog\Presentation\Policies\ProductPolicy;
 use App\Shared\Enums\UserType;
@@ -69,6 +72,15 @@ final class CatalogServiceProvider extends ServiceProvider
         $this->app->singleton(BrandRepositoryContract::class, BrandRepository::class);
         $this->app->singleton(AttributeRepositoryContract::class, AttributeRepository::class);
         $this->app->singleton(ProductRepositoryContract::class, ProductRepository::class);
+
+        /*
+        | THE SEARCH ENGINE BEHIND A CONTRACT (ADR-090), which this codebase
+        | otherwise refuses to do for a module-internal collaborator. The reason
+        | is that this one talks to a process that can be absent: the fallback
+        | and the relevance order have to be provable with no engine running,
+        | and an interface is how a test says "there is no engine today".
+        */
+        $this->app->singleton(ProductSearchContract::class, ProductSearchEngine::class);
 
         // Slug and SKU policy behind contracts so the aggregates never encode
         // it and a future scheme swaps only the binding — the Store precedent.
@@ -117,6 +129,7 @@ final class CatalogServiceProvider extends ServiceProvider
             $this->commands([
                 RefreshSellabilityCommand::class,
                 RefreshSearchTextCommand::class,
+                SyncSearchSettingsCommand::class,
                 BuildGoogleMerchantFeedCommand::class,
                 FillProductDescriptionsCommand::class,
                 FixDoubledCategoriesCommand::class,

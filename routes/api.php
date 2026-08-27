@@ -3,9 +3,11 @@
 declare(strict_types=1);
 
 use App\Core\Presentation\Middleware\SetLocale;
+use App\Modules\Catalog\Domain\Contracts\ProductSearchContract;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicProductRankingController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\PublicTaxonomyController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SearchSuggestController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\SlugResolverController;
 use App\Modules\Identity\Presentation\Controllers\Api\Admin\UserController as AdminUserController;
 use App\Modules\Identity\Presentation\Controllers\Api\AuthController;
@@ -91,12 +93,25 @@ Route::prefix('v1')
 
             // ADR-009 envelope, hand-built: a health check must not depend on
             // the controller stack it exists to report on.
-            Route::get('/health', static fn (): array => [
+            Route::get('/health', static fn (ProductSearchContract $search): array => [
                 'success' => true,
                 'data' => [
                     'status' => 'ok',
                     'version' => (string) config('app.version', '1.0.0'),
                     'time' => now()->toIso8601String(),
+                    /*
+                    | ADR-090's observability half. The engine going down is
+                    | INVISIBLE from the outside — search keeps answering, from
+                    | the fold, just without typo tolerance or ranking — so the
+                    | only way anybody learns is a warning in the log or this
+                    | line. `disabled` is not `down`: it is the state during a
+                    | rollout, before the engine is switched on.
+                    */
+                    'search' => match (true) {
+                        ! $search->enabled() => 'disabled',
+                        $search->isAvailable() => 'up',
+                        default => 'down',
+                    },
                 ],
             ])->name('health');
 
@@ -269,6 +284,14 @@ Route::prefix('v1')
 
             Route::get('loyalty/earn-preview', [EarnPreviewController::class, 'show'])
                 ->name('storefront.loyalty.earn-preview');
+
+            /*
+            | AS-YOU-TYPE (ADR-090). On the storefront throttle with the rest of
+            | the shopper surface: a suggestion box fires per keystroke and is
+            | the easiest endpoint on the platform to hammer by accident.
+            */
+            Route::get('search/suggest', SearchSuggestController::class)
+                ->name('storefront.search.suggest');
 
             Route::get('products', [PublicProductController::class, 'index'])
                 ->name('storefront.products.index');

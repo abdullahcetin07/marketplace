@@ -100,4 +100,88 @@ return [
 
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Search engine settings (ADR-090)
+    |--------------------------------------------------------------------------
+    |
+    | Pushed to Meilisearch by `search:sync-settings`, which is idempotent and
+    | safe to re-run on every deploy.
+    |
+    | **THIS FILE IS THE OWNER OF THE SYNONYMS IN v1**, deliberately: they are
+    | version-controlled, reviewable and deployed like code, and an admin UI for
+    | them is a v2 job. The cost is that adding one takes a deploy.
+    |
+    */
+    'search' => [
+
+        /*
+        | Ranked in priority order — a match in the title outranks a match in
+        | the description, whatever else is equal. NOTHING FROM OFFER: no
+        | price, no stock, no seller (ADR-037, `CatalogBoundaryTest`).
+        */
+        'searchable_attributes' => ['title', 'title_en', 'brand', 'category', 'skus', 'gtin', 'description'],
+
+        /*
+        | Facets. `category_path` is a prefix filter — "everything under Giyim"
+        | is the same shape the database uses. Price is NOT here and cannot be:
+        | one product has as many prices as it has sellers.
+        */
+        'filterable_attributes' => ['category_path', 'brand', 'status', 'is_sellable'],
+
+        /*
+        | `is_sellable` is Catalog's own denormalised buyability flag (ADR-079),
+        | which is what lets the ranking lift buyable products without Offer
+        | data crossing the boundary.
+        */
+        'sortable_attributes' => ['is_sellable', 'published_at'],
+
+        /*
+        | Meilisearch's defaults, then ONE custom rule: a product nobody can buy
+        | sinks below one that can. The work order also asked for a sales-count
+        | rule; that number lives in Order and Catalog holds no synced copy of
+        | it, so it is deliberately NOT built here — see the ADR's follow-ups.
+        */
+        'ranking_rules' => ['words', 'typo', 'proximity', 'attribute', 'sort', 'exactness', 'is_sellable:desc'],
+
+        /*
+        | One edit from five characters, two from nine. Shorter than five is
+        | left exact on purpose: at three or four letters almost everything is
+        | one edit from everything else, and "krem" would find "kram", "kram"
+        | and "krom" as confidently as itself.
+        */
+        'typo_tolerance' => [
+            'enabled' => true,
+            'minWordSizeForTypos' => ['oneTypo' => 5, 'twoTypos' => 9],
+        ],
+
+        /*
+        | Two-way synonyms. Each line is written in both directions because
+        | Meilisearch's synonyms are directional, and a shopper may type either
+        | side. Turkish spellings of foreign brand names belong here — that is
+        | the class of miss the fold cannot fix, because `uriaj` is not a
+        | diacritic variant of `uriage`, it is a different word.
+        */
+        'synonyms' => [
+            'güneş kremi' => ['güneş koruyucu', 'spf', 'güneş bakım'],
+            'güneş koruyucu' => ['güneş kremi', 'spf'],
+            'spf' => ['güneş kremi', 'güneş koruyucu'],
+            'nemlendirici' => ['nemlendirme', 'moisturizer'],
+            'nemlendirme' => ['nemlendirici'],
+            'uriaj' => ['uriage'],
+            'uriage' => ['uriaj'],
+            'aven' => ['avène', 'avene'],
+            'vitamin c' => ['c vitamini', 'askorbik asit'],
+            'c vitamini' => ['vitamin c'],
+            'saç dökülmesi' => ['dökülme karşıtı', 'saç bakım'],
+            'leke' => ['leke karşıtı', 'aydınlatıcı'],
+        ],
+
+        /*
+        | How deep the ranked set goes before the listing filters it. Ten pages
+        | of a 48-row listing; past this the relevance tail is cut.
+        */
+        'ranked_limit' => 500,
+    ],
+
 ];

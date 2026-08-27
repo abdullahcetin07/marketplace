@@ -66,4 +66,24 @@ return [
 
     'identify' => false,
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meilisearch (ADR-090)
+    |--------------------------------------------------------------------------
+    |
+    | Self-hosted, bound to loopback, one process shared by staging and
+    | production — `SCOUT_PREFIX` is what keeps their indexes apart, so the two
+    | environments must never be given the same prefix.
+    |
+    | **THE KEY IS NEVER IN THIS REPOSITORY.** It lives in each `.env` and in
+    | `/etc/meilisearch.env` on the server, which the systemd unit reads. An
+    | empty key here is not a working default: Meilisearch refuses every request
+    | with the wrong key, which is exactly the failure the fallback exists for.
+    |
+    */
+    'meilisearch' => [
+        'host' => env('MEILISEARCH_HOST', 'http://127.0.0.1:7700'),
+        'key' => env('MEILISEARCH_KEY'),
+    ],
+
 ];

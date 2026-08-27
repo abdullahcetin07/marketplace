@@ -3157,3 +3157,67 @@ support call rather than a tidy database. Work order: `BUILD_MAIL_RESILIENCE.md`
 InvalidArgumentException`, while Symfony's failover transport catches only
 `TransportExceptionInterface`. So `MAIL_MAILER=failover` without the key is **worse than
 `ses`**, not a degraded version of it, and the two must be set in that order.
+
+---
+
+# ADR-090 Free-Text Search Runs Through a Typo-Tolerant Engine, Ranked, With the Database Fold as Its Fallback
+
+**Status:** Accepted (2026-08-27). Ratified from
+`docs/ADR-090-search-engine.DRAFT.md`, which this entry replaces. Backend +
+infrastructure. Work orders: `BUILD_SEARCH_TURKISH.md` (tier 1),
+`BUILD_SEARCH_MEILISEARCH.md` (tier 2).
+
+**Decision.** The buyer's free-text (`q`) path runs on **Meilisearch through Laravel
+Scout**, and the tier-1 folded `search_text` LIKE (ADR-089) stays in the codebase as its
+**fallback**.
+
+**Why an engine at all.** The fold fixed the catastrophe — `gunes` finds `güneş`, `avene`
+finds `Avène` — but a folded `LIKE '%…%'` is a substring filter, not search. Three things
+it cannot do, each measured missing on the live catalogue: **typo tolerance** (`seurm`,
+`uriaj`, `depidem` all returned nothing), **relevance order** (a brand query buried its own
+exact match among a hundred rows), and **as-you-type suggestion**. Those are what an engine
+is.
+
+**Meilisearch, self-hosted, on loopback.** A single binary, an official Scout driver, typo
+tolerance, synonyms, prefix search and configurable ranking out of the box. Typesense is
+the near-equal kept for the day vector search is actually needed; Algolia is rejected
+because it is priced per search and would ship the catalogue to a third party. One process
+serves both environments, separated by `SCOUT_PREFIX` — a second instance would double
+resident memory on a 7 GB box to isolate what a prefix already isolates.
+
+**The engine ranks; the database still decides who may see it.** Meilisearch returns
+relevance-ranked Catalog **uuids**; the Offer-aware listing then applies the sellable wall,
+category, brand and price, and — when the shopper has not chosen a sort — preserves the
+engine's order. Choosing a price sort keeps the engine's SET and takes the shopper's ORDER.
+**Price and stock are never indexed**: they belong to Offer, one product has as many prices
+as it has sellers, and `CatalogBoundaryTest` fails the build if they leak. The one custom
+ranking rule is `is_sellable:desc` — Catalog's own denormalised buyability flag (ADR-079),
+which is what lets ranking prefer buyable products without Offer data crossing the
+boundary.
+
+**`null` means no engine; `[]` means no results.** That distinction is the resilience
+design. `ProductSearchContract::rankedUuids()` answers `null` when Scout has no driver or
+the engine throws, and the listing then falls back to the fold — worse search, never an
+empty page. An empty array is the engine's real answer and is honoured as one.
+
+**The four questions the draft left open, answered.** (1) Meilisearch confirmed for v1.
+(2) The Meili→Offer reconciliation ships as designed, with pagination over the filtered,
+re-ordered set tested at page 2. (3) Synonyms are **version-controlled config**
+(`config/catalog.php`), pushed by `search:sync-settings`; an admin surface is v2. (4)
+Degraded search is observable two ways: every fallback logs a **warning**, and
+`GET /api/v1/health` reports `search: up | down | disabled` — `disabled` being the rollout
+state, not a fault.
+
+**Cost, stated.** A second datastore that can drift from the catalogue, and consistency
+that is only ever eventual — a moderation change reaches the index when the `search` queue
+drains, so **a queue worker is part of the feature** (the ADR-074 lesson). Degraded search
+running silently is its own trap, which is what the warning and the health field exist for.
+Synonyms and ranking are editorial and go stale quietly. And it is still lexical search: it
+matches words, not meaning.
+
+**Not built, deliberately.** A sales-count ranking rule — the work order allows one, but
+that number lives in Order and Catalog holds no synced copy; building the sync is its own
+change with its own drift story. Semantic/vector search and personalised ranking stay out.
+The fold is **not** deleted. The seller-facing picker (`CatalogBrowse`) stays on the fold
+too: it is an internal panel where exactness beats typo tolerance, and it must keep working
+when the engine does not.

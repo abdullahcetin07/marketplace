@@ -1,6 +1,31 @@
 # Search
 
-Laravel Scout with a hand-written OpenSearch engine.
+Laravel Scout. **The engine in production is Meilisearch (ADR-090, 2026-08-27)**;
+the hand-written OpenSearch engine described below is the earlier design and is
+still in the codebase.
+
+> **READ THIS BEFORE THE REST OF THE FILE.** What actually runs is:
+>
+> - **Meilisearch**, self-hosted, bound to `127.0.0.1:7700`, one process shared
+>   by staging and production and separated by `SCOUT_PREFIX`. The systemd unit
+>   is `meilisearch`; its master key lives in `/etc/meilisearch.env` and in each
+>   `.env` as `MEILISEARCH_KEY`, never in this repository.
+> - Index settings — searchable fields, facets, ranking, typo thresholds,
+>   synonyms — come from `config/catalog.php` and are pushed by
+>   **`search:sync-settings`**. They are not configured by hand through the API.
+> - The buyer listing asks the engine through
+>   `App\Modules\Catalog\Domain\Contracts\ProductSearchContract`. When it answers
+>   **`null`** — no driver, or the engine threw — the listing falls back to the
+>   folded `products.search_text` `LIKE` (ADR-089) and logs a warning;
+>   `GET /api/v1/health` reports `search: up | down | disabled`.
+> - **`App\Core\Infrastructure\Search\OpenSearchEngine` is not what serves
+>   search today.** It is kept because it is the only place the platform's
+>   Turkish analyser work is written down, and because nothing forced a
+>   deletion; treat the sections below as background, not as deployment truth.
+>
+> The seller-facing product picker (`CatalogBrowse`) deliberately stays on the
+> fold: exactness beats typo tolerance in an internal panel, and it must keep
+> working when the engine does not.
 
 ---
 
