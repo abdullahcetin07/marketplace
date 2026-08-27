@@ -395,9 +395,19 @@ final class Product extends Model implements HasMediaContract
         return $this->status->isSearchable();
     }
 
+    /**
+     * The index name, WITH Scout's prefix.
+     *
+     * Scout's default already does this; the override used to drop it, which
+     * was harmless while nothing ran an engine and a live hazard the moment one
+     * did — staging and production share a single Meilisearch process
+     * (ADR-090), and an unprefixed name would have pointed both at the same
+     * index. Staging's next `scout:import` would then have rewritten the
+     * shopper-facing one.
+     */
     public function searchableAs(): string
     {
-        return 'products';
+        return config('scout.prefix').'products';
     }
 
     /**
