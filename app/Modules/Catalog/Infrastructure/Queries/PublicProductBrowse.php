@@ -8,10 +8,10 @@ use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Support\TurkishFold;
 use App\Shared\Support\PublicKey;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Support\Facades\Cache;
-use Illuminate\Support\Facades\DB;
 
 /**
  * The BUYER's product listing (ADR-058, Storefront.md §1.1).
@@ -541,22 +541,40 @@ final class PublicProductBrowse
      *
      * @param Builder<Product> $builder
      */
+    /**
+     * **THE SHOPPER-FACING HALF OF THE SAME BUG.** `ILIKE '%güneş%'` answered
+     * 343 products and `ILIKE '%gunes%'` answered none, which on a phone
+     * keyboard is most of the traffic. The needle and the haystack are now
+     * folded by the same function — `TurkishFold`, once on write into
+     * `products.search_text` — so `gunes`, `güneş`, `GÜNEŞ` and `Gunes` are one
+     * query, and `urıage` with a dotless ı finds `uriage`.
+     *
+     * Brand and category names are inside that column, so a brand-only search
+     * works on purpose rather than by the accident of most titles beginning
+     * with the brand. Descriptions are in it too, because this listing already
+     * searched them and narrowing recall while claiming to widen it would be
+     * the worse surprise.
+     *
+     * What this does NOT do is typo tolerance or relevance ORDER — `seurm` still
+     * finds nothing and an exact title match does not float to the top. Those
+     * need a real engine, which is tier 2 of the work order and an ADR of its
+     * own.
+     *
+     * @param Builder<Product> $builder
+     */
     private function applyText(Builder $builder, string $query): void
     {
-        $query = trim($query);
+        $tokens = TurkishFold::tokens($query);
 
-        if ($query === '') {
+        if ($tokens === []) {
             return;
         }
 
-        $operator = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-        $term = '%'.$query.'%';
-
-        $builder->where(function (Builder $inner) use ($operator, $term): void {
-            foreach (['title_tr', 'title_en', 'description_tr', 'description_en'] as $column) {
-                $inner->orWhere($column, $operator, $term);
-            }
-        });
+        // AND across tokens: "leke serum" no longer demands the two words be
+        // adjacent, in that order, in one column.
+        foreach ($tokens as $token) {
+            $builder->where('search_text', 'LIKE', '%'.$token.'%');
+        }
     }
 
     /**

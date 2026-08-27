@@ -767,6 +767,10 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Catalog\Domain\Contracts',
         'App\Modules\Catalog\Domain\Concerns',
         'App\Modules\Catalog\Domain\Exceptions',
+        // Pure domain helpers with no state — `TurkishFold`. Listed like every
+        // other non-DTO namespace here, so `Domain\DTOs` stays the only part of
+        // Catalog the suffix rule polices.
+        'App\Modules\Catalog\Domain\Support',
         'App\Modules\Catalog\Infrastructure',
         'App\Modules\Catalog\Presentation',
         'App\Modules\Catalog\CatalogServiceProvider',

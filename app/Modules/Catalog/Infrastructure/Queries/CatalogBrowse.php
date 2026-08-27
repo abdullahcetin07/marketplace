@@ -12,9 +12,9 @@ use App\Modules\Catalog\Domain\Models\Brand;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Modules\Catalog\Domain\Support\TurkishFold;
 use App\Shared\Support\PublicKey;
 use Illuminate\Database\Eloquent\Builder;
-use Illuminate\Support\Facades\DB;
 
 /**
  * Catalog's implementation of the seller-facing browse port (ADR-046).
@@ -359,19 +359,22 @@ final class CatalogBrowse implements CatalogBrowseContract
     }
 
     /**
-     * Free text across the title columns, the GTIN and the SKU.
+     * Free text across the folded haystack, the GTIN and the SKU.
      *
      * A leading-wildcard `LIKE`, which no index helps — see the class docblock
      * for why that trade is deliberate at this catalog size.
      *
-     * CASE FOLDING IS THE DRIVER'S JOB, and the two drivers differ. Postgres
-     * gets `ILIKE`, which folds Turkish correctly, so `istanbul` finds
-     * `İSTANBUL`. SQLite — the test suite — has only `LIKE`, which is
-     * case-insensitive for ASCII and exact for everything else; `LOWER()` does
-     * not rescue it, because SQLite's is ASCII-only too and would leave `Ü`
-     * untouched while `mb_strtolower` lowered the needle, matching nothing.
-     * Branching on the driver is honest about that; folding in PHP would be a
-     * silent lie on one of the two.
+     * **THE DOCBLOCK THAT USED TO BE HERE WAS WRONG, AND THE CODE BELIEVED IT.**
+     * It said Postgres `ILIKE` "folds Turkish correctly". `ILIKE` folds CASE and
+     * nothing else, so `gunes` matched none of the 343 products titled `güneş`
+     * — and since SQLite got a plain `LIKE`, the test suite could not see the
+     * difference either. Both sides now go through `TurkishFold`: the haystack
+     * once on write, into `products.search_text`, and the needle here. One
+     * `LIKE`, one meaning, both drivers.
+     *
+     * **TOKEN-AND, not one substring.** "leke serum" used to require those two
+     * words adjacent and in that order. Each token is now its own `LIKE` and all
+     * must match, which is how people actually type.
      *
      * @param Builder<Product> $builder
      */
@@ -383,22 +386,19 @@ final class CatalogBrowse implements CatalogBrowseContract
             return;
         }
 
-        $like = DB::getDriverName() === 'pgsql' ? 'ILIKE' : 'LIKE';
-        $needle = '%'.$term.'%';
+        $tokens = TurkishFold::tokens($term);
 
-        $builder->where(function (Builder $scoped) use ($like, $needle, $term): void {
-            /*
-            | The column name is composed from `catalog.locales`, which is a
-            | SCHEMA concern living in code precisely because adding a locale is
-            | a migration (config/catalog.php) — not user input, and not
-            | reachable from a request. The value is still bound.
-            */
-            foreach (config('catalog.locales', ['tr']) as $locale) {
-                $scoped->orWhereRaw("title_{$locale} {$like} ?", [$needle]);
-            }
+        $builder->where(function (Builder $scoped) use ($tokens, $term): void {
+            $scoped->where(static function (Builder $folded) use ($tokens): void {
+                foreach ($tokens as $token) {
+                    $folded->where('search_text', 'LIKE', '%'.$token.'%');
+                }
+            });
 
             // Exact, not fuzzy: a barcode or a SKU is either the one you have in
-            // your hand or it is a different product entirely.
+            // your hand or it is a different product entirely. Unfolded on
+            // purpose — a GTIN has no diacritics to fold and a near-miss digit
+            // is a DIFFERENT product.
             $scoped->orWhere('gtin', $term)
                 ->orWhereHas('variants', static fn (Builder $variants) => $variants->where('sku', $term));
         });

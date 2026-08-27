@@ -9,6 +9,7 @@ use App\Modules\Catalog\Domain\Concerns\HasLocalizedText;
 use App\Modules\Catalog\Domain\Concerns\HasRegisteredSlug;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Enums\SluggableType;
+use App\Modules\Catalog\Domain\Support\TurkishFold;
 use App\Shared\Traits\HasMedia;
 use App\Shared\Traits\HasUuid;
 use Database\Modules\Catalog\Factories\ProductFactory;
@@ -69,6 +70,7 @@ use Spatie\MediaLibrary\HasMedia as HasMediaContract;
  * @property string|null $gtin
  * @property ProductStatus $status
  * @property bool $is_sellable
+ * @property string|null $search_text
  * @property int|null $proposed_by_org_id
  * @property string|null $proposed_by_org_uuid
  * @property int|null $proposed_by_user_id
@@ -144,6 +146,20 @@ final class Product extends Model implements HasMediaContract
     public function brand(): BelongsTo
     {
         return $this->belongsTo(Brand::class);
+    }
+
+    /**
+     * The brand's name without touching the relation. @see booted()
+     */
+    public function brandName(): ?string
+    {
+        if ($this->relationLoaded('brand')) {
+            return $this->brand?->name;
+        }
+
+        return $this->brand_id === null
+            ? null
+            : Brand::query()->whereKey($this->brand_id)->value('name');
     }
 
     /**
@@ -485,6 +501,42 @@ final class Product extends Model implements HasMediaContract
     public function sluggableType(): SluggableType
     {
         return SluggableType::Product;
+    }
+
+    /**
+     * Keep the folded search haystack current on every write.
+     *
+     * On `saving`, so the value goes out in the same statement as the change
+     * that caused it — a second UPDATE would double every product write and
+     * fire Scout twice.
+     *
+     * **The brand name is fetched with a VALUE QUERY, not the relation.** Strict
+     * mode throws on lazy loading, and a product saved from an importer, an
+     * action or a console command has no eager loads; asking `$this->brand`
+     * would be a crash on the paths that matter most. When the relation IS
+     * already loaded the loaded instance is used, so nothing is queried twice.
+     *
+     * **THE CATEGORY NAME IS DELIBERATELY NOT IN HERE.** It was, and it made a
+     * leather jacket filed under "Tişört" answer a search for `tişört` — every
+     * product in an aisle matching the aisle's name, which reads as a bug to
+     * whoever typed it. Both browses already have a precise category FILTER;
+     * this is the free-text box, and it should answer for what the product IS.
+     *
+     * A brand RENAME leaves every product that mentions it stale here. That is what `catalog:refresh-search-text` is for, the same way
+     * `catalog:refresh-sellability` repairs its column (ADR-079) — a derived
+     * value is allowed to drift as long as something rebuilds it.
+     */
+    protected static function booted(): void
+    {
+        self::saving(static function (self $product): void {
+            $product->search_text = TurkishFold::haystack([
+                $product->title_tr,
+                $product->title_en,
+                $product->brandName(),
+                $product->description_tr,
+                $product->description_en,
+            ]);
+        });
     }
 
     protected static function newFactory(): ProductFactory
