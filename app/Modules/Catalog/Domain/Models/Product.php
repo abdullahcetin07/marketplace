@@ -431,6 +431,26 @@ final class Product extends Model implements HasMediaContract
     }
 
     /**
+     * A UUID is a STRING, and Scout has to be told so separately.
+     *
+     * `getScoutKeyType()` defaults to the model's key type — `int`, because the
+     * table's primary key is one — and Scout uses it to pick between
+     * `whereIntegerInRaw` and `whereIn` when it turns engine hits back into
+     * models. With `int` it cast every uuid to an integer, so hydrating a
+     * result set became `where uuid in (0, 4, 500568)`: PostgreSQL answered
+     * "operator does not exist: uuid = integer" and the suggestions endpoint
+     * returned empty for every query.
+     *
+     * It only ever showed on the paths that HYDRATE. The listing asks for
+     * `keys()`, which never touches the database, which is why search worked
+     * while autocomplete did not.
+     */
+    public function getScoutKeyType(): string
+    {
+        return 'string';
+    }
+
+    /**
      * The document.
      *
      * `id` is the UUID, never the internal key — the search index is read by

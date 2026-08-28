@@ -244,6 +244,27 @@ it('says on the health endpoint whether search is engine-backed', function (): v
     $this->getJson('/api/v1/health')->assertOk()->assertJsonPath('data.search', 'up');
 });
 
+it('hydrates engine hits by uuid, not by uuid cast to an integer', function (): void {
+    /*
+    | THE BUG THE STUB COULD NOT SEE, found by calling the live endpoint.
+    | Scout picks `whereIntegerInRaw` or `whereIn` from `getScoutKeyType()`,
+    | which defaults to the model's key type — `int` — so every uuid was cast
+    | on the way back: `where uuid in (0, 4, 500568)`, which PostgreSQL answers
+    | with "operator does not exist: uuid = integer". Suggestions returned empty
+    | for every query while the listing worked, because the listing asks for
+    | `keys()` and never hydrates.
+    |
+    | Asserted through the SQL rather than through an engine: `whereIntegerInRaw`
+    | inlines its values and binds nothing, `whereIn` binds each one.
+    */
+    $product = searchableProduct('Serum');
+
+    $query = (new Product)->queryScoutModelsByIds(Product::search('serum'), [$product->uuid]);
+
+    expect((new Product)->getScoutKeyType())->toBe('string')
+        ->and($query->getBindings())->toContain($product->uuid);
+});
+
 it('keeps price and stock out of the search document', function (): void {
     /*
     | `CatalogBoundaryTest` guards the module; this guards the INDEX, which is
