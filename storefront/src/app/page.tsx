@@ -137,27 +137,27 @@ export default async function HomePage() {
       </h1>
 
       {/* brand shortcuts — round logo tiles, linked by slug. A single-row horizontal
-          carousel at EVERY breakpoint (full-bleed, snap, hidden scrollbar): the 15
-          most-stocked brands the shopper swipes/scrolls through. Fixed-width tiles so
-          the row overflows and slides rather than squeezing. A round logo where the
-          brand has one (Admin → Markalar), its initials until then. */}
+          carousel at EVERY breakpoint (full-bleed, snap, hidden scrollbar): 15 most-stocked
+          brands, sized by `basis` so ~10 SHOW on desktop and the remaining 5 slide into view
+          (≈4 on a phone). Bigger tiles than the old grid — a larger logomark reads at a glance.
+          A round logo where the brand has one (Admin → Markalar), its initials until then. */}
       {topBrands.length > 0 && (
         <div className="-mx-4 flex snap-x snap-mandatory gap-1 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {topBrands.map((brand) => (
             <Link
               key={brand.id}
               href={`/${brand.slug}`}
-              className="flex w-[84px] shrink-0 snap-start flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
+              className="flex shrink-0 basis-1/4 snap-start flex-col items-center gap-2.5 rounded-2xl px-1 py-3 transition hover:bg-brand-50 dark:hover:bg-ink-900 sm:basis-1/6 lg:basis-[9.5%]"
             >
-              <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-ink-100 dark:ring-ink-800">
+              <span className="grid h-[72px] w-[72px] place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-ink-100 dark:ring-ink-800 sm:h-20 sm:w-20">
                 {brand.logo ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={brand.logo} alt={brand.name} className="h-full w-full object-contain p-1.5" loading="lazy" />
+                  <img src={brand.logo} alt={brand.name} className="h-full w-full object-contain p-2" loading="lazy" />
                 ) : (
-                  <span className="text-sm font-extrabold text-brand-600">{brand.name.slice(0, 2).toLocaleUpperCase('tr')}</span>
+                  <span className="text-lg font-extrabold text-brand-600">{brand.name.slice(0, 2).toLocaleUpperCase('tr')}</span>
                 )}
               </span>
-              <span className="line-clamp-2 text-center text-xs font-bold text-ink-600 dark:text-ink-300">{brand.name}</span>
+              <span className="line-clamp-2 text-center text-[.8rem] font-bold text-ink-600 dark:text-ink-300">{brand.name}</span>
             </Link>
           ))}
         </div>
