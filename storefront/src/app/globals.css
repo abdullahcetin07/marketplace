@@ -26,31 +26,3 @@
     display: none;
   }
 }
-
-/* Continuously-sliding brand strip (homepage). The track holds the brands twice,
-   so translating it by -50% loops seamlessly. Pauses on hover so a shopper can read
-   and click a logo, and honours reduced-motion by holding still. */
-@keyframes brand-marquee {
-  from {
-    transform: translateX(0);
-  }
-  to {
-    transform: translateX(-50%);
-  }
-}
-
-@layer utilities {
-  .brand-marquee {
-    animation: brand-marquee 38s linear infinite;
-    will-change: transform;
-  }
-  .brand-marquee:hover {
-    animation-play-state: paused;
-  }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .brand-marquee {
-    animation: none;
-  }
-}
