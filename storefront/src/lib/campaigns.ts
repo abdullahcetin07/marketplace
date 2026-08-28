@@ -19,7 +19,22 @@ import type { HeroSlide } from '@/components/HeroSlider';
  * instead of the slider.
  */
 export const campaigns: HeroSlide[] = [
-  { image: '/kampanyalar/magnezyum-slider.webp', href: '/magnezyum-mineralleri', alt: 'Magnezyumlarda Büyük İndirim Fırsatı' },
-  { image: '/kampanyalar/cilt-bakim.webp', href: '/cilt-bakimi', alt: 'Cilt Bakım haftası fırsatları' },
-  { image: '/kampanyalar/nutraxin.webp', href: '/nutraxin', alt: 'Nutraxin ile Sağlığın için güçlü destek' },
+  {
+    image: '/kampanyalar/gunes-slider.webp',
+    mobileImage: '/kampanyalar/gunes-slider-mobil.webp',
+    href: '/gunes-kremleri',
+    alt: 'Güneş koruyucu ürünlerde kampanya',
+  },
+  {
+    image: '/kampanyalar/sac-bakim-slider.webp',
+    mobileImage: '/kampanyalar/sac-bakim-slider-mobil.webp',
+    href: '/sac-bakimi',
+    alt: 'Saç bakımı ürünlerinde kampanya',
+  },
+  {
+    image: '/kampanyalar/magnezyum-slider.webp',
+    mobileImage: '/kampanyalar/magnezyum-slider-mobil.webp',
+    href: '/magnezyum-mineralleri',
+    alt: 'Magnezyum minerallerinde büyük indirim fırsatı',
+  },
 ];
