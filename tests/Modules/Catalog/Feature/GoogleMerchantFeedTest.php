@@ -268,6 +268,98 @@ it('keeps an excluded category and its descendants out', function (): void {
         ->and($xml)->not->toContain('Vitamin');
 });
 
+it('drops a medical product filed on a cosmetics shelf', function (): void {
+    /*
+    | The live audit that prompted this: "Lamiderm Yara ve Yanık Kremi" sits in
+    | `Cilt Bakımı > Cilt Bakım Kremleri`, so no branch exclusion reaches it.
+    */
+    config()->set('feed.google.excluded_title_keywords', ['yara ve yanık', 'termometre', 'aft']);
+
+    feedableProduct('Lamiderm Yara ve Yanık Kremi');
+    feedableProduct('Bebedor Banyo Termometresi');
+    feedableProduct('Nemlendirici Krem');
+
+    $xml = builtFeed();
+
+    expect($xml)->not->toContain('Lamiderm')
+        // Turkish agglutinates: the rule says `termometre`, the shelf says
+        // `Termometresi`, and a strict word boundary would have missed it.
+        ->and($xml)->not->toContain('Bebedor')
+        ->and($xml)->toContain('Nemlendirici Krem');
+});
+
+it('never drops the cosmetics whose names look medical', function (): void {
+    /*
+    | THE ASSERTION THAT MATTERS MOST IN THIS FILE. A keyword list is one bad
+    | entry away from deleting the best-selling half of the catalogue, and every
+    | title below is prime cosmetics: `vitamin` is never a keyword, `aft` must
+    | not match `aftershave`, and no rule may fire on `krem` or `serum`.
+    */
+    config()->set('feed.google.excluded_title_keywords', ['yara ve yanık', 'termometre', 'aft', 'medikal']);
+
+    feedableProduct('Uriage Depiderm C Vitamini Serum');
+    feedableProduct('Skins Derm Vitamin C %10 Serum');
+    feedableProduct('Onarıcı Krem');
+    feedableProduct('Raftabul Aftershave Losyon');
+
+    $xml = builtFeed();
+
+    expect($xml)->toContain('C Vitamini Serum')
+        ->and($xml)->toContain('Vitamin C %10 Serum')
+        ->and($xml)->toContain('Onarıcı Krem')
+        ->and($xml)->toContain('Aftershave');
+});
+
+it('matches a keyword written without its diacritics', function (): void {
+    // One rule, both spellings — the fold is shared with search (ADR-089).
+    config()->set('feed.google.excluded_title_keywords', ['yanık kremi']);
+
+    feedableProduct('Bebek Yanik Kremi 50ml');
+    feedableProduct('Nemlendirici Krem');
+
+    $xml = builtFeed();
+
+    expect($xml)->not->toContain('Bebek Yanik')
+        ->and($xml)->toContain('Nemlendirici Krem');
+});
+
+it('names the products a keyword removed', function (): void {
+    /*
+    | A count cannot be audited. The build reports the TITLES it dropped so a
+    | false positive is reviewable rather than invisible.
+    */
+    config()->set('feed.google.excluded_title_keywords', ['termometre']);
+
+    feedableProduct('Bebedor Banyo Termometresi');
+    feedableProduct('Nemlendirici Krem');
+
+    $report = app(App\Modules\Catalog\Application\Services\GoogleMerchantFeed::class)->build();
+
+    expect($report['dropped_excluded_keyword'])->toBe(1)
+        ->and($report['dropped_keyword_titles'])->toBe(['Bebedor Banyo Termometresi'])
+        ->and($report['written'])->toBe(1);
+});
+
+it('ships with a narrow keyword list that spares the cosmetics vocabulary', function (): void {
+    $config = require base_path('config/feed.php');
+
+    $keywords = $config['google']['excluded_title_keywords'];
+
+    expect($keywords)->toContain('yara ve yanık')
+        ->toContain('termometre')
+        ->toContain('prezervatif')
+        /*
+        | The forbidden entries. Each of these appears in the title of products
+        | the feed exists to carry, so a future "let's be thorough" edit that
+        | adds one turns this red.
+        */
+        ->and($keywords)->not->toContain('vitamin')
+        ->and($keywords)->not->toContain('krem')
+        ->and($keywords)->not->toContain('serum')
+        ->and($keywords)->not->toContain('leke')
+        ->and($keywords)->not->toContain('bakım');
+});
+
 it('ships with the supplement branch excluded, and with the strays that escaped it', function (): void {
     /*
     | The exclusion list is a POLICY decision (owner, 2026-08-24), not a local
@@ -302,6 +394,8 @@ it('ships with the supplement branch excluded, and with the strays that escaped 
         ->toContain('saglik-ve-medikal')
         // Wound care filed outside the health root, in oral care.
         ->toContain('agiz-yarasiaft-urunleri')
+        // Promotional and gift items: not medical, just not merchandise.
+        ->toContain('promosyonlar-hediye-urunler')
         /*
         | The other two parents still stay: outlet is mostly cosmetics and hair
         | care is not a supplement aisle, so excluding either would drop

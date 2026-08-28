@@ -114,6 +114,64 @@ return [
                 | Its PARENT stays: oral care is not a medical category.
                 */
                 'agiz-yarasiaft-urunleri',
+                /*
+                | Promotional and gift items (owner, 2026-08-28). A root of its
+                | own, 8 published products: samples, giveaways and bundles
+                | whose titles and prices describe a promotion rather than a
+                | product anyone can order on its own terms. Nothing medical
+                | about it — it is simply not merchandise a Shopping listing
+                | should carry.
+                */
+                'promosyonlar-hediye-urunler',
+            ]))),
+        ))),
+
+        /*
+        | Item-level safety net: titles that are medical whatever aisle they sit
+        | in (owner, 2026-08-28).
+        |
+        | **THE CATEGORY RULES ABOVE ARE NECESSARY AND NOT SUFFICIENT.** A live
+        | audit found "Lamiderm Yara ve Yanık Kremi" filed under `Cilt Bakımı >
+        | Cilt Bakım Kremleri` — a burn treatment on a cosmetics shelf, which no
+        | branch exclusion can reach. These words do.
+        |
+        | Matched FOLDED (ADR-089) and WORD-BOUNDED, with a closed set of Turkish
+        | suffixes: `yanik` finds `yanık`, `termometre` finds `termometresi`, and
+        | `aft` finds neither `raftabul` nor `aftershave`.
+        |
+        | **WHAT MUST NEVER GO IN HERE**, because it would delete the best of the
+        | catalogue: `vitamin` ("Uriage Depiderm C Vitamini Serum" is prime
+        | cosmetics), `krem`, `serum`, `bakım`, `leke`, `nemlendirici`,
+        | `onarıcı`. The list stays narrow and unambiguous; a term that needs an
+        | argument does not belong in it.
+        */
+        'excluded_title_keywords' => array_values(array_filter(array_map(
+            'trim',
+            explode(',', (string) env('FEED_GOOGLE_EXCLUDED_TITLE_KEYWORDS', implode(',', [
+                // Wound and burn treatment. The PHRASE, not the bare word:
+                // "yara" alone would take "yaratıcı" and half the make-up copy.
+                'yara ve yanık',
+                'yanık kremi',
+                'yanik kremi',
+                'aft',
+                // Devices. Google reads these as medical whatever the box says,
+                // and a baby's bath thermometer is not worth the appeal.
+                'nebulizatör',
+                'tansiyon aleti',
+                'termometre',
+                'ortopedik',
+                // Sexual health — disallowed outright on Shopping.
+                'prezervatif',
+                'kayganlaştırıcı',
+                'geciktirici',
+                'afrodizyak',
+                'performans arttırıcı',
+                'performans artırıcı',
+                // Weight loss, which the category rules also cover; kept here
+                // for the ones filed somewhere else entirely.
+                'zayıflama',
+                'diyet hapı',
+                'medikal',
             ]))),
         ))),
 

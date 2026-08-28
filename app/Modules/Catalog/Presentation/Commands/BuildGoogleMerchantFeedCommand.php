@@ -36,9 +36,26 @@ final class BuildGoogleMerchantFeedCommand extends Command
             ['Ayıklandı — görsel yok', $report['dropped_no_image']],
             ['Ayıklandı — canlı teklif yok', $report['dropped_no_offer']],
             ['Ayıklandı — kapalı kategori', $report['dropped_excluded_category']],
+            ['Ayıklandı — yasaklı kelime', $report['dropped_excluded_keyword']],
             ['GTIN\'siz (yazıldı)', $report['without_gtin']],
             ['Stokta değil (yazıldı)', $report['out_of_stock']],
         ]);
+
+        /*
+        | **THE KEYWORD DROPS ARE NAMED, NOT COUNTED.** A category rule removes
+        | an aisle somebody chose; a keyword rule removes a product because of
+        | how it was NAMED, and that is the one drop here that can be wrong
+        | about an item Google would have taken. Printing the titles is what
+        | makes a false positive reviewable instead of invisible.
+        */
+        if ($report['dropped_keyword_titles'] !== []) {
+            $this->newLine();
+            $this->warn('Yasaklı kelime nedeniyle elenenler:');
+
+            foreach ($report['dropped_keyword_titles'] as $title) {
+                $this->line('  - '.$title);
+            }
+        }
 
         Log::info('Google Merchant feed built.', $report);
 

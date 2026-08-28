@@ -10,6 +10,7 @@ use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Modules\Catalog\Domain\Support\TurkishFold;
 use Illuminate\Support\Facades\Storage;
 
 /**
@@ -58,6 +59,18 @@ final class GoogleMerchantFeed
     private const int MAX_TITLE_LENGTH = 150;
 
     /**
+     * Turkish suffixes a keyword may carry and still be the same word.
+     *
+     * **A CLOSED SET, because the alternative bites both ways.** Requiring an
+     * exact word boundary on the right would miss "Banyo Termometre-si", which
+     * is how Turkish writes it; allowing any continuation would drop
+     * "Aft-ershave" on the rule meant for mouth ulcers, and men's grooming is
+     * a shelf Google is happy to take. Longest first, because the alternation
+     * is ordered.
+     */
+    private const SUFFIXES = 'leri|ları|lari|ler|lar|nin|nın|nun|nün|den|dan|sı|si|su|sü|ye|ya|yi|yı|yu|yü|de|da|i|ı|u|ü|e|a';
+
+    /**
      * @var array<int, array{name: string, slug: string, parent_id: int|null}>
      */
     private array $categories = [];
@@ -77,6 +90,8 @@ final class GoogleMerchantFeed
      *     dropped_no_image: int,
      *     dropped_no_offer: int,
      *     dropped_excluded_category: int,
+     *     dropped_excluded_keyword: int,
+     *     dropped_keyword_titles: array<int, string>,
      *     without_gtin: int,
      *     out_of_stock: int,
      *     path: string,
@@ -95,6 +110,11 @@ final class GoogleMerchantFeed
             'dropped_no_image' => 0,
             'dropped_no_offer' => 0,
             'dropped_excluded_category' => 0,
+            'dropped_excluded_keyword' => 0,
+            // The titles, not just the count. A keyword rule is the one drop
+            // that can be WRONG about a product Google would have taken, and a
+            // number nobody can audit is how a false positive survives.
+            'dropped_keyword_titles' => [],
             'without_gtin' => 0,
             'out_of_stock' => 0,
         ];
@@ -246,6 +266,19 @@ final class GoogleMerchantFeed
 
         if ($this->isExcluded($product)) {
             $report['dropped_excluded_category']++;
+
+            return null;
+        }
+
+        /*
+        | THE PRODUCT'S OWN TITLE, before the variant SKU is appended: the SKU
+        | is not language and matching against it would only add noise.
+        */
+        $productTitle = $this->plainText($product->localized('title'));
+
+        if ($this->isExcludedByTitle($productTitle)) {
+            $report['dropped_excluded_keyword']++;
+            $report['dropped_keyword_titles'][] = $productTitle;
 
             return null;
         }
@@ -464,6 +497,52 @@ final class GoogleMerchantFeed
         }
 
         return implode(' > ', $names);
+    }
+
+    /**
+     * The item-level safety net: a medical product filed under cosmetics.
+     *
+     * **THE CATEGORY RULES ARE NOT ENOUGH AND THIS IS WHY.** "Lamiderm Yara ve
+     * Yanık Kremi" sits in `Cilt Bakımı > Cilt Bakım Kremleri` — a treatment
+     * product filed on a cosmetics shelf — so no branch exclusion reaches it.
+     * The words in the title do.
+     *
+     * **FOLDED AND WORD-BOUNDED, and both halves are load-bearing.** Folding
+     * (ADR-089's `TurkishFold`) makes `yanik` and `yanık` one rule. The left
+     * boundary is what stops `aft` from matching `raftabul` and `kaftan` —
+     * substring matching here would quietly delete the catalogue.
+     *
+     * The list is deliberately NARROW. `vitamin`, `krem`, `serum`, `bakım`,
+     * `leke` and `onarıcı` must never appear in it: they are the words the
+     * best-selling cosmetics are named with, and a rule that drops them costs
+     * more than the rejection it was written to prevent.
+     */
+    private function isExcludedByTitle(string $title): bool
+    {
+        /** @var array<int, string> $keywords */
+        $keywords = (array) config('feed.google.excluded_title_keywords', []);
+
+        if ($keywords === []) {
+            return false;
+        }
+
+        $folded = TurkishFold::fold($title);
+
+        foreach ($keywords as $keyword) {
+            $needle = TurkishFold::fold(trim((string) $keyword));
+
+            if ($needle === '') {
+                continue;
+            }
+
+            $pattern = '/(?<![\p{L}\p{N}])'.preg_quote($needle, '/').'(?:'.self::SUFFIXES.')?(?![\p{L}\p{N}])/u';
+
+            if (preg_match($pattern, $folded) === 1) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private function isExcluded(Product $product): bool
