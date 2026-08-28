@@ -121,7 +121,7 @@ export default async function HomePage() {
   const topBrands = brands
     .filter((brand) => brand.product_count > 0)
     .sort((a, b) => b.product_count - a.product_count)
-    .slice(0, 9);
+    .slice(0, 15);
 
   return (
     <div className="flex flex-col gap-9">
@@ -136,17 +136,18 @@ export default async function HomePage() {
         Onaylı satıcılardan orijinal dermokozmetik, vitamin ve kişisel bakım ürünleri
       </h1>
 
-      {/* brand shortcuts — round logos, linked by slug. On mobile it is a single-row
-          horizontal carousel (full-bleed, snap, hidden scrollbar); from sm up it becomes
-          the static grid. `shrink-0 basis-*` only bite in the flex row — grid ignores
-          them — so one child markup serves both layouts. */}
+      {/* brand shortcuts — round logo tiles, linked by slug. A single-row horizontal
+          carousel at EVERY breakpoint (full-bleed, snap, hidden scrollbar): the 15
+          most-stocked brands the shopper swipes/scrolls through. Fixed-width tiles so
+          the row overflows and slides rather than squeezing. A round logo where the
+          brand has one (Admin → Markalar), its initials until then. */}
       {topBrands.length > 0 && (
-        <div className="-mx-4 flex snap-x snap-mandatory gap-2 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] sm:mx-0 sm:grid sm:snap-none sm:grid-cols-5 sm:overflow-visible sm:px-0 sm:pb-0 lg:grid-cols-9 [&::-webkit-scrollbar]:hidden">
+        <div className="-mx-4 flex snap-x snap-mandatory gap-1 overflow-x-auto px-4 pb-1 [-ms-overflow-style:none] [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {topBrands.map((brand) => (
             <Link
               key={brand.id}
               href={`/${brand.slug}`}
-              className="flex shrink-0 basis-[22%] snap-start flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900 sm:basis-auto"
+              className="flex w-[84px] shrink-0 snap-start flex-col items-center gap-2.5 rounded-2xl px-1 py-3.5 transition hover:bg-brand-50 dark:hover:bg-ink-900"
             >
               <span className="grid h-14 w-14 place-items-center overflow-hidden rounded-full bg-white shadow-sm ring-1 ring-ink-100 dark:ring-ink-800">
                 {brand.logo ? (
