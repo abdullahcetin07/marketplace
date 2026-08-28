@@ -118,8 +118,12 @@ export default async function HomePage() {
   // Brand shortcuts, most-stocked first. Categories already live in the menu bar
   // above, so this row is brands now — a round logo where the brand has one,
   // its initials until an admin uploads it (Admin → Markalar).
+  // Catalogue "brands" that are really catch-all buckets, not real brands — kept out
+  // of the homepage strip (there is no logo to show off, and the name reads as filler).
+  const EXCLUDED_BRAND_SLUGS = new Set(['diger-bakim-urunleri']);
+
   const topBrands = brands
-    .filter((brand) => brand.product_count > 0)
+    .filter((brand) => brand.product_count > 0 && !EXCLUDED_BRAND_SLUGS.has(brand.slug))
     .sort((a, b) => b.product_count - a.product_count)
     .slice(0, 15);
 
