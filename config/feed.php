@@ -189,6 +189,16 @@ return [
                 | ZERO cosmetics. If one ever appears, narrow this rather than
                 | widen the exception.
                 |
+                | **ONE CAT FOOD IS CAUGHT BY IT, AND THAT IS THE OWNER'S CALL
+                | (2026-09-01), NOT AN OVERSIGHT.** `Mhauw MultiVitamin Cream`
+                | sits in `Pet Shop > Kedi Ürünleri > Kedi Mamaları` beside its
+                | Chicken, Salmon and Liver siblings, which stay in the feed; it
+                | leaves because a tub labelled MultiVitamin is what a policy
+                | classifier reads as a supplement, and one lost line is cheap
+                | insurance while the Merchant Center appeal is open. Narrowing
+                | the rule to `multivitamin paste|premiks|kedi` would bring it
+                | back — deliberately not done.
+                |
                 | `pire tasması` and `parazit` were offered and left out: they
                 | match nothing in the catalogue today, and a rule that has
                 | never fired is a rule nobody can say is correct.
