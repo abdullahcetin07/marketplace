@@ -172,6 +172,31 @@ return [
                 'zayıflama',
                 'diyet hapı',
                 'medikal',
+                /*
+                | PET-MEDICAL, and the reason it is keywords and not a category
+                | (owner, 2026-09-01). Pet Shop is 2,195 products of food, toys,
+                | grooming and aquariums — real revenue Google is happy to take
+                | — with no veterinary sub-category to exclude. The 15 medical
+                | items are scattered through it, so the words are the only
+                | handle.
+                |
+                | `multivitamin`, NOT `vitamin`: the bare word is how the best
+                | cosmetics are named ("Uriage Depiderm C Vitamini Serum"), and
+                | a rule that takes those costs more than the rejection it
+                | prevents. Checked against the live catalogue before adding —
+                | `multivitamin` matches 53 published products, 48 of them
+                | already excluded with `besin-takviyeleri` and 5 in Pet Shop.
+                | ZERO cosmetics. If one ever appears, narrow this rather than
+                | widen the exception.
+                |
+                | `pire tasması` and `parazit` were offered and left out: they
+                | match nothing in the catalogue today, and a rule that has
+                | never fired is a rule nobody can say is correct.
+                */
+                'ameliyat boğazlığı',
+                'elizabeth yakalık',
+                'veteriner',
+                'multivitamin',
             ]))),
         ))),
 

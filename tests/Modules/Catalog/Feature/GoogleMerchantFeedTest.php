@@ -288,6 +288,34 @@ it('drops a medical product filed on a cosmetics shelf', function (): void {
         ->and($xml)->toContain('Nemlendirici Krem');
 });
 
+it('drops pet-medical items without touching the rest of the pet shop', function (): void {
+    /*
+    | Pet Shop is 2,195 products of food, toys and aquariums on the live
+    | catalogue and only 15 medical ones, so this is deliberately a keyword
+    | rule rather than a category exclusion — the aisle stays, the surgical
+    | collars go.
+    */
+    config()->set('feed.google.excluded_title_keywords', [
+        'ameliyat boğazlığı', 'elizabeth yakalık', 'veteriner', 'multivitamin',
+    ]);
+
+    feedableProduct('Ameliyat Boğazlığı -Yakalık- No:3');
+    feedableProduct('Daisy Veteriner Plus For Paws');
+    feedableProduct('Daisy Multivitamin Kedi');
+    feedableProduct('Kedi Maması Tavuklu 1.5 kg');
+    feedableProduct('Kedi Oyuncağı Peluş Fare');
+
+    $xml = builtFeed();
+
+    expect($xml)->not->toContain('Ameliyat Boğazlığı')
+        ->and($xml)->not->toContain('Veteriner Plus')
+        ->and($xml)->not->toContain('Multivitamin Kedi')
+        // The aisle itself is untouched — this is the regression that matters,
+        // because the alternative design would have dropped 2,195 products.
+        ->and($xml)->toContain('Kedi Maması')
+        ->and($xml)->toContain('Kedi Oyuncağı');
+});
+
 it('never drops the cosmetics whose names look medical', function (): void {
     /*
     | THE ASSERTION THAT MATTERS MOST IN THIS FILE. A keyword list is one bad
@@ -295,7 +323,9 @@ it('never drops the cosmetics whose names look medical', function (): void {
     | title below is prime cosmetics: `vitamin` is never a keyword, `aft` must
     | not match `aftershave`, and no rule may fire on `krem` or `serum`.
     */
-    config()->set('feed.google.excluded_title_keywords', ['yara ve yanık', 'termometre', 'aft', 'medikal']);
+    config()->set('feed.google.excluded_title_keywords', [
+        'yara ve yanık', 'termometre', 'aft', 'medikal', 'multivitamin',
+    ]);
 
     feedableProduct('Uriage Depiderm C Vitamini Serum');
     feedableProduct('Skins Derm Vitamin C %10 Serum');
@@ -348,6 +378,10 @@ it('ships with a narrow keyword list that spares the cosmetics vocabulary', func
     expect($keywords)->toContain('yara ve yanık')
         ->toContain('termometre')
         ->toContain('prezervatif')
+        ->toContain('veteriner')
+        // `multivitamin` is in; `vitamin` never is. On the live catalogue the
+        // first matches 53 products and not one of them is a cosmetic.
+        ->toContain('multivitamin')
         /*
         | The forbidden entries. Each of these appears in the title of products
         | the feed exists to carry, so a future "let's be thorough" edit that
