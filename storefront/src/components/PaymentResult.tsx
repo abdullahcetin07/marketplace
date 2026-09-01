@@ -10,6 +10,8 @@ import { ui } from '@/lib/ui';
 import type { PaymentView } from '@/lib/types';
 
 const STORAGE_KEY = 'raftabul:payment';
+/** Basket line items stashed by the checkout page, read once for the purchase event. */
+const PURCHASE_ITEMS_KEY = 'raftabul:purchase_items';
 
 /**
  * The payment result (ADR-060) — shown at `/odeme/sonuc` and `/odeme/hata`.
@@ -29,15 +31,24 @@ export function PaymentResult() {
   const [payment, setPayment] = useState<PaymentView | null>(null);
   const [phase, setPhase] = useState<'checking' | 'done' | 'missing'>('checking');
 
-  // GA4 purchase — fire ONCE, and only on a confirmed-paid payment (never on
+  // GA4 / Meta purchase — fire ONCE, and only on a confirmed-paid payment (never on
   // pending/failed). `transaction_id` is the payment uuid; `value` is the paid amount,
-  // a decimal string parsed to a number for analytics only (analytics.ts). Items are
-  // not on hand here (the basket already became orders), so a transaction-level event
-  // is what we send — acceptable per GA4.
+  // a decimal string parsed to a number for analytics only (analytics.ts). The basket is
+  // already gone (it became orders), so the line items ride in from the stash the checkout
+  // page wrote — they give the event item-level GA4 data and Meta its `content_ids`.
   const purchaseFired = useRef(false);
   useEffect(() => {
     if (purchaseFired.current || payment === null || payment.status !== 'paid') return;
     purchaseFired.current = true;
+
+    let items: unknown[] = [];
+    try {
+      const raw = window.localStorage.getItem(PURCHASE_ITEMS_KEY);
+      if (raw) items = JSON.parse(raw) as unknown[];
+      window.localStorage.removeItem(PURCHASE_ITEMS_KEY);
+    } catch {
+      // no stash (or unreadable) → still send a valid transaction-level event
+    }
 
     pushDataLayer({
       event: 'purchase',
@@ -45,6 +56,7 @@ export function PaymentResult() {
         transaction_id: payment.id,
         currency: payment.currency,
         value: analyticsAmount(payment.amount),
+        ...(Array.isArray(items) && items.length > 0 ? { items } : {}),
       },
     });
   }, [payment]);

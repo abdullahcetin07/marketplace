@@ -14,6 +14,9 @@ import { SessionApiError } from '@/lib/session-api';
 import type { Address, Country, LoyaltyBalance, LoyaltyQuote } from '@/lib/types';
 
 const PAYMENT_KEY = 'raftabul:payment';
+/** The basket's line items, stashed at checkout so the result page can put them on the
+ *  GA4/Meta `purchase` event (by then the basket is gone — it became orders). */
+const PURCHASE_ITEMS_KEY = 'raftabul:purchase_items';
 
 /**
  * Checkout (§2.2, ADR-054/057/060) — pick two addresses, place, pay.
@@ -196,6 +199,17 @@ export default function CheckoutPage() {
       // redirects the browser there.
       try {
         window.localStorage.setItem(PAYMENT_KEY, payment.paymentId);
+        window.localStorage.setItem(
+          PURCHASE_ITEMS_KEY,
+          JSON.stringify(
+            cart.items.map((line) => ({
+              item_id: line.product_id,
+              item_name: line.title ?? undefined,
+              price: line.unit_price === null ? undefined : analyticsAmount(line.unit_price),
+              quantity: line.quantity,
+            })),
+          ),
+        );
       } catch {
         // a storage that refuses us only costs the result page its confirmation
       }
