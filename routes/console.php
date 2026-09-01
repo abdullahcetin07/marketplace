@@ -233,6 +233,17 @@ Schedule::command('feed:build-google-merchant')
     ->withoutOverlapping();
 
 /*
+| The Meta catalogue, fifteen minutes after Google's. SEQUENTIAL, not parallel:
+| both walk the whole sellable catalogue with the same two cross-module reads,
+| and running them together would double the peak while halving nothing.
+*/
+Schedule::command('feed:build-meta-catalog')
+    ->name('build-meta-catalog-feed')
+    ->dailyAt('04:30')
+    ->onOneServer()
+    ->withoutOverlapping();
+
+/*
 | THE POST-DELIVERY REVIEW INVITATION, DAILY (ADR-087).
 |
 | A SWEEP RATHER THAN A DELAYED JOB, and the choice is the whole design. Listening

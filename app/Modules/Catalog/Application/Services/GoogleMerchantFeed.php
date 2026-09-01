@@ -6,6 +6,7 @@ namespace App\Modules\Catalog\Application\Services;
 
 use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Core\Domain\Contracts\OfferQueryContract;
+use App\Modules\Catalog\Domain\Enums\FeedTarget;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
@@ -99,7 +100,7 @@ final class GoogleMerchantFeed
      *     published: bool,
      * }
      */
-    public function build(): array
+    public function build(FeedTarget $target = FeedTarget::Google): array
     {
         $this->loadCategoryTree();
 
@@ -120,7 +121,15 @@ final class GoogleMerchantFeed
         ];
 
         $disk = Storage::disk('public');
-        $path = (string) config('feed.google.path', 'feeds/google-merchant.xml');
+        /*
+        | ONE BUILDER, TWO PLATFORMS (BUILD_META_CATALOG_FEED.md). The Meta
+        | catalogue is this feed with product uuids instead of variant uuids —
+        | because that is what the Pixel sends — and no item groups. Every other
+        | rule, including the health and supplement exclusions, is SHARED on
+        | purpose: two lists would drift and one of the two accounts would end
+        | up submitting what the other had learned not to.
+        */
+        $path = (string) config($target->pathConfigKey(), $target->defaultPath());
 
         /*
         | BUILT BESIDE THE LIVE FILE AND MOVED OVER IT AT THE END. Google may
@@ -146,10 +155,10 @@ final class GoogleMerchantFeed
             ->orderBy('id')
             ->chunk(
                 max(1, (int) config('feed.google.chunk_size', 500)),
-                function ($products) use ($handle, &$report): void {
+                function ($products) use ($handle, &$report, $target): void {
                     $report['sellable'] += $products->count();
 
-                    fwrite($handle, $this->itemsFor($products->all(), $report));
+                    fwrite($handle, $this->itemsFor($products->all(), $report, $target));
                 },
             );
 
@@ -198,7 +207,7 @@ final class GoogleMerchantFeed
      * @param array<int, Product> $products
      * @param array<string, mixed> $report
      */
-    private function itemsFor(array $products, array &$report): string
+    private function itemsFor(array $products, array &$report, FeedTarget $target = FeedTarget::Google): string
     {
         $productUuids = array_map(static fn (Product $p): string => $p->uuid, $products);
 
@@ -236,7 +245,7 @@ final class GoogleMerchantFeed
         $xml = '';
 
         foreach ($products as $product) {
-            $item = $this->itemFor($product, $prices, $availableVariants, $report);
+            $item = $this->itemFor($product, $prices, $availableVariants, $report, $target);
 
             if ($item !== null) {
                 $xml .= $item;
@@ -254,8 +263,13 @@ final class GoogleMerchantFeed
      * @param array<string, true> $availableVariants
      * @param array<string, mixed> $report
      */
-    private function itemFor(Product $product, array $prices, array $availableVariants, array &$report): ?string
-    {
+    private function itemFor(
+        Product $product,
+        array $prices,
+        array $availableVariants,
+        array &$report,
+        FeedTarget $target = FeedTarget::Google,
+    ): ?string {
         $price = $prices[$product->uuid] ?? null;
 
         if ($price === null) {
@@ -334,9 +348,16 @@ final class GoogleMerchantFeed
         // PUBLIC IDENTIFIER IS THE UUID (ADR-005 §7). The internal integer id is
         // not merely private — it is the row count of the catalogue, published to
         // a competitor's crawler, and a test asserts it never appears here.
-        $lines[] = $this->tag('g:id', $variant->uuid);
+        /*
+        | THE ONE FIELD THE TWO FEEDS DISAGREE ABOUT. Google buys a variant; Meta
+        | matches whatever the Pixel sent, and the Pixel sends a product uuid
+        | because `view_item` fires before any variant is chosen. Feeding Meta
+        | variant ids would leave every dynamic ad unable to find the product the
+        | shopper just looked at.
+        */
+        $lines[] = $this->tag('g:id', $target->identifiesByVariant() ? $variant->uuid : $product->uuid);
 
-        if ($sellableVariants > 1) {
+        if ($target->emitsItemGroup() && $sellableVariants > 1) {
             $lines[] = $this->tag('g:item_group_id', $product->uuid);
         }
 

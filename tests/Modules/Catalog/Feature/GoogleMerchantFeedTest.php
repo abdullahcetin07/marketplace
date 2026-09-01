@@ -238,6 +238,90 @@ it('claims an identifier for a GTIN with no brand behind it', function (): void 
         ->and($item)->toContain('<g:identifier_exists>yes</g:identifier_exists>');
 });
 
+/*
+|--------------------------------------------------------------------------
+| The Meta catalogue — the same builder, one field apart
+|--------------------------------------------------------------------------
+*/
+
+it('identifies a Meta row by product uuid and a Google row by variant uuid', function (): void {
+    /*
+    | THE WHOLE POINT OF THE SECOND FEED. Meta matches its catalogue against what
+    | the Pixel sends, and the Pixel sends a PRODUCT uuid — `view_item` fires on
+    | a product page before any variant is chosen. A variant id here would leave
+    | every dynamic ad unable to find the product the shopper just looked at.
+    |
+    | Two products, because one cannot show that the ids differ per row.
+    */
+    $first = feedableProduct('Serum');
+    $second = feedableProduct('Tonik');
+
+    Artisan::call('feed:build-meta-catalog');
+    $meta = Storage::disk('public')->get('feeds/meta-catalog.xml');
+
+    $google = builtFeed();
+
+    foreach ([$first, $second] as $product) {
+        $variant = $product->variants()->first();
+
+        expect($meta)->toContain('<g:id>'.$product->uuid.'</g:id>')
+            ->and($meta)->not->toContain('<g:id>'.$variant->uuid.'</g:id>')
+            ->and($google)->toContain('<g:id>'.$variant->uuid.'</g:id>');
+    }
+});
+
+it('writes no item groups in the Meta feed', function (): void {
+    // On a product-level feed the group id would equal the row's own id, which
+    // says nothing and reads as a mistake.
+    feedableProduct('Serum');
+    feedableProduct('Tonik');
+
+    Artisan::call('feed:build-meta-catalog');
+
+    expect(Storage::disk('public')->get('feeds/meta-catalog.xml'))->not->toContain('g:item_group_id');
+});
+
+it('applies the same exclusions to the Meta feed as to the Google one', function (): void {
+    /*
+    | ONE LIST, TWO PLATFORMS, and this is the assertion that keeps it that way.
+    | Meta's health and supplement policy is at least as strict as Google's; two
+    | lists would drift and the account that missed an update is the one that
+    | gets suspended.
+    */
+    config()->set('feed.google.excluded_title_keywords', ['termometre']);
+
+    $blocked = feedableProduct('Bebedor Banyo Termometresi');
+    feedableProduct('Nemlendirici Krem');
+    feedableProduct('Onarıcı Serum');
+
+    Artisan::call('feed:build-meta-catalog');
+    $meta = Storage::disk('public')->get('feeds/meta-catalog.xml');
+
+    expect($meta)->not->toContain('Bebedor')
+        ->and($meta)->not->toContain($blocked->uuid)
+        ->and($meta)->toContain('Nemlendirici Krem');
+});
+
+it('keeps a good Meta feed rather than replacing it with an empty one', function (): void {
+    /*
+    | The same rail the Google feed has. An empty catalogue tells Meta this
+    | merchant sells nothing and every dynamic ad stops matching — a state that
+    | takes a re-fetch to leave and a re-review to explain.
+    */
+    feedableProduct('Serum');
+    feedableProduct('Tonik');
+
+    Artisan::call('feed:build-meta-catalog');
+
+    $good = Storage::disk('public')->get('feeds/meta-catalog.xml');
+
+    // Nothing sellable left.
+    Product::query()->update(['is_sellable' => false]);
+
+    expect(Artisan::call('feed:build-meta-catalog'))->toBe(1)
+        ->and(Storage::disk('public')->get('feeds/meta-catalog.xml'))->toBe($good);
+});
+
 it('never leaks an internal integer id', function (): void {
     $first = feedableProduct('Birinci');
     $second = feedableProduct('İkinci');

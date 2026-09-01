@@ -29,6 +29,7 @@ use App\Modules\Catalog\Infrastructure\Repositories\CategoryRepository;
 use App\Modules\Catalog\Infrastructure\Repositories\ProductRepository;
 use App\Modules\Catalog\Infrastructure\Search\ProductSearchEngine;
 use App\Modules\Catalog\Presentation\Commands\BuildGoogleMerchantFeedCommand;
+use App\Modules\Catalog\Presentation\Commands\BuildMetaCatalogFeedCommand;
 use App\Modules\Catalog\Presentation\Commands\FillProductDescriptionsCommand;
 use App\Modules\Catalog\Presentation\Commands\FixDoubledCategoriesCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSearchTextCommand;
@@ -131,6 +132,7 @@ final class CatalogServiceProvider extends ServiceProvider
                 RefreshSearchTextCommand::class,
                 SyncSearchSettingsCommand::class,
                 BuildGoogleMerchantFeedCommand::class,
+                BuildMetaCatalogFeedCommand::class,
                 FillProductDescriptionsCommand::class,
                 FixDoubledCategoriesCommand::class,
             ]);

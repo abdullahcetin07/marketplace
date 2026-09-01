@@ -234,4 +234,22 @@ return [
         'chunk_size' => (int) env('FEED_GOOGLE_CHUNK_SIZE', 500),
     ],
 
+    /*
+    |--------------------------------------------------------------------------
+    | Meta (Facebook/Instagram) catalogue feed
+    |--------------------------------------------------------------------------
+    |
+    | The same file the Google builder writes, with one field changed: rows are
+    | identified by PRODUCT uuid because that is what the Pixel sends
+    | (`view_item` fires before any variant is chosen). Everything else —
+    | storefront URL, exclusions, minimum description, chunk size — is READ FROM
+    | THE GOOGLE BLOCK ABOVE on purpose. Two lists of forbidden categories would
+    | drift, and the account that missed an update is the one that gets
+    | suspended.
+    |
+    */
+    'meta' => [
+        'path' => 'feeds/meta-catalog.xml',
+    ],
+
 ];

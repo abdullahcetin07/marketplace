@@ -3,6 +3,7 @@
 declare(strict_types=1);
 
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\GoogleMerchantFeedController;
+use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\MetaCatalogFeedController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -93,3 +94,11 @@ Route::get('/login', static function (Request $request) {
 */
 Route::get('/feed/google-merchant.xml', [GoogleMerchantFeedController::class, 'show'])
     ->name('feed.google-merchant');
+
+/*
+| The Meta catalogue (BUILD_META_CATALOG_FEED.md). Same nginx `/feed` block, so
+| no vhost change — and the same file-on-disk shape, so this route builds
+| nothing either.
+*/
+Route::get('/feed/meta-catalog.xml', [MetaCatalogFeedController::class, 'show'])
+    ->name('feed.meta-catalog');
