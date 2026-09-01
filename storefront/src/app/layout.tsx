@@ -4,6 +4,7 @@ import { Manrope } from 'next/font/google';
 import { CategoryBar } from '@/components/CategoryBar';
 import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
+import { MetaPixel } from '@/components/MetaPixel';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { SessionProvider } from '@/components/SessionProvider';
@@ -91,6 +92,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="tr" className={manrope.variable}>
       <body className="flex min-h-screen flex-col antialiased">
         <GoogleTagManager />
+        <MetaPixel />
         <SessionProvider>
           <div className="bg-ink-950 text-ink-100">
             <div className="mx-auto flex w-full max-w-page items-center px-4 py-1.5 text-xs">

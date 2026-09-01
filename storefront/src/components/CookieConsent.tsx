@@ -49,6 +49,13 @@ export function CookieConsent() {
     } catch {
       // a storage that refuses us only costs us re-asking next visit
     }
+    try {
+      // Let consent-gated marketing tags (Meta Pixel) load the moment consent is
+      // granted, without waiting for the next page load.
+      window.dispatchEvent(new CustomEvent('raftabul:consent', { detail: choice }));
+    } catch {
+      // a refused dispatch only means the pixel waits until the next navigation
+    }
     setVisible(false);
   }
 
