@@ -102,10 +102,32 @@ export default async function StorePage({ params }: Props) {
     ].map((item, index) => ({ '@type': 'ListItem', position: index + 1, name: item.name, item: item.url })),
   };
 
+  // The store's products as an ItemList — parity with the category/brand listing
+  // pages (which already emit one), so the crawler reads this seller's catalogue as a
+  // structured collection rather than a bare grid. Bare `url`/`name` items, like the
+  // listing pages: a crawl hint, not a rich-result claim.
+  const itemListLd =
+    products.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'ItemList',
+          numberOfItems: total,
+          itemListElement: products.map((item, index) => ({
+            '@type': 'ListItem',
+            position: index + 1,
+            url: absoluteUrl(item.slug ? `/${item.slug}` : `/urun/${item.product_id}`),
+            name: item.title,
+          })),
+        }
+      : null;
+
   return (
     <div className="flex flex-col gap-6">
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(storeLd) }} />
       <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(breadcrumbLd) }} />
+      {itemListLd && (
+        <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: jsonLd(itemListLd) }} />
+      )}
 
       <nav aria-label="Sayfa yolu" className="flex flex-wrap gap-1 text-sm text-ink-500">
         <Link href="/" className="hover:text-brand-600">Ana Sayfa</Link>

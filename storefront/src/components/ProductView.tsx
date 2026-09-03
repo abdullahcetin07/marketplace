@@ -247,7 +247,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           </div>
 
           {(product.attributes.length > 0 || product.gtin) && (
-            <dl className="my-6 grid grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-ink-50 p-5 text-sm dark:bg-ink-900 sm:grid-cols-2">
+            <div className="my-6">
+              <h2 className="mb-2 text-[.8rem] font-extrabold uppercase tracking-wide text-ink-500">Ürün Özellikleri</h2>
+              <dl className="grid grid-cols-1 gap-x-6 gap-y-3 rounded-2xl bg-ink-50 p-5 text-sm dark:bg-ink-900 sm:grid-cols-2">
               {product.brand !== null && (
                 <div className="flex justify-between gap-3">
                   <dt className="text-ink-500">Marka</dt>
@@ -266,7 +268,8 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
                   <dd className="text-right font-bold tabular-nums">{product.gtin}</dd>
                 </div>
               )}
-            </dl>
+              </dl>
+            </div>
           )}
 
           {/* Campaigns — below the features, the points this purchase earns. Streams so
@@ -292,9 +295,12 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           )}
 
           {product.description !== null && product.description !== '' && (
-            <p className="mt-6 max-w-[60ch] whitespace-pre-line text-[.9rem] leading-relaxed text-ink-600 dark:text-ink-300">
-              {product.description}
-            </p>
+            <div className="mt-6">
+              <h2 className="mb-2 text-[.8rem] font-extrabold uppercase tracking-wide text-ink-500">Ürün Açıklaması</h2>
+              <p className="max-w-[60ch] whitespace-pre-line text-[.9rem] leading-relaxed text-ink-600 dark:text-ink-300">
+                {product.description}
+              </p>
+            </div>
           )}
         </section>
 
