@@ -6,6 +6,7 @@ import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
 import { WhatsAppButton } from '@/components/WhatsAppButton';
+import { RaftabulAssistant } from '@/components/RaftabulAssistant';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { SessionProvider } from '@/components/SessionProvider';
@@ -188,6 +189,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Floating WhatsApp contact shortcut — renders itself away when no number is
             configured, so it's safe to mount unconditionally. */}
         <WhatsAppButton />
+        {/* Raftabul Asistan — guided help hub, stacked above the WhatsApp button. */}
+        <RaftabulAssistant />
         {/* KVKK çerez onayı — only with a real GTM container (staging leaves it unset,
             so no banner and nothing to consent to). */}
         {process.env.NEXT_PUBLIC_GTM_ID && <CookieConsent />}
