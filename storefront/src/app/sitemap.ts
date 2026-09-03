@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { allStoreSlugs, browseProducts, fetchBrands, fetchCategoryTree, type CategoryNode } from '@/lib/api';
 import { contentPages } from '@/lib/pages';
+import { GUIDES } from '@/lib/guides';
 import { absoluteUrl } from '@/lib/site';
 
 /**
@@ -62,6 +63,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const staticPages: MetadataRoute.Sitemap = [
     { url: absoluteUrl('/'), lastModified: STATIC_LASTMOD, changeFrequency: 'daily', priority: 1 },
     { url: absoluteUrl('/urunler'), lastModified: STATIC_LASTMOD, changeFrequency: 'daily', priority: 0.8 },
+    { url: absoluteUrl('/rehber'), lastModified: STATIC_LASTMOD, changeFrequency: 'weekly', priority: 0.5 },
     // The footer's content pages (Hakkımızda, SSS, KVKK…) — stable, low churn.
     ...Object.keys(contentPages).map((slug) => ({
       url: absoluteUrl(`/sayfa/${slug}`),
@@ -96,5 +98,13 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     priority: 0.5,
   }));
 
-  return [...staticPages, ...entries, ...storeEntries];
+  // /rehber articles — editorial content with their own last-updated date.
+  const guideEntries: MetadataRoute.Sitemap = GUIDES.map((g) => ({
+    url: absoluteUrl(`/rehber/${g.slug}`),
+    lastModified: new Date(g.updated),
+    changeFrequency: 'monthly',
+    priority: 0.5,
+  }));
+
+  return [...staticPages, ...entries, ...storeEntries, ...guideEntries];
 }
