@@ -456,14 +456,28 @@ export async function browseProducts(
   if (params.perPage) query.set('per_page', String(params.perPage));
 
   const suffix = query.toString() === '' ? '' : `?${query.toString()}`;
+  const path = apiUrl(`/api/v1/products${suffix}`);
 
-  const response = await fetch(apiUrl(`/api/v1/products${suffix}`), {
-    headers: { Accept: 'application/json' },
-    next: { revalidate: PUBLIC_REVALIDATE_SECONDS },
-  });
+  // The listing is a core page. The internal SSR fetch (127.0.0.1) can blip under
+  // concurrency — a single transient failure must NOT white-screen the whole
+  // catalogue. Retry once on a network error or a 5xx; a 4xx is a real answer
+  // (bad param) and is returned as-is, not retried.
+  let response: Response | null = null;
+  for (let attempt = 0; attempt < 2; attempt += 1) {
+    try {
+      response = await fetch(path, {
+        headers: { Accept: 'application/json' },
+        next: { revalidate: PUBLIC_REVALIDATE_SECONDS },
+      });
+    } catch {
+      response = null;
+    }
 
-  if (!response.ok) {
-    throw new ApiError('Ürünler yüklenemedi', response.status);
+    if (response && (response.ok || (response.status >= 400 && response.status < 500))) break;
+  }
+
+  if (!response || !response.ok) {
+    throw new ApiError('Ürünler yüklenemedi', response?.status ?? 502);
   }
 
   const envelope = (await response.json()) as Envelope<ProductCard[]> & {

@@ -80,16 +80,39 @@ export default async function ProductsPage({
   const sort = asSort(single(params.sort));
   const page = Math.max(1, Number(single(params.page) ?? 1) || 1);
 
-  const result = await browseProducts({
-    q: q === '' ? undefined : q,
-    category: single(params.category),
-    brand: single(params.brand),
-    priceMin: single(params.price_min),
-    priceMax: single(params.price_max),
-    sort,
-    page,
-    perPage: 24,
-  });
+  // A transient failure of the internal catalogue read must not white-screen the
+  // whole page (the raw Next 500). browseProducts already retries once; if it still
+  // fails we render a calm "try again" panel with a 200 rather than throwing, so a
+  // brief backend blip costs a reload, not a broken page.
+  let result: Awaited<ReturnType<typeof browseProducts>> | null = null;
+  try {
+    result = await browseProducts({
+      q: q === '' ? undefined : q,
+      category: single(params.category),
+      brand: single(params.brand),
+      priceMin: single(params.price_min),
+      priceMax: single(params.price_max),
+      sort,
+      page,
+      perPage: 24,
+    });
+  } catch {
+    result = null;
+  }
+
+  if (result === null) {
+    return (
+      <div className={`flex flex-col items-center gap-3 py-16 text-center ${ui.card}`}>
+        <h1 className="text-lg font-extrabold tracking-tight">Ürünler şu an yüklenemedi</h1>
+        <p className="max-w-sm text-sm text-ink-500">
+          Geçici bir yoğunluk olabilir. Lütfen birkaç saniye sonra tekrar deneyin.
+        </p>
+        <Link href="/urunler" className={`${ui.btnPrimarySm} mt-1`}>
+          Tekrar dene
+        </Link>
+      </div>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-6">
