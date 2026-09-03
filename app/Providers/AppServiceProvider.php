@@ -255,9 +255,53 @@ final class AppServiceProvider extends ServiceProvider
         | The public storefront (ADR-034): anonymous browsing traffic. Keyed on
         | IP only — there is no authenticated user — and generous, since a store
         | page is meant to be hit freely; the limit only bounds scraping.
+        |
+        | **A SERVER-SIDE RENDER IS NOT A VISITOR, AND KEYING IT BY IP BROKE THE
+        | LISTING PAGE** (2026-09-03). The Next.js storefront renders on this
+        | same box and fetches through the loopback vhost, so EVERY visitor's
+        | render arrived from 127.0.0.1 and shared ONE 300/minute bucket. A
+        | listing page costs two of those calls (`/products` and the bulk
+        | `POST /offers/prices`), so a few dozen shoppers a minute exhausted it
+        | and the API answered 429 — which the page turned into
+        | "Application error", fast and under load only. The log had 11,094 of
+        | them. Nothing was saturated: not PHP-FPM, not the database, not the
+        | socket. The limiter was counting the wrong client.
+        |
+        | **The exemption is keyed on a FASTCGI PARAM, not a header or an IP**,
+        | and that distinction is the whole security of it. Every request
+        | reaches PHP-FPM from nginx over loopback, so the socket address cannot
+        | tell an internal render from a shopper; and a header could simply be
+        | sent by one. `INTERNAL_RENDER` is set by the loopback-only vhost
+        | (`raftabul-prod-internal`, 127.0.0.1:8081) as a CGI variable — a
+        | client-supplied header would arrive as `HTTP_INTERNAL_RENDER` and
+        | never match. Outside traffic cannot reach that listener at all.
+        |
+        | What is given up: a runaway SSR loop is no longer bounded here. That
+        | is the right trade — it would be our bug, visible as load, whereas the
+        | limiter exists to bound scraping from outside, which still counts
+        | every browser-direct call by its real IP.
         */
-        RateLimiter::for('storefront', static fn (Request $request): Limit => Limit::perMinute($limits['storefront'] ?? 300)
-            ->by('storefront:'.$request->ip()));
+        RateLimiter::for('storefront', static function (Request $request) use ($limits): Limit {
+            if (self::isInternalRender($request)) {
+                return Limit::none();
+            }
+
+            return Limit::perMinute($limits['storefront'] ?? 300)->by('storefront:'.$request->ip());
+        });
+    }
+
+    /**
+     * Whether this request came from the storefront's own server-side render.
+     *
+     * Set by the loopback vhost as a CGI parameter, so it is not something a
+     * client can send: an HTTP header of the same name arrives as
+     * `HTTP_INTERNAL_RENDER` and is a different key entirely. When the
+     * parameter is absent — a plain deploy, a dev box, anything reached from
+     * outside — this is false and the ordinary limit applies.
+     */
+    private static function isInternalRender(Request $request): bool
+    {
+        return $request->server('INTERNAL_RENDER') === '1';
     }
 
     private function configureUrls(): void

@@ -34,6 +34,50 @@ iç fetch yolunda**, ve **yük altında** ortaya çıkıyor.
   düşüyor** → 200. Listeleme `browseProducts` non-200'de **throw** ediyordu → 500.
   (Kalkan bunu değiştirdi ama iç-fetch **neden takılıyor** sorusu duruyor.)
 
+## ✅ KÖK NEDEN BULUNDU VE DÜZELTİLDİ (sunucu, 2026-09-03)
+
+**Hiçbiri değildi: ne FPM doygunluğu, ne soket, ne `INTERNAL_API_URL`.**
+Digest `2264697604`'ün Next log'undaki karşılığı:
+
+```
+⨯ Error [ApiError]: POST /api/v1/offers/prices failed
+  status: 429
+```
+
+Logda **11.094 adet**. Yani arıza **kendi rate limiter'ımız**dı.
+
+`storefront` limiti IP başına 300/dk ve **SSR aynı kutuda, `127.0.0.1:8081`
+üzerinden** çağırıyor — dolayısıyla **her ziyaretçinin render'ı tek kovayı
+paylaşıyordu**. Bir listeleme sayfası iki çağrı harcıyor (`/products` + toplu
+`POST /offers/prices`), yani dakikada birkaç düzine ziyaretçi kovayı bitiriyor →
+429 → sayfa 500. Hatanın **hızlı** (~0,4 sn) ve **yalnız yük altında** çıkması
+tam olarak bunun imzası; backend/DB/FPM gerçekten sağlamdı (ölçümler doğruydu,
+yorumu yanlıştı).
+
+**Düzeltme:** SSR limitten muaf — ama **IP'ye veya header'a göre DEĞİL**. Bu
+topolojide her istek PHP-FPM'e nginx'ten loopback ile gelir (soket adresi ayırt
+etmez) ve header'ı istemci de gönderebilir. Ayırt edici bir **CGI parametresi**:
+loopback vhost'u (dışarıdan erişilemez) `fastcgi_param INTERNAL_RENDER 1` set
+eder; istemcinin aynı isimli header'ı `HTTP_INTERNAL_RENDER` olarak gelir ve
+eşleşmez — bir test bunu çiviler.
+
+**Taviz:** kaçak bir SSR döngüsü artık burada sınırlanmıyor. Bu doğru takas:
+o bizim hatamız olur ve yük olarak görünür; limiter dışarıdan kazımayı
+sınırlamak için var ve tarayıcıdan gelen her çağrı hâlâ gerçek IP'siyle sayılır.
+
+Dosyalar: `app/Providers/AppServiceProvider.php`,
+`tests/Feature/StorefrontRateLimitTest.php`,
+`/etc/nginx/sites-enabled/raftabul-prod-internal` + `test.raftabul.com`
+(yedekler `.bak-20260903`).
+
+### Ayrıca yapılanlar (bu emrin sonundaki liste)
+- Açıklama partileri **#5–#9 uygulandı** — katalogda 898 zenginleştirilmiş ürün.
+- Storefront `bfb12c1` **iki ortamda** derlendi (WhatsApp/Asistan/H2 dahil).
+
+---
+
+## (Devir notu — kök neden bulunmadan önceki hipotezler)
+
 ## Sunucu tarafı yap: kök nedeni bul
 
 1. **Next.js log'unda digest'i ara:** `2264697604` → gerçek stack + fetch hatası
