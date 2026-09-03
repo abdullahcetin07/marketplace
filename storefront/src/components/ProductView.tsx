@@ -296,7 +296,13 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
           {product.description !== null && product.description !== '' && (
             <div className="mt-6">
-              <h2 className="mb-2 text-[.8rem] font-extrabold uppercase tracking-wide text-ink-500">Ürün Açıklaması</h2>
+              {/* The product name lives in the H2 (not just a generic "Ürün Açıklaması"
+                  label): it puts the primary keyword in a heading tag, and reads as a
+                  real section title. Name in normal case; the "Ürün Açıklaması" suffix
+                  stays muted so the name is what the eye (and a crawler) lands on. */}
+              <h2 className="mb-2 text-sm font-extrabold text-ink-700 dark:text-ink-200">
+                {product.title} <span className="font-bold text-ink-400">— Ürün Açıklaması</span>
+              </h2>
               <div className="max-w-[60ch] text-[.9rem] leading-relaxed text-ink-600 dark:text-ink-300">
                 <DescriptionBody text={product.description} />
               </div>
