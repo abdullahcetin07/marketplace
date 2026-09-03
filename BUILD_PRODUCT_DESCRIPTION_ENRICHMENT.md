@@ -60,6 +60,35 @@ dürüst. Üretici siteleri en güvenli; pazaryeri/rakip scraping'i minimumda tu
 
 ---
 
+## 2.5 Çıktı formatı — DÜZ METİN, hafif yapılı (storefront bunu render ediyor)
+
+`Product.description` **düz metin** saklanır; storefront (commit `842def5`) şu işaretleri
+**yapılandırılmış** render eder — üretici birebir bu formatta yazsın:
+
+- **İlk satır:** giriş paragrafı (marka + tip + hacim + kime/ne için) — **anahtar kelime burada**.
+- **`- ` ile başlayan satırlar:** öne çıkanlar → madde listesi (`<ul>`).
+- **Boş satır:** blokları ayırır.
+- **"Kullanım: …" / "Kime uygun: …":** satır başındaki kısa "Etiket:" **otomatik kalınlaşır**.
+- İstenirse satır-içi `**kalın**`.
+
+Şablon (pilotta onaylanan yapı):
+```
+{Marka} {Ürün} {Hacim}, {kısa tanım — kime/ne için}.
+- {fayda 1 — izinli kozmetik dil}
+- {fayda 2}
+- {fayda 3}
+
+Kullanım: {nasıl / ne zaman}.
+Kime uygun: {cilt tipi}. Haricen kullanım içindir.
+```
+
+**H2/H3 başlık KOYMA** — storefront zaten "Ürün Açıklaması" H2'sini basıyor; 60-110 kelimelik
+açıklamada başlık orantısızdır (Google başlık enflasyonunu sevmez). Yapı = **liste + kalın
+etiket**, başlık değil. Uzunluk 60-140 kelime. Pilot referansı: `scratchpad/urun-aciklama-pilot.md`
+(8 ürün, 6 marka — onaylandı).
+
+---
+
 ## 3. Kapsam & mimari
 
 - **Kapsam:** açıklaması ince/boş olan ürünler. **Pareto:** en çok trafik/dönüşüm alan
