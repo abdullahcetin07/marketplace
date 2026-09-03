@@ -92,9 +92,20 @@ final class ImportProductDescriptionsCommand extends Command
      */
     private function parse(string $markdown): array
     {
+        /*
+        | **SPLIT ON THE HEADING, NOT ON `---`.** The pilot file separated every
+        | product with a horizontal rule; the first hundred-SKU batch used one
+        | rule under the preamble and nothing between the entries. Splitting on
+        | the rule found ONE product there and would have written all hundred
+        | descriptions into it — caught by the dry run, which is why the dry run
+        | is the default. A `###` heading starts an entry in both files, and in
+        | any file a person would write.
+        */
+        $sections = preg_split('/^(?=###\s)/mu', $markdown) ?: [];
+
         $entries = [];
 
-        foreach (preg_split('/^---\s*$/mu', $markdown) ?: [] as $section) {
+        foreach ($sections as $section) {
             if (preg_match('/^###\s*\d*\.?\s*(?<title>.+)$/mu', $section, $heading) !== 1) {
                 continue;
             }
@@ -103,10 +114,20 @@ final class ImportProductDescriptionsCommand extends Command
                 continue;
             }
 
-            // The body is everything after the GTIN line, trimmed — the copy
-            // exactly as approved, including its blank lines and `- ` bullets,
-            // because the storefront renders those (commit 842def5).
-            $body = trim((string) preg_replace('/^.*`GTIN\s*\d{8,14}`\s*/us', '', $section));
+            /*
+            | Everything after the GTIN line and BEFORE the next horizontal
+            | rule. The rule is an end marker, and it has to be honoured rather
+            | than merely trimmed: the pilot file ends with a note about quality
+            | that quotes the forbidden phrase "akneyi tedavi eder" as an
+            | example of what not to write. Swallowed into the last entry, that
+            | note tripped the health-claim scan — the scan was right, the
+            | boundary was wrong.
+            |
+            | Blank lines and `- ` bullets are kept: the storefront renders them
+            | (commit 842def5).
+            */
+            $body = (string) preg_replace('/^.*`GTIN\s*\d{8,14}`\s*/us', '', $section);
+            $body = trim((string) (preg_split('/^---\s*$/mu', $body)[0] ?? ''));
 
             if ($body === '') {
                 continue;

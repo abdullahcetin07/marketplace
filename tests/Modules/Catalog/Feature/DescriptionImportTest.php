@@ -163,6 +163,67 @@ it('matches a variant barcode as well as the product gtin', function (): void {
     expect($product->fresh()->description_tr)->toBe('Barkodla eşleşen metin, kuru ciltler için.');
 });
 
+it('reads every entry in a file that separates them only by heading', function (): void {
+    /*
+    | THE BUG THE DRY RUN CAUGHT. The pilot file put a horizontal rule between
+    | products; the first hundred-SKU batch put one under the preamble and none
+    | between the entries. Splitting on the rule found ONE product there — and
+    | its body would have been all hundred descriptions concatenated into a
+    | single row.
+    */
+    $one = importableProduct('8690000000017');
+    $two = importableProduct('8690000000024');
+
+    $path = sys_get_temp_dir().'/batch-'.uniqid().'.md';
+    file_put_contents($path, <<<'MD'
+        # Parti
+
+        ---
+
+        ### 1. Birinci Ürün
+        `GTIN 8690000000017`
+        Birinci ürün metni, kuru ciltler için.
+
+        ### 2. İkinci Ürün
+        `GTIN 8690000000024`
+        İkinci ürün metni, yağlı ciltler için.
+        MD);
+
+    $this->artisan('catalog:import-descriptions', ['file' => $path, '--apply' => true])
+        ->expectsOutputToContain('Toplam 2')
+        ->assertSuccessful();
+
+    expect($one->fresh()->description_tr)->toBe('Birinci ürün metni, kuru ciltler için.')
+        ->and($two->fresh()->description_tr)->toBe('İkinci ürün metni, yağlı ciltler için.');
+});
+
+it('stops a body at the horizontal rule instead of swallowing what follows', function (): void {
+    /*
+    | The pilot file ends with a note about quality that QUOTES the forbidden
+    | phrase "akneyi tedavi eder" as an example of what not to write. Read into
+    | the last entry, it tripped the health-claim scan: the scan was right and
+    | the boundary was wrong. A rule ends an entry.
+    */
+    $product = importableProduct('8690000000017');
+    importableProduct('8690000000024');
+
+    $path = sys_get_temp_dir().'/note-'.uniqid().'.md';
+    file_put_contents($path, <<<'MD'
+        ### 1. Tek Ürün
+        `GTIN 8690000000017`
+        Ürün metni, kuru ciltler için.
+
+        ---
+
+        **Not:** "akneyi tedavi eder" gibi iddialar yazılmaz.
+        MD);
+
+    $this->artisan('catalog:import-descriptions', ['file' => $path, '--apply' => true])
+        ->assertSuccessful();
+
+    expect($product->fresh()->description_tr)->toBe('Ürün metni, kuru ciltler için.');
+});
+
 it('changes nothing on a second run', function (): void {
     importableProduct();
     importableProduct('8690000000024');
