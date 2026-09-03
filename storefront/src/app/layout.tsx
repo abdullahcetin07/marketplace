@@ -51,6 +51,7 @@ const footerCols = [
     h: 'Kurumsal',
     items: [
       { label: 'Hakkımızda', href: '/sayfa/hakkimizda' },
+      { label: 'Bakım Rehberleri', href: '/rehber' },
       { label: 'Satıcı Ol', href: '/sayfa/satici-ol' },
       { label: 'Kariyer', href: '/sayfa/kariyer' },
       { label: 'İletişim', href: '/sayfa/iletisim' },

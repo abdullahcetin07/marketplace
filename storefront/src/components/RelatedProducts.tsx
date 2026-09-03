@@ -16,7 +16,9 @@ export async function RelatedProducts({
 }: {
   title: string;
   query: BrowseParams;
-  excludeId: string;
+  // The product to leave out (the one being viewed). Optional: a /rehber carousel
+  // is not hung off a product, so it excludes nothing — `id !== undefined` keeps all.
+  excludeId?: string;
   href?: string;
 }) {
   // DEGRADES TO NOTHING on any error. This is an optional rail — a slow or failing
