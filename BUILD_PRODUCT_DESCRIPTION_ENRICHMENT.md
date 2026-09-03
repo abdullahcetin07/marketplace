@@ -84,8 +84,7 @@ Kime uygun: {cilt tipi}. Haricen kullanım içindir.
 
 **H2/H3 başlık KOYMA** — storefront zaten "Ürün Açıklaması" H2'sini basıyor; 60-110 kelimelik
 açıklamada başlık orantısızdır (Google başlık enflasyonunu sevmez). Yapı = **liste + kalın
-etiket**, başlık değil. Uzunluk 60-140 kelime. Pilot referansı: `scratchpad/urun-aciklama-pilot.md`
-(8 ürün, 6 marka — onaylandı).
+etiket**, başlık değil. Uzunluk 60-140 kelime. Pilot referansı: `PRODUCT_DESCRIPTION_PILOT.md` (8 ürün, 6 marka — owner onayladı; kalite/ton çıtası).
 
 ---
 
