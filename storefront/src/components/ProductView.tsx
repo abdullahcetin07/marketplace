@@ -1,4 +1,4 @@
-import { Suspense } from 'react';
+import { Suspense, type ReactNode } from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { AddToCartButton } from '@/components/AddToCartButton';
@@ -297,9 +297,9 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
           {product.description !== null && product.description !== '' && (
             <div className="mt-6">
               <h2 className="mb-2 text-[.8rem] font-extrabold uppercase tracking-wide text-ink-500">Ürün Açıklaması</h2>
-              <p className="max-w-[60ch] whitespace-pre-line text-[.9rem] leading-relaxed text-ink-600 dark:text-ink-300">
-                {product.description}
-              </p>
+              <div className="max-w-[60ch] text-[.9rem] leading-relaxed text-ink-600 dark:text-ink-300">
+                <DescriptionBody text={product.description} />
+              </div>
             </div>
           )}
         </section>
@@ -495,6 +495,96 @@ export async function ProductView({ idOrSlug }: { idOrSlug: string }) {
 
 function initials(name: string): string {
   return name.trim().slice(0, 2).toUpperCase();
+}
+
+/**
+ * Render a product description with LIGHT structure — the enriched-copy format
+ * (SEO): a `- ` line becomes a bullet list, a leading short "Label:" (Kullanım:,
+ * Kime uygun:) is bolded, blank lines separate blocks. A plain-text description —
+ * the catalogue's current default — has none of these and simply renders as
+ * paragraphs, so this degrades cleanly.
+ *
+ * REACT ELEMENTS ONLY, never `dangerouslySetInnerHTML`: a description is
+ * seller/admin copy (moderated, but still untrusted markup), so it must stay
+ * escaped. `**bold**` is the one inline marker supported.
+ */
+function DescriptionBody({ text }: { text: string }): ReactNode {
+  const lines = text.replace(/\r\n/g, '\n').split('\n');
+  const blocks: ReactNode[] = [];
+  let bullets: string[] = [];
+  let para: string[] = [];
+
+  const flushBullets = () => {
+    if (bullets.length === 0) return;
+    blocks.push(
+      <ul key={`u${blocks.length}`} className="my-2 flex list-disc flex-col gap-1 pl-5">
+        {bullets.map((b, i) => (
+          <li key={i}>{inlineMarks(b)}</li>
+        ))}
+      </ul>,
+    );
+    bullets = [];
+  };
+
+  const flushPara = () => {
+    if (para.length === 0) return;
+    blocks.push(
+      <p key={`p${blocks.length}`} className="my-1.5">
+        {para.map((line, i) => (
+          <span key={i}>
+            {labelledLine(line)}
+            {i < para.length - 1 ? <br /> : null}
+          </span>
+        ))}
+      </p>,
+    );
+    para = [];
+  };
+
+  for (const raw of lines) {
+    const line = raw.trim();
+    const bullet = /^[-*•]\s+(.*)$/.exec(line);
+    if (bullet) {
+      flushPara();
+      bullets.push(bullet[1] as string);
+    } else if (line === '') {
+      flushBullets();
+      flushPara();
+    } else {
+      flushBullets();
+      para.push(line);
+    }
+  }
+  flushBullets();
+  flushPara();
+
+  return <>{blocks}</>;
+}
+
+/** Bold a leading short "Label:" (e.g. "Kullanım:", "Kime uygun:") at line start. */
+function labelledLine(line: string): ReactNode {
+  const m = /^([^:.!?]{2,24}):\s+(.*)$/.exec(line);
+  if (m) {
+    return (
+      <>
+        <strong className="font-bold text-ink-700 dark:text-ink-200">{m[1]}:</strong> {inlineMarks(m[2] as string)}
+      </>
+    );
+  }
+  return inlineMarks(line);
+}
+
+/** Inline `**bold**` → <strong>, everything else plain (auto-escaped) text. */
+function inlineMarks(s: string): ReactNode {
+  return s.split(/(\*\*[^*]+\*\*)/g).map((part, i) =>
+    /^\*\*[^*]+\*\*$/.test(part) ? (
+      <strong key={i} className="font-bold">
+        {part.slice(2, -2)}
+      </strong>
+    ) : (
+      part
+    ),
+  );
 }
 
 /* Small decorative icons (replace the emoji) — inherit colour + are aria-hidden
