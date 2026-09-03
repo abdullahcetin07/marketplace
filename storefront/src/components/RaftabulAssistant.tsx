@@ -2,6 +2,7 @@
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { whatsappLink } from '@/lib/site';
 
 /**
@@ -131,8 +132,23 @@ export function RaftabulAssistant() {
   const [open, setOpen] = useState(false);
   const [screenKey, setScreenKey] = useState<ScreenKey>('root');
   const panelRef = useRef<HTMLDivElement>(null);
+  const router = useRouter();
 
   const close = useCallback(() => setOpen(false), []);
+
+  // Search must navigate via the router, not the form's native submit: closing the
+  // panel unmounts the <form> mid-submit, which cancelled the native GET. preventDefault
+  // + router.push is deterministic (same path SearchAutocomplete takes).
+  const runSearch = useCallback(
+    (e: React.FormEvent<HTMLFormElement>) => {
+      e.preventDefault();
+      const q = String(new FormData(e.currentTarget).get('q') ?? '').trim();
+      if (q === '') return;
+      setOpen(false);
+      router.push(`/urunler?q=${encodeURIComponent(q)}`);
+    },
+    [router],
+  );
 
   // Esc closes the panel — a dialog you can't dismiss with the keyboard is a trap.
   useEffect(() => {
@@ -223,7 +239,7 @@ export function RaftabulAssistant() {
             {screen.intro ? <p className="mb-3 px-1 text-sm text-ink-600 dark:text-ink-300">{screen.intro}</p> : null}
 
             {screen.search ? (
-              <form action="/urunler" onSubmit={close} className="mb-3 flex gap-2">
+              <form action="/urunler" onSubmit={runSearch} className="mb-3 flex gap-2">
                 <input
                   name="q"
                   type="search"
