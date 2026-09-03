@@ -5,7 +5,6 @@ import { CategoryBar } from '@/components/CategoryBar';
 import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
 import { MetaPixel } from '@/components/MetaPixel';
-import { WhatsAppButton } from '@/components/WhatsAppButton';
 import { RaftabulAssistant } from '@/components/RaftabulAssistant';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
@@ -186,10 +185,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
             </div>
           </footer>
         </SessionProvider>
-        {/* Floating WhatsApp contact shortcut — renders itself away when no number is
-            configured, so it's safe to mount unconditionally. */}
-        <WhatsAppButton />
-        {/* Raftabul Asistan — guided help hub, stacked above the WhatsApp button. */}
+        {/* Raftabul Asistan — the single floating help hub (WhatsApp lives inside it as
+            "Canlı destek" and as the off-menu fallback). */}
         <RaftabulAssistant />
         {/* KVKK çerez onayı — only with a real GTM container (staging leaves it unset,
             so no banner and nothing to consent to). */}

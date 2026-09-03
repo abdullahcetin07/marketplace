@@ -254,13 +254,14 @@ export function RaftabulAssistant() {
         </div>
       )}
 
-      {/* Floating toggle — stacked above the WhatsApp FAB, under the cookie banner. */}
+      {/* The single floating entry point (WhatsApp lives inside). Sits clear of the
+          mobile add-to-cart bar (bottom-0, z-40, <lg) and under the cookie banner. */}
       {!open && (
         <button
           type="button"
           onClick={() => setOpen(true)}
           aria-label="Raftabul Asistan'ı aç"
-          className="group fixed right-4 bottom-[9.5rem] z-40 flex h-14 items-center gap-2 rounded-full bg-brand-500 pr-4 pl-3.5 text-white shadow-lg shadow-black/25 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 motion-reduce:transition-none lg:right-6 lg:bottom-[5.75rem]"
+          className="group fixed right-4 bottom-[5.25rem] z-40 flex h-14 items-center gap-2 rounded-full bg-brand-500 pr-4 pl-3.5 text-white shadow-lg shadow-black/25 transition-transform hover:scale-105 focus-visible:ring-2 focus-visible:ring-brand-400 focus-visible:ring-offset-2 motion-reduce:transition-none lg:right-6 lg:bottom-6"
         >
           <svg viewBox="0 0 24 24" aria-hidden="true" className="h-6 w-6" fill="currentColor"><path d="M12 2 4 6v6c0 5 3.4 7.7 8 9 4.6-1.3 8-4 8-9V6Z" opacity=".25" /><path d="M8 10h8M8 13h5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" /></svg>
           <span className="text-sm font-extrabold">Asistan</span>
