@@ -3221,3 +3221,78 @@ change with its own drift story. Semantic/vector search and personalised ranking
 The fold is **not** deleted. The seller-facing picker (`CatalogBrowse`) stays on the fold
 too: it is an internal panel where exactness beats typo tolerance, and it must keep working
 when the engine does not.
+
+---
+
+# ADR-091 A Server-Side Render Is First-Party Traffic, and the Rate Limiter Counts Outsiders
+
+**Status:** Accepted (2026-09-04). Ratified from
+`docs/ADR-091-internal-render-trust.DRAFT.md`, which this entry replaces. Backend +
+infrastructure. Implemented 2026-09-03 (`128d327`) as an outage fix; written down
+after the fact because it changes the trust boundary of a security control. Work
+order: `BUILD_LISTING_500_ROOTCAUSE.md`.
+
+**Decision.** A request that originates from this platform's own server-side render is
+**first-party traffic and the public `storefront` rate limiter does not count it**. The
+exemption is keyed on a **CGI parameter set by the loopback-only vhost**
+(`fastcgi_param INTERNAL_RENDER 1`) — not on the client address, and not on a request
+header.
+
+**What it cost to find.** `/urunler` answered "Application error: a server-side exception
+has occurred" on the live site, fast (~0.4s) and **only under load**, while every external
+measurement said the platform was healthy: thirty concurrent `GET /api/v1/products` all
+200, home and product pages fine, feeds fine. The report proposed PHP-FPM saturation, a
+dropped loopback socket, or a wrong `INTERNAL_API_URL`. It was none of them. Digest
+`2264697604` resolved in the Next.js log to `POST /api/v1/offers/prices failed status:
+429` — **11,094 of them**. The measurements were right; the reading of them was wrong.
+
+**The mechanism is topology, not capacity.** The storefront renders on the same box and
+fetches the API over loopback, so to the API **every shopper's render is 127.0.0.1** and
+they all shared one 300/minute bucket. A listing render spends two of those calls
+(`/products`, then the bulk price call for the page), so a few dozen shoppers a minute
+exhausted the minute's budget for everyone. Two details hid it: an outside browser has its
+own IP and was never throttled the same way, so curl always looked healthy; and the home
+page **swallows** its fetch errors and renders an empty strip, while the listing threw —
+only one page turned a 429 into a 500.
+
+**Why a CGI parameter and not the obvious signals.** *Not the socket address*: every
+request reaches PHP-FPM from nginx over loopback, a shopper's included, so `REMOTE_ADDR`
+cannot tell a render from a visitor — on this topology an IP exemption is either useless or
+a hole. *Not a request header*: a client can send anything, and nginx exposes request
+headers to PHP as `HTTP_*`, so a client-supplied `Internal-Render: 1` arrives as
+`HTTP_INTERNAL_RENDER` and can never collide with the bare `INTERNAL_RENDER` the vhost
+sets — **a test asserts exactly that**, and it is the assertion that keeps this safe rather
+than merely convenient. *Not a shared secret*: that would be a credential to rotate, leak
+and forget. The listener is bound to 127.0.0.1, so the trust boundary is enforced by the
+network; the CGI variable only reports which side of it a request came from.
+
+**No route becomes unthrottled.** The limiter stays installed everywhere (the
+`routes/api.php` rule holds); one *class of client* stops being counted.
+`RateLimiter::for('storefront')` returns `Limit::none()` when `INTERNAL_RENDER` is present
+and the ordinary per-IP limit otherwise.
+
+**Cost, stated.** A **runaway server-side render is no longer bounded here** — a future page
+that loops over the price endpoint will show up as load on our own box rather than as a
+429. That is the right way round: it would be our bug, on our hardware, visible in metrics,
+while the limiter exists to bound scraping *from outside*, which still counts every
+browser-direct call by its real IP. The protection now **depends on nginx configuration
+that lives outside this repository**: rebuild the loopback vhost without the
+`fastcgi_param` line and the 429 storm returns; set the same parameter on a **public**
+listener and the storefront limiter silently protects nothing. Both are one grep away, and
+both are why the parameter is named after what it means. And **300/minute has never been
+measured against browser traffic alone** — it was tuned while it was accidentally also
+throttling every render, so it may now be too generous for scraping. Unknown, and worth
+measuring rather than guessing.
+
+**The capacity question is deferred, not answered.** A listing page still costs two API
+round trips per render and the price call is uncached; this removed an artificial ceiling,
+not a real one. When traffic makes it matter, the answer is caching the buy-box prices per
+page (ADR-079's shape), not a bigger number here.
+
+**Not done, deliberately.** The other limiters (`api`, `panel`, `search`, `auth`) are
+unchanged — no server-side render reaches them today, and when one does it gets the same
+treatment deliberately rather than through a shared helper nobody reads. Caching the price
+call and edge rate limiting (Cloudflare already sits in front, and is where a real abuse
+response belongs) stay separate decisions. **Open follow-up:** a boot-time or health-check
+assertion that the loopback path still carries `INTERNAL_RENDER`, so a rebuilt vhost is
+caught in minutes instead of in an outage.

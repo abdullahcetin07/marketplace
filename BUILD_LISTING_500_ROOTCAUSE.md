@@ -65,6 +65,9 @@ eşleşmez — bir test bunu çiviler.
 o bizim hatamız olur ve yük olarak görünür; limiter dışarıdan kazımayı
 sınırlamak için var ve tarayıcıdan gelen her çağrı hâlâ gerçek IP'siyle sayılır.
 
+Karar kalıcı: **ADR-091** (`docs/Architecture_Decision_Record.md` + `001_Architecture.md`
+değişiklik günlüğü satırı 25, 2026-09-04).
+
 Dosyalar: `app/Providers/AppServiceProvider.php`,
 `tests/Feature/StorefrontRateLimitTest.php`,
 `/etc/nginx/sites-enabled/raftabul-prod-internal` + `test.raftabul.com`
