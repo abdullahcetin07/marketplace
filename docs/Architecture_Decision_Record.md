@@ -1733,6 +1733,23 @@ goes through Core's **`PaymentGatewayContract`** (`initiate` / `verifyCallback` 
 Secure step happen inside PayTR's iframe. A second PSP is a second adapter, never a
 change to the domain.
 
+**AMENDED 2026-09-07 — the shopper GOES TO PayTR's page; it is no longer embedded.** The
+guarantee is unchanged (the card, the CVV and the 3-D Secure step still happen on
+`paytr.com` and never reach this app); the frame is. Embedded, the payment page opened and
+the **3-D Secure step never did**: PayTR's own callbacks recorded ten "customer left the
+payment page" and one "customer did not complete 3-D Secure" against eleven live attempts,
+and the owner reproduced it in Chrome 152 — while the SAME token, opened in a plain tab,
+reached the bank's 3DS screen. Inside our document PayTR is a **third-party context**, and a
+browser restricting third-party storage breaks the card submission with nothing shown to the
+shopper. The session is also **single-use** — `GET /odeme/api/oos/payment/get/token/{token}`
+answers `200` once and `410 Gone` afterwards (measured) — so a remount, a refresh or the back
+button inside a frame lands the buyer on a dead page, where a top-level navigation loads it
+exactly once. **Cost:** the buyer visibly leaves `raftabul.com` for the card step, and the
+return depends on `merchant_ok_url` / `merchant_fail_url` rather than staying put; the
+storefront keeps a manual link for a browser that blocks the scripted navigation. Nothing in
+the backend changed — `initiate` still answers a token, and the server-to-server callback is
+still the truth.
+
 **One Payment per checkout group.** The buyer pays once for the whole basket, so the
 Payment aggregate is keyed to Order's `checkout_group` (the mirror of ADR-052's split:
 Order split the basket to ship it, Payment rejoins it to charge it). `merchant_oid =
