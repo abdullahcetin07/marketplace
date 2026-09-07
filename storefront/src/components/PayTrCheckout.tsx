@@ -1,51 +1,55 @@
 'use client';
 
 import { useEffect } from 'react';
+import { ui } from '@/lib/ui';
 
-/**
- * The PayTR payment step (ADR-060).
- *
- * THE CARD LIVES IN PAYTR'S IFRAME, NEVER HERE. Everything a shopper types — card
- * number, CVV, the 3-D Secure step — happens inside `paytr.com`'s own frame; this
- * app only ever holds the token that opens it. That is the entire reason the iFrame
- * integration was chosen: the storefront cannot leak a card it never touches.
- *
- * PAYTR REDIRECTS THE TOP WINDOW when the payment resolves — to the success or fail
- * URL the backend handed it (`/odeme/sonuc`, `/odeme/hata`). So this component only
- * has to render the frame; the navigation away from it is PayTR's to make.
- *
- * `iframeResizer` is PayTR's own script; it keeps the frame tall enough for the 3DS
- * page inside it, which would otherwise be clipped.
- */
-declare global {
-  interface Window {
-    iFrameResize?: (options: Record<string, unknown>, target: string) => void;
-  }
+/** PayTR's hosted payment page for an iframe token. */
+export function payTrPaymentUrl(token: string): string {
+  return `https://www.paytr.com/odeme/guvenli/${token}`;
 }
 
+/**
+ * The PayTR payment step (ADR-060) — a REDIRECT to PayTR's own page, not an iframe.
+ *
+ * THE CARD STILL NEVER TOUCHES THIS APP. Card number, CVV and the 3-D Secure step
+ * happen on `paytr.com`; this app only ever holds the token that opens it, and PayTR
+ * sends the browser back to `/odeme/sonuc` or `/odeme/hata` when the payment
+ * resolves. That guarantee is what ADR-060 bought, and it is unchanged.
+ *
+ * **WHY THE IFRAME HAD TO GO (2026-09-07).** It shipped embedded, and on the live
+ * site the payment page opened but the 3-D Secure step never did: PayTR's own
+ * callbacks recorded ten "customer left the payment page" and one "customer did not
+ * complete 3-D Secure", and the owner reproduced it in Chrome 152 — while the SAME
+ * token, opened in a normal tab, went through to the bank's 3DS screen. Inside our
+ * page PayTR is a third-party context, and a browser that restricts third-party
+ * storage breaks the card submission with nothing to show for it.
+ *
+ * **AND THE SESSION IS SINGLE-USE**, which an embedded frame makes easy to spend by
+ * accident: `GET /odeme/api/oos/payment/get/token/{token}` answers `200` once and
+ * `410 Gone` on every later call, so any remount, refresh or back-button lands the
+ * shopper on a dead page. A top-level navigation loads it exactly once.
+ *
+ * The panel below is not decoration: if a browser or an extension blocks the
+ * scripted navigation, the shopper still has a link they can press themselves.
+ */
 export function PayTrCheckout({ token }: { token: string }) {
-  useEffect(() => {
-    const script = document.createElement('script');
-    script.src = 'https://www.paytr.com/js/iframeResizer.min.js';
-    script.async = true;
-    script.onload = () => {
-      window.iFrameResize?.({}, '#paytriframe');
-    };
-    document.body.appendChild(script);
+  const url = payTrPaymentUrl(token);
 
-    return () => {
-      script.remove();
-    };
-  }, []);
+  useEffect(() => {
+    window.location.assign(url);
+  }, [url]);
 
   return (
-    <iframe
-      src={`https://www.paytr.com/odeme/guvenli/${token}`}
-      id="paytriframe"
-      title="PayTR ödeme"
-      frameBorder={0}
-      scrolling="no"
-      style={{ width: '100%', minHeight: '600px' }}
-    />
+    <div className="flex flex-col items-center gap-4 px-6 py-10 text-center">
+      <p className="text-sm text-ink-500">
+        PayTR&apos;nin güvenli ödeme sayfasına yönlendiriliyorsunuz…
+      </p>
+      <a href={url} className={ui.btnPrimary}>
+        Ödeme sayfasını aç
+      </a>
+      <p className="text-xs text-ink-400">
+        Sayfa birkaç saniyede açılmazsa yukarıdaki düğmeye dokunun.
+      </p>
+    </div>
   );
 }
