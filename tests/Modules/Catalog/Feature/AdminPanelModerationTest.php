@@ -176,17 +176,23 @@ it('rejects a product with a reason', function (): void {
     Event::assertDispatched(ProductRejected::class);
 });
 
-it('offers no edit and no create on the moderation queue', function (): void {
-    // Curation, not authoring (§5). A moderator who could edit the product into
-    // shape denies the seller the correction.
+it('offers no create and no delete on the moderation queue, but does offer a correction', function (): void {
+    /*
+     * **THE RULE MOVED ON 2026-09-08, AND ONLY HALF OF IT.** Authoring from the
+     * queue is still refused — products arrive by proposal or by import — and a
+     * product Offers reference is still never destroyed. Editing is now allowed,
+     * because the bulk import stopped rewriting what it finds and a typo in an
+     * imported title would otherwise have nowhere to be fixed. For a SELLER's
+     * proposal, sending it back with a reason remains the designed path.
+     */
     asCategoryManager($this->actingAsAdmin());
     $product = queuedProduct();
 
     $resource = \App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource::class;
 
     expect($resource::canCreate())->toBeFalse()
-        ->and($resource::canEdit($product))->toBeFalse()
-        ->and($resource::canDelete($product))->toBeFalse();
+        ->and($resource::canDelete($product))->toBeFalse()
+        ->and($resource::canEdit($product))->toBeTrue();
 });
 
 it('creates a category from the admin panel', function (): void {

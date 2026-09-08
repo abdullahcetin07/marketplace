@@ -92,6 +92,28 @@ final class CatalogImportException extends BaseException
         );
     }
 
+    /**
+     * The row's product is already in the catalogue, so the row is skipped.
+     *
+     * **THE IMPORT INSERTS; IT DOES NOT EDIT** (owner's call, 2026-09-08). It
+     * used to overwrite title, description, category, brand and KDV from the
+     * sheet, and a file with no `aciklama` column blanked the description of
+     * every product it touched — 1,941 of them in one run, 477 of which carried
+     * approved copy. A correction now belongs to the admin panel, where a person
+     * sees what they are changing.
+     */
+    public static function gtinAlreadyInCatalog(string $gtin, ?string $existingTitle): self
+    {
+        return self::rowRejected(
+            sprintf(
+                'Bu barkod katalogda zaten var: %s%s. Satır atlandı — mevcut ürüne dokunulmadı. Düzeltme için yönetim panelini kullanın.',
+                $gtin,
+                $existingTitle === null ? '' : ' ("'.$existingTitle.'")',
+            ),
+            ['gtin' => $gtin, 'existing_title' => $existingTitle],
+        );
+    }
+
     public static function categoryRejectsProducts(string $path, string $name): self
     {
         return self::rowRejected(

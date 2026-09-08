@@ -12,8 +12,10 @@ use App\Modules\Catalog\Domain\DTOs\ModerationDecisionDTO;
 use App\Modules\Catalog\Domain\Enums\ProductStatus;
 use App\Modules\Catalog\Domain\Exceptions\CatalogException;
 use App\Modules\Catalog\Domain\Models\Brand;
+use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
+use App\Modules\Catalog\Domain\Models\TaxRate;
 use App\Modules\Catalog\Presentation\Filament\Resources\ProductModerationResource\Pages;
 use Filament\Forms;
 use Filament\Infolists;
@@ -27,11 +29,15 @@ use Illuminate\Database\Eloquent\Builder;
 /**
  * The product moderation queue — the Category Manager's day-to-day surface (§5).
  *
- * READ AND DECIDE, NOT EDIT. The three verdicts are the only writes here:
- * approve, reject, request a revision. There is no create and no edit form,
- * because a moderator changing a product to make it acceptable removes the
- * seller's chance to learn what was wrong — sending it back with a reason is the
- * designed path, and it is why `NeedsRevision` exists at all.
+ * DECIDE, AND — SINCE 2026-09-08 — CORRECT. The three verdicts are still the
+ * heart of this screen, and for a SELLER'S proposal sending it back with a reason
+ * remains the designed path: a moderator who silently fixes a submission removes
+ * the seller's chance to learn what was wrong, which is why `NeedsRevision`
+ * exists. But most of this catalogue was entered by the platform itself (ADR-074)
+ * and has no proposer to teach, and the bulk import stopped editing what it finds
+ * (owner's call, same day) — so a typo in an imported title, a wrong category or
+ * a missing description now has exactly one home, and this is it. Creation is
+ * still refused: products arrive by proposal or by import, not from the queue.
  *
  * THE QUEUE IS THE DEFAULT VIEW but the resource lists every product, with a
  * status filter: a moderator asked "did we ever publish X" should not have to
@@ -100,7 +106,11 @@ final class ProductModerationResource extends Resource
 
     public static function canEdit(\Illuminate\Database\Eloquent\Model $record): bool
     {
-        return false;
+        // The POLICY decides, and it already allows a moderator to update any
+        // product while a seller may only touch their own in an editable state
+        // (ProductPolicy::update). Hard-coding `false` here was the older
+        // "read and decide" rule; the ability was never the missing piece.
+        return auth()->user()?->can('update', $record) === true;
     }
 
     public static function canDelete(\Illuminate\Database\Eloquent\Model $record): bool
@@ -113,6 +123,75 @@ final class ProductModerationResource extends Resource
     public static function canDeleteAny(): bool
     {
         return false;
+    }
+
+    /**
+     * The correction form (2026-09-08).
+     *
+     * **LABELS AND FILING ONLY — NOT THE LIFECYCLE AND NOT THE URL.** Status
+     * stays where the verdict actions put it, and the slug is deliberately absent:
+     * `UpdateProductAction` re-slugs only when `slug` is present, and a corrected
+     * title must not move an address Google has already indexed (the same rule the
+     * pipe repair follows).
+     *
+     * The GTIN is shown and left read-only. It is the import's dedup key and the
+     * approved-copy importer's match key; retyping it here would silently detach a
+     * product from both.
+     */
+    public static function form(Forms\Form $form): Forms\Form
+    {
+        return $form->schema([
+            Forms\Components\Section::make()
+                ->schema([
+                    Forms\Components\Select::make('category_id')
+                        ->label(__('catalog.product.category'))
+                        // LEAVES ONLY (§3.2), like the seller's form: a container
+                        // category has no attribute schema to satisfy.
+                        ->options(fn (): array => Category::query()
+                            ->acceptsProducts()
+                            ->active()
+                            ->orderBy('path')
+                            ->get()
+                            ->mapWithKeys(fn (Category $category): array => [
+                                $category->getKey() => str_repeat('— ', max(0, $category->depth - 1)).$category->localized('name'),
+                            ])
+                            ->all())
+                        ->searchable()
+                        ->required()
+                        ->native(false),
+
+                    Forms\Components\TextInput::make('title_tr')
+                        ->label(__('catalog.product.title').' (TR)')
+                        ->required()
+                        ->maxLength(255),
+
+                    Forms\Components\TextInput::make('title_en')
+                        ->label(__('catalog.product.title').' (EN)')
+                        ->maxLength(255),
+
+                    Forms\Components\Select::make('brand_id')
+                        ->label(__('catalog.product.brand'))
+                        ->placeholder(__('catalog.product.brand_none'))
+                        ->options(fn (): array => Brand::query()->active()->orderBy('name')->pluck('name', 'id')->all())
+                        ->searchable()
+                        ->native(false),
+
+                    Forms\Components\Select::make('tax_rate_id')
+                        ->label(__('catalog.product.tax_rate'))
+                        ->options(fn (): array => TaxRate::query()->active()->orderBy('rate')->pluck('name', 'id')->all())
+                        ->required()
+                        ->native(false),
+
+                    Forms\Components\TextInput::make('gtin')
+                        ->label(__('catalog.product.gtin'))
+                        ->disabled()
+                        ->dehydrated(false),
+
+                    Forms\Components\Textarea::make('description_tr')
+                        ->label(__('catalog.product.description').' (TR)')
+                        ->rows(8),
+                ]),
+        ]);
     }
 
     /**
@@ -263,6 +342,7 @@ final class ProductModerationResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
+                Tables\Actions\EditAction::make(),
                 self::publishAction(),
                 self::requestRevisionAction(),
                 self::rejectAction(),
@@ -285,6 +365,7 @@ final class ProductModerationResource extends Resource
         return [
             'index' => Pages\ListProductModeration::route('/'),
             'view' => Pages\ViewProductModeration::route('/{record}'),
+            'edit' => Pages\EditProductModeration::route('/{record}/duzenle'),
         ];
     }
 

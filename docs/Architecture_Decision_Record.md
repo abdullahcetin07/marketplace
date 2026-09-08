@@ -2343,9 +2343,25 @@ A row that fails — a missing category name, an unreachable image URL, a duplic
 recorded and skipped; it never fails the other 4,999.
 
 **Products dedup by GTIN.** The barcode is the catalogue's natural key (already `UNIQUE` on
-`products`), so re-running the same file updates rather than duplicates, and two sellers' feeds of
-the same product converge on one catalogue entry (ADR-037's shared catalogue, made operable). A
-row with no GTIN falls back to title+brand and is created fresh.
+`products`), so re-running the same file never duplicates, and two sellers' feeds of the same
+product converge on one catalogue entry (ADR-037's shared catalogue, made operable). A row with no
+GTIN falls back to title+brand and is created fresh.
+
+**AMENDED 2026-09-08 — THE IMPORT INSERTS; IT NEVER EDITS.** A GTIN already in the catalogue is a
+**skipped row with a reason**, not an update. As accepted, a matching row overwrote title,
+description, category, brand and KDV from the sheet — and since the description cell becomes `''`
+when the column is absent, a supplier file without one **blanked the description of every product
+it touched**: 1,941 in a single run on 2026-09-07, of which **477 carried approved copy** and had
+to be re-imported to get back. Nobody saw it happen; the products simply went quiet on the
+storefront and in both feeds. The mistake was conceptual rather than a bug: a supplier sheet is a
+list of what a supplier stocks, not a decision about what the catalogue should now say, and the
+"fix three cells and re-upload" convenience was paid for with every field the sheet did not
+mention. **Cost, stated:** the correction pass is gone — re-uploading a corrected sheet changes
+nothing, and a product whose photos are missing can no longer be topped up by a later file. Both
+move to the admin panel, which is why the same change gave `ProductModerationResource` an **edit
+form** (title, description, category, brand, KDV) driving `UpdateProductAction`, with the slug and
+the GTIN deliberately left out of the DTO: a corrected title must not move an indexed URL, and the
+barcode is the key both importers match on. A re-upload of a full file is now safe and inert.
 
 **v1 is ONE DEFAULT VARIANT per product, and fresh categories carry no required attributes** —
 both deliberate scope cuts, so the first load of thousands of products actually lands. Colour/size

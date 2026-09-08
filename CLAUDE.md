@@ -293,8 +293,16 @@ Offer and arrive separately.
 **It DRIVES the authoring actions and writes no model.** Bypassing them would skip the
 moderation lifecycle, the slug registry, the GTIN guard, `combination_key` and the
 events other modules consume — the rows would look right in the admin table and be
-invisible to search, the storefront and Offer. **Idempotent on GTIN**, so a corrected
-file can simply be re-uploaded.
+invisible to search, the storefront and Offer. **Safe to re-upload**: a GTIN already in
+the catalogue is skipped, never rewritten.
+
+**THE IMPORT INSERTS; IT NEVER EDITS** (amended 2026-09-08). A GTIN already in the
+catalogue is a **skipped row with a reason**. It used to overwrite title, description,
+category, brand and KDV from the sheet, and because the description cell becomes `''`
+when the column is absent, one supplier file **blanked 1,941 descriptions** — 477 of
+them approved copy. Re-uploading a full file is now safe and inert. The correction pass
+it replaced lives in the **admin panel**: `ProductModerationResource` has an edit form
+driving `UpdateProductAction`, with slug and GTIN deliberately out of the DTO.
 
 **A category path resolves by NAME WITHIN A PARENT, never by global slug** — the work
 order said slug, and `categories.slug` is UNIQUE table-wide, so "Kadın > Ayakkabı"

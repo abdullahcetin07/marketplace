@@ -170,27 +170,43 @@ it('reuses the tree instead of rebuilding it', function (): void {
         ->and(Product::query()->count())->toBe(2);
 });
 
-it('updates on a repeated GTIN rather than creating a second product', function (): void {
+it('skips a repeated GTIN and leaves the product exactly as it was', function (): void {
+    /*
+     * **THE IMPORT INSERTS; IT NEVER EDITS** (owner's call, 2026-09-08). It used
+     * to overwrite the labels from the sheet, and because `aciklama` becomes `''`
+     * when the column is absent, a file without it blanked the description of
+     * every product it touched — 1,941 in one live run, 477 of them carrying
+     * approved copy. A re-upload is now safe and inert.
+     */
     $adminId = importingAdmin();
     $importer = app(CatalogRowImporter::class);
 
-    $first = $importer->import(catalogRow(), $adminId);
+    $first = $importer->import(catalogRow(['aciklama' => 'Onaylanmış açıklama metni.']), $adminId);
 
-    $second = $importer->import(catalogRow([
+    expect(fn () => $importer->import(catalogRow([
         'baslik' => 'Pamuklu Bisiklet Yaka Tişört (düzeltildi)',
-    ]), $adminId);
+        'aciklama' => null,
+    ]), $adminId))->toThrow(CatalogImportException::class);
 
-    /*
-     * **THE PROPERTY THAT MAKES A CORRECTION PASS POSSIBLE.** Fix three cells,
-     * re-upload the whole sheet. Without it the second upload throws
-     * `gtinAlreadyInCatalog` on every row that worked the first time, and the
-     * admin's only route is deleting everything.
-     */
+    $fresh = $first->fresh();
+
     expect(Product::query()->count())->toBe(1)
-        ->and($second->getKey())->toBe($first->getKey())
-        ->and($second->title_tr)->toBe('Pamuklu Bisiklet Yaka Tişört (düzeltildi)')
-        // AND IT DID NOT GROW A SECOND VARIANT.
+        ->and($fresh->title_tr)->toBe('Pamuklu Bisiklet Yaka Tişört')
+        // THE COLUMN THAT WAS BEING WIPED.
+        ->and($fresh->description_tr)->toBe('Onaylanmış açıklama metni.')
         ->and(ProductVariant::query()->where('product_id', $first->getKey())->count())->toBe(1);
+});
+
+it('says which barcode it skipped, in a sentence a human can act on', function (): void {
+    // Filament writes this reason into `failed_import_rows`, which is the only
+    // place the admin learns that half their sheet was already in the catalogue.
+    $adminId = importingAdmin();
+    $importer = app(CatalogRowImporter::class);
+
+    $importer->import(catalogRow(), $adminId);
+
+    expect(fn () => $importer->import(catalogRow(), $adminId))
+        ->toThrow(CatalogImportException::class, '08691234567890');
 });
 
 it('rejects a row with no title or no category path, and says which', function (): void {
@@ -364,45 +380,37 @@ it('does not stack a second copy of the same photo on a re-import', function ():
     expect($first->fresh()->getMedia('images')->count())->toBe(1);
 
     /*
-     * **THE QUESTION A RE-UPLOAD ACTUALLY TURNS ON.** The correction workflow is
-     * "fix three cells, upload the whole sheet again" — and that is only safe if a
-     * product which already has its photos does not collect a second copy of each
-     * on every pass. `update()` attaches images ONLY when the collection is empty,
-     * so a re-import tops up what is missing and leaves the rest alone.
+     * **A RE-UPLOAD CANNOT STACK A SECOND COPY, BECAUSE IT NO LONGER TOUCHES THE
+     * PRODUCT AT ALL.** The row is skipped; the guard inside `attachImages()`
+     * stays for the queued job, which can still arrive twice.
      */
-    $second = app(CatalogRowImporter::class)->import($row, $adminId);
+    expect(fn () => app(CatalogRowImporter::class)->import($row, $adminId))
+        ->toThrow(CatalogImportException::class);
 
-    expect($second->getKey())->toBe($first->getKey())
-        ->and($second->fresh()->getMedia('images')->count())->toBe(1);
+    expect($first->fresh()->getMedia('images')->count())->toBe(1);
 });
 
-it('fills in the images of a product that has none, on a later pass', function (): void {
+it('does not top up the images of a product it finds, which is the cost of insert-only', function (): void {
+    /*
+     * **A STATED LOSS, NOT AN OVERSIGHT.** Replaying a sheet with the photo column
+     * filled used to give five live products their missing images. It cannot any
+     * more: the row is skipped whole, because the same pass was also overwriting
+     * titles and descriptions nobody asked it to touch. Images on an existing
+     * product are now an admin-panel upload.
+     */
     $adminId = importingAdmin();
 
-    // First pass with no image column at all — the shape five live products ended
-    // up in when their rows were replayed without one.
     $bare = app(CatalogRowImporter::class)->import(catalogRow(['gorsel_url' => null]), $adminId);
 
     expect($bare->getMedia('images'))->toBeEmpty();
 
-    $pixel = base64_decode(
-        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mP8z8BQDwAEhQGAhKmMIQAAAABJRU5ErkJggg==',
-        true,
-    ) ?: '';
-
-    Http::fake(['cdn.example.com/*' => Http::response($pixel, 200, ['Content-Type' => 'image/png'])]);
-
-    // Same GTIN, now carrying the photo.
-    $filled = app(CatalogRowImporter::class)->import(
+    expect(fn () => app(CatalogRowImporter::class)->import(
         catalogRow(['gorsel_url' => 'https://cdn.example.com/tisort-1.jpg']),
         $adminId,
-    );
+    ))->toThrow(CatalogImportException::class);
 
-    // ONE product, now with its image — which is exactly what re-uploading the
-    // full catalogue has to do for those five.
     expect(Product::query()->count())->toBe(1)
-        ->and($filled->getKey())->toBe($bare->getKey())
-        ->and($filled->fresh()->getMedia('images')->count())->toBe(1);
+        ->and($bare->fresh()->getMedia('images'))->toBeEmpty();
 });
 
 it('queues the image fetch instead of doing it in the row', function (): void {

@@ -38,9 +38,18 @@ use Illuminate\Support\Str;
  * Turkish sentence a human can act on, which Filament writes to
  * `failed_import_rows`.
  *
- * **IDEMPOTENT ON GTIN.** Re-uploading the same file updates rather than
- * duplicates — the property that makes a correction workflow possible at all:
- * fix three cells, re-upload the whole sheet.
+ * **IT INSERTS; IT NEVER EDITS** (owner's call, 2026-09-08). A GTIN already in
+ * the catalogue is a SKIPPED ROW with a reason, not an update. It used to
+ * overwrite title, description, category, brand and KDV from the sheet — and
+ * since `aciklama` becomes `''` when the column is absent, a file without it
+ * blanked the description of every product it touched: 1,941 in one run, 477 of
+ * them carrying approved copy that had to be re-imported to get back.
+ *
+ * **THE COST IS THE CORRECTION PASS**, which is why the update existed: fixing
+ * three cells and re-uploading the sheet now changes nothing, and a product
+ * whose photos are missing can no longer be topped up by a later file. Both
+ * belong to the admin panel now, where a person sees the record they are
+ * changing before they change it.
  *
  * @see docs/modules/Catalog.md — bulk import
  */
@@ -90,16 +99,14 @@ final class CatalogRowImporter
 
         if ($existing !== null) {
             /*
-            | **THE SAME GTIN IS THE SAME PRODUCT, NOT A SECOND ONE.** This is what
-            | makes a correction pass possible: fix three cells in the sheet and
-            | re-upload the whole thing. Without it the second upload would throw
-            | `gtinAlreadyInCatalog` on every row that worked the first time.
-            |
-            | IT DOES NOT RE-PUBLISH OR TOUCH VARIANTS. The product already went
-            | through the lifecycle; an update is a correction to its labels, not a
-            | new moderation event.
+            | **THE SAME GTIN IS THE SAME PRODUCT, AND IT IS LEFT ALONE.** The row
+            | is reported as skipped rather than applied: a supplier sheet is a
+            | list of what the supplier stocks, not a decision about what the
+            | catalogue should now say, and reading it as the latter is what
+            | silently blanked 1,941 descriptions. Re-uploading a full file is
+            | therefore safe and inert — it adds what is new and touches nothing.
             */
-            return $this->update($existing, $title, $description, $category, $brand, $taxRate, $row);
+            throw CatalogImportException::gtinAlreadyInCatalog((string) $gtin, $existing->title_tr);
         }
 
         /*
@@ -195,40 +202,6 @@ final class CatalogRowImporter
         $this->submitForReview->run($product);
 
         return $this->publish->run($product, new ModerationDecisionDTO(moderatedBy: $adminId));
-    }
-
-    /**
-     * An existing product, corrected.
-     *
-     * **THE LABELS AND THE FILING, NOT THE LIFECYCLE.** A re-upload fixes a typo
-     * in a title or moves a product to the right category; it does not re-open
-     * moderation, re-create variants or re-publish something an admin may have
-     * deliberately suspended.
-     *
-     * @param array<string, string|null> $row
-     */
-    private function update(
-        Product $product,
-        string $title,
-        string $description,
-        Category $category,
-        ?Brand $brand,
-        TaxRate $taxRate,
-        array $row,
-    ): Product {
-        $product->forceFill([
-            'title_tr' => $title,
-            'description_tr' => $description,
-            'category_id' => $category->getKey(),
-            'brand_id' => $brand?->getKey(),
-            'tax_rate_id' => $taxRate->getKey(),
-        ])->save();
-
-        // The "only when there are none" guard moved INTO `attachImages()`, so
-        // both call sites carry it and the queued job re-checks besides.
-        $this->attachImages($product, $row['gorsel_url'] ?? null);
-
-        return $product->refresh();
     }
 
     /**

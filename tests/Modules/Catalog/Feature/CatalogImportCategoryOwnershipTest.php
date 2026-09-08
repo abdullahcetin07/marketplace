@@ -186,11 +186,17 @@ it('changes nothing when the same file is imported twice', function (): void {
     $categories = Category::query()->count();
     $products = Product::query()->count();
 
+    /*
+     * **A SECOND PASS IS NOW A SKIP, AND STILL CHANGES NOTHING** (2026-09-08).
+     * The rows are refused one by one with `gtinAlreadyInCatalog` rather than
+     * re-applied — which is the stronger version of the same property: a
+     * re-uploaded file cannot add a category, cannot duplicate a product, and
+     * cannot rewrite the one it finds.
+     */
     foreach ($rows as $row) {
-        $importer->import($row, $adminId);
+        expect(fn () => $importer->import($row, $adminId))->toThrow(CatalogImportException::class);
     }
 
-    // The property that makes a corrected re-upload the intended workflow.
     expect(Category::query()->count())->toBe($categories)
         ->and(Product::query()->count())->toBe($products)
         ->and(Category::query()->whereRaw('LOWER(name_tr) = LOWER(?)', ['Cilt Temizleme Ürünleri'])
