@@ -172,7 +172,14 @@ interface CatalogBrowseContract
      *
      * @param array<int, string> $variantUuids
      *
-     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
+     * **`gtin` RIDES ALONG BECAUSE IT IS THE FEED'S OWN KEY** (2026-09-08). A
+     * seller's API pushes prices by barcode (ADR-076) and now reads its own
+     * offers back the same way; without it the list would answer in uuids the
+     * seller's system has never seen. It is the variant's barcode, falling back
+     * to the product's — the same pair `publishedVariantUuidForGtin()` matches on
+     * — and null when the catalogue holds neither.
+     *
+     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string, gtin: string|null}>
      */
     public function variantSummaries(array $variantUuids): array;
 }

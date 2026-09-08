@@ -312,7 +312,7 @@ final class CatalogBrowse implements CatalogBrowseContract
     /**
      * @param array<int, string> $variantUuids
      *
-     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string}>
+     * @return array<string, array{uuid: string, product_uuid: string, sku: string, label: string, gtin: string|null}>
      */
     public function variantSummaries(array $variantUuids): array
     {
@@ -334,6 +334,10 @@ final class CatalogBrowse implements CatalogBrowseContract
                 'product_uuid' => $variant->product->uuid,
                 'sku' => $variant->sku,
                 'label' => self::labelFor($variant),
+                // The number on the box first, the product's own second — the
+                // same order `publishedVariantUuidForGtin()` matches in, so a
+                // seller reads back exactly the key they push.
+                'gtin' => $variant->barcode ?? $variant->product->gtin,
             ];
         }
 

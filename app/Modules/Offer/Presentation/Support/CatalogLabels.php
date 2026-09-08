@@ -33,7 +33,7 @@ final class CatalogLabels
     /** @var array<string, array{uuid: string, title: string, brand: string|null, category: string}> */
     private array $products = [];
 
-    /** @var array<string, array{uuid: string, product_uuid: string, sku: string, label: string}> */
+    /** @var array<string, array{uuid: string, product_uuid: string, sku: string, label: string, gtin: string|null}> */
     private array $variants = [];
 
     /** @var array<string, true> Uuids already asked about, hit or miss. */
@@ -100,6 +100,20 @@ final class CatalogLabels
         $this->prime([], [$variantUuid]);
 
         return $this->variants[$variantUuid]['sku'] ?? null;
+    }
+
+    /**
+     * The barcode a seller's own system knows this offer by (ADR-076).
+     *
+     * Null when the catalogue holds none, and that is a real answer rather than a
+     * missing one: the offer exists and the seller can still see it, they simply
+     * cannot address it by GTIN in the feed.
+     */
+    public function variantGtin(string $variantUuid): ?string
+    {
+        $this->prime([], [$variantUuid]);
+
+        return $this->variants[$variantUuid]['gtin'] ?? null;
     }
 
     /**

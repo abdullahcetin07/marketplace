@@ -22,6 +22,7 @@ use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController
 use App\Modules\Loyalty\Presentation\Controllers\Api\Customer\LoyaltyController;
 use App\Modules\Loyalty\Presentation\Controllers\Api\Storefront\EarnPreviewController;
 use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferFeedController;
+use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferListController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicProductOfferController;
 use App\Modules\Order\Presentation\Controllers\Api\CancellationRequestController;
@@ -434,6 +435,14 @@ Route::prefix('v1')
             ->prefix('seller/offers')
             ->name('seller.offers.')
             ->group(function (): void {
+                /*
+                | THE READ HALF (2026-09-08). A seller could push prices and never
+                | ask what the platform holds; this answers in the feed's own
+                | vocabulary — keyed by GTIN, scoped to the token's merchant, with
+                | no organization parameter to widen.
+                */
+                Route::get('/', [OfferListController::class, 'index'])->name('index');
+
                 Route::post('/sync', [OfferFeedController::class, 'sync'])->name('sync');
                 Route::post('/stock', [OfferFeedController::class, 'stock'])->name('stock');
                 Route::post('/withdraw', [OfferFeedController::class, 'withdraw'])->name('withdraw');

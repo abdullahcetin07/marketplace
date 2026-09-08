@@ -552,13 +552,38 @@ way (ask the platform to add the product), and separating them would let a feed
 enumerate the unpublished catalogue one barcode at a time. It returns a uuid, so
 `CatalogBoundaryTest` stays green: no price or stock touches Catalog.
 
-## 16.3 The three doors of the API
+## 16.3 The doors of the API
 
-| Endpoint | Body | Meaning |
+| Endpoint | Body / query | Meaning |
 |---|---|---|
 | `POST /api/v1/seller/offers/sync` | `{items:[{gtin, price, stock, list_price?}]}` | Full upsert |
 | `POST /api/v1/seller/offers/stock` | `{items:[{gtin, stock}]}` | The hourly fast path |
 | `POST /api/v1/seller/offers/withdraw` | `{items:[{gtin}]}` | Take off sale |
+| `GET /api/v1/seller/offers` | `?status=&in_stock=&per_page=&page=` | **Read back what the platform holds** (2026-09-08) |
+
+**The read half exists because the feed could write and not ask.** An integration knew
+what it had pushed and nothing about what landed: which barcodes matched, which offers
+an admin has suspended, what stock the platform believes is on the shelf. `GET` answers
+that in the feed's own vocabulary — **each row is keyed by `gtin`**, the same identifier
+`sync` and `stock` take, with `title`, `brand`, `sku`, `variant`, `price`, `list_price`,
+`currency`, `stock`, `status`, `updated_at` and the two uuids last, for a caller that
+wants to deep-link rather than as the way in.
+
+**A row whose catalogue entry has no barcode still lists, with `gtin: null`.** It is the
+seller's offer either way, and hiding it would make the list quietly disagree with their
+own books — they simply cannot address that one through the feed.
+
+`status` and `in_stock` are the two questions a replenishment run asks before deciding
+what to push tonight. Page size is clamped at **200** (default 50): one call cannot ask
+for the whole table.
+
+**The merchant is resolved from the token here too, and that is the whole authorization
+model** — there is no `org` parameter, so the query cannot express somebody else's shop
+and the endpoint needs no policy call to refuse one. Titles, SKUs and barcodes come from
+`CatalogBrowseContract` primed once per page, so a hundred rows cost one catalogue query;
+Offer still imports no module. **`variantSummaries()` gained `gtin`** for this — a
+read-only addition to a Core contract, the same footing as the two methods the buy box
+added to Store's.
 
 **A batch is a report, not a transaction.** Every call answers `200` with a per-item
 result even when items failed: forty stale barcodes must not cost a seller the 3,960
