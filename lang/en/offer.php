@@ -29,8 +29,20 @@ return [
         'how_heading' => 'How to use it',
         'note' => [
             'once' => 'A key is shown ONCE; only its hash is stored. If you lose it, create a new one and revoke the old.',
-            'scope' => 'The key acts as you and can only write your OWN store\'s offers.',
-            'endpoints' => 'Endpoints: /sync (price+stock), /stock (stock only), /withdraw (take off sale).',
+            'scope' => 'The key acts as you and can only write your OWN store\'s offers; there is no field that could name another store.',
+            'endpoints' => 'Write: /sync (price+stock), /stock (stock only), /withdraw (take off sale). Read: GET /seller/offers.',
+        ],
+
+        'read' => [
+            'heading' => 'Read your product list back',
+            'intro' => 'The same key reads what the platform holds for you: which barcodes matched, which offers are paused, what stock it believes is on the shelf. It is the shortest way to compare the file you sent with what actually landed.',
+            'key' => 'Every row is keyed by :gtin — the same barcode you send to /sync and /stock. A row whose catalogue entry has no barcode still lists, with :gtin null; that one cannot be addressed through the feed.',
+            'filters' => 'Filters: :status (active, paused, withdrawn, suspended) and :stock. Those two answer what a nightly replenishment run needs.',
+            'paging' => 'Paging: :per (default 50, max 200) and :page. :last tells you where it ends — do not try to fetch everything in one call.',
+            'money' => 'Prices arrive as decimal TEXT with their currency (:example). Do not parse them as floats; that is a rounding bug in a large basket.',
+            'example_curl' => 'One page',
+            'example_loop' => 'Loop through every page',
+            'example_response' => 'Example response',
         ],
     ],
 

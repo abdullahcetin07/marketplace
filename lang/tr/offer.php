@@ -29,8 +29,20 @@ return [
         'how_heading' => 'Nasıl kullanılır',
         'note' => [
             'once' => 'Anahtar YALNIZCA bir kez gösterilir; sistem yalnızca özetini saklar. Kaybederseniz yenisini oluşturup eskisini iptal edin.',
-            'scope' => 'Anahtar sizin adınıza çalışır ve yalnızca KENDİ mağazanızın tekliflerini yazabilir.',
-            'endpoints' => 'Uç noktalar: /sync (fiyat+stok), /stock (yalnızca stok), /withdraw (satıştan kaldır).',
+            'scope' => 'Anahtar sizin adına çalışır ve yalnızca KENDİ mağazanızın tekliflerini yazar; başka bir mağazayı gösterecek bir alan yoktur.',
+            'endpoints' => 'Yazma uç noktaları: /sync (fiyat+stok), /stock (yalnızca stok), /withdraw (satıştan kaldır). Okuma: GET /seller/offers.',
+        ],
+
+        'read' => [
+            'heading' => 'Ürün listenizi çekin',
+            'intro' => 'Aynı anahtarla, platformun sizin adınıza NE tuttuğunu okuyabilirsiniz: hangi barkodlar eşleşti, hangi teklifiniz duraklatıldı, stok kaç görünüyor. Gönderdiğiniz dosyayla platformdaki durumu karşılaştırmanın en kısa yolu budur.',
+            'key' => 'Her satırın anahtarı :gtin — /sync ve /stock ile gönderdiğiniz barkodun aynısı. Kataloğun barkodu yoksa satır yine listelenir, :gtin alanı boş (null) gelir; o ürünü feed ile adresleyemezsiniz.',
+            'filters' => 'Filtreler: :status (active, paused, withdrawn, suspended) ve :stock. Gece hangi ürünü göndereceğinize karar verirken bu ikisi yeterlidir.',
+            'paging' => 'Sayfalama: :per (varsayılan 50, en fazla 200) ve :page. Bitişi :last söyler — tek çağrıyla tüm listeyi istemeyin.',
+            'money' => 'Fiyat, para birimiyle birlikte ondalık METİN gelir (:example). Kuruşu ondalık sayı olarak işlemeyin; büyük sepette yuvarlama hatası olur.',
+            'example_curl' => 'Tek sayfa',
+            'example_loop' => 'Tüm sayfaları gezen döngü',
+            'example_response' => 'Örnek yanıt',
         ],
     ],
 
