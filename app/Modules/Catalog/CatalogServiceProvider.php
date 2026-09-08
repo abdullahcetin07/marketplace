@@ -32,6 +32,7 @@ use App\Modules\Catalog\Presentation\Commands\BuildGoogleMerchantFeedCommand;
 use App\Modules\Catalog\Presentation\Commands\BuildMetaCatalogFeedCommand;
 use App\Modules\Catalog\Presentation\Commands\FillProductDescriptionsCommand;
 use App\Modules\Catalog\Presentation\Commands\FixDoubledCategoriesCommand;
+use App\Modules\Catalog\Presentation\Commands\FixPipeTitlesCommand;
 use App\Modules\Catalog\Presentation\Commands\ImportProductDescriptionsCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSearchTextCommand;
 use App\Modules\Catalog\Presentation\Commands\RefreshSellabilityCommand;
@@ -136,6 +137,7 @@ final class CatalogServiceProvider extends ServiceProvider
                 BuildMetaCatalogFeedCommand::class,
                 FillProductDescriptionsCommand::class,
                 FixDoubledCategoriesCommand::class,
+                FixPipeTitlesCommand::class,
                 ImportProductDescriptionsCommand::class,
             ]);
         }
