@@ -45,6 +45,14 @@ export const metadata: Metadata = {
     images: [{ url: '/og-default.jpg', width: 1200, height: 630, alt: 'Raftabul' }],
   },
   twitter: { card: 'summary_large_image' },
+  // Meta (Facebook) domain verification — renders
+  // <meta name="facebook-domain-verification" content="…"> into <head> site-wide,
+  // which covers the homepage. Required for the Business Manager catalog/pixel domain.
+  verification: {
+    other: {
+      'facebook-domain-verification': 's841vb5wwmwccqhfp5fj43k6crlga8',
+    },
+  },
 };
 
 const footerCols = [
