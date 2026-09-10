@@ -365,7 +365,7 @@ Takviye edici gıdadır, ilaç değildir. Hastalıkların tedavisinde kullanılm
 
 ### 7741. OUTLET - Dermoskin NutraFarm Beta Glukan Q10 Complex 250mg 30 Kapsül
 `GTIN 8697796002832`
-Dermoskin NutraFarm Beta Glukan Q10 Complex, beta glukan ve koenzim Q10 bileşenlerini bir arada sunan takviye edici gıdadır. 250 mg dozunda, 30 kapsüllük pratik bir kürdür.
+Dermoskin NutraFarm Beta Glukan Q10 Complex, beta glukan ve koenzim Q10 bileşenlerini bir arada sunan takviye edici gıdadır. 250 mg dozunda, 30 kapsüllük pratik bir kullanım sunar.
 - Beta glukan ve koenzim Q10'u tek kapsülde birleştiren zenginleştirilmiş formül
 - Günlük besin desteği rutinine kolay eklenen kapsül formu
 - 30 kapsüllük, bir aylık kullanıma uygun ambalaj
@@ -527,7 +527,7 @@ Bitkisel içerikli bir üründür; kullanım yönergesine uyun.
 
 ### 7759. LeeRoy Calcium 1000mg 120 Tablet
 `GTIN 8683675618279`
-LeeRoy Calcium, tablet başına 1000 mg kalsiyum içeren 120 tabletlik takviye edici gıdadır. Günlük kalsiyum alımına katkı arayanlar için uzun ömürlü bir kürdür.
+LeeRoy Calcium, tablet başına 1000 mg kalsiyum içeren 120 tabletlik takviye edici gıdadır. 120 tabletlik boyu, günlük kalsiyum alımına katkı arayanlar için uzun ömürlü bir kullanım sunar.
 - Tablet başına 1000 mg kalsiyum içeren formül
 - 120 tabletlik, uzun süreli kullanıma uygun ambalaj
 - Günlük alıma uygun tablet formu
