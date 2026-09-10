@@ -13,6 +13,7 @@ export const FORBIDDEN_CLAIM_WORDS = [
   'engeller',
   'şifa',
   'kür',
+  'durdur',
   'hastalık',
   'ilaç gibi',
   'garanti eder',

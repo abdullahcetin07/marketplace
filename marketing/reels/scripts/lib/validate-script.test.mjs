@@ -32,6 +32,15 @@ test('sağlık beyanı içeren anlatım reddedilir ve sahneyi işaret eder', () 
   assert.ok(r.errors.some((e) => e.includes('geçirir')), r.errors.join(' | '));
 });
 
+test('"durdurur" tek başına da sağlık beyanı olarak reddedilir', () => {
+  const s = base();
+  s.scenes[1].narration = 'Saç dökülmesini durdurur.';
+  const r = validateScript(s);
+  assert.equal(r.ok, false);
+  assert.ok(r.errors.some((e) => e.includes('sahne 1')), r.errors.join(' | '));
+  assert.ok(r.errors.some((e) => e.includes('durdur')), r.errors.join(' | '));
+});
+
 test('disclaimer sahnesi yasaklı kelimeyi kullanabilir', () => {
   const s = base();
   s.scenes[2].narration = 'Buradaki bilgi bir tedavi önerisi değildir; hastalık şüphesinde hekime başvur.';
