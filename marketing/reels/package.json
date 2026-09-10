@@ -7,7 +7,8 @@
     "studio": "remotion studio src/index.ts",
     "render": "remotion render src/index.ts",
     "monday": "remotion render src/index.ts monday out/monday.mp4",
-    "friday": "remotion render src/index.ts friday out/friday.mp4"
+    "friday": "remotion render src/index.ts friday out/friday.mp4",
+    "test": "node --test scripts/lib/**/*.test.mjs"
   },
   "dependencies": {
     "@remotion/cli": "4.0.290",
