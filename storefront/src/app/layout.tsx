@@ -4,6 +4,7 @@ import { Manrope } from 'next/font/google';
 import { CategoryBar } from '@/components/CategoryBar';
 import { CookieConsent } from '@/components/CookieConsent';
 import { GoogleTagManager } from '@/components/GoogleTagManager';
+import { GoogleReviewsBadge } from '@/components/GoogleReviewsBadge';
 import { MetaPixel } from '@/components/MetaPixel';
 import { RaftabulAssistant } from '@/components/RaftabulAssistant';
 import { HeaderActions } from '@/components/HeaderActions';
@@ -203,6 +204,9 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* Raftabul Asistan — the single floating help hub (WhatsApp lives inside it as
             "Canlı destek" and as the off-menu fallback). */}
         <RaftabulAssistant />
+        {/* Google Customer Reviews seller-rating badge (bottom-left; shows once the
+            store has enough collected reviews). */}
+        <GoogleReviewsBadge />
         {/* KVKK çerez onayı — only with a real GTM container (staging leaves it unset,
             so no banner and nothing to consent to). */}
         {process.env.NEXT_PUBLIC_GTM_ID && <CookieConsent />}
