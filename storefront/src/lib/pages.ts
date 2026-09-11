@@ -25,6 +25,14 @@ export type ContentPage = {
 };
 
 const SUPPORT_EMAIL = 'destek@raftabul.com';
+const SUPPORT_PHONE = '0850 455 33 66';
+// Verifiable business identity (same legal entity published on the legal pages).
+// Google Merchant Center misrepresentation review looks for this to be transparent
+// and easy to find — so it is surfaced here on İletişim, not only in the fine print.
+const COMPANY_LEGAL = 'AMIAY İlaç Kozmetik Medikal İnşaat Bilişim Sanayi ve Ticaret Limited Şirketi';
+const COMPANY_ADDRESS = 'Baraj Mah. Prof. Dr. Necmettin Erbakan Cad. A No: 71 C, Kepez / Antalya';
+const COMPANY_MERSIS = '0069110568500001';
+const COMPANY_TAX = '0691105685 — Antalya Kurumlar Vergi Dairesi';
 
 export const contentPages: Record<string, ContentPage> = {
   hakkimizda: {
@@ -90,14 +98,22 @@ export const contentPages: Record<string, ContentPage> = {
 
   iletisim: {
     title: 'İletişim',
-    description: 'Raftabul ile iletişime geçin: destek e-postası ve çalışma saatleri.',
-    intro: 'Sorularınız, önerileriniz veya bir sorununuz için buradayız.',
+    description: 'Raftabul ile iletişime geçin: telefon, e-posta, adres ve kurumsal işletme bilgileri.',
+    intro: 'Sorularınız, önerileriniz veya bir sorununuz için buradayız. Aşağıda müşteri desteği ve işletmemize ait kurumsal bilgileri bulabilirsiniz.',
     body: [
       { h: 'Müşteri Desteği' },
+      { p: `Telefon: ${SUPPORT_PHONE}` },
       { p: `E-posta: ${SUPPORT_EMAIL}` },
       { p: 'Çalışma saatleri: Hafta içi 09:00 – 18:00' },
       { h: 'Siparişinizle mi ilgili?' },
       { p: 'Sipariş durumunuzu, kargo takibinizi ve iade taleplerinizi hesabınızdaki “Siparişlerim” bölümünden takip edebilirsiniz.' },
+      { h: 'Kurumsal Bilgiler' },
+      { p: `Ünvan: ${COMPANY_LEGAL}` },
+      { p: `Adres: ${COMPANY_ADDRESS}` },
+      { p: `Telefon: ${SUPPORT_PHONE} — E-posta: ${SUPPORT_EMAIL}` },
+      { p: `MERSİS No: ${COMPANY_MERSIS}` },
+      { p: `Vergi No / Dairesi: ${COMPANY_TAX}` },
+      { p: 'Raftabul (raftabul.com) bir aracı hizmet sağlayıcısıdır; ürünler onaylı satıcılar tarafından satışa sunulur. Her siparişte satıcının ticaret ünvanı ve iletişim bilgileri sipariş özetinde ayrıca gösterilir.' },
     ],
   },
 

@@ -180,6 +180,13 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               ))}
             </div>
             <div className="mx-auto mt-7 w-full max-w-page border-t border-ink-100 px-4 pt-4 dark:border-ink-800">
+              {/* Corporate identity — verifiable business info on every page (transparency
+                  signal for trust and Google Merchant Center). Full details on /sayfa/iletisim. */}
+              <p className="mb-3 text-[.72rem] leading-relaxed text-ink-400">
+                AMIAY İlaç Kozmetik Medikal İnşaat Bilişim Sanayi ve Ticaret Ltd. Şti. · Baraj Mah.
+                Prof. Dr. Necmettin Erbakan Cad. A No: 71 C, Kepez / Antalya · Tel: 0850 455 33 66 ·{' '}
+                <a href="mailto:destek@raftabul.com" className="hover:text-brand-600">destek@raftabul.com</a>
+              </p>
               {/* Regulatory disclaimer — kept quiet, but present site-wide: these are
                   cosmetics and food supplements, not medicine. */}
               <p className="mb-3 text-[.72rem] leading-relaxed text-ink-400">
