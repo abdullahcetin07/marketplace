@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useSession } from '@/components/SessionProvider';
+import { GoogleCustomerReviews } from '@/components/GoogleCustomerReviews';
 import { analyticsAmount, pushDataLayer } from '@/lib/analytics';
 import { fetchPayment } from '@/lib/session-api';
 import { formatMoney } from '@/lib/money';
@@ -12,6 +13,12 @@ import type { PaymentView } from '@/lib/types';
 const STORAGE_KEY = 'raftabul:payment';
 /** Basket line items stashed by the checkout page, read once for the purchase event. */
 const PURCHASE_ITEMS_KEY = 'raftabul:purchase_items';
+
+/** A realistic estimated delivery date (today + 5 days) as YYYY-MM-DD, for the
+ *  Google Customer Reviews opt-in. */
+function estimatedDeliveryDate(): string {
+  return new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10);
+}
 
 /**
  * The payment result (ADR-060) — shown at `/odeme/sonuc` and `/odeme/hata`.
@@ -27,7 +34,7 @@ const PURCHASE_ITEMS_KEY = 'raftabul:purchase_items';
  * anyway; the id the shopper's own browser stashed is both private and trustworthy.
  */
 export function PaymentResult() {
-  const { refreshCart } = useSession();
+  const { refreshCart, user } = useSession();
   const [payment, setPayment] = useState<PaymentView | null>(null);
   const [phase, setPhase] = useState<'checking' | 'done' | 'missing'>('checking');
 
@@ -149,6 +156,15 @@ export function PaymentResult() {
           <Link href="/hesap/siparislerim" className={`${ui.btnPrimary} mt-1`}>
             Siparişlerime git
           </Link>
+          {/* Google Customer Reviews opt-in — only on a confirmed-paid order with a
+              known buyer e-mail; renders Google's own opt-in card. */}
+          {payment && user?.email && (
+            <GoogleCustomerReviews
+              orderId={payment.id}
+              email={user.email}
+              estimatedDeliveryDate={estimatedDeliveryDate()}
+            />
+          )}
         </>
       ) : failed ? (
         <>
