@@ -20,7 +20,7 @@ namespace App\Modules\Marketing\Domain\DTOs;
 final class PurchaseConversionDTO
 {
     /**
-     * @param array<int, string>                                             $contentIds product uuids
+     * @param array<int, string> $contentIds product uuids
      * @param array<int, array{id: string, quantity: int, item_price: string}> $contents
      */
     public function __construct(

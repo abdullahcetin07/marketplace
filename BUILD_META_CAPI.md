@@ -1,5 +1,9 @@
 # Meta Conversions API (server-side Purchase) — iş emri
 
+> **DURUM (2026-09-14): KOD TAMAM.** Provider kaydedildi, testler + arch kuralları yazıldı,
+> `docs/modules/Marketing.md` oluşturuldu. İki düzeltme: listener hataları yutup raporlar
+> (PayTR callback'ini bozamaz), token URL yerine gövdede. Kalan: prod env + Test Events doğrulaması.
+
 **Neden:** Storefront'un tarayıcı Meta Pixel'i **KVKK çerez onayından sonra** ateşliyor;
 onaylamayan ziyaretçide hiç ateşlemiyor. Canlı ölçüm (son 14 gün, 2 aktif kampanya):
 **~1.951 tık → 10 landing page view, 0 purchase.** Yani Meta trafiğin ~%99'unu görmüyor ve

@@ -67,7 +67,10 @@ final class MetaConversionsApiClient implements ConversionsApiContract
             ],
         ];
 
-        $payload = ['data' => [$event]];
+        // The token rides in the BODY, never the query string: a connection
+        // failure's exception message quotes the URL, and that message is what
+        // lands in `failed_jobs` and the error log.
+        $payload = ['data' => [$event], 'access_token' => $token];
 
         if ($testCode !== '') {
             $payload['test_event_code'] = $testCode;
@@ -76,7 +79,7 @@ final class MetaConversionsApiClient implements ConversionsApiContract
         $response = Http::asJson()
             ->timeout(15)
             ->post(
-                "https://graph.facebook.com/{$version}/{$pixelId}/events?access_token=".urlencode($token),
+                "https://graph.facebook.com/{$version}/{$pixelId}/events",
                 $payload,
             );
 

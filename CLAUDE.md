@@ -261,6 +261,15 @@ also leaves the merchant's queue. **Questions imports NO module** — Catalog, O
 Store and Organization through Core contracts; no media, no money. **Not frozen**:
 the storefront (Questions.md §9) is still to come. One recorded deviation in §13.
 
+**MARKETING is BUILT (2026-09-14; [docs/modules/Marketing.md](docs/modules/Marketing.md))
+— a server-side Meta Conversions API `Purchase`.** The browser pixel waits for KVKK
+consent and saw ~0 purchases, so Marketing hears `PaymentSucceeded` by class-string and
+sends the same event from the server with **`event_id` = payment uuid**, the value the
+pixel sends as `eventID` — change either and Meta double-counts. It **imports no
+module**, is **registered last**, queues the HTTP call, and **swallows every failure**:
+it runs inside the PayTR callback, and a lost conversion must never become an unshipped
+paid order. Inert unless `META_CAPI_ENABLED`.
+
 **The SELLER OFFER FEED is COMPLETE (2026-08-11; ADR-076, built P1–P4).** Sellers
 created offers one form at a time; a real store is thousands of SKUs whose price and
 stock change daily. **Two doors over one brain**: a token-authed REST API

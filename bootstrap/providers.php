@@ -103,6 +103,14 @@ return [
     */
     App\Modules\Questions\QuestionsServiceProvider::class,
 
+    /*
+    | Marketing — outbound ad-platform conversions (Marketing.md). After Payment,
+    | whose `PaymentSucceeded` it hears BY CLASS-STRING, and deliberately after
+    | every other listener of that event: it only observes money, so it runs
+    | last and binds nothing another module resolves.
+    */
+    App\Modules\Marketing\MarketingServiceProvider::class,
+
     // Panels last — they discover resources from the modules above.
     App\Providers\Filament\AdminPanelProvider::class,
     App\Providers\Filament\SellerPanelProvider::class,

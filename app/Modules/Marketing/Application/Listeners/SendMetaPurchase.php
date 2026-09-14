@@ -7,6 +7,7 @@ namespace App\Modules\Marketing\Application\Listeners;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Marketing\Application\Jobs\SendMetaConversionJob;
 use App\Modules\Marketing\Domain\DTOs\PurchaseConversionDTO;
+use Throwable;
 
 /**
  * A paid basket becomes one server-side Meta Purchase (Marketing.md).
@@ -28,6 +29,13 @@ use App\Modules\Marketing\Domain\DTOs\PurchaseConversionDTO;
  *
  * **INERT UNLESS ENABLED.** The config gate returns before any query, so a booted
  * Marketing module with no token does nothing.
+ *
+ * **IT NEVER BREAKS A PAYMENT.** This runs synchronously inside the PayTR
+ * callback's `after()`, alongside the listeners that confirm orders and open
+ * shipments. An exception escaping here would 500 the callback and skip every
+ * listener registered after this one — a lost ad conversion turned into an
+ * unshipped paid order. So any failure (a query, a Redis outage on dispatch) is
+ * reported and swallowed: the conversion is expendable, the payment is not.
  */
 final class SendMetaPurchase
 {
@@ -38,6 +46,16 @@ final class SendMetaPurchase
         if (! (bool) config('marketing.meta.enabled')) {
             return;
         }
+
+        try {
+            $this->dispatchPurchase($event);
+        } catch (Throwable $e) {
+            report($e);
+        }
+    }
+
+    private function dispatchPurchase(object $event): void
+    {
 
         $paymentUuid = (string) data_get($event, 'paymentUuid');
         $checkoutGroupUuid = (string) data_get($event, 'checkoutGroupUuid');

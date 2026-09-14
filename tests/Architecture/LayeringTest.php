@@ -692,6 +692,38 @@ arch('Loyalty imports no module at all')
         'App\Modules\Settings',
     ]);
 
+arch('Marketing imports no module at all')
+    ->expect('App\Modules\Marketing')
+    ->not->toUse([
+        /*
+        | Marketing only OBSERVES: it hears `PaymentSucceeded` by class-STRING and
+        | reads the basket through `OrderQueryContract`. An outbound ad integration
+        | that imported Payment or Order would let a tracking change reach into the
+        | money path — the one place on the platform that must not move for it.
+        */
+        'App\Modules\Identity',
+        'App\Modules\Reviews',
+        'App\Modules\Order',
+        'App\Modules\Shipping',
+        'App\Modules\Payment',
+        'App\Modules\Catalog',
+        'App\Modules\Offer',
+        'App\Modules\Inventory',
+        'App\Modules\Organization',
+        'App\Modules\Store',
+        'App\Modules\Questions',
+        'App\Modules\Loyalty',
+        'App\Modules\Media',
+        'App\Modules\Notification',
+    ]);
+
+arch('no module depends on Marketing')
+    ->expect('App\Modules\Marketing')
+    ->toOnlyBeUsedIn([
+        'App\Modules\Marketing',
+        'Tests\Modules\Marketing',
+    ]);
+
 arch('every module DTO carries the DTO suffix')
     ->expect('App\Modules')
     ->classes()
@@ -842,6 +874,11 @@ arch('every module DTO carries the DTO suffix')
         'App\Modules\Loyalty\Infrastructure',
         'App\Modules\Loyalty\Presentation',
         'App\Modules\Loyalty\LoyaltyServiceProvider',
+        // Marketing — non-DTO namespaces ignored so its Domain\DTOs stay covered.
+        'App\Modules\Marketing\Application',
+        'App\Modules\Marketing\Domain\Contracts',
+        'App\Modules\Marketing\Infrastructure',
+        'App\Modules\Marketing\MarketingServiceProvider',
     ]);
 
 arch('shared enums stay free of dependencies')
