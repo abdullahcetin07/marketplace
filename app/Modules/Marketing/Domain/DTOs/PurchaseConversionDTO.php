@@ -16,6 +16,9 @@ namespace App\Modules\Marketing\Domain\DTOs;
  * the browser pixel sends the identical value as `eventID`, so Meta merges the
  * two. `contentIds` are PRODUCT uuids, matching the Meta catalog feed's `g:id`
  * (BUILD_GOOGLE_MERCHANT_FEED / Meta target) so dynamic ads resolve the item.
+ *
+ * The four browser signals are optional: they exist only when the pay request
+ * was captured, and `fbp`/`fbc` only for a shopper who accepted marketing cookies.
  */
 final class PurchaseConversionDTO
 {
@@ -31,5 +34,9 @@ final class PurchaseConversionDTO
         public readonly array $contentIds,
         public readonly array $contents,
         public readonly int $eventTime,
+        public readonly ?string $fbp = null,
+        public readonly ?string $fbc = null,
+        public readonly ?string $clientIp = null,
+        public readonly ?string $clientUserAgent = null,
     ) {}
 }

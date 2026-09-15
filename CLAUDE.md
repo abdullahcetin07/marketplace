@@ -268,7 +268,10 @@ sends the same event from the server with **`event_id` = payment uuid**, the val
 pixel sends as `eventID` — change either and Meta double-counts. It **imports no
 module**, is **registered last**, queues the HTTP call, and **swallows every failure**:
 it runs inside the PayTR callback, and a lost conversion must never become an unshipped
-paid order. Inert unless `META_CAPI_ENABLED`.
+paid order. Inert unless `META_CAPI_ENABLED`. **Browser signals** (2026-09-15): a
+Marketing middleware on the pay route keeps IP + user agent for every payer and
+`_fbp`/`_fbc` **only with marketing consent** — no fbclid without consent (owner
+decision) — in a table pruned after 7 days.
 
 **The SELLER OFFER FEED is COMPLETE (2026-08-11; ADR-076, built P1–P4).** Sellers
 created offers one form at a time; a real store is thousands of SKUs whose price and

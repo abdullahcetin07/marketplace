@@ -21,6 +21,7 @@ use App\Modules\Localization\Presentation\Controllers\Api\GeoController;
 use App\Modules\Localization\Presentation\Controllers\Api\LocalizationController;
 use App\Modules\Loyalty\Presentation\Controllers\Api\Customer\LoyaltyController;
 use App\Modules\Loyalty\Presentation\Controllers\Api\Storefront\EarnPreviewController;
+use App\Modules\Marketing\Presentation\Middleware\CaptureCheckoutSignals;
 use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferFeedController;
 use App\Modules\Offer\Presentation\Controllers\Api\Seller\OfferListController;
 use App\Modules\Offer\Presentation\Controllers\Api\Storefront\PublicBuyBoxPriceController;
@@ -648,8 +649,15 @@ Route::prefix('v1')
             | The response is a TOKEN, not a redirect: the storefront embeds
             | PayTR's iframe with it, so the card and the 3-D Secure step never
             | touch this application.
+            |
+            | CaptureCheckoutSignals (Marketing) takes the browser's Meta match keys
+            | off this request — the last one the shopper's browser makes before the
+            | PayTR callback, which has none. Payment's controller does not know it
+            | is there (Marketing.md).
             */
-            Route::post('/checkout/{group}/pay', [PaymentController::class, 'store'])->name('checkout.pay');
+            Route::post('/checkout/{group}/pay', [PaymentController::class, 'store'])
+                ->middleware(CaptureCheckoutSignals::class)
+                ->name('checkout.pay');
 
             /*
             | What the result page asks after PayTR sends the browser back. The

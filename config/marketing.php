@@ -36,6 +36,13 @@ return [
         | test stream (not production stats) while verifying. Empty in production.
         */
         'test_event_code' => (string) env('META_CAPI_TEST_EVENT_CODE', ''),
+
+        /*
+        | Days a checkout's browser signals (IP, user agent, _fbp/_fbc) are kept.
+        | They are needed only until the payment settles — minutes, or a late
+        | PayTR callback — so the window is short on purpose.
+        */
+        'signal_retention_days' => (int) env('META_CAPI_SIGNAL_RETENTION_DAYS', 7),
     ],
 
 ];

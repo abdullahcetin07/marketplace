@@ -265,3 +265,16 @@ Schedule::command('reviews:request-pending')
     ->dailyAt('10:00')
     ->onOneServer()
     ->withoutOverlapping();
+
+/*
+| Marketing: a checkout's browser signals (IP, user agent, _fbp/_fbc) exist only
+| to enrich the Purchase sent to Meta when the payment settles. Once that window
+| has passed they are personal data without a purpose. @see docs/modules/Marketing.md
+*/
+Schedule::call(function (): void {
+    $days = (int) config('marketing.meta.signal_retention_days', 7);
+
+    DB::table('marketing_checkout_signals')
+        ->where('updated_at', '<', now()->subDays($days))
+        ->delete();
+})->name('prune-marketing-checkout-signals')->dailyAt('04:00')->onOneServer();

@@ -527,10 +527,39 @@ export async function fetchOrders(): Promise<Order[]> {
 | than trusting where PayTR sent the browser.
 */
 
+/**
+ * Meta's browser ids for the server-side Purchase (Marketing.md) — ONLY WITH CONSENT.
+ *
+ * The PayTR callback that sends the Conversions API event has no browser, so the pay
+ * request carries these over. `_fbp`/`_fbc` exist only once the consent-gated pixel
+ * has loaded, and this still checks the stored choice itself: a shopper who later
+ * pressed "Reddet" may have cookies left over, and they must not ride along. IP and
+ * user agent the server reads off the request; nothing else is sent from here.
+ */
+function metaBrowserIds(): { fbp?: string; fbc?: string } {
+  // ONE try around all of it: an ad signal must never stop a payment, and a cookie
+  // with a broken `%` sequence makes `decodeURIComponent` throw.
+  try {
+    if (window.localStorage.getItem('raftabul.consent') !== 'granted') return {};
+
+    const fbp = readCookie('_fbp');
+    const fbc = readCookie('_fbc');
+
+    return {
+      ...(fbp ? { fbp: decodeURIComponent(fbp) } : {}),
+      ...(fbc ? { fbc: decodeURIComponent(fbc) } : {}),
+    };
+  } catch {
+    return {};
+  }
+}
+
 export async function initiatePayment(
   checkoutGroupId: string,
   points?: number,
 ): Promise<{ paymentId: string; iframeToken: string | null; paid: boolean } | null> {
+  const body = { ...(points && points > 0 ? { points } : {}), ...metaBrowserIds() };
+
   const data = await request<{
     payment_id?: string;
     payment_uuid?: string;
@@ -542,7 +571,7 @@ export async function initiatePayment(
     `/api/v1/checkout/${encodeURIComponent(checkoutGroupId)}/pay`,
     // The reduced charge is the server's job (it holds the points and charges
     // total − discount, ADR-084); the client only names how many points to spend.
-    { method: 'POST', body: points && points > 0 ? { points } : undefined },
+    { method: 'POST', body: Object.keys(body).length > 0 ? body : undefined },
   );
 
   if (data === null) return null;

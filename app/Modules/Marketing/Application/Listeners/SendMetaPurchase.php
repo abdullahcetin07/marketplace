@@ -7,6 +7,7 @@ namespace App\Modules\Marketing\Application\Listeners;
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Marketing\Application\Jobs\SendMetaConversionJob;
 use App\Modules\Marketing\Domain\DTOs\PurchaseConversionDTO;
+use App\Modules\Marketing\Domain\Models\CheckoutSignal;
 use Throwable;
 
 /**
@@ -86,6 +87,12 @@ final class SendMetaPurchase
             }
         }
 
+        // Captured on the pay request by CaptureCheckoutSignals; absent when that
+        // request predates the capture or the shopper paid from another path.
+        $signal = CheckoutSignal::query()
+            ->where('checkout_group_uuid', $checkoutGroupUuid)
+            ->first();
+
         SendMetaConversionJob::dispatch(new PurchaseConversionDTO(
             eventId: $paymentUuid,
             valueMinor: $amountMinor,
@@ -94,6 +101,10 @@ final class SendMetaPurchase
             contentIds: array_values(array_unique($contentIds)),
             contents: $contents,
             eventTime: now()->getTimestamp(),
+            fbp: $signal?->fbp,
+            fbc: $signal?->fbc,
+            clientIp: $signal?->client_ip,
+            clientUserAgent: $signal?->client_user_agent,
         ));
     }
 

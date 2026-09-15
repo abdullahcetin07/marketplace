@@ -877,6 +877,8 @@ arch('every module DTO carries the DTO suffix')
         // Marketing — non-DTO namespaces ignored so its Domain\DTOs stay covered.
         'App\Modules\Marketing\Application',
         'App\Modules\Marketing\Domain\Contracts',
+        'App\Modules\Marketing\Domain\Models',
+        'App\Modules\Marketing\Presentation',
         'App\Modules\Marketing\Infrastructure',
         'App\Modules\Marketing\MarketingServiceProvider',
     ]);

@@ -14,7 +14,8 @@ use RuntimeException;
  *
  * **HASHED PII, ALWAYS.** Meta requires match keys SHA-256'd, normalised first
  * (email lower-cased and trimmed). The raw e-mail never leaves as plaintext, and
- * `send_default_pii` is off elsewhere for the same reason.
+ * `send_default_pii` is off elsewhere for the same reason. The browser signals
+ * (`fbp`, `fbc`, IP, user agent) are the exception Meta's spec makes: sent as-is.
  *
  * **DECIMAL AT THE EDGE, NOT A FLOAT.** `value` and each `item_price` are built
  * from minor units into a string here (ADR-005) — no float models money on the
@@ -51,6 +52,14 @@ final class MetaConversionsApiClient implements ConversionsApiContract
         if ($dto->email !== null && $dto->email !== '') {
             $userData['em'] = [hash('sha256', mb_strtolower(trim($dto->email)))];
         }
+
+        // Browser signals go UNHASHED — Meta's spec for these four keys.
+        $userData += array_filter([
+            'fbp' => $dto->fbp,
+            'fbc' => $dto->fbc,
+            'client_ip_address' => $dto->clientIp,
+            'client_user_agent' => $dto->clientUserAgent,
+        ], static fn (?string $value): bool => $value !== null && $value !== '');
 
         $event = [
             'event_name' => 'Purchase',

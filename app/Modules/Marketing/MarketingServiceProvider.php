@@ -34,6 +34,8 @@ final class MarketingServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        $this->loadMigrationsFrom(database_path('Modules/Marketing/migrations'));
+
         // BY CLASS-STRING (Payment.md §3): the event class is named, never imported.
         Event::listen(
             'App\\Modules\\Payment\\Domain\\Events\\PaymentSucceeded',

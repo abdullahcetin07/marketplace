@@ -6,6 +6,7 @@ use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Marketing\Application\Listeners\SendMetaPurchase;
 use App\Modules\Marketing\Domain\Contracts\ConversionsApiContract;
 use App\Modules\Marketing\Domain\DTOs\PurchaseConversionDTO;
+use App\Modules\Marketing\Domain\Models\CheckoutSignal;
 use App\Modules\Marketing\Infrastructure\MetaConversionsApiClient;
 use App\Modules\Payment\Domain\Events\PaymentSucceeded;
 use Illuminate\Http\Client\Request;
@@ -136,7 +137,32 @@ it('turns a paid basket into one Purchase keyed by the payment uuid', function (
             ['id' => 'product-1', 'quantity' => 2, 'item_price' => '499.95'],
             ['id' => 'product-2', 'quantity' => 1, 'item_price' => '300.00'],
             ['id' => 'product-1', 'quantity' => 1, 'item_price' => '499.95'],
-        ]);
+        ])
+        // No pay request was captured for this basket.
+        ->and($dto->clientIp)->toBeNull()
+        ->and($dto->fbp)->toBeNull();
+});
+
+it('adds the browser signals captured on the pay request', function (): void {
+    capiOrders();
+    $spy = capiSpy();
+
+    CheckoutSignal::query()->create([
+        'checkout_group_uuid' => CAPI_GROUP,
+        'fbp' => 'fb.1.1726400000000.1234567890',
+        'fbc' => null,
+        'client_ip' => '203.0.113.7',
+        'client_user_agent' => 'Mozilla/5.0 Test',
+    ]);
+
+    app(SendMetaPurchase::class)->handle(capiEvent());
+
+    $dto = $spy->sent[0];
+
+    expect($dto->fbp)->toBe('fb.1.1726400000000.1234567890')
+        ->and($dto->fbc)->toBeNull()
+        ->and($dto->clientIp)->toBe('203.0.113.7')
+        ->and($dto->clientUserAgent)->toBe('Mozilla/5.0 Test');
 });
 
 it('does nothing, not even a query, while disabled', function (): void {
@@ -179,10 +205,14 @@ it('posts a hashed, decimal-string Purchase to the pixel, token in the body', fu
         contentIds: ['product-1'],
         contents: [['id' => 'product-1', 'quantity' => 1, 'item_price' => '1299.90']],
         eventTime: 1_700_000_000,
+        fbp: 'fb.1.1726400000000.1234567890',
+        clientIp: '203.0.113.7',
+        clientUserAgent: 'Mozilla/5.0 Test',
     ));
 
     Http::assertSent(function (Request $request): bool {
         $event = $request['data'][0];
+        $user = $event['user_data'];
 
         return $request->url() === 'https://graph.facebook.com/v21.0/2082722212251736/events'
             && ! str_contains($request->url(), 'secret-token')
@@ -191,7 +221,12 @@ it('posts a hashed, decimal-string Purchase to the pixel, token in the body', fu
             && $event['event_name'] === 'Purchase'
             && $event['event_id'] === CAPI_PAYMENT
             && $event['action_source'] === 'website'
-            && $event['user_data']['em'] === [hash('sha256', 'alici@example.com')]
+            && $user['em'] === [hash('sha256', 'alici@example.com')]
+            // Browser signals unhashed, and an absent one is left out entirely.
+            && $user['fbp'] === 'fb.1.1726400000000.1234567890'
+            && $user['client_ip_address'] === '203.0.113.7'
+            && $user['client_user_agent'] === 'Mozilla/5.0 Test'
+            && ! array_key_exists('fbc', $user)
             && $event['custom_data']['value'] === '1299.90'
             && $event['custom_data']['currency'] === 'TRY'
             && $event['custom_data']['content_ids'] === ['product-1'];
