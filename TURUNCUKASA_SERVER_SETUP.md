@@ -86,6 +86,18 @@ Kök ile kalıcı çalışma; ilk iş güvenlik. Her komutu çalıştırmadan ö
 
 ## 3b. FAZ 1b — Stack kurulumu (Docker yolu)
 
+> **⚠️ STACK SÜRÜMLERİ — repo'dan doğrulandı, sabittir:**
+> - **Veritabanı = PostgreSQL** (`DB_CONNECTION=pgsql`, config'de açıkça "Chosen over MySQL").
+>   **MySQL/MariaDB KULLANMA** — platform pgsql'e özgü şeyler kullanıyor (partial unique
+>   index, pgsql operatörleri, full-text search); MariaDB ile migration'lar patlar,
+>   `make check` kırmızı olur. (Bir başka checklist "MariaDB" diyorsa görmezden gel.)
+> - **PHP = `^8.3`** (composer.json). 8.3 veya 8.4 olur.
+> - **Docker mı bare-metal mı?** Bu bölüm Docker varsayar (CLAUDE.md: "Everything runs in
+>   Docker"; PHP/Postgres/Redis/Node host'a DEĞİL, container'dan gelir). Eğer Raftabul
+>   prod'un standardı bare-metal ise (owner teyit eder) o yolu izle: o zaman Nginx +
+>   PHP-8.3-FPM + PostgreSQL + Redis + Node LTS + Supervisor(queue) + cron(scheduler)
+>   **host'a** kurulur. Her iki yolda da yukarıdaki DB ve PHP kilidi geçerli.
+
 - [ ] **Docker Engine + compose plugin** (resmi Docker apt reposu). `docker --version`,
       `docker compose version`.
 - [ ] Kullanıcıyı `docker` grubuna ekle (yeniden login).
@@ -143,12 +155,30 @@ Amaç: **turuncukasa şekli DEĞİL**, "platform bu sunucuda koşuyor mu?" doğr
 
 ---
 
-## 6. Yedekleme (prod'a çıkmadan şart — ama smoke'ta temeli at)
+## 6. Yedekleme & monitoring (prod'a çıkmadan şart — ama smoke'ta temeli at)
 
+**Yedekleme:**
 - [ ] Postgres için otomatik dump (günlük) planı; dump'ı kutu-DIŞINA (örn. object storage)
       atma stratejisini owner ile belirle. Smoke'ta en azından `pg_dump` cron'u kur ve bir
       kez elle çalıştırıp geri-yükleme testini not et.
 - [ ] Medya/storage dizini yedek kapsamında mı, işaretle.
+
+**Monitoring (temel — smoke'ta minimum, go-live'da genişlet):**
+- [ ] Disk/RAM/CPU izleme (en azından disk-dolma uyarısı) — kurulacak araç owner ile.
+- [ ] Uygulama hata log'u takibi (`storage/logs`, queue failed jobs, scheduler çıktısı).
+- [ ] Uptime kontrolü (Cloudflare veya harici) — go-live'da; smoke'ta not.
+
+## 6b. Performans & log rotation — ⏭️ GO-LIVE ÖNCESİ (Faz 2.5), smoke'u bloke etmez
+
+Duman testi geçtikten SONRA, public'e çıkmadan önce yapılacak sertleştirme. Docker
+yolunda çoğu image/config içindedir; bare-metal'de elle:
+- [ ] **PHP OPcache** açık + prod ayarları (validate_timestamps=0 vb.).
+- [ ] **PHP-FPM tuning** (pm=dynamic/static, worker sayısı — 8 vCPU / 31 GiB'a göre).
+- [ ] **Redis** cache/session/queue backend olarak devrede (config teyidi).
+- [ ] **Nginx**: gzip/**Brotli**, statik cache header'ları, HTTP/2 (HTTP/3'ü Cloudflare edge verir).
+- [ ] **Next.js production build** + process manager (Docker servisi ya da pm2/systemd).
+- [ ] **Laravel cache**: `config:cache`, `route:cache`, `event:cache`, `view:cache` (prod).
+- [ ] **logrotate** — nginx + Laravel + container log'ları şişmesin.
 
 ---
 
