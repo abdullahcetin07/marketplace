@@ -31,7 +31,7 @@ final class CatalogException extends BaseException
      */
     public static function invalidTransition(ProductStatus $from, ProductStatus $to): self
     {
-        return self::make('This product cannot change state that way.')
+        return self::make(__('catalog.errors.invalid_transition'))
             ->withContext([
                 'reason' => 'invalid_transition',
                 'from' => $from->value,
@@ -51,7 +51,7 @@ final class CatalogException extends BaseException
      */
     public static function moderationReasonRequired(ProductStatus $outcome): self
     {
-        return self::make('This decision needs a reason the seller can act on.')
+        return self::make(__('catalog.errors.moderation_reason_required'))
             ->withContext([
                 'reason' => 'moderation_reason_required',
                 'outcome' => $outcome->value,
@@ -68,7 +68,7 @@ final class CatalogException extends BaseException
      */
     public static function categoryHasChildren(string $categoryUuid): self
     {
-        return self::make('This category has sub-categories; remove them first.')
+        return self::make(__('catalog.errors.category_has_children'))
             ->withContext([
                 'reason' => 'category_has_children',
                 'category_uuid' => $categoryUuid,
@@ -85,7 +85,7 @@ final class CatalogException extends BaseException
      */
     public static function categoryStillHasProducts(string $categoryUuid): self
     {
-        return self::make('This category holds products; move them elsewhere before closing it.')
+        return self::make(__('catalog.errors.category_still_has_products'))
             ->withContext([
                 'reason' => 'category_still_has_products',
                 'category_uuid' => $categoryUuid,
@@ -103,7 +103,7 @@ final class CatalogException extends BaseException
      */
     public static function categoryDoesNotAcceptProducts(string $categoryUuid): self
     {
-        return self::make('This category does not accept products. Choose one that does.')
+        return self::make(__('catalog.errors.category_does_not_accept_products'))
             ->withContext([
                 'reason' => 'category_does_not_accept_products',
                 'category_uuid' => $categoryUuid,
@@ -117,7 +117,7 @@ final class CatalogException extends BaseException
      */
     public static function missingRequiredAttributes(array $attributeCodes): self
     {
-        return self::make('This product is missing attributes its category requires.')
+        return self::make(__('catalog.errors.missing_required_attributes'))
             ->withContext([
                 'reason' => 'missing_required_attributes',
                 'attributes' => array_values($attributeCodes),
@@ -129,7 +129,7 @@ final class CatalogException extends BaseException
      */
     public static function attributeNotInCategorySchema(string $attributeCode): self
     {
-        return self::make('That attribute does not apply to this product\'s category.')
+        return self::make(__('catalog.errors.attribute_not_in_schema'))
             ->withContext([
                 'reason' => 'attribute_not_in_schema',
                 'attribute' => $attributeCode,
@@ -146,7 +146,7 @@ final class CatalogException extends BaseException
      */
     public static function attributeIsAVariantAxis(string $attributeCode): self
     {
-        return self::make('That attribute defines variants — set it on the variant, not the product.')
+        return self::make(__('catalog.errors.attribute_is_a_variant_axis'))
             ->withContext([
                 'reason' => 'attribute_is_a_variant_axis',
                 'attribute' => $attributeCode,
@@ -158,7 +158,7 @@ final class CatalogException extends BaseException
      */
     public static function invalidAttributeValue(string $attributeCode): self
     {
-        return self::make('That value is not valid for this attribute.')
+        return self::make(__('catalog.errors.invalid_attribute_value'))
             ->withContext([
                 'reason' => 'invalid_attribute_value',
                 'attribute' => $attributeCode,
@@ -170,7 +170,7 @@ final class CatalogException extends BaseException
      */
     public static function attributeCannotDefineVariants(string $attributeCode): self
     {
-        return self::make('Only a select attribute can define variants.')
+        return self::make(__('catalog.errors.attribute_cannot_define_variants'))
             ->withContext([
                 'reason' => 'attribute_cannot_define_variants',
                 'attribute' => $attributeCode,
@@ -188,7 +188,7 @@ final class CatalogException extends BaseException
      */
     public static function attributeDoesNotEnumerateValues(string $attributeCode): self
     {
-        return self::make('Only a select attribute can have predefined values.')
+        return self::make(__('catalog.errors.attribute_does_not_enumerate_values'))
             ->withContext([
                 'reason' => 'attribute_does_not_enumerate_values',
                 'attribute' => $attributeCode,
@@ -202,7 +202,7 @@ final class CatalogException extends BaseException
      */
     public static function duplicateVariantCombination(string $combinationKey): self
     {
-        return self::make('This product already has a variant with that combination.')
+        return self::make(__('catalog.errors.duplicate_variant_combination'))
             ->withContext([
                 'reason' => 'duplicate_variant_combination',
                 'combination' => $combinationKey,
@@ -215,7 +215,7 @@ final class CatalogException extends BaseException
      */
     public static function tooManyVariants(int $requested, int $max): self
     {
-        return self::make('That selection would generate too many variants.')
+        return self::make(__('catalog.errors.variant_limit_exceeded'))
             ->withContext([
                 'reason' => 'variant_limit_exceeded',
                 'requested' => $requested,
@@ -229,7 +229,7 @@ final class CatalogException extends BaseException
      */
     public static function productMustKeepOneVariant(): self
     {
-        return self::make('A product must keep at least one variant.')
+        return self::make(__('catalog.errors.last_variant'))
             ->withContext(['reason' => 'last_variant']);
     }
 
@@ -245,7 +245,7 @@ final class CatalogException extends BaseException
      */
     public static function productNeedsTaxRate(): self
     {
-        return self::make('A product must have a KDV bracket before it can be submitted.')
+        return self::make(__('catalog.errors.missing_tax_rate'))
             ->withContext(['reason' => 'missing_tax_rate']);
     }
 
@@ -256,7 +256,7 @@ final class CatalogException extends BaseException
      */
     public static function gtinAlreadyInCatalog(string $gtin, string $existingProductUuid): self
     {
-        return self::make('A product with this barcode is already in the catalog.')
+        return self::make(__('catalog.errors.gtin_taken'))
             ->withContext([
                 'reason' => 'gtin_taken',
                 'gtin' => $gtin,
@@ -270,7 +270,7 @@ final class CatalogException extends BaseException
      */
     public static function categoryCannotBeItsOwnAncestor(): self
     {
-        return self::make('A category cannot be moved inside itself.')
+        return self::make(__('catalog.errors.category_cycle'))
             ->withContext(['reason' => 'category_cycle']);
     }
 
@@ -280,7 +280,7 @@ final class CatalogException extends BaseException
      */
     public static function categoryHasActiveChildren(string $categoryUuid): self
     {
-        return self::make('Archive this category\'s subcategories first.')
+        return self::make(__('catalog.errors.category_has_active_children'))
             ->withContext([
                 'reason' => 'category_has_children',
                 'category_uuid' => $categoryUuid,

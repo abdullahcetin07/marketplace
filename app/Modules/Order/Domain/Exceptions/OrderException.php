@@ -40,7 +40,7 @@ final class OrderException extends BaseException
      */
     public static function cartIsEmpty(): self
     {
-        return self::make('Your basket is empty.')
+        return self::make(__('order.errors.cart_empty'))
             ->withContext(['reason' => 'cart_empty']);
     }
 
@@ -54,7 +54,7 @@ final class OrderException extends BaseException
      */
     public static function offerNotSellable(string $offerUuid): self
     {
-        return self::make('One of the items in your basket is no longer available.')
+        return self::make(__('order.errors.offer_not_sellable'))
             ->withContext(['reason' => 'offer_not_sellable', 'offer_uuid' => $offerUuid]);
     }
 
@@ -67,7 +67,7 @@ final class OrderException extends BaseException
      */
     public static function insufficientStock(string $offerUuid, int $requested): self
     {
-        return self::make('There is not enough stock for one of the items in your basket.')
+        return self::make(__('order.errors.insufficient_stock'))
             ->withContext([
                 'reason' => 'insufficient_stock',
                 'offer_uuid' => $offerUuid,
@@ -84,7 +84,7 @@ final class OrderException extends BaseException
      */
     public static function addressNotFound(string $addressUuid): self
     {
-        return self::make('That address could not be found.')
+        return self::make(__('order.errors.address_not_found'))
             ->withContext(['reason' => 'address_not_found', 'address_uuid' => $addressUuid]);
     }
 
@@ -96,7 +96,7 @@ final class OrderException extends BaseException
      */
     public static function invalidTransition(OrderStatus $from, OrderStatus $to): self
     {
-        return self::make("An order that is {$from->value} cannot become {$to->value}.")
+        return self::make(__('order.errors.invalid_transition'))
             ->withContext([
                 'reason' => 'invalid_transition',
                 'from' => $from->value,
@@ -118,7 +118,7 @@ final class OrderException extends BaseException
      */
     public static function notCancellableByRequest(string $orderUuid): self
     {
-        return self::make('This order can no longer be cancelled — it may already be on its way.')
+        return self::make(__('order.errors.not_cancellable_by_request'))
             ->withContext([
                 'reason' => 'not_cancellable_by_request',
                 'order_uuid' => $orderUuid,
@@ -136,7 +136,7 @@ final class OrderException extends BaseException
      */
     public static function cancellationAlreadyRequested(string $orderUuid): self
     {
-        return self::make('A cancellation request for this order is already awaiting an answer.')
+        return self::make(__('order.errors.cancellation_already_requested'))
             ->withContext([
                 'reason' => 'cancellation_already_requested',
                 'order_uuid' => $orderUuid,
@@ -154,7 +154,7 @@ final class OrderException extends BaseException
      */
     public static function cancellationAlreadyDecided(string $requestUuid): self
     {
-        return self::make('This cancellation request has already been answered.')
+        return self::make(__('order.errors.cancellation_already_decided'))
             ->withContext([
                 'reason' => 'cancellation_already_decided',
                 'request_uuid' => $requestUuid,
@@ -172,7 +172,7 @@ final class OrderException extends BaseException
      */
     public static function notReturnable(string $orderUuid): self
     {
-        return self::make('These items can no longer be returned.')
+        return self::make(__('order.errors.not_returnable'))
             ->withContext([
                 'reason' => 'not_returnable',
                 'order_uuid' => $orderUuid,
@@ -189,7 +189,7 @@ final class OrderException extends BaseException
      */
     public static function returnWindowClosed(string $orderUuid): self
     {
-        return self::make('The return period for this order has ended.')
+        return self::make(__('order.errors.return_window_closed'))
             ->withContext([
                 'reason' => 'return_window_closed',
                 'order_uuid' => $orderUuid,
@@ -207,7 +207,7 @@ final class OrderException extends BaseException
      */
     public static function returnAlreadyRequested(string $orderUuid): self
     {
-        return self::make('A return for this order is already in progress.')
+        return self::make(__('order.errors.return_already_requested'))
             ->withContext([
                 'reason' => 'return_already_requested',
                 'order_uuid' => $orderUuid,
@@ -224,7 +224,7 @@ final class OrderException extends BaseException
      */
     public static function returnAlreadyDecided(string $requestUuid): self
     {
-        return self::make('This return request has already been answered.')
+        return self::make(__('order.errors.return_already_decided'))
             ->withContext([
                 'reason' => 'return_already_decided',
                 'request_uuid' => $requestUuid,
@@ -241,7 +241,7 @@ final class OrderException extends BaseException
      */
     public static function returnNotApproved(string $requestUuid): self
     {
-        return self::make('This return has not been approved yet.')
+        return self::make(__('order.errors.return_not_approved'))
             ->withContext([
                 'reason' => 'return_not_approved',
                 'request_uuid' => $requestUuid,
@@ -259,7 +259,7 @@ final class OrderException extends BaseException
      */
     public static function checkoutGroupNotPlaceable(string $checkoutGroupUuid): self
     {
-        return self::make('This purchase has already been completed or is no longer valid.')
+        return self::make(__('order.errors.group_not_placeable'))
             ->withContext([
                 'reason' => 'group_not_placeable',
                 'checkout_group_uuid' => $checkoutGroupUuid,
@@ -276,7 +276,7 @@ final class OrderException extends BaseException
      */
     public static function missingTaxRate(string $productUuid): self
     {
-        return self::make('One of the items in your basket cannot be priced for tax.')
+        return self::make(__('order.errors.missing_tax_rate'))
             ->withContext(['reason' => 'missing_tax_rate', 'product_uuid' => $productUuid]);
     }
 
@@ -289,7 +289,7 @@ final class OrderException extends BaseException
      */
     public static function invalidQuantity(int $requested, int $max): self
     {
-        return self::make("You can order between 1 and {$max} of one item.")
+        return self::make(__('order.errors.invalid_quantity', ['max' => $max]))
             ->withContext(['reason' => 'invalid_quantity', 'requested' => $requested, 'max' => $max]);
     }
 
@@ -298,7 +298,7 @@ final class OrderException extends BaseException
      */
     public static function cartIsFull(int $max): self
     {
-        return self::make("A basket can hold at most {$max} different items.")
+        return self::make(__('order.errors.cart_full', ['max' => $max]))
             ->withContext(['reason' => 'cart_full', 'max' => $max]);
     }
 }

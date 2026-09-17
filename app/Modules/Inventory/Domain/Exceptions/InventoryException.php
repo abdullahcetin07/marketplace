@@ -34,7 +34,7 @@ final class InventoryException extends BaseException
      */
     public static function insufficientStock(string $variantUuid, int $requested, int $available): self
     {
-        return self::make('There is not enough stock to reserve that quantity.')
+        return self::make(__('inventory.errors.insufficient_stock'))
             ->withContext([
                 'reason' => 'insufficient_stock',
                 'variant_uuid' => $variantUuid,
@@ -52,7 +52,7 @@ final class InventoryException extends BaseException
      */
     public static function stockItemNotFound(string $variantUuid, string $sellingOrgUuid): self
     {
-        return self::make('That seller has no stock record for this variant.')
+        return self::make(__('inventory.errors.stock_item_not_found'))
             ->withContext([
                 'reason' => 'stock_item_not_found',
                 'variant_uuid' => $variantUuid,
@@ -71,7 +71,7 @@ final class InventoryException extends BaseException
      */
     public static function reservationNotFound(string $reference): self
     {
-        return self::make('No reservation exists under that reference.')
+        return self::make(__('inventory.errors.reservation_not_found'))
             ->withContext([
                 'reason' => 'reservation_not_found',
                 'reference' => $reference,
@@ -83,7 +83,7 @@ final class InventoryException extends BaseException
      */
     public static function invalidQuantity(int $quantity): self
     {
-        return self::make('A stock quantity must be a positive number.')
+        return self::make(__('inventory.errors.invalid_quantity'))
             ->withContext([
                 'reason' => 'invalid_quantity',
                 'quantity' => $quantity,

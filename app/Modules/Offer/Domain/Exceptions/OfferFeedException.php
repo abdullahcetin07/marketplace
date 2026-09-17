@@ -38,7 +38,7 @@ final class OfferFeedException extends BaseException
      */
     public static function productNotInCatalog(string $gtin): self
     {
-        return self::make("Bu barkod yayındaki katalogda yok: {$gtin}")
+        return self::make(__('offer.errors.feed_product_not_in_catalog', ['gtin' => $gtin]))
             ->withContext(['reason' => 'product_not_in_catalog', 'gtin' => $gtin])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -52,21 +52,21 @@ final class OfferFeedException extends BaseException
      */
     public static function offerNotFound(string $gtin): self
     {
-        return self::make("Bu barkod için teklifiniz yok; önce fiyatla birlikte gönderin: {$gtin}")
+        return self::make(__('offer.errors.feed_offer_not_found', ['gtin' => $gtin]))
             ->withContext(['reason' => 'offer_not_found', 'gtin' => $gtin])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     public static function invalidPrice(string $gtin): self
     {
-        return self::make("Geçersiz fiyat: {$gtin}")
+        return self::make(__('offer.errors.feed_invalid_price', ['gtin' => $gtin]))
             ->withContext(['reason' => 'invalid_price', 'gtin' => $gtin])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
 
     public static function invalidStock(string $gtin): self
     {
-        return self::make("Geçersiz stok: {$gtin}")
+        return self::make(__('offer.errors.feed_invalid_stock', ['gtin' => $gtin]))
             ->withContext(['reason' => 'invalid_stock', 'gtin' => $gtin])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -77,7 +77,7 @@ final class OfferFeedException extends BaseException
      */
     public static function listPriceBelowPrice(string $gtin): self
     {
-        return self::make("Piyasa fiyatı satış fiyatından düşük olamaz: {$gtin}")
+        return self::make(__('offer.errors.feed_list_price_below_price', ['gtin' => $gtin]))
             ->withContext(['reason' => 'list_price_below_price', 'gtin' => $gtin])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -91,7 +91,7 @@ final class OfferFeedException extends BaseException
      */
     public static function noSellableStore(): self
     {
-        return self::make('Yayında mağazanız yok; teklif gönderebilmek için önce mağazanızın açık olması gerekiyor.')
+        return self::make(__('offer.errors.feed_no_sellable_store'))
             ->withContext(['reason' => 'no_sellable_store'])
             ->withStatus(Response::HTTP_FORBIDDEN);
     }

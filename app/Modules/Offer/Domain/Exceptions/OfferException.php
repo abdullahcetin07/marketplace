@@ -31,7 +31,7 @@ final class OfferException extends BaseException
      */
     public static function duplicateForVariant(string $variantUuid): self
     {
-        return self::make('You already have an offer for this variant. Edit it instead.')
+        return self::make(__('offer.errors.duplicate_offer'))
             ->withContext(['reason' => 'duplicate_offer', 'variant_uuid' => $variantUuid]);
     }
 
@@ -43,7 +43,7 @@ final class OfferException extends BaseException
      */
     public static function variantNotFound(string $variantUuid): self
     {
-        return self::make('That product variant does not exist.')
+        return self::make(__('offer.errors.variant_not_found'))
             ->withContext(['reason' => 'variant_not_found', 'variant_uuid' => $variantUuid]);
     }
 
@@ -53,7 +53,7 @@ final class OfferException extends BaseException
      */
     public static function productNotPublished(string $productUuid): self
     {
-        return self::make('That product is not published, so it cannot be offered yet.')
+        return self::make(__('offer.errors.product_not_published'))
             ->withContext(['reason' => 'product_not_published', 'product_uuid' => $productUuid]);
     }
 
@@ -63,7 +63,7 @@ final class OfferException extends BaseException
      */
     public static function noActiveStore(): self
     {
-        return self::make('This company has no active store, so it cannot list offers.')
+        return self::make(__('offer.errors.no_active_store'))
             ->withContext(['reason' => 'no_active_store']);
     }
 
@@ -74,7 +74,7 @@ final class OfferException extends BaseException
      */
     public static function storeNotUsable(string $storeUuid): self
     {
-        return self::make('That store cannot carry this offer.')
+        return self::make(__('offer.errors.store_not_usable'))
             ->withContext(['reason' => 'store_not_usable', 'store_uuid' => $storeUuid]);
     }
 
@@ -84,7 +84,7 @@ final class OfferException extends BaseException
      */
     public static function invalidPrice(): self
     {
-        return self::make('A price must be greater than zero.')
+        return self::make(__('offer.errors.invalid_price'))
             ->withContext(['reason' => 'invalid_price']);
     }
 
@@ -94,7 +94,7 @@ final class OfferException extends BaseException
      */
     public static function listPriceBelowPrice(): self
     {
-        return self::make('The list price cannot be lower than the selling price.')
+        return self::make(__('offer.errors.list_price_below_price'))
             ->withContext(['reason' => 'list_price_below_price']);
     }
 
@@ -104,7 +104,7 @@ final class OfferException extends BaseException
      */
     public static function invalidTransition(OfferStatus $from, OfferStatus $to): self
     {
-        return self::make('This offer cannot change state that way.')
+        return self::make(__('offer.errors.invalid_transition'))
             ->withContext([
                 'reason' => 'invalid_transition',
                 'from' => $from->value,
@@ -118,7 +118,7 @@ final class OfferException extends BaseException
      */
     public static function notSuspended(): self
     {
-        return self::make('This offer is not suspended.')
+        return self::make(__('offer.errors.not_suspended'))
             ->withContext(['reason' => 'not_suspended']);
     }
 }

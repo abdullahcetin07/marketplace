@@ -25,7 +25,7 @@ final class StoreException extends BaseException
      */
     public static function invalidTransition(StoreStatus $from, string $to): self
     {
-        return self::make('This store cannot change state that way.')
+        return self::make(__('store.errors.invalid_transition'))
             ->withContext([
                 'reason' => 'invalid_transition',
                 'from' => $from->value,

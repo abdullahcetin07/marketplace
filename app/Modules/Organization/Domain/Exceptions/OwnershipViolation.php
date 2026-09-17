@@ -25,7 +25,7 @@ final class OwnershipViolation extends BaseException
      */
     public static function ownerCannotBeRemoved(): self
     {
-        return self::make('The organization owner cannot be removed; transfer ownership first.')
+        return self::make(__('organization.errors.owner_cannot_be_removed'))
             ->withContext(['reason' => 'owner_cannot_be_removed']);
     }
 
@@ -34,7 +34,7 @@ final class OwnershipViolation extends BaseException
      */
     public static function ownerRoleImmutable(): self
     {
-        return self::make('The owner role can only change through an ownership transfer.')
+        return self::make(__('organization.errors.owner_role_immutable'))
             ->withContext(['reason' => 'owner_role_immutable']);
     }
 
@@ -43,7 +43,7 @@ final class OwnershipViolation extends BaseException
      */
     public static function transferTargetInactive(): self
     {
-        return self::make('Ownership can only be transferred to an active member.')
+        return self::make(__('organization.errors.transfer_target_inactive'))
             ->withContext(['reason' => 'transfer_target_inactive']);
     }
 
@@ -52,7 +52,7 @@ final class OwnershipViolation extends BaseException
      */
     public static function transferTargetCannotOwn(): self
     {
-        return self::make('Only a seller account may own an organization.')
+        return self::make(__('organization.errors.transfer_target_cannot_own'))
             ->withContext(['reason' => 'transfer_target_cannot_own']);
     }
 }

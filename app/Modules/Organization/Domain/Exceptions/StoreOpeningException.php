@@ -25,7 +25,7 @@ final class StoreOpeningException extends BaseException
      */
     public static function limitReached(?int $limit): self
     {
-        return self::make('This organization has reached its store limit.')
+        return self::make(__('organization.errors.store_limit_reached'))
             ->withContext(['reason' => 'store_limit_reached', 'limit' => $limit]);
     }
 
@@ -35,7 +35,7 @@ final class StoreOpeningException extends BaseException
      */
     public static function invalidTransition(): self
     {
-        return self::make('This request cannot change state that way.')
+        return self::make(__('organization.errors.request_invalid_transition'))
             ->withContext(['reason' => 'invalid_transition']);
     }
 }

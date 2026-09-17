@@ -27,7 +27,7 @@ final class InvitationException extends BaseException
      */
     public static function notAcceptable(): self
     {
-        return self::make('This invitation is no longer valid.')
+        return self::make(__('organization.errors.not_acceptable'))
             ->withContext(['reason' => 'not_acceptable'])
             ->withStatus(Response::HTTP_UNPROCESSABLE_ENTITY);
     }
@@ -37,7 +37,7 @@ final class InvitationException extends BaseException
      */
     public static function emailMismatch(): self
     {
-        return self::make('This invitation was sent to a different email address.')
+        return self::make(__('organization.errors.email_mismatch'))
             ->withContext(['reason' => 'email_mismatch']);
     }
 
@@ -46,7 +46,7 @@ final class InvitationException extends BaseException
      */
     public static function alreadyMember(): self
     {
-        return self::make('You are already a member of this organization.')
+        return self::make(__('organization.errors.already_member'))
             ->withContext(['reason' => 'already_member']);
     }
 
@@ -55,7 +55,7 @@ final class InvitationException extends BaseException
      */
     public static function cannotInviteOwner(): self
     {
-        return self::make('The owner role cannot be granted by invitation.')
+        return self::make(__('organization.errors.cannot_invite_owner'))
             ->withContext(['reason' => 'cannot_invite_owner']);
     }
 }
