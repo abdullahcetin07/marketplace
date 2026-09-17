@@ -10,6 +10,29 @@ declare(strict_types=1);
 */
 
 return [
+
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'duplicate_offer' => 'You already have an offer for this variant. Edit it instead.',
+        'variant_not_found' => 'That product variant does not exist.',
+        'product_not_published' => 'That product is not published, so it cannot be offered yet.',
+        'no_active_store' => 'This company has no active store, so it cannot list offers.',
+        'store_not_usable' => 'That store cannot carry this offer.',
+        'invalid_price' => 'A price must be greater than zero.',
+        'list_price_below_price' => 'The list price cannot be lower than the selling price.',
+        'invalid_transition' => 'This offer cannot change state that way.',
+        'not_suspended' => 'This offer is not suspended.',
+        'feed_product_not_in_catalog' => 'Bu barkod yayındaki katalogda yok: :gtin',
+        'feed_offer_not_found' => 'Bu barkod için teklifiniz yok; önce fiyatla birlikte gönderin: :gtin',
+        'feed_invalid_price' => 'Geçersiz fiyat: :gtin',
+        'feed_invalid_stock' => 'Geçersiz stok: :gtin',
+        'feed_list_price_below_price' => 'Piyasa fiyatı satış fiyatından düşük olamaz: :gtin',
+        'feed_no_sellable_store' => 'Yayında mağazanız yok; teklif gönderebilmek için önce mağazanızın açık olması gerekiyor.',
+    ],
+
     'singular' => 'Offer',
     'plural' => 'Offers',
 
@@ -83,6 +106,10 @@ return [
         'unknown_reason' => '(no reason recorded)',
         'empty' => 'No CSV uploaded yet',
         'empty_hint' => 'Start from the "Bulk upload via CSV" button on the Offers page.',
+    ],
+
+    'search' => [
+        'placeholder' => 'Product name, barcode or SKU',
     ],
 
     'field' => [

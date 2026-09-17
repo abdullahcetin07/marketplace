@@ -10,6 +10,29 @@ declare(strict_types=1);
 */
 
 return [
+
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'duplicate_offer' => 'Bu varyant için zaten bir teklifiniz var. Yeni teklif açmak yerine mevcut teklifi düzenleyin.',
+        'variant_not_found' => 'Bu ürün varyantı bulunamadı.',
+        'product_not_published' => 'Bu ürün yayında değil, bu yüzden teklif verilemez.',
+        'no_active_store' => 'Bu şirketin yayında mağazası yok, bu yüzden teklif veremez.',
+        'store_not_usable' => 'Bu mağaza bu teklifi taşıyamaz.',
+        'invalid_price' => 'Fiyat sıfırdan büyük olmalı.',
+        'list_price_below_price' => 'Piyasa fiyatı satış fiyatından düşük olamaz.',
+        'invalid_transition' => 'Bu teklif bu şekilde durum değiştiremez.',
+        'not_suspended' => 'Bu teklif askıya alınmış değil.',
+        'feed_product_not_in_catalog' => 'Bu barkod yayındaki katalogda yok: :gtin',
+        'feed_offer_not_found' => 'Bu barkod için teklifiniz yok; önce fiyatla birlikte gönderin: :gtin',
+        'feed_invalid_price' => 'Geçersiz fiyat: :gtin',
+        'feed_invalid_stock' => 'Geçersiz stok: :gtin',
+        'feed_list_price_below_price' => 'Piyasa fiyatı satış fiyatından düşük olamaz: :gtin',
+        'feed_no_sellable_store' => 'Yayında mağazanız yok; teklif gönderebilmek için önce mağazanızın açık olması gerekiyor.',
+    ],
+
     'singular' => 'Teklif',
     'plural' => 'Teklifler',
 
@@ -83,6 +106,10 @@ return [
         'unknown_reason' => '(sebep kaydedilmedi)',
         'empty' => 'Henüz CSV yüklemediniz',
         'empty_hint' => 'Teklifler sayfasındaki "CSV ile toplu yükle" düğmesiyle başlayın.',
+    ],
+
+    'search' => [
+        'placeholder' => 'Ürün adı, barkod veya stok kodu',
     ],
 
     'field' => [

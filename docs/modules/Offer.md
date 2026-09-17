@@ -760,3 +760,32 @@ test, since Laravel only arms that guard when a query hydrates more than one row
   admin imports the product (ADR-074). Sellers will ask for this; it is a catalogue
   decision, not a feed one.
 
+---
+
+## 17 Searching the seller's own listings (2026-09-17)
+
+**A MERCHANT WITH 20,000 LISTINGS COULD NOT FIND ONE.** "Tekliflerim" rendered a
+product title per row fetched through `CatalogBrowseContract` (ADR-037: the offer
+holds a uuid and never a copy of the title), so there was no column to search and
+none was marked searchable. Filtering was a status dropdown and sorting; changing
+one price meant paging to it.
+
+The product column is now searchable through a new Core read,
+`CatalogQueryContract::uuidsMatchingText()`: the term goes to the CATALOGUE, which
+answers with product and variant uuids, and the table filters its own rows by them.
+Titles fold the Turkish way (`tisort` finds `Tişört`, over `products.search_text`);
+a barcode or SKU matches exactly, because a near-miss digit is a different product.
+
+**THE INTERSECTION IS THE SECURITY MODEL.** The port knows nothing about who is
+asking and deliberately does not filter on publication status — a seller's offer
+outlives the product's publication, and the paused row is the one they are looking
+for. What keeps that from being a window onto the catalogue, or onto a competitor's
+listing of the SAME shared product, is that the uuids are only ever turned into rows
+by the tenancy-scoped query (ADR-030). A test pins exactly that: two merchants, one
+product, one search, one visible row.
+
+**An unmatched term empties the table** rather than being ignored — "no listing of
+yours matches" is an answer, and a search box that silently shows everything on a
+typo is worse than none.
+
+Inventory's "Stoğum" got the identical treatment, through the same port.

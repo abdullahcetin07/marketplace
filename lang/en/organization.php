@@ -10,6 +10,23 @@ declare(strict_types=1);
 
 return [
 
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'not_acceptable' => 'This invitation is no longer valid.',
+        'email_mismatch' => 'This invitation was sent to a different email address.',
+        'already_member' => 'You are already a member of this organization.',
+        'cannot_invite_owner' => 'The owner role cannot be granted by invitation.',
+        'owner_cannot_be_removed' => 'The organization owner cannot be removed; transfer ownership first.',
+        'owner_role_immutable' => 'The owner role can only change through an ownership transfer.',
+        'transfer_target_inactive' => 'Ownership can only be transferred to an active member.',
+        'transfer_target_cannot_own' => 'Only a seller account may own an organization.',
+        'store_limit_reached' => 'This organization has reached its store limit.',
+        'request_invalid_transition' => 'This request cannot change state that way.',
+    ],
+
     'registered' => 'Your organization has been registered and is pending review.',
     'registered_with_store_request' => 'Your company has been registered and your store request created. You can send it for review once your company is approved.',
     'kyc_submitted' => 'Your company details have been submitted for review.',

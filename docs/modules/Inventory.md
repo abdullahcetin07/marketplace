@@ -469,3 +469,10 @@ reads it, not the Offer column — but a seller editing their stock on the Offer
 overwrites the pool with what they typed. That is a pre-existing seam, not one P5 created;
 it is recorded here because a refund makes it reachable in production for the first
 time.
+
+**Seller stock is searchable (2026-09-17).** "Stoğum" had the same gap as
+"Tekliflerim": rows hold uuids and render a title fetched per row, so nothing was
+searchable. Both now search through `CatalogQueryContract::uuidsMatchingText()` —
+title (Turkish-folded), barcode or SKU in, catalogue uuids out, filtered against the
+tenancy-scoped query. See Offer.md §17 for the reasoning; nothing about Inventory's
+own data changed.

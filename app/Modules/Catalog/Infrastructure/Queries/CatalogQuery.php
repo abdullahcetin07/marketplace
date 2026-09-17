@@ -11,6 +11,8 @@ use App\Modules\Catalog\Domain\Models\Category;
 use App\Modules\Catalog\Domain\Models\Product;
 use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Catalog\Domain\Models\TaxRate;
+use App\Modules\Catalog\Domain\Support\TurkishFold;
+use Illuminate\Database\Eloquent\Builder;
 
 /**
  * Catalog's implementation of the downstream read port (ADR-040).
@@ -144,5 +146,58 @@ final class CatalogQuery implements CatalogQueryContract
             ->orderBy('position')
             ->orderBy('id')
             ->value('uuid');
+    }
+
+    /**
+     * Products and variants matching a seller's search box (CatalogQueryContract).
+     *
+     * TWO QUERIES, NOT A JOIN: the product side is a folded LIKE over
+     * `search_text`, the variant side an exact code match, and a UNION of the two
+     * shapes would make both slower to express what is cheaper to ask twice.
+     *
+     * An all-punctuation term folds to NO tokens — the title clause is then
+     * skipped entirely rather than degenerating into `LIKE '%%'`, which would
+     * return the whole catalogue for a search of "-".
+     *
+     * @return array{products: array<int, string>, variants: array<int, string>}
+     */
+    public function uuidsMatchingText(string $term, int $limit = 300): array
+    {
+        $term = trim($term);
+
+        if ($term === '') {
+            return ['products' => [], 'variants' => []];
+        }
+
+        $limit = max(1, min($limit, 1000));
+        $tokens = TurkishFold::tokens($term);
+
+        /** @var array<int, string> $products */
+        $products = Product::query()
+            ->where(static function (Builder $scoped) use ($tokens, $term): void {
+                if ($tokens !== []) {
+                    $scoped->where(static function (Builder $folded) use ($tokens): void {
+                        foreach ($tokens as $token) {
+                            $folded->where('search_text', 'LIKE', '%'.$token.'%');
+                        }
+                    });
+                }
+
+                $scoped->orWhere('gtin', $term);
+            })
+            ->limit($limit)
+            ->pluck('uuid')
+            ->all();
+
+        /** @var array<int, string> $variants */
+        $variants = ProductVariant::query()
+            ->where(static fn (Builder $scoped): Builder => $scoped
+                ->where('sku', $term)
+                ->orWhere('barcode', $term))
+            ->limit($limit)
+            ->pluck('uuid')
+            ->all();
+
+        return ['products' => $products, 'variants' => $variants];
     }
 }

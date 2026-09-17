@@ -23,6 +23,10 @@ return [
     | say, and a seller who cannot read it cannot answer "the site says sold out
     | and my shelf is not".
     */
+    'search' => [
+        'placeholder' => 'Product name, barcode or SKU',
+    ],
+
     'field' => [
         'product' => 'Product',
         'variant' => 'Variant',
@@ -60,6 +64,10 @@ return [
 
     'errors' => [
         'stock_is_not_edited' => 'Stock is not edited here. Change the quantity on the offer form.',
+        'insufficient_stock' => 'There is not enough stock to reserve that quantity.',
+        'stock_item_not_found' => 'That seller has no stock record for this variant.',
+        'reservation_not_found' => 'No reservation exists under that reference.',
+        'invalid_quantity' => 'A stock quantity must be a positive number.',
     ],
 
     /*

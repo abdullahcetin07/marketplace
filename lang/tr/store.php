@@ -3,6 +3,15 @@
 declare(strict_types=1);
 
 return [
+
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'invalid_transition' => 'Bu mağaza bu şekilde durum değiştiremez.',
+    ],
+
     'plural' => 'Mağazalar',
     'singular' => 'Mağaza',
 

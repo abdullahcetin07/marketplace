@@ -10,6 +10,23 @@ declare(strict_types=1);
 
 return [
 
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'not_acceptable' => 'Bu davet artık geçerli değil.',
+        'email_mismatch' => 'Bu davet başka bir e-posta adresine gönderilmiş.',
+        'already_member' => 'Bu şirketin zaten üyesisiniz.',
+        'cannot_invite_owner' => 'Sahiplik rolü davetle verilemez.',
+        'owner_cannot_be_removed' => 'Şirket sahibi çıkarılamaz; önce sahipliği devredin.',
+        'owner_role_immutable' => 'Sahiplik rolü yalnızca sahiplik devriyle değişir.',
+        'transfer_target_inactive' => 'Sahiplik yalnızca aktif bir üyeye devredilebilir.',
+        'transfer_target_cannot_own' => 'Bir şirketin sahibi yalnızca satıcı hesabı olabilir.',
+        'store_limit_reached' => 'Bu şirket mağaza sınırına ulaştı.',
+        'request_invalid_transition' => 'Bu başvuru bu şekilde durum değiştiremez.',
+    ],
+
     'registered' => 'Kuruluşunuz kaydedildi ve inceleme bekliyor.',
     'registered_with_store_request' => 'Şirketiniz kaydedildi ve mağaza talebiniz oluşturuldu. Şirketiniz onaylandıktan sonra talebi incelemeye gönderebilirsiniz.',
     'kyc_submitted' => 'Şirket bilgileriniz inceleme için gönderildi.',

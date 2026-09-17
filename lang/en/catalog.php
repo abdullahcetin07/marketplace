@@ -11,6 +11,31 @@ declare(strict_types=1);
 
 return [
 
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'invalid_transition' => 'This product cannot change state that way.',
+        'moderation_reason_required' => 'This decision needs a reason the seller can act on.',
+        'category_has_children' => 'This category has sub-categories; remove them first.',
+        'category_still_has_products' => 'This category holds products; move them elsewhere before closing it.',
+        'category_does_not_accept_products' => 'This category does not accept products. Choose one that does.',
+        'missing_required_attributes' => 'This product is missing attributes its category requires.',
+        'attribute_not_in_schema' => 'That attribute does not apply to this product\'s category.',
+        'attribute_is_a_variant_axis' => 'That attribute defines variants — set it on the variant, not the product.',
+        'invalid_attribute_value' => 'That value is not valid for this attribute.',
+        'attribute_cannot_define_variants' => 'Only a select attribute can define variants.',
+        'attribute_does_not_enumerate_values' => 'Only a select attribute can have predefined values.',
+        'duplicate_variant_combination' => 'This product already has a variant with that combination.',
+        'variant_limit_exceeded' => 'That selection would generate too many variants.',
+        'last_variant' => 'A product must keep at least one variant.',
+        'missing_tax_rate' => 'A product must have a KDV bracket before it can be submitted.',
+        'gtin_taken' => 'A product with this barcode is already in the catalog.',
+        'category_cycle' => 'A category cannot be moved inside itself.',
+        'category_has_active_children' => 'Archive this category\'s subcategories first.',
+    ],
+
     'category' => [
         'singular' => 'Category',
         'plural' => 'Categories',

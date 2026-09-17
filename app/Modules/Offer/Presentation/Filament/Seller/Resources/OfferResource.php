@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Offer\Presentation\Filament\Seller\Resources;
 
 use App\Core\Domain\Contracts\CatalogBrowseContract;
+use App\Core\Domain\Contracts\CatalogQueryContract;
 use App\Core\Domain\Contracts\InventoryQueryContract;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
@@ -196,10 +197,18 @@ final class OfferResource extends Resource
     {
         return $table
             ->columns([
+                /*
+                | SEARCHABLE THROUGH THE CATALOGUE, NOT THROUGH THIS COLUMN.
+                | The cell holds a uuid and renders a title fetched per row
+                | (ADR-037), so Filament's own `searchable()` would match the
+                | uuid — a string the seller has never seen. The term goes to the
+                | catalogue instead and comes back as the uuids to filter by.
+                */
                 Tables\Columns\TextColumn::make('product_uuid')
                     ->label(__('offer.field.product'))
                     ->state(fn (Offer $record): string => app(CatalogLabels::class)->productTitle($record->product_uuid))
                     ->description(fn (Offer $record): string => app(CatalogLabels::class)->variantLabel($record->variant_uuid))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::applyCatalogSearch($query, $search))
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('price_minor')
@@ -334,6 +343,7 @@ final class OfferResource extends Resource
             // Pausing four listings is four decisions, each with its own audit
             // reason. Nothing here belongs on a checkbox.
             ->bulkActions([])
+            ->searchPlaceholder(__('offer.search.placeholder'))
             ->emptyStateIcon('heroicon-o-tag')
             ->emptyStateHeading(__('offer.empty.heading'))
             ->emptyStateDescription(__('offer.empty.description'))
@@ -423,6 +433,27 @@ final class OfferResource extends Resource
     public static function defaultCurrencyId(): int
     {
         return (int) app(CurrencyRepositoryContract::class)->default()->getKey();
+    }
+
+    /**
+     * Narrow a table to the offers whose catalogue entry matches the search box.
+     *
+     * The seller types what they know — a product name, the barcode on the box,
+     * their own SKU — and the Core port answers with uuids. **An unmatched term
+     * yields two empty `IN` lists, which is an empty table**: "no listing of
+     * yours matches" is the honest answer, and it is not the same as no filter.
+     *
+     * @param Builder<Offer> $query
+     *
+     * @return Builder<Offer>
+     */
+    private static function applyCatalogSearch(Builder $query, string $search): Builder
+    {
+        $matches = app(CatalogQueryContract::class)->uuidsMatchingText($search);
+
+        return $query->where(static fn (Builder $scoped): Builder => $scoped
+            ->whereIn('product_uuid', $matches['products'])
+            ->orWhereIn('variant_uuid', $matches['variants']));
     }
 
     private static function pauseAction(): Tables\Actions\Action

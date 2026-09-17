@@ -339,3 +339,77 @@ it('shows a real sellable count when there is stock', function (): void {
         ->assertSee('7')
         ->assertDontSee(__('offer.stock.sold_out'));
 });
+
+it('finds a listing by product title, barcode or SKU', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $fixture['product']->forceFill(['gtin' => '8690632099887'])->save();
+    $fixture['variant']->forceFill(['sku' => 'RF-TSHIRT-1'])->save();
+
+    $mine = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->create();
+
+    // A second listing of this seller's, on a product whose title shares nothing
+    // with the search terms.
+    $other = sellerReadyToList();
+    $other['product']->forceFill(['title_tr' => 'Deri Ayakkabı'])->save();
+    $otherOffer = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($other['variant']->uuid, $other['product']->uuid)
+        ->create();
+
+    // The product column holds a uuid; these are the three strings a seller
+    // actually has in front of them, and the title folds ("tisort" → "Tişört").
+    foreach (['tisort', '8690632099887', 'RF-TSHIRT-1'] as $term) {
+        Livewire::test(ListOffers::class)
+            ->searchTable($term)
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$otherOffer]);
+    }
+});
+
+it('shows an empty table for a search that matches nothing, rather than everything', function (): void {
+    $fixture = sellerReadyToList();
+    $this->actingAsSeller($fixture['seller']);
+
+    $mine = Offer::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forStore($fixture['store']->uuid)
+        ->forVariant($fixture['variant']->uuid, $fixture['product']->uuid)
+        ->create();
+
+    Livewire::test(ListOffers::class)
+        ->searchTable('bu-urun-yok')
+        ->assertCanNotSeeTableRecords([$mine]);
+});
+
+it('never lets a search reach another merchant’s listing of the same product', function (): void {
+    $mine = sellerReadyToList();
+    $theirs = sellerReadyToList();
+    $this->actingAsSeller($mine['seller']);
+
+    // THE CATALOGUE IS SHARED (ADR-037): the same product, two merchants. The
+    // search resolves one set of product uuids for both, so the tenancy wall is
+    // the only thing separating the rows.
+    $ours = Offer::factory()
+        ->forOrganization($mine['org']->getKey(), $mine['org']->uuid)
+        ->forStore($mine['store']->uuid)
+        ->forVariant($mine['variant']->uuid, $mine['product']->uuid)
+        ->create();
+
+    $competitor = Offer::factory()
+        ->forOrganization($theirs['org']->getKey(), $theirs['org']->uuid)
+        ->forStore($theirs['store']->uuid)
+        ->forVariant($mine['variant']->uuid, $mine['product']->uuid)
+        ->create();
+
+    Livewire::test(ListOffers::class)
+        ->searchTable('tisort')
+        ->assertCanSeeTableRecords([$ours])
+        ->assertCanNotSeeTableRecords([$competitor]);
+});

@@ -3,6 +3,9 @@
 declare(strict_types=1);
 
 use App\Models\Seller;
+use App\Modules\Catalog\Domain\Models\Category;
+use App\Modules\Catalog\Domain\Models\Product;
+use App\Modules\Catalog\Domain\Models\ProductVariant;
 use App\Modules\Inventory\Domain\Enums\StockMovementType;
 use App\Modules\Inventory\Domain\Models\StockItem;
 use App\Modules\Inventory\Domain\Models\StockMovement;
@@ -236,4 +239,41 @@ it('never shows one seller another seller’s pool by uuid', function (): void {
 
     expect(fn () => Livewire::test(ViewStock::class, ['record' => $theirs->getRouteKey()]))
         ->toThrow(Illuminate\Database\Eloquent\ModelNotFoundException::class);
+});
+
+it('finds a pool by product title, barcode or SKU', function (): void {
+    $fixture = sellerWithStock();
+    $this->actingAsSeller($fixture['seller']);
+
+    $category = Category::factory()->childOf(Category::factory()->create())->create();
+    $product = Product::factory()->for($category, 'category')->published()
+        ->create(['title_tr' => 'Pamuklu Tişört', 'gtin' => '8690632044556']);
+    $variant = ProductVariant::factory()->for($product)->create(['sku' => 'RF-STOK-1']);
+
+    $mine = StockItem::factory()
+        ->forOrganization($fixture['org']->getKey(), $fixture['org']->uuid)
+        ->forVariant($variant->uuid, $product->uuid)
+        ->stocked(10)
+        ->create();
+
+    // Another pool of the same seller's, on a product named nothing like it.
+    $unrelated = stockPoolFor($fixture);
+
+    foreach (['tisort', '8690632044556', 'RF-STOK-1'] as $term) {
+        Livewire::test(ListStock::class)
+            ->searchTable($term)
+            ->assertCanSeeTableRecords([$mine])
+            ->assertCanNotSeeTableRecords([$unrelated]);
+    }
+});
+
+it('empties the stock table for a search that matches nothing', function (): void {
+    $fixture = sellerWithStock();
+    $this->actingAsSeller($fixture['seller']);
+
+    $mine = stockPoolFor($fixture);
+
+    Livewire::test(ListStock::class)
+        ->searchTable('bu-urun-yok')
+        ->assertCanNotSeeTableRecords([$mine]);
 });

@@ -22,6 +22,10 @@ return [
     | satılabilir 7" cümlesi bu modülün var oluş sebebi; satıcı bu üçlüyü
     | anlamadan "sitede yok yazıyor ama depomda var" sorusunu çözemez.
     */
+    'search' => [
+        'placeholder' => 'Ürün adı, barkod veya stok kodu',
+    ],
+
     'field' => [
         'product' => 'Ürün',
         'variant' => 'Varyant',
@@ -59,6 +63,10 @@ return [
 
     'errors' => [
         'stock_is_not_edited' => 'Stok buradan düzenlenmez. Adedi teklif formundan değiştirin.',
+        'insufficient_stock' => 'Bu miktarı ayırmak için yeterli stok yok.',
+        'stock_item_not_found' => 'Bu satıcının bu varyant için stok kaydı yok.',
+        'reservation_not_found' => 'Bu referansla bir stok ayırma kaydı yok.',
+        'invalid_quantity' => 'Stok miktarı pozitif bir sayı olmalı.',
     ],
 
     /*

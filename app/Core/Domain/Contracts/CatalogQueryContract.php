@@ -121,4 +121,35 @@ interface CatalogQueryContract
      * reason.
      */
     public function publishedVariantUuidForGtin(string $gtin): ?string;
+
+    /**
+     * Catalogue uuids whose product or variant matches a seller's free-text
+     * search — a title fragment, a barcode, or a SKU.
+     *
+     * **IT EXISTS SO A SELLER CAN FIND THEIR OWN ROW** (2026-09-17). Offer and
+     * Inventory store `product_uuid`/`variant_uuid` and NOTHING ELSE about the
+     * catalogue (ADR-037/040), so their panels render a title fetched per row and
+     * had no column to search: a merchant with 20,000 listings could scroll to a
+     * price, never search for one. The caller intersects what comes back with its
+     * OWN tenant-scoped rows, which is what keeps this from being a way to read
+     * somebody else's shelf.
+     *
+     * **TITLES ARE FOLDED, CODES ARE EXACT.** The title match runs over
+     * `products.search_text`, so "sac" finds "Saç" — the same folding the
+     * storefront search uses. A barcode or SKU is matched whole and unfolded: a
+     * near-miss digit is a DIFFERENT product, never a fuzzy hit.
+     *
+     * **IT DOES NOT FILTER ON STATUS**, unlike `publishedVariantUuidForGtin`.
+     * A seller's offer outlives the product's publication — an archived product's
+     * offers are paused, not deleted (Offer.md §7) — and the row they are looking
+     * for is exactly the one they can no longer sell. Nothing leaks by it: the
+     * answer is a set of uuids the caller can only turn into rows it already owns.
+     *
+     * **CAPPED.** A one-letter search matches most of the catalogue, and the
+     * caller turns this into a `WHERE uuid IN (…)`; the limit is what keeps that
+     * from becoming a query with 20,000 bindings.
+     *
+     * @return array{products: array<int, string>, variants: array<int, string>}
+     */
+    public function uuidsMatchingText(string $term, int $limit = 300): array;
 }

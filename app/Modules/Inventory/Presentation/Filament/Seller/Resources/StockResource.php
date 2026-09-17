@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Modules\Inventory\Presentation\Filament\Seller\Resources;
 
+use App\Core\Domain\Contracts\CatalogQueryContract;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Modules\Inventory\Application\Actions\SetLowStockThresholdAction;
 use App\Modules\Inventory\Domain\DTOs\SetLowStockThresholdDTO;
@@ -161,6 +162,9 @@ final class StockResource extends Resource
                     ->label(__('inventory.field.product'))
                     ->state(fn (StockItem $record): string => app(CatalogLabels::class)->productTitle($record->product_uuid))
                     ->description(fn (StockItem $record): string => app(CatalogLabels::class)->variantLabel($record->variant_uuid))
+                    // Title, barcode or SKU, resolved through the catalogue port:
+                    // the column itself holds a uuid nobody searches for.
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::applyCatalogSearch($query, $search))
                     ->wrap(),
 
                 Tables\Columns\TextColumn::make('on_hand')
@@ -217,6 +221,7 @@ final class StockResource extends Resource
                 self::setThresholdAction(),
             ])
             ->bulkActions([])
+            ->searchPlaceholder(__('inventory.search.placeholder'))
             ->emptyStateIcon('heroicon-o-archive-box')
             ->emptyStateHeading(__('inventory.empty.heading'))
             ->emptyStateDescription(__('inventory.empty.description'))
@@ -258,6 +263,26 @@ final class StockResource extends Resource
         return [
             MovementsRelationManager::class,
         ];
+    }
+
+    /**
+     * Narrow the pools to the ones whose catalogue entry matches the search box.
+     *
+     * Same shape as the offer list, and for the same reason: the row holds uuids
+     * and the seller searches for a product. An unmatched term empties the table
+     * rather than ignoring the search.
+     *
+     * @param Builder<StockItem> $query
+     *
+     * @return Builder<StockItem>
+     */
+    private static function applyCatalogSearch(Builder $query, string $search): Builder
+    {
+        $matches = app(CatalogQueryContract::class)->uuidsMatchingText($search);
+
+        return $query->where(static fn (Builder $scoped): Builder => $scoped
+            ->whereIn('product_uuid', $matches['products'])
+            ->orWhereIn('variant_uuid', $matches['variants']));
     }
 
     /**

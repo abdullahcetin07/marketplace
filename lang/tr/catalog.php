@@ -13,6 +13,31 @@ declare(strict_types=1);
 
 return [
 
+    /*
+    | Domain error messages shown to the user (BaseException::userMessage()).
+    | They say what went wrong without naming a table, an id or a class.
+    */
+    'errors' => [
+        'invalid_transition' => 'Bu ürün bu şekilde durum değiştiremez.',
+        'moderation_reason_required' => 'Bu karar için satıcının anlayabileceği bir gerekçe gerekiyor.',
+        'category_has_children' => 'Bu kategorinin alt kategorileri var; önce onları kaldırın.',
+        'category_still_has_products' => 'Bu kategoride ürünler var; kapatmadan önce başka bir kategoriye taşıyın.',
+        'category_does_not_accept_products' => 'Bu kategoriye ürün eklenemez. Ürün kabul eden bir kategori seçin.',
+        'missing_required_attributes' => 'Bu üründe, kategorisinin zorunlu tuttuğu özellikler eksik.',
+        'attribute_not_in_schema' => 'Bu özellik, ürünün kategorisinde tanımlı değil.',
+        'attribute_is_a_variant_axis' => 'Bu özellik varyant belirliyor; ürüne değil varyanta girilmeli.',
+        'invalid_attribute_value' => 'Bu değer, bu özellik için geçerli değil.',
+        'attribute_cannot_define_variants' => 'Yalnızca seçim tipli bir özellik varyant belirleyebilir.',
+        'attribute_does_not_enumerate_values' => 'Yalnızca seçim tipli bir özelliğin hazır değerleri olabilir.',
+        'duplicate_variant_combination' => 'Bu üründe aynı kombinasyona sahip bir varyant zaten var.',
+        'variant_limit_exceeded' => 'Bu seçim çok fazla varyant oluşturur.',
+        'last_variant' => 'Bir üründe en az bir varyant kalmalı.',
+        'missing_tax_rate' => 'Ürün gönderilmeden önce KDV oranı seçilmeli.',
+        'gtin_taken' => 'Bu barkoda sahip bir ürün katalogda zaten var.',
+        'category_cycle' => 'Bir kategori kendi içine taşınamaz.',
+        'category_has_active_children' => 'Önce bu kategorinin alt kategorilerini arşivleyin.',
+    ],
+
     'category' => [
         'singular' => 'Kategori',
         'plural' => 'Kategoriler',
