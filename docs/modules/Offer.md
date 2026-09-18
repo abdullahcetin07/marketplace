@@ -789,3 +789,30 @@ yours matches" is an answer, and a search box that silently shows everything on 
 typo is worse than none.
 
 Inventory's "Stoğum" got the identical treatment, through the same port.
+
+---
+
+## 18 The import failure report is the SHOP's (2026-09-18)
+
+"Yükleme Geçmişi" has listed the shop's uploads since 2026-08-14 — a price list is
+the shop's work, so a Seller Employee uploads it and the owner has to be able to
+read what happened. **"Raporu indir" did not follow.** Filament's own download
+route allows the row's UPLOADER and nobody else, so an owner could see that their
+employee's file failed 1,746 rows and could not open the report saying why.
+
+The button now points at **our own route**, `seller.offer-imports.failures`, which
+asks exactly the question the page asks: an active member of the organizations the
+actor belongs to, and offer-feed imports only.
+
+| Decision | Why | Cost |
+|---|---|---|
+| **A route of ours, not a policy on the vendor model** | Registering a policy switches Filament's controller to `Gate`, and it resolves the actor through `Filament::auth()` — off a panel route that is the DEFAULT panel (admin), so a signed-in seller reads as nobody. Less code, broken feature. | ~90 lines of controller, and a second place that streams this CSV. |
+| **404 for somebody else's import**, never 403 | The report carries their barcodes, prices and stock levels; distinguishing "not yours" from "no such id" confirms which ids exist. | — |
+| **The importer is checked too** | A seller must not reach an admin's catalogue-import report (ADR-074) by guessing an id, even in the impossible case of a shared membership. | — |
+| **The URL carries the internal id** (deviation, non-negotiable #7) | `imports` is a vendor table with no uuid column; adding one to a table the package writes is a bigger change than this fix earns. Bounded: authenticated, seller-guarded, scoped to the actor's own shop. | An id is visible to the person who already owns the row. |
+
+**What did NOT change:** the link inside Filament's own import-finished
+notification still points at the vendor route, which is correct — that
+notification is delivered to the uploader, who has always been allowed to
+download it. The reason that link 404'd until 2026-09-17 was nginx (`/filament`
+was not routed to Laravel), not authorization.

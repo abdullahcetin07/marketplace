@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\GoogleMerchantFeedController;
 use App\Modules\Catalog\Presentation\Controllers\Api\Storefront\MetaCatalogFeedController;
+use App\Modules\Offer\Presentation\Controllers\Web\OfferImportFailuresController;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Route;
 
@@ -102,3 +103,19 @@ Route::get('/feed/google-merchant.xml', [GoogleMerchantFeedController::class, 's
 */
 Route::get('/feed/meta-catalog.xml', [MetaCatalogFeedController::class, 'show'])
     ->name('feed.meta-catalog');
+
+/*
+| The seller's import failure report (Offer.md — Yükleme Geçmişi).
+|
+| OURS RATHER THAN FILAMENT'S, for two reasons its own route cannot serve: it
+| allows only the uploader, while the page lists the whole SHOP's uploads, and it
+| resolves the actor through `Filament::auth()`, which off a panel route means the
+| default (admin) panel and reads a signed-in seller as nobody.
+|
+| Under `/seller` so nginx already routes it to Laravel, and behind the seller
+| guard rather than the panel's full middleware stack — it renders no Livewire
+| component, it streams a file.
+*/
+Route::middleware(['web', 'auth:seller'])
+    ->get('/seller/offer-imports/{import}/failures', OfferImportFailuresController::class)
+    ->name('seller.offer-imports.failures');

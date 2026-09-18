@@ -82,6 +82,7 @@ return [
     ],
 
     'imports' => [
+        'failure_reason' => 'Hata sebebi',
         'title' => 'Yükleme Geçmişi',
         'subheading' => 'Yüklediğiniz CSV dosyalarının ne yaptığı — kaç satır geçti, kaçı neden geçmedi.',
         'help_heading' => 'Bu sayfa ne anlatır?',

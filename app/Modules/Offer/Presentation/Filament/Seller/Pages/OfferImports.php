@@ -145,8 +145,13 @@ final class OfferImports extends Page implements HasTable
                     ->label(__('offer.imports.download'))
                     ->icon('heroicon-o-arrow-down-tray')
                     ->visible(fn (Import $record): bool => $this->failureCount($record) > 0)
+                    /*
+                    | OUR route, not `filament.imports.failed-rows.download`:
+                    | that one allows the UPLOADER alone, so an owner could read
+                    | that their employee's file failed and not why (2026-09-18).
+                    */
                     ->url(fn (Import $record): string => route(
-                        'filament.imports.failed-rows.download',
+                        'seller.offer-imports.failures',
                         ['import' => $record],
                     ), shouldOpenInNewTab: true),
             ])

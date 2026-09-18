@@ -82,6 +82,7 @@ return [
     ],
 
     'imports' => [
+        'failure_reason' => 'Failure reason',
         'title' => 'Upload History',
         'subheading' => 'What your CSV uploads actually did — how many rows landed, and why the rest did not.',
         'help_heading' => 'What this page tells you',
