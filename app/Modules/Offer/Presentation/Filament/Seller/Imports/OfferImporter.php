@@ -19,8 +19,11 @@ use Filament\Actions\Imports\Exceptions\RowImportFailedException;
 use Filament\Actions\Imports\ImportColumn;
 use Filament\Actions\Imports\Importer;
 use Filament\Actions\Imports\Models\Import;
+use Filament\Forms\Components\Checkbox;
+use Filament\Forms\Components\Component;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Support\Facades\DB;
 
 /**
  * The seller's spreadsheet door onto the offer feed (ADR-076, door two).
@@ -101,6 +104,28 @@ final class OfferImporter extends Importer
     }
 
     /**
+     * The one question the upload form asks beyond the column mapping.
+     *
+     * **OFF BY DEFAULT, AND THAT IS THE SAFETY** (owner's decision, 2026-09-18).
+     * Ticked, the file is treated as the shop's WHOLE list and anything absent
+     * from it has its stock zeroed; left alone, the upload only touches the rows
+     * it carries, which is what every upload before today did. A one-brand file
+     * uploaded with the box ticked would empty the rest of the shop, so the
+     * seller says so each time rather than the system assuming it.
+     *
+     * @return array<int, Component>
+     */
+    public static function getOptionsFormComponents(): array
+    {
+        return [
+            Checkbox::make('zero_missing')
+                ->label(__('offer.feed.zero_missing.label'))
+                ->helperText(__('offer.feed.zero_missing.help'))
+                ->default(false),
+        ];
+    }
+
+    /**
      * The row, applied. @see the class note on why this method does the work.
      */
     public function resolveRecord(): Model
@@ -161,6 +186,25 @@ final class OfferImporter extends Importer
         | for exactly this reason.
         */
         $variantUuid = app(CatalogQueryContract::class)->publishedVariantUuidForGtin($gtin);
+
+        /*
+        | **A FULL SYNC IS THE ONLY REASON THIS ROW EXISTS** (§19). The sweep at
+        | the end zeroes what the file never mentioned, and "never mentioned"
+        | cannot be read off the offers: an unchanged row saves nothing, so its
+        | `updated_at` looks identical to an offer the file skipped. Recorded
+        | here, where the variant is already resolved, and only when the seller
+        | asked for a full sync.
+        |
+        | `insertOrIgnore`: the same barcode twice in one file is a mistake in
+        | the sheet, not a reason to fail the row.
+        */
+        if ($variantUuid !== null && ($this->options['zero_missing'] ?? false)) {
+            DB::table('offer_feed_seen_variants')->insertOrIgnore([
+                'import_id' => $this->import->getKey(),
+                'variant_uuid' => $variantUuid,
+                'created_at' => now(),
+            ]);
+        }
 
         return app(OfferRepositoryContract::class)
             ->anyForSellerAndVariant($seller['orgId'], (string) $variantUuid)

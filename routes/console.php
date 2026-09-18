@@ -278,3 +278,15 @@ Schedule::call(function (): void {
         ->where('updated_at', '<', now()->subDays($days))
         ->delete();
 })->name('prune-marketing-checkout-signals')->dailyAt('04:00')->onOneServer();
+
+/*
+| Sightings from a full-sync upload that never reached its sweep — a queue that
+| died mid-import, a batch that was cancelled. The sweep deletes its own rows;
+| these are the ones nobody came back for, and they are meaningless a day later.
+| @see App\Modules\Offer\Application\Jobs\ZeroOffersMissingFromFeedJob
+*/
+Schedule::call(function (): void {
+    DB::table('offer_feed_seen_variants')
+        ->where('created_at', '<', now()->subDays(2))
+        ->delete();
+})->name('prune-offer-feed-sightings')->dailyAt('04:15')->onOneServer();

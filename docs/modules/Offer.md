@@ -816,3 +816,32 @@ notification still points at the vendor route, which is correct — that
 notification is delivered to the uploader, who has always been allowed to
 download it. The reason that link 404'd until 2026-09-17 was nginx (`/filament`
 was not routed to Laravel), not authorization.
+
+---
+
+## 19 "Bu liste mağazamın tamamı" — the full-sync upload (2026-09-18)
+
+A seller uploads their live price list per store and expects the shop to match
+it. Until now an upload was an UPSERT: rows in the file were applied, rows absent
+from it kept whatever stock they last had — so a product the seller had stopped
+carrying stayed sellable until somebody noticed it.
+
+The upload form now carries one checkbox. Ticked, the file is the **whole shop**:
+when the import finishes, every offer of that org **and that store** the file
+never mentioned has its **stock set to zero**.
+
+| Decision | Why | Cost |
+|---|---|---|
+| **Opt-in, unticked by default** (owner's decision) | A one-brand file uploaded as a full sync would empty the rest of the shop. The seller says so each time. | Somebody uploading a full list has to remember the box. |
+| **Stock to zero, not withdrawn** | The seller is saying "I no longer hold these", not "I no longer sell these". Coming back is one number in the next upload; a withdrawal would be a new offer and a new history. | A shop that stops carrying something keeps a 0-stock listing until it withdraws it. |
+| **Sightings recorded per row, in `offer_feed_seen_variants`** | Neither side can answer "the file never mentioned this" on its own: an unchanged row saves nothing, so `updated_at` looks the same as an untouched offer, and Filament's stored `file_path` points into Livewire's TEMP directory, which is pruned. Only written when the box is ticked, and deleted by the sweep. | One insert per row on full-sync uploads, and a nightly prune for the imports that never finished. |
+| **It drives `UpdateOfferStockAction`, row by row** | ADR-076's rule. A mass `UPDATE` would be right in the table and invisible to Inventory (which mirrors the stock EVENT, ADR-048), to the buy box that reads Inventory, and to search. | Thousands of small transactions instead of one statement, on the queue. |
+| **An empty sighting list ABORTS** | A file whose rows all failed, or a barcode column mapped to the wrong header, describes the entire shop as "missing". The honest answer to no evidence is to do nothing. | A genuinely empty file changes nothing, which is also the right answer. |
+| **Org AND store** | A company with two storefronts uploads one list per store; the other store's offers were never candidates for this file. | — |
+| **Suspended and withdrawn offers are skipped** | The stock action refuses both — a suspension is an admin's decision, a withdrawal is over. | — |
+
+**The API feed (ADR-076 §16.3) does NOT have this yet.** A `mode: full` on
+`/api/v1/seller/offers/sync` is the obvious sibling and is deliberately not
+guessed at here: an API caller batches, so "the whole shop" would have to mean a
+sequence of calls, which needs a session the endpoint does not have.
+

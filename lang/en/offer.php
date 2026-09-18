@@ -70,6 +70,11 @@ return [
     ],
 
     'feed' => [
+        'zero_missing' => [
+            'label' => 'This file is my whole shop',
+            'help' => 'Ticked, anything missing from this file has its stock set to zero. Prices and listings stay; only sellable stock goes. Leave it alone for a partial list.',
+            'reason' => 'Full-list upload: absent from the file (import #:import)',
+        ],
         'batch_too_large' => 'At most :max items per call; split the list.',
         'import' => 'Bulk upload via CSV',
         'completed' => ':imported offers processed, :failed rows failed.',

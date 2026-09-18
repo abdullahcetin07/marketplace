@@ -8,6 +8,7 @@ use App\Core\Domain\Contracts\OfferQueryContract;
 use App\Core\Support\StorefrontRegistry;
 use App\Modules\Offer\Application\Listeners\PauseOffersOnProductArchived;
 use App\Modules\Offer\Application\Listeners\ResumeOffersOnProductPublished;
+use App\Modules\Offer\Application\Listeners\SweepOffersMissingFromFeed;
 use App\Modules\Offer\Application\Listeners\SyncOfferSearchIndex;
 use App\Modules\Offer\Application\Listeners\ZeroStockOnSellerCancellation;
 use App\Modules\Offer\Domain\Contracts\OfferRepositoryContract;
@@ -138,6 +139,18 @@ final class OfferServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Order\Domain\Events\OrderCancelledBySeller',
             [ZeroStockOnSellerCancellation::class, 'handle'],
+        );
+
+        /*
+        | THE FULL-SYNC SWEEP (§19). Filament announces a finished import; only
+        | the uploads where the seller ticked "bu liste mağazamın tamamı" have
+        | anything to sweep, and the job itself refuses to run on an empty
+        | sighting list. A vendor event, not another module's — no boundary
+        | question, but named as a string for the same reason as the rest.
+        */
+        Event::listen(
+            'Filament\Actions\Imports\Events\ImportCompleted',
+            [SweepOffersMissingFromFeed::class, 'handle'],
         );
     }
 

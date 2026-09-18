@@ -70,6 +70,11 @@ return [
     ],
 
     'feed' => [
+        'zero_missing' => [
+            'label' => 'Bu liste mağazamın tamamı',
+            'help' => 'İşaretlersen, bu dosyada olmayan ürünlerin stoğu sıfırlanır. Fiyatları ve ilanları durur, yalnızca satılabilir stok kalmaz. Parçalı bir liste yüklüyorsan işaretleme.',
+            'reason' => 'Tam liste yüklemesi: dosyada yer almadığı için sıfırlandı (yükleme #:import)',
+        ],
         'batch_too_large' => 'Tek seferde en fazla :max ürün gönderebilirsiniz; listeyi bölün.',
         'import' => 'CSV ile toplu yükle',
         'completed' => ':imported teklif işlendi, :failed satır başarısız.',
