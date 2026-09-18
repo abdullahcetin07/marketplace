@@ -28,12 +28,26 @@ use App\Modules\Inventory\Domain\Models\StockItem;
  * listed something, never on its own, so `OfferCreated` and `OfferStockChanged`
  * both land here and the first one to arrive wins the creation.
  *
- * RESERVED IS UNTOUCHED. A seller correcting their shelf count says nothing about
- * units already promised to a checkout — and if their new on-hand is below what
- * is reserved, the clamp in `RecordsMovements` keeps the projection coherent
- * while `available` correctly reads zero. Order will find fewer units than it
- * held, which is a real business problem the seller caused and not one this
- * action can paper over.
+ * RESERVED IS UNTOUCHED, AND IT IS ALSO THE FLOOR. A seller correcting their
+ * shelf count says nothing about units already promised to a checkout, and
+ * Inventory will not cancel somebody's payment on their behalf — so a declared
+ * count BELOW the reserved quantity lands on `reserved` rather than on the
+ * number typed. `available` reads zero either way, which is what the seller
+ * meant; the promised unit stays promised until its order commits or releases.
+ *
+ * **THAT FLOOR IS NOT A PREFERENCE, IT IS THE ONLY WAY THE WRITE SUCCEEDS**
+ * (2026-09-18). `stock_items` carries a CHECK constraint, `reserved <= on_hand`.
+ * Without the floor the mirror threw `SQLSTATE[23514]` and the whole adjustment
+ * rolled back, leaving the offer declaring 0 and the pool still holding 13 — a
+ * product the seller had emptied, still selling. It was reachable from the Offer
+ * form all along and became likely the day a full-list upload started zeroing
+ * hundreds of offers at once (Offer.md §19).
+ *
+ * **THE RESIDUE, STATED:** if that reservation is later RELEASED rather than
+ * committed, the floor leaves one unit on hand that the seller had declared
+ * gone, and `available` shows it again. The next sync converges — the seller
+ * uploads daily — and the alternative, releasing another context's hold from
+ * here, is the one thing this module has always refused to do.
  *
  * @see docs/modules/Inventory.md §3.1
  */
@@ -63,6 +77,11 @@ final class AdjustStockAction extends BaseAction
         }
 
         $this->previousOnHand = $item->on_hand;
+
+        // The floor, read under the same lock that guards the write: units
+        // already promised to an open checkout cannot be un-promised by a shelf
+        // count. See the class docblock — below this the database refuses.
+        $onHand = max($onHand, $item->reserved);
 
         // Keep provenance current: a seller can re-list a variant, and the pool
         // should point at the offer that owns it now.

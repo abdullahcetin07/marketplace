@@ -476,3 +476,21 @@ searchable. Both now search through `CatalogQueryContract::uuidsMatchingText()` 
 title (Turkish-folded), barcode or SKU in, catalogue uuids out, filtered against the
 tenancy-scoped query. See Offer.md §17 for the reasoning; nothing about Inventory's
 own data changed.
+
+**The reserved floor (2026-09-18).** `stock_items` has always carried a CHECK
+constraint, `reserved <= on_hand`, and `AdjustStockAction`'s docblock has always
+claimed a clamp kept the projection coherent when a seller declared less than was
+reserved. **There was no such clamp** — `RecordsMovements` clamps at zero, not at
+`reserved` — so the mirror wrote `on_hand = 0` under an open checkout, Postgres
+refused with `SQLSTATE[23514]`, and the whole adjustment rolled back: the offer
+declared 0 while the pool still held 13, and a product the seller had emptied went
+on selling. The mirror now lands on `reserved` instead, read under the same lock
+as the write; `available` reads zero either way, which is what the seller meant.
+
+It was reachable from the Offer form all along and took a full-list upload
+(Offer.md §19) zeroing hundreds of offers at once to actually happen. **The
+residue is stated rather than fixed:** a reservation that is later RELEASED rather
+than committed leaves one unit on hand the seller had declared gone, and the next
+sync converges — releasing another context's hold from here is the one thing this
+module has always refused to do.
+

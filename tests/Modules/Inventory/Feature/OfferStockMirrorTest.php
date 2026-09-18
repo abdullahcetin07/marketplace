@@ -218,3 +218,44 @@ it('returns the offer to the buy box when the hold is released', function (): vo
     expect(app(\App\Core\Domain\Contracts\OfferQueryContract::class)
         ->featuredOfferForProduct($fixture['product']->uuid)['uuid'])->toBe($offer->uuid);
 });
+
+it('cannot take on-hand below what a checkout already holds', function (): void {
+    /*
+     * THE BUG THIS PINS (2026-09-18): `stock_items` carries a CHECK constraint,
+     * `reserved <= on_hand`. A seller emptying a product while one unit sat in a
+     * live checkout made the mirror write `on_hand = 0`, Postgres refused it with
+     * SQLSTATE[23514], the whole adjustment rolled back — and the offer declared
+     * 0 while the pool still held 13, so a product the seller had emptied went on
+     * selling. It was reachable from the Offer form and became likely the day a
+     * full-list upload started zeroing hundreds of offers at once.
+     */
+    $fixture = offerableFixture();
+    $offer = listOffer($fixture, 5);
+
+    app(InventoryReservationContract::class)->reserve(
+        $fixture['org']->uuid,
+        $fixture['variant']->uuid,
+        2,
+        'checkout-in-flight',
+    );
+
+    app(UpdateOfferStockAction::class)->run($offer, new UpdateOfferStockDTO(stockQuantity: 0));
+
+    $item = StockItem::query()->forVariant($fixture['variant']->uuid)->sole();
+
+    // On-hand lands on the promised units, never below them — and the shopper
+    // sees what the seller meant: nothing left to buy.
+    expect($item->on_hand)->toBe(2)
+        ->and($item->reserved)->toBe(2)
+        ->and($item->available())->toBe(0)
+        ->and($offer->refresh()->stock_quantity)->toBe(0);
+});
+
+it('takes on-hand all the way down once nothing is held', function (): void {
+    $fixture = offerableFixture();
+    $offer = listOffer($fixture, 5);
+
+    app(UpdateOfferStockAction::class)->run($offer, new UpdateOfferStockDTO(stockQuantity: 0));
+
+    expect(StockItem::query()->forVariant($fixture['variant']->uuid)->sole()->on_hand)->toBe(0);
+});
