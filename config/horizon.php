@@ -130,22 +130,33 @@ return [
 
     'environments' => [
 
+        /*
+        | **THE CEILINGS ARE ENV-TUNABLE, AND THE DEFAULTS ARE PRODUCTION'S**
+        | (2026-09-18). Staging runs on the SAME BOX as production and its own
+        | `.env` says `APP_ENV=production`, so it was taking this block rather
+        | than the `staging` one below — a test site entitled to 32 worker
+        | processes beside the real one, on 8 GB of RAM. Changing `APP_ENV` there
+        | would have switched Eloquent strict mode and the session-cookie default
+        | with it, so the ceiling moved into an env var instead: production keeps
+        | these numbers by default and staging sets its own, with neither
+        | depending on which environment name it calls itself.
+        */
         'production' => [
             'supervisor-default' => [
-                'minProcesses' => 2,
-                'maxProcesses' => 20,
+                'minProcesses' => (int) env('HORIZON_DEFAULT_MIN_PROCESSES', 2),
+                'maxProcesses' => (int) env('HORIZON_DEFAULT_MAX_PROCESSES', 20),
                 'balanceMaxShift' => 2,
                 'balanceCooldown' => 3,
             ],
             'supervisor-search' => [
-                'minProcesses' => 1,
-                'maxProcesses' => 8,
+                'minProcesses' => (int) env('HORIZON_SEARCH_MIN_PROCESSES', 1),
+                'maxProcesses' => (int) env('HORIZON_SEARCH_MAX_PROCESSES', 8),
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 5,
             ],
             'supervisor-media' => [
-                'minProcesses' => 1,
-                'maxProcesses' => 4,
+                'minProcesses' => (int) env('HORIZON_MEDIA_MIN_PROCESSES', 1),
+                'maxProcesses' => (int) env('HORIZON_MEDIA_MAX_PROCESSES', 4),
                 'balanceMaxShift' => 1,
                 'balanceCooldown' => 10,
             ],
