@@ -93,6 +93,16 @@ bracket** (a managed `tax_rates` lookup + `Product.tax_rate_id` added to Catalog
 moderated at authoring) but **not commission** (ADR-055); a **customer address book**
 with separate, snapshotted shipping + billing, authenticated customers only (ADR-056).
 
+**A DECLINED CARD GIVES THE BASKET BACK** (2026-09-22, Order.md §13). Checkout
+empties the cart and nothing refilled it, so a failed payment left the shopper with
+no basket, an order they could only cancel, and a failure page promising "Sepetiniz
+duruyor" over an empty one — 16 customers on prod, 3 of whom ever bought anything
+after. `SettleOrdersOnPayment::onFailed` now restores the lines and **expires the
+orders in the same transaction**: one basket, in one place. It runs through
+`AddCartItemAction` so a line the catalogue has moved on from is skipped rather than
+restored unbuyable, and it is safe on PayTR's retried callback — only
+`AwaitingPayment` orders are touched and the shopper's own cart line always wins.
+
 **A cart stores no prices and an order stores nothing else.** A basket reads every
 amount live from the Offer so it follows a seller's re-pricing; an order freezes price,
 title, KDV rate and both addresses and never moves again. Those two rules living in

@@ -14,6 +14,7 @@ use App\Modules\Order\Application\Actions\AddCartItemAction;
 use App\Modules\Order\Application\Actions\CheckoutAction;
 use App\Modules\Order\Application\Actions\CreateCustomerAddressAction;
 use App\Modules\Order\Application\Actions\PlaceOrderAction;
+use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
 use App\Modules\Order\Domain\DTOs\AddCartItemDTO;
 use App\Modules\Order\Domain\DTOs\CheckoutDTO;
 use App\Modules\Order\Domain\DTOs\CustomerAddressDTO;
@@ -306,22 +307,35 @@ it('RELEASES the reservations when the payment fails', function (): void {
         ->and(StockReservation::query()->first()->status->value)->toBe('released');
 });
 
-it('leaves the orders payable after a failure rather than cancelling them', function (): void {
+it('hands the basket back after a failure rather than cancelling the orders', function (): void {
     $fixture = paidCheckoutFixture();
     $payment = pendingPaymentFor($fixture['group'], groupTotalMinor($fixture['group']));
 
     app(SettlePaymentCallbackAction::class)->run(paytrCallback($payment, status: 'failed'));
 
     /*
-     * A DECLINED CARD IS NOT A CANCELLED ORDER. The shopper may fix it and try
-     * again in thirty seconds, and `Cancelled` is terminal in both directions —
-     * cancelling would throw away the basket irreversibly. The stock has already
-     * gone back, so nothing is hoarded meanwhile, and the 30-minute expiry sweep
-     * still catches what is genuinely abandoned.
+     * A DECLINED CARD IS NOT A CANCELLED ORDER, and that half has not changed:
+     * `Cancelled` says a person ended this and nobody did.
+     *
+     * **WHAT CHANGED IS WHERE THE SHOPPER LANDS** (2026-09-22, Order.md §13).
+     * This used to assert `AwaitingPayment`, on the reasoning that the shopper
+     * would fix their card and pay that same order again — a surface nobody ever
+     * built. Meanwhile checkout had emptied their cart, so the failure page's
+     * "Sepetiniz duruyor" pointed at nothing: 16 customers on production, 3 of
+     * whom bought anything afterwards. Order now restores the lines and expires
+     * the orders, so one basket lives in one place.
+     *
+     * Asserted from the PAYMENT side on purpose: this is the whole callback path
+     * — gateway result, event, Order's listener — not the action in isolation.
      */
     foreach ($fixture['orders'] as $order) {
-        expect($order->fresh()->status)->toBe(OrderStatus::AwaitingPayment);
+        expect($order->fresh()->status)->toBe(OrderStatus::Expired);
     }
+
+    $cart = app(CartRepositoryContract::class)->forCustomer(1);
+
+    expect($cart)->not->toBeNull()
+        ->and($cart?->items()->count())->toBe(1);
 });
 
 /*

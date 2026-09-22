@@ -618,3 +618,40 @@ implements**. All are recorded in the `001_Architecture.md` amendment log.
 6. **No `orders` search index and no seller-facing reporting.** "What did I sell last
    month" is answerable from `order_lines` today only by SQL. Deliberate: reporting
    shapes follow from Payment's data, and building them now would guess.
+
+---
+
+## 13 A declined card gives the basket back (2026-09-22)
+
+**Checkout empties the cart, and nothing ever refilled it.** The lines become
+order lines (§3.1), the cart is cleared so the same basket cannot be checked out
+twice — and when the card was then declined, the shopper was left with no basket,
+an order they could only cancel, and a failure page reading
+
+> "Ödemeniz alınamadı ya da iptal edildi. **Sepetiniz duruyor** — tekrar
+> deneyebilirsiniz." → **[Sepete dön]**
+
+pointing at an empty one. On production **16 customers reached that dead end and
+3 of them ever completed a purchase afterwards.** One tried twice inside a
+minute, which is exactly the behaviour a declined card produces.
+
+`SettleOrdersOnPayment::onFailed` now hands the basket back:
+`RestoreCartFromFailedPaymentAction` puts the lines into the cart and **expires
+the orders in the same transaction**.
+
+| Decision | Why | Cost |
+|---|---|---|
+| **The cart is the recovery path, not the order** | It is where the storefront was already pointing, and it has no clock on it. The alternative — "retry payment" on the existing order — was the ORIGINAL intent recorded in this listener, but nothing ever built the surface, and ADR-072 expires the order after `order.payment_window_minutes` (5), so the window for fixing a card would have been five minutes. | The frozen prices are gone: a cart stores no prices (ADR-053), so the shopper meets today's. That is the platform's own rule, not a regression. |
+| **The orders are EXPIRED, not left standing** | One basket in one place. A live `AwaitingPayment` order beside a full cart can be checked out twice, and the shopper sees a phantom order in "siparişlerim". | — |
+| **Expired rather than Cancelled** | `Cancelled` says a person ended this and nobody did — ADR-072's distinction — and `ExpireOrderAction` already releases the holds idempotently. | — |
+| **It drives `AddCartItemAction`** | That action re-reads the offer through `OfferQueryContract`, so a line whose seller withdrew or sold out meanwhile is refused rather than restored as something unbuyable. | One offer lookup per line. |
+| **Best effort, per line** | One dead offer must not cost the shopper the other nine items. Skips are logged where support can find them. | The shopper may silently get back fewer items than they had. |
+| **Runs more than once by design** | PayTR retries its callback until it hears OK. Two guards, either sufficient: only `AwaitingPayment` orders are touched, and a cart line that already names the offer is left exactly as the shopper has it. | — |
+
+**A REFUNDED LATE PAYMENT RESTORES NOTHING**, deliberately: those orders are
+already `Expired` (ADR-072), so the action finds nothing in `AwaitingPayment` and
+returns zero. The stock was gone and the money went back; re-filling a basket the
+shopper may have moved on from is not that event's business.
+
+**The storefront needed no change** — its message and its button became true.
+

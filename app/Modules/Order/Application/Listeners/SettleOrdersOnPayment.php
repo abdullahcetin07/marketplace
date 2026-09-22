@@ -5,9 +5,11 @@ declare(strict_types=1);
 namespace App\Modules\Order\Application\Listeners;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
+use App\Modules\Order\Application\Actions\RestoreCartFromFailedPaymentAction;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
+use Throwable;
 
 /**
  * Somebody else's event moved this module's state machine — money arriving
@@ -42,6 +44,10 @@ use Illuminate\Support\Facades\Log;
  */
 final class SettleOrdersOnPayment
 {
+    public function __construct(
+        private readonly RestoreCartFromFailedPaymentAction $restoreCart,
+    ) {}
+
     /**
      * `App\Modules\Payment\Domain\Events\PaymentSucceeded` — untyped on purpose.
      */
@@ -59,30 +65,51 @@ final class SettleOrdersOnPayment
     /**
      * `App\Modules\Payment\Domain\Events\PaymentFailed` — untyped on purpose.
      *
-     * IT DOES NOT CANCEL THE ORDERS, and that is a decision rather than an
-     * omission. A declined card is a shopper who may fix it and try again in
-     * thirty seconds; cancelling would throw away the basket they assembled and,
-     * worse, is irreversible (`Cancelled` is terminal in both directions). The
-     * stock has already gone back — Payment released it inside the callback — so
-     * nothing is being hoarded meanwhile, and the existing 30-minute expiry sweep
-     * cancels what is genuinely abandoned.
+     * **IT GIVES THE BASKET BACK** (owner's decision, 2026-09-22, Order.md §13).
      *
-     * So this LOGS and leaves the orders where they are. The method exists so
-     * that decision is written down somewhere a future reader will find it,
-     * rather than being invisible in the absence of a listener.
+     * THIS METHOD USED TO DO NOTHING BUT LOG, on the reasoning that a declined
+     * shopper "may fix it and try again in thirty seconds" and that the orders
+     * should therefore survive for them to pay again. The reasoning was sound and
+     * the product was never built: no surface ever offered a second attempt at an
+     * existing order, the cart had been emptied by checkout, and the failure page
+     * sent the shopper to `/sepet` promising "Sepetiniz duruyor" — an empty one.
+     * On production, 16 customers met that dead end and 3 of them ever bought
+     * anything afterwards.
      *
-     * **IT NOW ALSO CATCHES A LATE PAYMENT THAT WAS REFUNDED (ADR-072)**, where
-     * "leaves them where they are" means `Expired` rather than `AwaitingPayment`
-     * — the customer paid, the stock was gone, and Payment gave the money back
-     * with `reason: expired_stock_unavailable`. Leaving them is still the right
-     * answer, and for the same reason: this listener does not own that decision.
+     * So the recovery path is now the CART, which is where the storefront was
+     * pointing all along: the lines go back, the orders expire, and the shopper
+     * is exactly where they were before checkout. `RestoreCartFromFailedPaymentAction`
+     * holds the rules — what is skipped, and why running twice is safe.
+     *
+     * **IT ALSO CATCHES A LATE PAYMENT THAT WAS REFUNDED (ADR-072)**, and there
+     * the restore is a deliberate no-op: those orders are already `Expired`, so
+     * the action finds nothing in `AwaitingPayment` and returns zero. The stock
+     * was gone, the money went back, and re-filling a basket the shopper may have
+     * moved on from is not this event's business.
+     *
+     * **A FAILURE HERE MUST NOT FAIL THE CALLBACK.** This runs inside PayTR's
+     * request, next to the listeners that open shipments and credit ledgers; an
+     * exception escaping would cost the shopper far more than their basket.
      */
     public function onFailed(object $event): void
     {
-        Log::channel('errors')->info('A payment failed; its orders keep the status they had', [
+        $checkoutGroupUuid = (string) ($event->checkoutGroupUuid ?? '');
+
+        $restored = 0;
+
+        try {
+            if ($checkoutGroupUuid !== '') {
+                $restored = $this->restoreCart->run($checkoutGroupUuid);
+            }
+        } catch (Throwable $exception) {
+            report($exception);
+        }
+
+        Log::channel('errors')->info('A payment failed; the basket was handed back', [
             'payment_uuid' => $event->paymentUuid ?? null,
-            'checkout_group_uuid' => $event->checkoutGroupUuid ?? null,
+            'checkout_group_uuid' => $checkoutGroupUuid,
             'reason' => $event->reason ?? null,
+            'lines_restored' => $restored,
         ]);
     }
 
