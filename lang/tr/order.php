@@ -53,6 +53,7 @@ return [
     ],
 
     'cancellation' => [
+        'settled_by_cancellation' => 'Sipariş iptal edildiği için talep kapatıldı.',
         'singular' => 'İptal talebi',
         'plural' => 'İptal talepleri',
         'requested_at' => 'Talep tarihi',

@@ -636,7 +636,7 @@ pointing at an empty one. On production **16 customers reached that dead end and
 minute, which is exactly the behaviour a declined card produces.
 
 `SettleOrdersOnPayment::onFailed` now hands the basket back:
-`RestoreCartFromFailedPaymentAction` puts the lines into the cart and **expires
+`RestoreCartFromUnpaidCheckoutAction` puts the lines into the cart and **expires
 the orders in the same transaction**.
 
 | Decision | Why | Cost |
@@ -654,4 +654,20 @@ returns zero. The stock was gone and the money went back; re-filling a basket th
 shopper may have moved on from is not that event's business.
 
 **The storefront needed no change** — its message and its button became true.
+
+**Abandoning counts too (same day).** Closing the tab at the payment form produces
+no callback at all — PayTR never says anything — so the only thing that learns of
+it is the expiry sweep (ADR-072). That is the commoner ending and it looked
+identical to the shopper, so `ExpireAwaitingPaymentJob` now drives the same
+action. The class is named `RestoreCartFromUnpaidCheckoutAction` for that reason:
+one path, both endings.
+
+**A buyer's cancellation request no longer outlives its own answer.** The seller
+can reach the same place first — press "gönderemiyorum" on the line, the refund
+goes through, the order ends `cancelled` — and the buyer's `pending` request sat
+in the seller's queue asking for something that had already happened
+(SP-260919-BCRMA9 on production). `SettleOrdersOnPayment::transition()` closes it
+as **Approved with `decided_by` NULL**: the buyer asked for a cancelled order and
+got one, and the null is what records that no person pressed it. Only `pending`
+rows are touched, so a request a seller genuinely rejected keeps their answer.
 

@@ -5,8 +5,10 @@ declare(strict_types=1);
 namespace App\Modules\Order\Application\Listeners;
 
 use App\Core\Domain\Contracts\CommissionQueryContract;
-use App\Modules\Order\Application\Actions\RestoreCartFromFailedPaymentAction;
+use App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction;
+use App\Modules\Order\Domain\Enums\CancellationRequestStatus;
 use App\Modules\Order\Domain\Enums\OrderStatus;
+use App\Modules\Order\Domain\Models\CancellationRequest;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
 use Throwable;
@@ -45,7 +47,7 @@ use Throwable;
 final class SettleOrdersOnPayment
 {
     public function __construct(
-        private readonly RestoreCartFromFailedPaymentAction $restoreCart,
+        private readonly RestoreCartFromUnpaidCheckoutAction $restoreCart,
     ) {}
 
     /**
@@ -78,7 +80,7 @@ final class SettleOrdersOnPayment
      *
      * So the recovery path is now the CART, which is where the storefront was
      * pointing all along: the lines go back, the orders expire, and the shopper
-     * is exactly where they were before checkout. `RestoreCartFromFailedPaymentAction`
+     * is exactly where they were before checkout. `RestoreCartFromUnpaidCheckoutAction`
      * holds the rules — what is skipped, and why running twice is safe.
      *
      * **IT ALSO CATCHES A LATE PAYMENT THAT WAS REFUNDED (ADR-072)**, and there
@@ -282,5 +284,41 @@ final class SettleOrdersOnPayment
         }
 
         $order->forceFill($attributes)->save();
+
+        if ($target === OrderStatus::Cancelled) {
+            $this->closeOpenCancellationRequest($order);
+        }
+    }
+
+    /**
+     * A buyer's cancellation request outlives its own answer, unless something
+     * closes it (2026-09-22, ADR-065 C2).
+     *
+     * **THE ORDER CAN BE CANCELLED WITHOUT ANYBODY ANSWERING THE REQUEST.** The
+     * seller presses "gönderemiyorum" on the line, the refund goes through, the
+     * order ends `cancelled` — and the buyer's pending request sat in the
+     * seller's queue asking for something that had already happened. On
+     * production, SP-260919-BCRMA9 did exactly that.
+     *
+     * **`Approved` IS THE HONEST ANSWER even though no seller pressed it**: the
+     * buyer asked for the order to be cancelled and the order is cancelled. The
+     * distinction lives in `decided_by`, which stays NULL precisely because no
+     * person decided — ADR-065's own rule that an approved request is not where
+     * the cancellation lives, only a record of the asking and the answering.
+     *
+     * Only `pending` rows are touched, so a request a seller genuinely rejected
+     * keeps their answer.
+     */
+    private function closeOpenCancellationRequest(Order $order): void
+    {
+        CancellationRequest::query()
+            ->where('order_uuid', $order->uuid)
+            ->where('status', CancellationRequestStatus::Pending->value)
+            ->update([
+                'status' => CancellationRequestStatus::Approved->value,
+                'decision_reason' => __('order.cancellation.settled_by_cancellation'),
+                'decided_at' => now(),
+                'updated_at' => now(),
+            ]);
     }
 }

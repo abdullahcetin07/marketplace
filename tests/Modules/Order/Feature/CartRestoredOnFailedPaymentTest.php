@@ -251,3 +251,28 @@ it('survives a group it cannot make sense of', function (): void {
 
     expect(cartContents())->toBe([]);
 });
+
+it('also hands the basket back when the shopper just walks away', function (): void {
+    /*
+     * THE COMMONER ENDING. Closing the tab at the payment form produces NO
+     * callback — PayTR never says anything — so the only thing that learns of it
+     * is the expiry sweep (ADR-072). To the shopper it looked exactly like a
+     * declined card: an empty cart. Restoring only the declined one would have
+     * left the promise half true.
+     */
+    $offer = restorableOffer();
+    $group = restorableCheckout([[$offer, 2]]);
+
+    expect(cartContents())->toBe([]);
+
+    $this->travel(6)->minutes();
+
+    app(App\Modules\Order\Application\Jobs\ExpireAwaitingPaymentJob::class)->handle(
+        app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
+        app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
+    );
+
+    expect(cartContents())->toBe([['offer' => $offer->uuid, 'quantity' => 2]])
+        ->and(Order::query()->where('checkout_group_uuid', $group)->sole()->status)
+        ->toBe(OrderStatus::Expired);
+});

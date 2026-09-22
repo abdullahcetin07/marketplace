@@ -18,6 +18,7 @@ use App\Modules\Order\Application\Actions\CreateCustomerAddressAction;
 use App\Modules\Order\Application\Actions\PlaceOrderAction;
 use App\Modules\Order\Application\Actions\RejectCancellationAction;
 use App\Modules\Order\Application\Actions\RequestOrderCancellationAction;
+use App\Modules\Order\Application\Listeners\SettleOrdersOnPayment;
 use App\Modules\Order\Domain\DTOs\AddCartItemDTO;
 use App\Modules\Order\Domain\DTOs\CheckoutDTO;
 use App\Modules\Order\Domain\DTOs\CustomerAddressDTO;
@@ -425,4 +426,83 @@ it('keeps the seller out of the buyer endpoint', function (): void {
         ->assertForbidden();
 
     expect(CancellationRequest::query()->count())->toBe(0);
+});
+
+/*
+|--------------------------------------------------------------------------
+| A request outlives its own answer unless something closes it
+|--------------------------------------------------------------------------
+*/
+
+it('closes the buyer’s request when the order is cancelled another way', function (): void {
+    /*
+     * THE SELLER GETS THERE FIRST. They press "gönderemiyorum" on the line, the
+     * refund goes through, the order ends `cancelled` — and until 2026-09-22 the
+     * buyer's request sat in the seller's queue asking for something that had
+     * already happened. Production: SP-260919-BCRMA9.
+     */
+    $customer = Customer::factory()->create();
+    $fixture = requestFixture($customer);
+
+    $request = app(RequestOrderCancellationAction::class)->run(
+        $fixture['order'],
+        (int) $customer->getKey(),
+        'Vazgeçtim',
+    );
+
+    app(SettleOrdersOnPayment::class)->onRefunded(new class($fixture['order']->uuid)
+    {
+        public string $paymentUuid = 'payment-uuid';
+
+        public string $cause = 'cancellation';
+
+        /** @var array<int, string> */
+        public array $orderUuids;
+
+        public function __construct(string $orderUuid)
+        {
+            $this->orderUuids = [$orderUuid];
+        }
+    });
+
+    $request->refresh();
+
+    expect($fixture['order']->fresh()->status)->toBe(OrderStatus::Cancelled)
+        ->and($request->status)->toBe(CancellationRequestStatus::Approved)
+        // NOBODY PRESSED IT, and that is what the null records. The buyer asked
+        // for a cancelled order and got one; only the decider is absent.
+        ->and($request->decided_by)->toBeNull()
+        ->and($request->decided_at)->not->toBeNull();
+});
+
+it('leaves a request the seller actually answered alone', function (): void {
+    $customer = Customer::factory()->create();
+    $fixture = requestFixture($customer);
+
+    $request = app(RequestOrderCancellationAction::class)->run(
+        $fixture['order'],
+        (int) $customer->getKey(),
+        'Vazgeçtim',
+    );
+
+    app(RejectCancellationAction::class)->run($request, 1, 'Kargoya verildi');
+
+    app(SettleOrdersOnPayment::class)->onRefunded(new class($fixture['order']->uuid)
+    {
+        public string $paymentUuid = 'payment-uuid';
+
+        public string $cause = 'cancellation';
+
+        /** @var array<int, string> */
+        public array $orderUuids;
+
+        public function __construct(string $orderUuid)
+        {
+            $this->orderUuids = [$orderUuid];
+        }
+    });
+
+    // Their answer is theirs: only `pending` rows are swept.
+    expect($request->refresh()->status)->toBe(CancellationRequestStatus::Rejected)
+        ->and($request->decision_reason)->toBe('Kargoya verildi');
 });

@@ -14,7 +14,13 @@ use App\Modules\Order\Domain\Models\OrderLine;
 use Illuminate\Support\Facades\Log;
 
 /**
- * A declined card gives the basket back (Order.md §13).
+ * A checkout that never became a purchase gives the basket back (Order.md §13).
+ *
+ * **BOTH ENDINGS, ONE PATH.** A card is declined and PayTR tells us; or the
+ * shopper closes the tab at the payment form and PayTR never says anything at
+ * all, so the order sits until the sweep expires it (ADR-072). The second is the
+ * commoner ending and it looked identical to the shopper — an empty cart — so
+ * restoring only the first would have left the promise half true.
  *
  * **CHECKOUT EMPTIES THE CART, AND UNTIL 2026-09-22 NOTHING EVER REFILLED IT.**
  * The shopper was left with no cart, an order they could only cancel, and a
@@ -46,7 +52,7 @@ use Illuminate\Support\Facades\Log;
  * expires them), and a cart line that already names the offer is left exactly as
  * the shopper has it — their own edit outranks a restore.
  */
-final class RestoreCartFromFailedPaymentAction extends BaseAction
+final class RestoreCartFromUnpaidCheckoutAction extends BaseAction
 {
     public function __construct(
         private readonly CartRepositoryContract $carts,

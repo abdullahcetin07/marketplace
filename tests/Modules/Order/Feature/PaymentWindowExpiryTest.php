@@ -125,7 +125,7 @@ it('gives a seller their availability back when nobody pays', function (): void 
 
     app(ExpireAwaitingPaymentJob::class)->handle(
         app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
-        app(App\Modules\Order\Application\Actions\ExpireOrderAction::class),
+        app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
     );
 
     $order = $fixture['order']->fresh();
@@ -155,7 +155,7 @@ it('leaves an order still inside its window alone', function (): void {
 
     app(ExpireAwaitingPaymentJob::class)->handle(
         app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
-        app(App\Modules\Order\Application\Actions\ExpireOrderAction::class),
+        app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
     );
 
     expect($fixture['order']->fresh()->status)->toBe(OrderStatus::AwaitingPayment)
@@ -173,7 +173,7 @@ it('never touches an order that was paid', function (): void {
 
     app(ExpireAwaitingPaymentJob::class)->handle(
         app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
-        app(App\Modules\Order\Application\Actions\ExpireOrderAction::class),
+        app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
     );
 
     /*
@@ -192,7 +192,7 @@ it('is idempotent — a second sweep changes nothing', function (): void {
     $run = function (): void {
         app(ExpireAwaitingPaymentJob::class)->handle(
             app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
-            app(App\Modules\Order\Application\Actions\ExpireOrderAction::class),
+            app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
         );
     };
 
@@ -227,7 +227,7 @@ it('reads the window from settings, so an operator can lengthen it', function ()
 
     app(ExpireAwaitingPaymentJob::class)->handle(
         app(App\Modules\Order\Domain\Contracts\OrderRepositoryContract::class),
-        app(App\Modules\Order\Application\Actions\ExpireOrderAction::class),
+        app(App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction::class),
     );
 
     expect($fixture['order']->fresh()->status)->toBe(OrderStatus::AwaitingPayment);

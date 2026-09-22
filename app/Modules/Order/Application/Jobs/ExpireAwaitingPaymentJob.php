@@ -5,7 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Order\Application\Jobs;
 
 use App\Core\Application\Jobs\BaseJob;
-use App\Modules\Order\Application\Actions\ExpireOrderAction;
+use App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction;
 use App\Modules\Order\Domain\Contracts\OrderRepositoryContract;
 use App\Modules\Order\Domain\Models\Order;
 use Illuminate\Support\Facades\Log;
@@ -35,7 +35,7 @@ use Throwable;
  * ONE ORDER AT A TIME, each in its own action transaction, so a single bad row
  * cannot strand the rest of the batch.
  *
- * @see App\Modules\Order\Application\Actions\ExpireOrderAction
+ * @see App\Modules\Order\Application\Actions\RestoreCartFromUnpaidCheckoutAction
  */
 final class ExpireAwaitingPaymentJob extends BaseJob
 {
@@ -54,7 +54,7 @@ final class ExpireAwaitingPaymentJob extends BaseJob
 
     public function handle(
         OrderRepositoryContract $orders,
-        ExpireOrderAction $expire,
+        RestoreCartFromUnpaidCheckoutAction $restore,
     ): void {
         $window = self::paymentWindowMinutes();
         $expiring = $orders->awaitingPaymentExpired($window, self::BATCH);
@@ -64,7 +64,7 @@ final class ExpireAwaitingPaymentJob extends BaseJob
         }
 
         foreach ($expiring as $order) {
-            $this->expire($order, $expire);
+            $this->expire($order, $restore);
         }
 
         Log::channel('audit')->info('Expired unpaid orders and released their holds', [
@@ -94,11 +94,22 @@ final class ExpireAwaitingPaymentJob extends BaseJob
 
     /**
      * One order, on its own, so a single failure does not strand the batch.
+     *
+     * **IT HANDS THE BASKET BACK TOO** (2026-09-22, Order.md §13). Abandoning the
+     * payment form is the commoner way a checkout dies — PayTR sends no callback
+     * at all, so nothing but this sweep ever learns of it — and to the shopper it
+     * looked exactly like a declined card: an empty cart. Restoring only the
+     * declined one would have made the promise half true.
+     *
+     * THE RESTORE EXPIRES THE ORDERS ITSELF, per checkout GROUP. This sweep reads
+     * one order at a time, so the group's second order arrives here already
+     * expired and the action finds nothing left in `AwaitingPayment` — the same
+     * guard that makes PayTR's retried callback safe.
      */
-    private function expire(Order $order, ExpireOrderAction $expire): void
+    private function expire(Order $order, RestoreCartFromUnpaidCheckoutAction $restore): void
     {
         try {
-            $expire->run($order);
+            $restore->run((string) $order->checkout_group_uuid);
         } catch (Throwable $exception) {
             /*
              * Logged, not rethrown. Rethrowing would fail the whole batch and

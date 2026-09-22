@@ -53,6 +53,7 @@ return [
     ],
 
     'cancellation' => [
+        'settled_by_cancellation' => 'Closed because the order was cancelled.',
         'singular' => 'Cancellation request',
         'plural' => 'Cancellation requests',
         'requested_at' => 'Requested',
