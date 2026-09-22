@@ -32,6 +32,7 @@ return [
         'already_settled' => 'This checkout group has already been paid.',
         'gateway_unavailable' => 'The payment provider cannot be reached right now. Please try again.',
         'gateway_rejected' => 'The payment provider rejected the request.',
+        'refund_refused' => 'The refund could not be processed right now. Nothing about the order changed; please try again later or contact support.',
         'payout_amount_invalid' => 'A payout must be greater than zero.',
         'payout_exceeds_balance' => 'That is more than the seller is owed.',
         'payout_already_settled' => 'This payout has already been settled.',

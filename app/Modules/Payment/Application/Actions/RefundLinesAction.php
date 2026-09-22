@@ -8,6 +8,7 @@ use App\Core\Application\Actions\BaseAction;
 use App\Core\Domain\Contracts\InventoryReservationContract;
 use App\Core\Domain\Contracts\LoyaltyContract;
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Modules\Payment\Application\Services\RefundRefusalAlert;
 use App\Modules\Payment\Domain\Contracts\PaymentGatewayContract;
 use App\Modules\Payment\Domain\DTOs\PaymentRefundDTO;
 use App\Modules\Payment\Domain\DTOs\ReturnRequestDTO;
@@ -72,6 +73,7 @@ final class RefundLinesAction extends BaseAction
         /* The Core redemption port (ADR-084) — Payment drives it, as it does
         | the hold and the commit. */
         private readonly LoyaltyContract $loyalty,
+        private readonly RefundRefusalAlert $refusalAlert,
     ) {}
 
     public function handle(mixed ...$arguments): PaymentRefund
@@ -254,7 +256,11 @@ final class RefundLinesAction extends BaseAction
         ));
 
         if (! $result->successful) {
-            throw PaymentException::gatewayRejected($result->failureReason ?? 'unknown');
+            // Silent otherwise: the seller reads one sentence, this unwinds, and
+            // the balance that has to be topped up is nobody's news.
+            $this->refusalAlert->announce($payment, $cardMinor, $result->failureReason);
+
+            throw PaymentException::refundRefused($result->failureReason ?? 'unknown');
         }
 
         $this->providerReference = $result->providerReference;

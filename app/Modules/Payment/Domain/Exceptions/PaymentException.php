@@ -230,6 +230,28 @@ final class PaymentException extends BaseException
     }
 
     /**
+     * The PSP refused a REFUND specifically — most often because the merchant's
+     * balance at the provider will not fund it (PayTR `err_no 010`, "Net
+     * bakiyeniz yetersiz").
+     *
+     * **A SEPARATE FACTORY FROM `gatewayRejected` BECAUSE THE AUDIENCE IS
+     * DIFFERENT** (2026-09-22). A refused refund reaches a SELLER pressing
+     * "gönderemiyorum", and "Ödeme sağlayıcısı isteği reddetti" tells them
+     * nothing they can act on: it is not their fault, their order is untouched,
+     * and the thing that has to change is the platform's balance at the
+     * provider. Its own reason key buys that sentence.
+     *
+     * NOT reportable, like every other refusal here — but the platform is not
+     * told by the log alone, so the caller raises an operator alert before it
+     * throws. @see App\Modules\Payment\Application\Services\RefundRefusalAlert
+     */
+    public static function refundRefused(string $detail): self
+    {
+        return self::make("PayTR refused the refund: {$detail}")
+            ->withContext(['reason' => 'refund_refused', 'detail' => $detail]);
+    }
+
+    /**
      * What the buyer reads — never what the PSP said.
      *
      * WHY THIS IS OVERRIDDEN HERE. `BaseException::userMessage()` looks up

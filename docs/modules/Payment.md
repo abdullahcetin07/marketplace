@@ -917,3 +917,19 @@ itself:
 
 None of these is a new cross-module dependency: all go through Core, exactly as
 Offer/Inventory/Order do.
+
+**A refused refund is somebody's job, not just a log line (2026-09-22).** PayTR
+answers `err_no 010` — "Net bakiyeniz yetersiz" — when the merchant balance will
+not fund the refund, and on production that blocked sellers pressing
+"gönderemiyorum" from 21 to 22 September while the only trace was a log nobody
+reads. Two changes, neither touching the money path: `PaymentException::refundRefused`
+gives the refusal its own reason key, so the seller reads a sentence naming what
+happened (the order is untouched) instead of "Ödeme sağlayıcısı isteği reddetti";
+and `RefundRefusalAlert` mails `payment.alerts.recipient` before the throw, so the
+person who can fix it — by funding the balance — hears about it.
+
+**The alert outlives the rollback on purpose**, and it never becomes the failure:
+everything in it is caught, and an unconfigured recipient is a valid state that
+still writes the log line. **The refusal is still not `reportable`** — a provider
+saying no remains an answer, not an outage.
+

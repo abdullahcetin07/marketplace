@@ -32,6 +32,7 @@ return [
         'already_settled' => 'Bu sipariş grubunun ödemesi zaten alınmış.',
         'gateway_unavailable' => 'Ödeme sağlayıcısına şu anda ulaşılamıyor. Lütfen tekrar deneyin.',
         'gateway_rejected' => 'Ödeme sağlayıcısı isteği reddetti.',
+        'refund_refused' => 'İade işlemi şu anda gerçekleştirilemiyor. Siparişte hiçbir değişiklik yapılmadı; lütfen daha sonra tekrar deneyin veya destek ekibiyle iletişime geçin.',
         'payout_amount_invalid' => 'Ödeme tutarı sıfırdan büyük olmalı.',
         'payout_exceeds_balance' => 'Bu tutar satıcının bakiyesini aşıyor.',
         'payout_already_settled' => 'Bu ödemenin sonucu zaten kaydedilmiş.',

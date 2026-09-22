@@ -34,9 +34,11 @@ use App\Modules\Payment\Domain\Exceptions\PaymentException;
 use App\Modules\Payment\Domain\Models\Payment;
 use App\Modules\Payment\Domain\Models\PaymentRefund;
 use App\Modules\Payment\Domain\Models\SellerLedgerEntry;
+use App\Modules\Payment\Infrastructure\Notifications\RefundRefusedNotification;
 use App\Modules\Store\Domain\Enums\StoreStatus;
 use App\Modules\Store\Domain\Models\Store;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Notification;
 use Illuminate\Support\Str;
 
 /*
@@ -536,4 +538,71 @@ it('refuses the refund endpoint to a customer, and 404s a non-uuid payment', fun
      */
     $this->postJson('/api/v1/admin/payments/not-a-uuid/refund')->assertNotFound();
     $this->getJson('/api/v1/admin/payments/not-a-uuid/refunds')->assertNotFound();
+});
+
+/*
+|--------------------------------------------------------------------------
+| A refused refund is somebody's job, not just a log line (2026-09-22)
+|--------------------------------------------------------------------------
+|
+| PayTR answers `err_no 010` — "Net bakiyeniz yetersiz" — when the merchant
+| balance will not fund the refund. On production that blocked sellers pressing
+| "gönderemiyorum" for two days while the only trace was a log nobody reads, and
+| the sentence they were shown ("Ödeme sağlayıcısı isteği reddetti") named
+| neither the cause nor anything they could do.
+|
+*/
+
+it('tells the operator when the provider will not fund a refund', function (): void {
+    Notification::fake();
+    config(['payment.alerts.recipient' => 'operasyon@raftabul.com']);
+
+    $fixture = refundFixture([12_000]);
+    gatewayRefuses();
+
+    expect(fn () => app(RefundPaymentAction::class)->run(new RefundRequestDTO(paymentUuid: $fixture['payment']->uuid)))
+        ->toThrow(PaymentException::class);
+
+    // The refusal rolls the transaction back; the alarm has to outlive it,
+    // because the fix — funding the balance — is nobody's news otherwise.
+    Notification::assertSentOnDemand(
+        RefundRefusedNotification::class,
+        fn (RefundRefusedNotification $notification, array $channels, object $notifiable): bool => $notifiable->routes['mail'] === 'operasyon@raftabul.com',
+    );
+});
+
+it('still refuses cleanly with nobody to alert', function (): void {
+    Notification::fake();
+    config(['payment.alerts.recipient' => '']);
+
+    $fixture = refundFixture([12_000]);
+    gatewayRefuses();
+
+    expect(fn () => app(RefundPaymentAction::class)->run(new RefundRequestDTO(paymentUuid: $fixture['payment']->uuid)))
+        ->toThrow(PaymentException::class);
+
+    Notification::assertNothingSent();
+    expect(PaymentRefund::query()->count())->toBe(0);
+});
+
+it('tells the seller what happened in words they can act on', function (): void {
+    $fixture = refundFixture([12_000]);
+    gatewayRefuses();
+
+    try {
+        app(RefundPaymentAction::class)->run(new RefundRequestDTO(paymentUuid: $fixture['payment']->uuid));
+    } catch (PaymentException $exception) {
+        /*
+         * Three things the old message said none of: the order is untouched, it
+         * is not their fault, and there is something to do next. PayTR's own
+         * words stay in `getMessage()` for the operator.
+         */
+        expect($exception->userMessage())->toBe(__('payment.errors.refund_refused'))
+            ->and($exception->userMessage())->toContain('Siparişte hiçbir değişiklik yapılmadı')
+            ->and($exception->getMessage())->toContain('iade süresi doldu');
+
+        return;
+    }
+
+    $this->fail('The refusal should have thrown.');
 });

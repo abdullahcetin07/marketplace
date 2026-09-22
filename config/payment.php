@@ -34,6 +34,23 @@ return [
     |
     */
 
+    /*
+    |--------------------------------------------------------------------------
+    | Operator alerts
+    |--------------------------------------------------------------------------
+    |
+    | Where to write when the provider refuses a REFUND. That failure is silent
+    | otherwise: the seller is shown a sentence and the order is left untouched,
+    | so nobody who can actually fix it — by funding the balance at PayTR — finds
+    | out unless the seller complains (2026-09-22).
+    |
+    | Empty disables the alert; the log line is written either way.
+    |
+    */
+    'alerts' => [
+        'recipient' => (string) env('PAYMENT_ALERT_RECIPIENT', (string) env('MAIL_FROM_ADDRESS', '')),
+    ],
+
     'paytr' => [
         'merchant_id' => env('PAYTR_MERCHANT_ID', ''),
         'merchant_key' => env('PAYTR_MERCHANT_KEY', ''),
