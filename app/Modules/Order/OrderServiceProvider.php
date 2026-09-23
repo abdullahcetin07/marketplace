@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Order;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Modules\Order\Application\Listeners\SendOrderConfirmation;
 use App\Modules\Order\Application\Listeners\SettleOrdersOnPayment;
 use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
 use App\Modules\Order\Domain\Contracts\CustomerAddressRepositoryContract;
@@ -118,6 +119,16 @@ final class OrderServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Payment\Domain\Events\PaymentFailed',
             [SettleOrdersOnPayment::class, 'onFailed'],
+        );
+
+        /*
+        | THE RECEIPT (§14). A separate listener from the one that moves the
+        | order's status: confirming a purchase to a human and running a state
+        | machine fail for different reasons and must not take each other down.
+        */
+        Event::listen(
+            'App\Modules\Payment\Domain\Events\PaymentSucceeded',
+            [SendOrderConfirmation::class, 'handle'],
         );
 
         /*

@@ -10,6 +10,19 @@ declare(strict_types=1);
 */
 
 return [
+
+    'confirmation' => [
+        'subject' => 'Your order is confirmed',
+        'greeting' => 'Thank you for your order!',
+        'intro' => 'Your payment went through and your order is with the sellers. Here is what you bought.',
+        'order_line' => ':number · :seller',
+        'order_total' => 'Order total: :total',
+        'grand_total' => 'Total paid: :total',
+        'shipping_to' => 'Delivery address: :address',
+        'action' => 'View my orders',
+        'outro' => 'You can follow your order from your account. Reply to this e-mail with any question.',
+        'unknown_seller' => 'Seller',
+    ],
     'singular' => 'Order',
     'plural' => 'Orders',
     'lines' => 'Order lines',

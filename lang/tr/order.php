@@ -10,6 +10,19 @@ declare(strict_types=1);
 */
 
 return [
+
+    'confirmation' => [
+        'subject' => 'Siparişiniz alındı',
+        'greeting' => 'Siparişiniz için teşekkürler!',
+        'intro' => 'Ödemeniz alındı ve siparişiniz satıcılara iletildi. Aşağıda ne aldığınızın dökümü var.',
+        'order_line' => ':number · :seller',
+        'order_total' => 'Bu siparişin tutarı: :total',
+        'grand_total' => 'Toplam ödenen: :total',
+        'shipping_to' => 'Teslimat adresi: :address',
+        'action' => 'Siparişlerimi görüntüle',
+        'outro' => 'Siparişinizin durumunu hesabınızdan takip edebilirsiniz. Sorunuz olursa bu e-postayı yanıtlayabilirsiniz.',
+        'unknown_seller' => 'Satıcı',
+    ],
     'singular' => 'Sipariş',
     'plural' => 'Siparişler',
     'lines' => 'Sipariş kalemleri',

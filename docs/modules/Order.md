@@ -671,3 +671,42 @@ as **Approved with `decided_by` NULL**: the buyer asked for a cancelled order an
 got one, and the null is what records that no person pressed it. Only `pending`
 rows are touched, so a request a seller genuinely rejected keeps their answer.
 
+---
+
+## 14 The order confirmation e-mail (2026-09-23)
+
+**A shopper paid and the platform said nothing.** No order number, no list of
+what they bought, no total. Order, Payment and Shipping sent no customer e-mail
+at all; the first message about a purchase was the review invitation, days later,
+after the parcel had arrived. Everything before it was an account e-mail —
+password, OTP, verification.
+
+`SendOrderConfirmation` listens to `PaymentSucceeded` by class-string and sends
+one `OrderConfirmationNotification`.
+
+| Decision | Why | Cost |
+|---|---|---|
+| **On payment, not on placement** | An `AwaitingPayment` order is an intention that expires by itself five minutes later (ADR-072). Confirming a purchase that never happened is worse than confirming nothing. | A basket paid entirely with points settles inside the pay request, so the e-mail is queued from there — same path, no special case. |
+| **ONE e-mail per checkout group, a block per seller order** | The shopper pressed pay once; three e-mails in a minute reads as a malfunction. But each seller order is its own contract with its own number and its own parcel, so the split is SHOWN — named, numbered and totalled per seller, under a grand total that matches the card statement. | The e-mail grows with the number of sellers. |
+| **Every figure is the frozen one** (ADR-053) | Asking the Catalog or the Offer what a line costs now would print a receipt that disagrees with the charge. | — |
+| **A separate listener from `SettleOrdersOnPayment`** | Confirming a purchase to a human and running a state machine fail for different reasons; one must not take the other down. | Two listeners on one event. |
+| **It can never cost a payment** | It runs inside PayTR's callback. A deleted customer, an unreachable store name, a mail server refusing the queue — all caught and reported. A receipt is worth less than the sale. | A silently missing receipt; the log line is the only trace. |
+| **`currency` is eager-loaded** | Strict mode throws on a lazy load, and Laravel only arms that guard above one row — so it fails on multi-seller baskets and nowhere else. The two-seller test is what caught it. | — |
+
+**IT PROMISES ONLY WHAT THE PLATFORM DOES.** The closing line points at the
+account rather than saying "we will write again when it ships", because there is
+no shipping e-mail yet.
+
+### Still outstanding
+
+1. **The shipping / tracking e-mail.** The obvious next one: `ShipmentDelivered`
+   already exists as an event, and "kargoya verildi" with the tracking number is
+   what stops "siparişim nerede" reaching support.
+2. **The Mesafeli Sözleşmeler documents.** This e-mail is the commercial
+   confirmation — what you bought, from whom, for how much. The *ön bilgilendirme
+   formu* and the contract itself, on a durable medium, are a separate piece of
+   work and are NOT satisfied by it.
+3. **A customer whose address cannot receive mail.** At least one on production
+   (`…@gmail.com.tr`, no MX record) has a paid order and silently receives
+   nothing — including this. Bounces also cost SES reputation.
+
