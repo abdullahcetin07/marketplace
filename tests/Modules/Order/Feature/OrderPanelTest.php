@@ -347,3 +347,81 @@ it('hides plain cancel on a paid or delivered order, even from a Super Admin', f
 
     expect($admin->getKey())->not->toBeNull();
 });
+
+/*
+|--------------------------------------------------------------------------
+| Both surfaces name the parties, rather than printing their uuids
+|--------------------------------------------------------------------------
+|
+| An order stores uuids and nothing else about either side (ADR-040), so both
+| tables printed identifiers: the admin's "Satıcı" column was a 36-character
+| string on the one surface whose job is to answer "who sold this", and the
+| seller's list had no buyer at all — matching a customer's phone call to a row
+| meant opening them one by one.
+|
+*/
+
+it('shows an admin the shop that sold it, not its uuid', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    asOrderOversightAdmin($this->actingAsAdmin());
+
+    $fixture = sellerWithOrder();
+    $customer = App\Models\Customer::factory()->create(['first_name' => 'Ayşe', 'last_name' => 'Yılmaz']);
+    $fixture['order']->forceFill(['customer_uuid' => $customer->uuid])->save();
+
+    Livewire::test(AdminListOrders::class)
+        ->assertCanSeeTableRecords([$fixture['order']])
+        ->assertSee($fixture['store']->name)
+        // The uuid stays reachable underneath — pasting one out of a log is
+        // exactly how a support ticket starts.
+        ->assertSee($fixture['org']->uuid);
+});
+
+it('shows a seller who bought it', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('seller'));
+
+    $fixture = sellerWithOrder();
+    $this->actingAsSeller($fixture['seller']);
+
+    $customer = App\Models\Customer::factory()->create(['first_name' => 'Ayşe', 'last_name' => 'Yılmaz']);
+    $fixture['order']->forceFill(['customer_uuid' => $customer->uuid])->save();
+
+    Livewire::test(SellerListOrders::class)
+        ->assertCanSeeTableRecords([$fixture['order']])
+        ->assertSee('Ayşe Yılmaz');
+});
+
+it('lets a seller search their orders by the buyer’s name', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('seller'));
+
+    $fixture = sellerWithOrder();
+    $this->actingAsSeller($fixture['seller']);
+
+    $mine = App\Models\Customer::factory()->create(['first_name' => 'Ayşe', 'last_name' => 'Yılmaz']);
+    $fixture['order']->forceFill(['customer_uuid' => $mine->uuid])->save();
+
+    $other = Order::factory()
+        ->forSeller($fixture['org']->uuid, $fixture['store']->uuid)
+        ->totalling(10_000, 1_000)
+        ->create(['customer_uuid' => App\Models\Customer::factory()
+            ->create(['first_name' => 'Mehmet', 'last_name' => 'Demir'])->uuid]);
+
+    Livewire::test(SellerListOrders::class)
+        ->searchTable('Yılmaz')
+        ->assertCanSeeTableRecords([$fixture['order']])
+        ->assertCanNotSeeTableRecords([$other]);
+});
+
+it('never prints a blank cell when a party cannot be resolved', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    asOrderOversightAdmin($this->actingAsAdmin());
+
+    // A deleted account, or a store that no longer exists. An empty cell in an
+    // oversight table reads as a bug rather than as a missing shop.
+    $order = Order::factory()->forSeller('org-uuid-yok', 'store-uuid-yok')
+        ->totalling(5_000, 500)->create(['customer_uuid' => 'musteri-yok']);
+
+    Livewire::test(AdminListOrders::class)
+        ->assertCanSeeTableRecords([$order])
+        ->assertSee('store-uu…');
+});

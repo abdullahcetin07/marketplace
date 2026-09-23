@@ -11,6 +11,7 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Filament\RelationManagers\LinesRelationManager;
 use App\Modules\Order\Presentation\Filament\Resources\OrderResource\Pages;
+use App\Modules\Order\Presentation\Support\OrderPartyLabels;
 use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -193,16 +194,28 @@ final class OrderResource extends Resource
                     ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
+                /*
+                | THE SHOP'S NAME, NOT ITS UUID (2026-09-23). This read "Satıcı"
+                | over a 36-character identifier nobody recognises, on the one
+                | surface whose job is to answer "who sold this" — so an agent had
+                | to paste the uuid somewhere else to find out. The uuid stays
+                | searchable underneath, because pasting one from a log is exactly
+                | how a ticket starts.
+                */
                 Tables\Columns\TextColumn::make('selling_org_uuid')
                     ->label(__('order.field.seller'))
+                    ->state(fn (Order $record): string => app(OrderPartyLabels::class)
+                        ->storeName($record->store_uuid))
+                    ->description(fn (Order $record): string => (string) $record->selling_org_uuid)
                     ->searchable()
-                    ->copyable()
                     ->toggleable(),
 
                 Tables\Columns\TextColumn::make('customer_uuid')
                     ->label(__('order.field.customer'))
+                    ->state(fn (Order $record): string => app(OrderPartyLabels::class)
+                        ->customerName($record->customer_uuid))
+                    ->description(fn (Order $record): string => (string) $record->customer_uuid)
                     ->searchable()
-                    ->copyable()
                     ->toggleable(isToggledHiddenByDefault: true),
 
                 Tables\Columns\TextColumn::make('created_at')

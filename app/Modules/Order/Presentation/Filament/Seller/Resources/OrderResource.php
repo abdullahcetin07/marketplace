@@ -8,12 +8,14 @@ use App\Core\Domain\Contracts\OrderCancellationContract;
 use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Core\Presentation\Support\MoneyString;
+use App\Models\Customer;
 use App\Modules\Order\Application\Actions\CancelOrderAction;
 use App\Modules\Order\Domain\DTOs\CancelOrderDTO;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Filament\RelationManagers\LinesRelationManager;
 use App\Modules\Order\Presentation\Filament\Seller\Resources\OrderResource\Pages;
+use App\Modules\Order\Presentation\Support\OrderPartyLabels;
 use Filament\Forms;
 use Filament\Infolists;
 use Filament\Infolists\Infolist;
@@ -194,6 +196,20 @@ final class OrderResource extends Resource
                     ->searchable()
                     ->copyable(),
 
+                /*
+                | WHO BOUGHT IT (2026-09-23). A seller's list had an order number,
+                | a date and a total — nothing naming the person the parcel is
+                | for, so matching a customer's phone call to a row meant opening
+                | them one by one. The BUYER's name, not the recipient on the
+                | address: the two differ on a gift, and the person whose account
+                | a dispute runs through is the one who placed the order.
+                */
+                Tables\Columns\TextColumn::make('customer_uuid')
+                    ->label(__('order.field.customer'))
+                    ->state(fn (Order $record): string => app(OrderPartyLabels::class)
+                        ->customerName($record->customer_uuid))
+                    ->searchable(query: fn (Builder $query, string $search): Builder => self::applyCustomerSearch($query, $search)),
+
                 Tables\Columns\TextColumn::make('created_at')
                     ->label(__('order.field.placed_at'))
                     ->dateTime()
@@ -296,6 +312,35 @@ final class OrderResource extends Resource
         }
 
         return $uuids;
+    }
+
+    /**
+     * Narrow the list to orders whose BUYER matches the search box.
+     *
+     * The column holds a uuid, so Filament's own `searchable()` would match a
+     * string the seller has never seen. The name lives on the customer's account
+     * — a different table, and one this module reaches only through the
+     * authentication tier — so the term is resolved to uuids first and the
+     * tenancy-scoped query filters on those. An unmatched term empties the table
+     * rather than being ignored.
+     *
+     * @param Builder<Order> $query
+     *
+     * @return Builder<Order>
+     */
+    private static function applyCustomerSearch(Builder $query, string $search): Builder
+    {
+        $uuids = Customer::query()
+            ->where(function (Builder $scoped) use ($search): Builder {
+                return $scoped
+                    ->where('first_name', 'LIKE', '%'.$search.'%')
+                    ->orWhere('last_name', 'LIKE', '%'.$search.'%');
+            })
+            ->limit(200)
+            ->pluck('uuid')
+            ->all();
+
+        return $query->whereIn('customer_uuid', $uuids);
     }
 
     /**

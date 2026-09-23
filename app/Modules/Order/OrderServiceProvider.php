@@ -19,6 +19,7 @@ use App\Modules\Order\Infrastructure\Repositories\CartRepository;
 use App\Modules\Order\Infrastructure\Repositories\CustomerAddressRepository;
 use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
 use App\Modules\Order\Presentation\Policies\OrderPolicy;
+use App\Modules\Order\Presentation\Support\OrderPartyLabels;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
@@ -61,6 +62,14 @@ final class OrderServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+        | Memoised per request so a page of orders resolves each shop and each
+        | buyer once. `scoped`, not `singleton`: a queue worker handles many
+        | requests in one process and must not serve one order's names to
+        | another's. @see OrderPartyLabels
+        */
+        $this->app->scoped(OrderPartyLabels::class);
+
         $this->mergeConfigFrom(config_path('order.php'), 'order');
 
         $this->app->singleton(CartRepositoryContract::class, CartRepository::class);

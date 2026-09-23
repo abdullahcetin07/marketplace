@@ -730,3 +730,34 @@ takip numarasıyla birlikte size tekrar yazacağız" is true as of today.
 3. **A customer whose address cannot receive mail.** At least one on production
    (`…@gmail.com.tr`, no MX record) has a paid order and silently receives
    nothing — including this. Bounces also cost SES reputation.
+
+---
+
+## 15 Both order tables name the parties (2026-09-23)
+
+An order stores uuids and nothing else about either side (ADR-040), and both
+panels printed them.
+
+- **Admin**: the "Satıcı" column was a 36-character identifier, on the one
+  surface whose entire job is to answer *who sold this* — so an agent had to
+  paste the uuid somewhere else to find out. It now shows the **store's name**,
+  with the org uuid as the row's description so pasting one out of a log still
+  works. The customer column got the same treatment.
+- **Seller**: the list had an order number, a date and a total, and nothing
+  naming the person the parcel is for. Matching a customer's phone call to a row
+  meant opening orders one by one. It now shows the **buyer's name**, searchable.
+
+| Decision | Why |
+|---|---|
+| **The store's name, not the company's** | A buyer chose a shop and a seller trades as one; the legal entity is an accounting fact for an invoice, not a list somebody scans. |
+| **The BUYER's name, not the recipient's** | The two differ on a gift, and the person whose account a dispute runs through is the one who placed the order. The recipient is on the address, one click away. |
+| **Resolved, never copied onto the row** | A shop renamed tomorrow would disagree with every stale copy forever — the denormalisation ADR-037 refuses. |
+| **`OrderPartyLabels` is bound `scoped`** | Resolved with `app()` from a table column, an unbound class is constructed fresh **per row** and its memo is never read — one query per row per column. `scoped` rather than `singleton` because a queue worker serves many requests in one process. |
+| **Never a blank cell** | A deleted account or a vanished store renders a truncated uuid; an empty cell in an oversight table reads as a bug rather than as missing data. |
+| **The seller's search resolves names to uuids first** | The column holds a uuid, so Filament's own `searchable()` would match a string the seller has never seen. An unmatched term empties the table rather than being ignored. |
+
+**A latent N+1 sits next door**, unfixed and worth knowing about: `CatalogLabels`
+(Offer and Inventory) documents exactly this memoisation but is never bound, so
+`app(CatalogLabels::class)` in a table column builds a new instance for every row
+and the cache it describes is never read.
+
