@@ -11,6 +11,17 @@ declare(strict_types=1);
 
 return [
 
+    'shipped' => [
+        'subject' => ':number numaralı siparişiniz kargoya verildi',
+        'greeting' => 'Siparişiniz yola çıktı!',
+        'intro' => ':number numaralı siparişiniz :seller tarafından kargoya verildi.',
+        'carrier' => 'Kargo firması: :carrier',
+        'tracking' => 'Takip numarası: :number',
+        'action_track' => 'Kargomu takip et',
+        'action_orders' => 'Siparişlerimi görüntüle',
+        'outro' => 'Takip bilgisi kargo firmasının sistemine düşene kadar birkaç saat geçebilir. Sorunuz olursa bu e-postayı yanıtlayabilirsiniz.',
+    ],
+
     'confirmation' => [
         'subject' => 'Siparişiniz alındı',
         'greeting' => 'Siparişiniz için teşekkürler!',
@@ -20,7 +31,7 @@ return [
         'grand_total' => 'Toplam ödenen: :total',
         'shipping_to' => 'Teslimat adresi: :address',
         'action' => 'Siparişlerimi görüntüle',
-        'outro' => 'Siparişinizin durumunu hesabınızdan takip edebilirsiniz. Sorunuz olursa bu e-postayı yanıtlayabilirsiniz.',
+        'outro' => 'Kargoya verildiğinde takip numarasıyla birlikte size tekrar yazacağız. Sorunuz olursa bu e-postayı yanıtlayabilirsiniz.',
         'unknown_seller' => 'Satıcı',
     ],
     'singular' => 'Sipariş',

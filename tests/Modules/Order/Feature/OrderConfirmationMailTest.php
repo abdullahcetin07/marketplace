@@ -206,3 +206,80 @@ it('never costs a payment when the receipt cannot be built', function (): void {
 
     Notification::assertNothingSent();
 });
+
+/*
+|--------------------------------------------------------------------------
+| And again when the parcel leaves
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * `ShipmentShipped` as the platform consumes it: a plain object, read by
+ * property, never a typed import from Shipping.
+ */
+function shipmentShipped(string $orderUuid, ?string $trackingUrl): object
+{
+    return new class($orderUuid, $trackingUrl)
+    {
+        public string $cargoCompanyName = 'Yurtiçi Kargo';
+
+        public string $trackingNumber = '1234567890';
+
+        public function __construct(public string $orderUuid, public ?string $trackingUrl) {}
+    };
+}
+
+it('writes again when a parcel is handed over, with a link to follow it', function (): void {
+    Notification::fake();
+
+    /** @var Customer $customer */
+    $customer = Customer::factory()->create();
+    $offer = confirmableOffer();
+    $group = confirmableCheckout($customer, [[$offer, 1]]);
+    $order = Order::query()->where('checkout_group_uuid', $group)->sole();
+
+    app(App\Modules\Order\Application\Listeners\SendShipmentNotification::class)
+        ->handle(shipmentShipped($order->uuid, 'https://kargo.example/takip/1234567890'));
+
+    Notification::assertSentTo($customer, App\Modules\Order\Infrastructure\Notifications\ShipmentShippedNotification::class,
+        function ($notification) use ($customer, $order): bool {
+            $mail = $notification->toMail($customer);
+            $body = implode("\n", [...$mail->introLines, ...$mail->outroLines]);
+
+            return str_contains((string) $mail->subject, (string) $order->order_number)
+                && str_contains($body, 'Yurtiçi Kargo')
+                && str_contains($body, '1234567890')
+                // The carrier's own page, not ours: a number to copy into a
+                // search engine is the version that generates the support call.
+                && $mail->actionUrl === 'https://kargo.example/takip/1234567890';
+        });
+});
+
+it('falls back to the order list when the carrier has no tracking page', function (): void {
+    Notification::fake();
+
+    /** @var Customer $customer */
+    $customer = Customer::factory()->create();
+    $offer = confirmableOffer();
+    $group = confirmableCheckout($customer, [[$offer, 1]]);
+    $order = Order::query()->where('checkout_group_uuid', $group)->sole();
+
+    app(App\Modules\Order\Application\Listeners\SendShipmentNotification::class)
+        ->handle(shipmentShipped($order->uuid, null));
+
+    Notification::assertSentTo($customer, App\Modules\Order\Infrastructure\Notifications\ShipmentShippedNotification::class,
+        function ($notification) use ($customer): bool {
+            // Never a dead button: an operator who left the template blank costs
+            // the link, not the e-mail.
+            return str_contains((string) $notification->toMail($customer)->actionUrl, '/hesap/siparislerim');
+        });
+});
+
+it('never costs the seller their handover', function (): void {
+    Notification::fake();
+
+    app(App\Modules\Order\Application\Listeners\SendShipmentNotification::class)
+        ->handle(shipmentShipped('bilinmeyen-siparis', null));
+
+    Notification::assertNothingSent();
+});

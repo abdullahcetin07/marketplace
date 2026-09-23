@@ -6,6 +6,7 @@ namespace App\Modules\Order;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
 use App\Modules\Order\Application\Listeners\SendOrderConfirmation;
+use App\Modules\Order\Application\Listeners\SendShipmentNotification;
 use App\Modules\Order\Application\Listeners\SettleOrdersOnPayment;
 use App\Modules\Order\Domain\Contracts\CartRepositoryContract;
 use App\Modules\Order\Domain\Contracts\CustomerAddressRepositoryContract;
@@ -129,6 +130,15 @@ final class OrderServiceProvider extends ServiceProvider
         Event::listen(
             'App\Modules\Payment\Domain\Events\PaymentSucceeded',
             [SendOrderConfirmation::class, 'handle'],
+        );
+
+        /*
+        | THE SECOND HALF OF THAT PROMISE (§14). Per PARCEL, not per basket: each
+        | seller hands theirs over on their own day.
+        */
+        Event::listen(
+            'App\Modules\Shipping\Domain\Events\ShipmentShipped',
+            [SendShipmentNotification::class, 'handle'],
         );
 
         /*

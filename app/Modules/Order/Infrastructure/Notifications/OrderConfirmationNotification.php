@@ -27,11 +27,11 @@ use Illuminate\Notifications\Messages\MailMessage;
  * and KDV the customer agreed to; asking the Catalog or the Offer what they cost
  * now would print a receipt that disagrees with the charge.
  *
- * **IT PROMISES ONLY WHAT THE PLATFORM DOES.** The closing line pointed the
- * buyer at their account rather than saying "we will write again when it ships",
- * because there is no shipping e-mail yet (Order.md §14). A confirmation that
- * promises a second message the platform never sends is worse than the silence
- * it replaced — it teaches the customer to wait for nothing.
+ * **IT PROMISES ONLY WHAT THE PLATFORM DOES.** For one day it pointed the buyer
+ * at their account instead of saying "we will write again when it ships",
+ * because no shipping e-mail existed — a confirmation promising a message that
+ * never comes is worse than the silence it replaced. `ShipmentShippedNotification`
+ * shipped the next day and the sentence came back with it.
  *
  * **NOT A LEGAL CONTRACT DOCUMENT.** It is the commercial confirmation a buyer
  * needs to know what they bought and to quote a number to support. The Mesafeli

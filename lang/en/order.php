@@ -11,6 +11,17 @@ declare(strict_types=1);
 
 return [
 
+    'shipped' => [
+        'subject' => 'Order :number has shipped',
+        'greeting' => 'Your order is on its way!',
+        'intro' => 'Order :number was handed to the carrier by :seller.',
+        'carrier' => 'Carrier: :carrier',
+        'tracking' => 'Tracking number: :number',
+        'action_track' => 'Track my parcel',
+        'action_orders' => 'View my orders',
+        'outro' => 'It can take a few hours for the carrier to show the first scan. Reply to this e-mail with any question.',
+    ],
+
     'confirmation' => [
         'subject' => 'Your order is confirmed',
         'greeting' => 'Thank you for your order!',
@@ -20,7 +31,7 @@ return [
         'grand_total' => 'Total paid: :total',
         'shipping_to' => 'Delivery address: :address',
         'action' => 'View my orders',
-        'outro' => 'You can follow your order from your account. Reply to this e-mail with any question.',
+        'outro' => 'We will write again with a tracking number when it ships. Reply to this e-mail with any question.',
         'unknown_seller' => 'Seller',
     ],
     'singular' => 'Order',

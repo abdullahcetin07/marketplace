@@ -697,16 +697,36 @@ one `OrderConfirmationNotification`.
 account rather than saying "we will write again when it ships", because there is
 no shipping e-mail yet.
 
+### The shipping e-mail (2026-09-23, same day)
+
+`SendShipmentNotification` listens to Shipping's `ShipmentShipped` by
+class-string and writes again when a parcel is handed over.
+
+- **PER PARCEL, NOT PER BASKET** — the opposite grain from the confirmation, and
+  for the opposite reason: the shopper paid once, but each seller hands theirs
+  over on their own day, and a buyer waiting on two wants to hear about each as
+  it leaves rather than a digest when the slowest one moves.
+- **ORDER SENDS IT, NOT SHIPPING.** This module owns the order and therefore the
+  person who bought it; Shipping knows a parcel and a carrier.
+- **The event gained `trackingUrl`**, resolved by Shipping from its own
+  `cargo_companies.tracking_url_template`. A tracking number the customer must
+  copy into a search engine is the version of this e-mail that generates the
+  support call it was meant to prevent — and adding a field to an event is what
+  the approval anticipated instead of importing the module (Inventory.md §10.4).
+  Null when an operator left the template blank: the link goes, the e-mail
+  stays, and the button falls back to the order list rather than being dead.
+- **It cannot cost a handover.** The seller pressing "kargoya verdim" succeeds
+  whatever the mail layer is doing.
+
+**The confirmation's closing line came back with it** — "kargoya verildiğinde
+takip numarasıyla birlikte size tekrar yazacağız" is true as of today.
+
 ### Still outstanding
 
-1. **The shipping / tracking e-mail.** The obvious next one: `ShipmentDelivered`
-   already exists as an event, and "kargoya verildi" with the tracking number is
-   what stops "siparişim nerede" reaching support.
-2. **The Mesafeli Sözleşmeler documents.** This e-mail is the commercial
+1. **The Mesafeli Sözleşmeler documents.** This e-mail is the commercial
    confirmation — what you bought, from whom, for how much. The *ön bilgilendirme
    formu* and the contract itself, on a durable medium, are a separate piece of
    work and are NOT satisfied by it.
 3. **A customer whose address cannot receive mail.** At least one on production
    (`…@gmail.com.tr`, no MX record) has a paid order and silently receives
    nothing — including this. Bounces also cost SES reputation.
-

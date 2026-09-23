@@ -71,6 +71,7 @@ final class MarkShippedAction extends BaseAction
             cargoCompanyName: $carrier->name,
             trackingNumber: (string) $shipment->tracking_number,
             shippedAt: (string) $shipment->shipped_at?->toIso8601String(),
+            trackingUrl: $shipment->trackingUrl(),
         );
 
         return $shipment;

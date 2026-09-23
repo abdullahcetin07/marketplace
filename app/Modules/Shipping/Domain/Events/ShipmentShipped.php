@@ -32,6 +32,20 @@ final class ShipmentShipped extends BaseEvent
         public readonly string $cargoCompanyName,
         public readonly string $trackingNumber,
         public readonly string $shippedAt,
+        /*
+        | **THE CARRIER'S OWN TRACKING PAGE, RESOLVED HERE** (2026-09-23). Order
+        | mails the buyer when a parcel leaves, and a tracking number they must
+        | copy into a search engine is a worse answer than a link. The template
+        | lives on `cargo_companies`, which is Shipping's table — so the event
+        | carries the finished URL rather than the consumer importing this module
+        | to build it. Adding a field to an event is exactly what the approval
+        | anticipated instead (Inventory.md §10.4).
+        |
+        | Null when the carrier has no template configured: most do, an operator
+        | may not have filled one in, and a missing link is not worth losing the
+        | e-mail over.
+        */
+        public readonly ?string $trackingUrl = null,
     ) {
         parent::__construct();
     }
