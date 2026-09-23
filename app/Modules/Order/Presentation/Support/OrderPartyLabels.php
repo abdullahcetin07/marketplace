@@ -6,6 +6,7 @@ namespace App\Modules\Order\Presentation\Support;
 
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Models\Customer;
+use App\Shared\Support\PublicKey;
 
 /**
  * Who the two parties on an order actually are, by name (Order.md §15).
@@ -24,6 +25,13 @@ use App\Models\Customer;
  * **THE STORE'S NAME, NOT THE COMPANY'S.** A buyer chose a shop and a seller
  * trades as one; the legal entity behind it is an accounting fact that belongs
  * on an invoice, not in a list somebody scans.
+ *
+ * **THE SHAPE IS CHECKED BEFORE ANY QUERY** (ADR-059). On PostgreSQL a `uuid`
+ * column compared against a non-uuid string is `SQLSTATE[22P02]`, not an empty
+ * result — a 500 in a table somebody is merely scrolling. Five modules met that
+ * trap before this one; the guard below is why this is not the sixth. It is also
+ * invisible to the test suite, which runs on SQLite and answers "no rows" to the
+ * same input, so it is pinned by the Integration suite instead.
  *
  * Presentation-only: nothing here is a business rule, and no other layer may
  * depend on it.
@@ -53,8 +61,8 @@ final class OrderPartyLabels
      */
     public function storeName(?string $storeUuid): string
     {
-        if (! is_string($storeUuid) || $storeUuid === '') {
-            return '—';
+        if (! is_string($storeUuid) || ! PublicKey::looksLikeUuid($storeUuid)) {
+            return $this->unresolved($storeUuid);
         }
 
         if (! isset($this->askedStores[$storeUuid])) {
@@ -78,8 +86,8 @@ final class OrderPartyLabels
      */
     public function customerName(?string $customerUuid): string
     {
-        if (! is_string($customerUuid) || $customerUuid === '') {
-            return '—';
+        if (! is_string($customerUuid) || ! PublicKey::looksLikeUuid($customerUuid)) {
+            return $this->unresolved($customerUuid);
         }
 
         if (! isset($this->askedCustomers[$customerUuid])) {
@@ -100,5 +108,14 @@ final class OrderPartyLabels
     private function short(string $uuid): string
     {
         return mb_substr($uuid, 0, 8).'…';
+    }
+
+    /**
+     * Nothing to look up, so nothing is looked up — but the cell still says
+     * something, because a blank one in an oversight table reads as a bug.
+     */
+    private function unresolved(?string $value): string
+    {
+        return is_string($value) && $value !== '' ? $this->short($value) : '—';
     }
 }
