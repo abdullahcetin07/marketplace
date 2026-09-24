@@ -235,6 +235,29 @@ enum OrderStatus: string
     }
 
     /**
+     * Whether this order never got as far as money.
+     *
+     * **THREE WAYS TO NOT BE A SALE**: a basket still being assembled
+     * (`Pending`), one placed and never paid for (`AwaitingPayment`), and one the
+     * clock ended (`Expired`, ADR-072). None of them is a seller's work — there
+     * is nothing to pack, nothing owed and nothing to answer for — which is why
+     * the seller panel hides them (Order.md §16).
+     *
+     * **`Cancelled` IS NOT ON THIS LIST, DELIBERATELY.** It is reached from both
+     * sides: a refund with `cause: cancellation` (money moved, and the seller is
+     * the one who cancelled it or was asked to) and the plain lever on an unpaid
+     * order. The status alone cannot separate them — there is no `paid_at` — and
+     * of the two readings, showing a seller a cancellation they were part of is
+     * the far cheaper mistake.
+     */
+    public function moneyNeverArrived(): bool
+    {
+        return $this === self::Pending
+            || $this === self::AwaitingPayment
+            || $this === self::Expired;
+    }
+
+    /**
      * Whether the order is finished as far as stock is concerned — nothing more
      * to reserve, release or commit.
      */

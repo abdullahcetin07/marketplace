@@ -68,10 +68,15 @@ function sellerWithOrder(OrganizationRole $role = OrganizationRole::Owner): arra
         'status' => StoreStatus::Active,
     ]);
 
+    /*
+     * PAID, because that is what a seller's list contains (§16). The factory
+     * defaults to `pending` — a basket still being assembled — which the seller
+     * panel deliberately hides.
+     */
     $order = Order::factory()
         ->forSeller($organization->uuid, $store->uuid)
         ->totalling(24_000, 4_000)
-        ->create();
+        ->create(['status' => OrderStatus::Paid]);
 
     OrderLine::factory()->for($order)->priced(12_000, 2, '0.2000')
         ->labelled('Pamuklu Tişört', 'M / Siyah')->create();
@@ -152,19 +157,26 @@ it('offers a seller no way to create, edit or delete an order', function (): voi
         ->and(array_keys(SellerOrderResource::getPages()))->toBe(['index', 'view']);
 });
 
-it('lets a seller cancel an order placed with them, with a reason', function (): void {
+it('no longer carries the plain cancel at all, because no row could use it', function (): void {
     Filament::setCurrentPanel(Filament::getPanel('seller'));
 
     $fixture = sellerWithOrder();
     $this->actingAsSeller($fixture['seller']);
 
-    Livewire::test(SellerListOrders::class)
-        ->callTableAction('cancel', $fixture['order'], ['reason' => 'Stokta kalmadı']);
+    /*
+     * **A CONSEQUENCE OF §16, WRITTEN DOWN RATHER THAN DISCOVERED.** The plain
+     * lever only touches `Pending` and `AwaitingPayment`
+     * (`isCancellableWithoutRefund`, ADR-065) — exactly the states the seller's
+     * list now hides. A paid order is cancelled by REFUNDING it, which is the
+     * line-level "gönderemiyorum" action and a different path entirely.
+     */
+    expect($fixture['order']->status->isCancellableWithoutRefund())->toBeFalse();
 
-    // Refusing an order is a real merchant decision; the alternative is a support
-    // ticket for every one. The reason is required and the customer is shown it.
-    expect($fixture['order']->fresh()->status)->toBe(OrderStatus::Cancelled)
-        ->and($fixture['order']->fresh()->cancellation_reason)->toBe('Stokta kalmadı');
+    Livewire::test(SellerListOrders::class)
+        ->assertCanSeeTableRecords([$fixture['order']])
+        // Removed rather than left dark: a button no row can reach is a thing
+        // the next reader has to work out the deadness of.
+        ->assertTableActionDoesNotExist('cancel');
 });
 
 it('gives a seller no way to cancel another seller’s order', function (): void {
@@ -424,4 +436,50 @@ it('never prints a blank cell when a party cannot be resolved', function (): voi
     Livewire::test(AdminListOrders::class)
         ->assertCanSeeTableRecords([$order])
         ->assertSee('store-uu…');
+});
+
+/*
+|--------------------------------------------------------------------------
+| A seller's list is their WORK, not every basket that named them
+|--------------------------------------------------------------------------
+*/
+
+it('hides orders that never got as far as money', function (string $status, bool $visible): void {
+    Filament::setCurrentPanel(Filament::getPanel('seller'));
+
+    $fixture = sellerWithOrder();
+    $this->actingAsSeller($fixture['seller']);
+
+    $fixture['order']->forceFill(['status' => $status])->save();
+
+    $test = Livewire::test(SellerListOrders::class);
+
+    $visible
+        ? $test->assertCanSeeTableRecords([$fixture['order']])
+        : $test->assertCanNotSeeTableRecords([$fixture['order']]);
+})->with([
+    // Nothing to pack, nothing owed, nothing to answer for.
+    'still a basket' => ['pending', false],
+    'placed, never paid' => ['awaiting_payment', false],
+    'the clock ended it' => ['expired', false],
+
+    // Real work, or a real thing that happened to their sale.
+    'paid' => ['paid', true],
+    'delivered' => ['delivered', true],
+    'refunded' => ['refunded', true],
+    // Reached from both sides and the status cannot say which; showing a seller
+    // a cancellation they were part of is the cheaper mistake.
+    'cancelled' => ['cancelled', true],
+]);
+
+it('still shows an admin every basket, paid or not', function (): void {
+    Filament::setCurrentPanel(Filament::getPanel('admin'));
+    asOrderOversightAdmin($this->actingAsAdmin());
+
+    $fixture = sellerWithOrder();
+    $fixture['order']->forceFill(['status' => 'awaiting_payment'])->save();
+
+    // Oversight is the opposite job: an agent asked "where is my order" needs
+    // the ones that never completed most of all.
+    Livewire::test(AdminListOrders::class)->assertCanSeeTableRecords([$fixture['order']]);
 });

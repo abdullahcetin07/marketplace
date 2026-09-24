@@ -761,3 +761,35 @@ panels printed them.
 `app(CatalogLabels::class)` in a table column builds a new instance for every row
 and the cache it describes is never read.
 
+---
+
+## 16 A seller's list is their work, not every basket that named them (2026-09-24)
+
+The seller panel listed every order placed with them, paid or not. On production
+that was **35 `expired` rows out of 55** — abandoned baskets the expiry sweep had
+already ended (ADR-072) — mixed in with the eight delivered and four paid orders
+that are actually somebody's job.
+
+`getEloquentQuery()` now excludes `OrderStatus::moneyNeverArrived()`: `Pending`,
+`AwaitingPayment` and `Expired`. Nothing to pack, nothing owed, nothing to answer
+for.
+
+| Decision | Why |
+|---|---|
+| **The rule lives on the enum, not in the resource** | "Did money ever arrive" is a fact about a status, and a panel is the wrong place to keep a list of state names that a seventh status would silently miss. |
+| **`Cancelled` is NOT hidden** | It is reached from both sides — a refund with `cause: cancellation` (money moved, and the seller cancelled it or was asked to) and the plain lever on an unpaid order. The status alone cannot separate them; there is no `paid_at`. Showing a seller a cancellation they were part of is the far cheaper mistake. |
+| **The admin panel is unchanged** | Oversight is the opposite job: an agent answering "where is my order" needs the ones that never completed most of all. |
+| **The tenancy wall still comes first** | This narrows what a seller sees of their OWN orders; it is not what keeps them out of anybody else's. |
+
+**ONE LEVER WENT DARK WITH IT, AND WAS REMOVED** (owner's decision, same day).
+The plain cancel on the seller's list only ever touched `Pending` and
+`AwaitingPayment` (`isCancellableWithoutRefund`, ADR-065) — exactly the states
+this section hides — so no row the table can show could ever reach it. It is
+deleted rather than left dark, because a button nobody can press is a thing the
+next reader has to work out the deadness of.
+
+**`CancelOrderAction` ITSELF STAYS.** `ExpireReservationsJob` drives it on the
+sweep, and that is now its only caller: a seller refusing a PAID order does it by
+refunding, through the line-level "gönderemiyorum" (ADR-065 C1), which was always
+the path that mattered.
+

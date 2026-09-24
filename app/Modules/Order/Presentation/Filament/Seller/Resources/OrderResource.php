@@ -9,8 +9,6 @@ use App\Core\Domain\Contracts\OrganizationAuthorizationContract;
 use App\Core\Domain\Contracts\StoreQueryContract;
 use App\Core\Presentation\Support\MoneyString;
 use App\Models\Customer;
-use App\Modules\Order\Application\Actions\CancelOrderAction;
-use App\Modules\Order\Domain\DTOs\CancelOrderDTO;
 use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Filament\RelationManagers\LinesRelationManager;
@@ -239,7 +237,13 @@ final class OrderResource extends Resource
             ])
             ->actions([
                 Tables\Actions\ViewAction::make(),
-                self::cancelAction(),
+                /*
+                | **THE PLAIN CANCEL IS GONE** (2026-09-24). It only ever touched
+                | `Pending` and `AwaitingPayment` (`isCancellableWithoutRefund`,
+                | ADR-065), and §16 stopped listing those — so the button could
+                | not appear on any row this table can show. A paid order is
+                | undone by refunding it, which is the action below.
+                */
                 self::cancelLinesAction(),
             ])
             // Refusing somebody's order is a decision with a reason attached.
@@ -289,7 +293,25 @@ final class OrderResource extends Resource
         /** @var Builder<Order> $query */
         $query = parent::getEloquentQuery();
 
-        return $query->with('currency')->whereIn('store_uuid', self::sellerStoreUuids());
+        /*
+        | **ONLY ORDERS THAT BECAME SALES** (2026-09-24, owner's decision). A
+        | seller's list was showing baskets that were placed and never paid for
+        | and ones the expiry sweep had already ended — rows with nothing to pack,
+        | nothing owed and nothing to answer for, mixed in with the real work.
+        |
+        | THE TENANCY WALL STILL COMES FIRST. This narrows what a seller sees of
+        | their OWN orders; it is not what keeps them out of anybody else's.
+        */
+        return $query
+            ->with('currency')
+            ->whereIn('store_uuid', self::sellerStoreUuids())
+            ->whereNotIn('status', array_map(
+                static fn (OrderStatus $status): string => $status->value,
+                array_filter(
+                    OrderStatus::cases(),
+                    static fn (OrderStatus $status): bool => $status->moneyNeverArrived(),
+                ),
+            ));
     }
 
     /**
@@ -341,67 +363,6 @@ final class OrderResource extends Resource
             ->all();
 
         return $query->whereIn('customer_uuid', $uuids);
-    }
-
-    /**
-     * The seller's one lever (§3.3, ADR-057).
-     *
-     * A REASON IS REQUIRED, unlike on the customer's own cancellation: "changed my
-     * mind" needs no explanation, but a merchant refusing an order somebody placed
-     * does — and the customer will be shown it.
-     *
-     * AND THE SELLER IS TOLD WHAT ELSE THIS DOES. Cancelling because they cannot
-     * fulfil zeroes their declared stock for that variant (anti-oversell, ADR-057)
-     * — a real consequence that would be a nasty surprise discovered afterwards, so
-     * the confirmation says it in as many words before they commit.
-     */
-    private static function cancelAction(): Tables\Actions\Action
-    {
-        return Tables\Actions\Action::make('cancel')
-            ->label(__('order.action.cancel'))
-            ->icon('heroicon-o-x-circle')
-            ->color('danger')
-            ->requiresConfirmation()
-            ->modalHeading(__('order.action.cancel'))
-            // The warning, not a generic "are you sure": their stock goes to zero.
-            ->modalDescription(__('order.action.cancel_confirm_seller'))
-            ->modalSubmitActionLabel(__('order.action.cancel_confirm_button'))
-            ->form([
-                Forms\Components\Textarea::make('reason')
-                    ->label(__('order.field.reason'))
-                    ->helperText(__('order.action.cancel_reason_hint'))
-                    ->required()
-                    ->maxLength(500),
-            ])
-            /*
-            | **A PAID OR DELIVERED ORDER IS UNDONE BY A REFUND, NEVER BY THIS
-            | LEVER (ADR-065/073).** The status guard is not decoration: Super
-            | Admin bypasses `OrderPolicy::before()`, so `can('cancel')` answers
-            | true for them on every order — and pressing this on a delivered one
-            | throws out of `CancelOrderAction`, which refuses on
-            | `isCancellableWithoutRefund()`. The button was offering an operation
-            | the domain had already forbidden.
-            |
-            | ASKED OF THE STATUS FIRST, so the refusal is the absence of a button
-            | rather than an exception after a confirmation modal.
-            */
-            ->visible(fn (Order $record): bool => $record->status->isCancellableWithoutRefund()
-                && auth()->user()?->can('cancel', $record) === true)
-            ->action(function (Order $record, array $data): void {
-                app(CancelOrderAction::class)->run($record, new CancelOrderDTO(
-                    // The DTO forces the zero for this actor whatever a surface
-                    // passes — a screen that forgot the flag must not silently
-                    // re-list goods the seller has just said they do not have.
-                    cancelledBy: CancelOrderDTO::BY_SELLER,
-                    reason: (string) $data['reason'],
-                ));
-
-                Notification::make()
-                    ->title(__('order.notice.cancelled'))
-                    ->body(__('order.notice.stock_zeroed'))
-                    ->success()
-                    ->send();
-            });
     }
 
     /**
