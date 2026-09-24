@@ -141,6 +141,10 @@ export function AddressForm({
 
   const input = ui.field;
 
+  // Ten subscriber digits, however they were typed — the same count the server
+  // makes (TurkishPhone).
+  const phoneDigits = form.phone.replace(/\D/g, '').length;
+
   return (
     <form onSubmit={(event) => void submit(event)} className="flex flex-col gap-3">
       <Row label="Adres adı" error={errors.label?.[0]}>
@@ -151,7 +155,20 @@ export function AddressForm({
         <Row label="Alıcı adı" error={errors.recipient_name?.[0]}>
           <input type="text" required autoComplete="name" className={input} {...bind('recipientName')} />
         </Row>
-        <Row label="Telefon" error={errors.phone?.[0]}>
+        {/*
+          THE MASK USED TO HIDE THE BUG. It formats as AAA-BBB-CCCC while you
+          type, so nine digits render as `534-320-588` — dashes in the right
+          places, the shape of a finished number — and the customer proof-read
+          something that looked complete. Two of them reached production, one
+          onto a live order the courier could not have rung.
+
+          So the count is said out loud until it is right. The server is still
+          the authority (TurkishPhone); this only stops the form from lying.
+        */}
+        <Row
+          label="Telefon"
+          error={errors.phone?.[0] ?? (phoneDigits > 0 && phoneDigits < 10 ? `Eksik: ${phoneDigits}/10 hane` : undefined)}
+        >
           <input
             type="tel"
             required

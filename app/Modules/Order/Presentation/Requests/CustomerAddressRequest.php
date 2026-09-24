@@ -7,6 +7,7 @@ namespace App\Modules\Order\Presentation\Requests;
 use App\Core\Presentation\Requests\BaseRequest;
 use App\Modules\Order\Domain\DTOs\CustomerAddressDTO;
 use App\Shared\Enums\UserType;
+use App\Shared\Rules\TurkishPhone;
 
 /**
  * Create or replace an address (ADR-056).
@@ -40,7 +41,12 @@ final class CustomerAddressRequest extends BaseRequest
         return [
             'label' => ['required', 'string', 'max:60'],
             'recipient_name' => ['required', 'string', 'max:255'],
-            'phone' => ['required', 'string', 'max:32'],
+            /*
+            | THE COURIER RINGS THIS. `max:32` alone accepted `534-320-588` —
+            | nine digits, the last one missing — twice on production, once onto
+            | a live order. @see TurkishPhone
+            */
+            'phone' => ['required', 'string', 'max:32', new TurkishPhone],
             'line1' => ['required', 'string', 'max:255'],
             'line2' => ['nullable', 'string', 'max:255'],
             'district' => ['nullable', 'string', 'max:255'],

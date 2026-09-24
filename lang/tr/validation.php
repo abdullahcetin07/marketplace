@@ -156,6 +156,8 @@ return [
     'ulid' => ':attribute geçerli bir ULID olmalıdır.',
     'uuid' => ':attribute geçerli bir kimlik değil.',
 
+    'turkish_phone' => 'Telefon numarası eksik ya da hatalı görünüyor. Başında 0 olmadan 10 hane girin, örneğin 532 123 45 67.',
+
     'custom' => [
         'attribute-name' => [
             'rule-name' => 'custom-message',
