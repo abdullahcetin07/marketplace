@@ -17,6 +17,7 @@ use App\Modules\Offer\Infrastructure\Queries\OfferQuery;
 use App\Modules\Offer\Infrastructure\Repositories\OfferRepository;
 use App\Modules\Offer\Presentation\Policies\OfferPolicy;
 use App\Modules\Offer\Presentation\Storefront\OfferStorefrontContributor;
+use App\Modules\Offer\Presentation\Support\CatalogLabels;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
@@ -55,6 +56,16 @@ final class OfferServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+        | **THE MEMO ONLY EXISTS IF THE INSTANCE DOES.** Resolved with `app()`
+        | from a Filament table cell, an unbound class is constructed fresh for
+        | every cell and its cache is read once and discarded — two queries per
+        | row on a table built to be scanned. `scoped`, not `singleton`: a queue
+        | worker serves many requests in one process and must not hand one
+        | page's titles to another's.
+        */
+        $this->app->scoped(CatalogLabels::class);
+
         $this->app->singleton(OfferRepositoryContract::class, OfferRepository::class);
 
         /*

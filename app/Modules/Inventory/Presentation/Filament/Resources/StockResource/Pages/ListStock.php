@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Inventory\Presentation\Filament\Resources\StockResource\Pages;
 
 use App\Modules\Inventory\Presentation\Filament\Resources\StockResource;
+use App\Modules\Inventory\Presentation\Support\PrimesCatalogLabels;
 use Filament\Resources\Pages\ListRecords;
 
 /**
@@ -13,6 +14,8 @@ use Filament\Resources\Pages\ListRecords;
  */
 final class ListStock extends ListRecords
 {
+    use PrimesCatalogLabels;
+
     protected static string $resource = StockResource::class;
 
     /**

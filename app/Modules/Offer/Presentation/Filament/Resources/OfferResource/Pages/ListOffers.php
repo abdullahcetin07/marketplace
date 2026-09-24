@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Offer\Presentation\Filament\Resources\OfferResource\Pages;
 
 use App\Modules\Offer\Presentation\Filament\Resources\OfferResource;
+use App\Modules\Offer\Presentation\Support\PrimesCatalogLabels;
 use Filament\Resources\Pages\ListRecords;
 
 /**
@@ -13,6 +14,8 @@ use Filament\Resources\Pages\ListRecords;
  */
 final class ListOffers extends ListRecords
 {
+    use PrimesCatalogLabels;
+
     protected static string $resource = OfferResource::class;
 
     /**

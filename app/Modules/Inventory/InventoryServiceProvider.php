@@ -13,6 +13,7 @@ use App\Modules\Inventory\Infrastructure\Commands\InventoryReservation;
 use App\Modules\Inventory\Infrastructure\Queries\InventoryQuery;
 use App\Modules\Inventory\Infrastructure\Repositories\StockItemRepository;
 use App\Modules\Inventory\Presentation\Policies\InventoryPolicy;
+use App\Modules\Inventory\Presentation\Support\CatalogLabels;
 use App\Shared\Enums\UserType;
 use App\Shared\Support\PermissionRegistry;
 use Illuminate\Support\Facades\Event;
@@ -52,6 +53,16 @@ final class InventoryServiceProvider extends ServiceProvider
 {
     public function register(): void
     {
+        /*
+        | **THE MEMO ONLY EXISTS IF THE INSTANCE DOES.** Resolved with `app()`
+        | from a Filament table cell, an unbound class is constructed fresh for
+        | every cell and its cache is read once and discarded — two queries per
+        | row on a table built to be scanned. `scoped`, not `singleton`: a queue
+        | worker serves many requests in one process and must not hand one
+        | page's titles to another's.
+        */
+        $this->app->scoped(CatalogLabels::class);
+
         $this->app->singleton(StockItemRepositoryContract::class, StockItemRepository::class);
 
         /*

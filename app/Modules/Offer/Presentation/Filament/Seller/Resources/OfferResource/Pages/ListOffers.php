@@ -7,6 +7,7 @@ namespace App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource
 use App\Modules\Offer\Application\Import\OfferImportChunk;
 use App\Modules\Offer\Presentation\Filament\Seller\Imports\OfferImporter;
 use App\Modules\Offer\Presentation\Filament\Seller\Resources\OfferResource;
+use App\Modules\Offer\Presentation\Support\PrimesCatalogLabels;
 use Filament\Actions;
 use Filament\Resources\Pages\ListRecords;
 
@@ -19,6 +20,8 @@ use Filament\Resources\Pages\ListRecords;
  */
 final class ListOffers extends ListRecords
 {
+    use PrimesCatalogLabels;
+
     protected static string $resource = OfferResource::class;
 
     /**

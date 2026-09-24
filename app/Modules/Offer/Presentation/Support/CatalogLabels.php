@@ -22,8 +22,15 @@ use App\Core\Domain\Contracts\CatalogBrowseContract;
  * THE COST, stated plainly: the first row referencing an unseen product costs
  * one query. A page of N offers over N distinct products is N queries — bounded
  * by the page size, deduped across rows, and against an indexed uuid lookup.
- * `prime()` collapses that to one query when the caller can hand over the whole
- * page's uuids up front, which the resources below do.
+ * `prime()` collapses that to one query when the caller hands over the whole
+ * page's uuids up front, which `PrimesCatalogLabels` does from the list pages.
+ *
+ * **THAT SENTENCE WAS A DESCRIPTION OF SOMETHING THAT NEVER HAPPENED UNTIL
+ * 2026-09-24.** No caller primed, and this class was not bound — so `app()` built
+ * a fresh instance for every cell, whose memo was written once and thrown away.
+ * A six-row page cost 33 catalogue queries; twelve rows cost 53. Both halves are
+ * required and neither works alone: the container binding makes one instance
+ * serve the page, the trait makes it know the page before the first cell asks.
  *
  * Presentation-only by design: nothing here is a business rule, and no other
  * layer may depend on it.
