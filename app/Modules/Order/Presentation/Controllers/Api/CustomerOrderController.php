@@ -17,6 +17,7 @@ use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Presentation\Requests\CancelOrderRequest;
 use App\Modules\Order\Presentation\Requests\CheckoutRequest;
 use App\Modules\Order\Presentation\Resources\OrderResource;
+use App\Shared\Support\PublicKey;
 use Illuminate\Http\JsonResponse;
 use Symfony\Component\HttpKernel\Exception\NotFoundHttpException;
 
@@ -244,6 +245,17 @@ final class CustomerOrderController extends BaseController
 
     private function find(string $uuid): Order
     {
+        /*
+        | **SHAPE FIRST, QUERY SECOND** (ADR-059). `orders.uuid` is a PostgreSQL
+        | `uuid` column, and comparing it to `/orders/abc` is SQLSTATE[22P02] — a
+        | 500 for a customer who mistyped a URL, where 404 is the honest answer.
+        | The sixth occurrence of this trap on the platform was found the same
+        | week; `tests/Architecture/UuidLookupGuardTest` is what stops a seventh.
+        */
+        if (! PublicKey::looksLikeUuid($uuid)) {
+            throw new NotFoundHttpException;
+        }
+
         $order = Order::query()
             ->with(['lines', 'currency'])
             ->forCustomer($this->customerId())
