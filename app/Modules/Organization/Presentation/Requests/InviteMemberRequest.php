@@ -9,6 +9,7 @@ use App\Modules\Organization\Domain\DTOs\InviteMemberDTO;
 use App\Modules\Organization\Domain\Enums\OrganizationRole;
 use App\Modules\Organization\Domain\Models\Organization;
 use App\Modules\Organization\Domain\Models\OrganizationMember;
+use App\Shared\Rules\SuspectedEmailTypo;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules\Enum;
 
@@ -46,7 +47,11 @@ final class InviteMemberRequest extends BaseRequest
     public function rules(): array
     {
         return [
-            'email' => ['required', 'email', 'max:255'],
+            /*
+            | A typo here is an invitation that never arrives and a seller
+            | waiting for a colleague who was never asked. @see SuspectedEmailTypo
+            */
+            'email' => ['required', 'email', 'max:255', new SuspectedEmailTypo],
             'role' => [
                 'required',
                 new Enum(OrganizationRole::class),

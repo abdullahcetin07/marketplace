@@ -158,6 +158,8 @@ return [
 
     'turkish_phone' => 'Telefon numarası eksik ya da hatalı görünüyor. Başında 0 olmadan 10 hane girin, örneğin 532 123 45 67.',
 
+    'email_typo' => 'E-posta adresinde yazım hatası var gibi görünüyor. Bunu mu demek istediniz: :suggestion',
+
     'custom' => [
         'attribute-name' => [
             'rule-name' => 'custom-message',

@@ -8,6 +8,7 @@ use App\Core\Presentation\Requests\BaseRequest;
 use App\Modules\Identity\Domain\DTOs\RegisterUserDTO;
 use App\Shared\Enums\UserType;
 use App\Shared\Rules\StrongPassword;
+use App\Shared\Rules\SuspectedEmailTypo;
 use Illuminate\Validation\Rule;
 
 /**
@@ -59,6 +60,11 @@ final class RegisterRequest extends BaseRequest
                 // whose DNS was momentarily down; the emailed verification link
                 // is the authoritative proof the address exists and is reachable.
                 'required', 'string', 'email:rfc', 'max:255',
+                /*
+                | The typo guard, NOT a dns check — that one was removed on
+                | purpose and this makes no network call. @see SuspectedEmailTypo
+                */
+                new SuspectedEmailTypo,
                 Rule::unique('users', 'email')
                     ->where(fn ($query) => $query->where('type', $type->value)->whereNull('deleted_at')),
             ],
