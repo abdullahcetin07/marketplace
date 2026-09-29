@@ -68,8 +68,18 @@ export function CookieConsent() {
       className="fixed inset-x-3 bottom-3 z-[60] mx-auto max-w-2xl sm:inset-x-4 sm:bottom-4"
     >
       <div className={`flex flex-col gap-3 p-4 shadow-[0_18px_50px_-20px_rgba(20,25,35,.45)] sm:flex-row sm:items-center sm:gap-4 sm:p-4 ${ui.card}`}>
+        {/*
+          THE COPY SAYS WHAT THE SHOPPER GETS (owner's wording, 2026-09-29). It
+          used to read "deneyimini iyileştirmek ve trafiği ölçmek için" — which
+          names what WE get, and "trafiği ölçmek" reads as surveillance to
+          somebody deciding in one second.
+
+          It is also accurate rather than softened: the consent this banner asks
+          for is `ad_personalization` and `ad_user_data`, so "sana daha uygun
+          fırsatlar" is the literal thing being granted, not a euphemism for it.
+        */}
         <p className="flex-1 text-sm text-ink-600 dark:text-ink-300">
-          Deneyimini iyileştirmek ve trafiği ölçmek için çerez kullanıyoruz.{' '}
+          Sana daha uygun fırsatlar sunmak ve siteyi geliştirmek için çerez kullanıyoruz.{' '}
           <Link href="/sayfa/gizlilik" className="font-bold text-brand-600 hover:underline">
             Gizlilik Politikası
           </Link>
