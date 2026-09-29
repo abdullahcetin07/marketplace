@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
+import { pushDataLayer } from '@/lib/analytics';
 import { ui } from '@/lib/ui';
 
 const STORAGE_KEY = 'raftabul.consent';
@@ -44,6 +45,25 @@ export function CookieConsent() {
 
   function decide(choice: Choice) {
     apply(choice);
+
+    /*
+      **THE DECISION ITSELF IS MEASURED, OR NOTHING HERE CAN BE IMPROVED.** The
+      choice lives in `localStorage` and was reported nowhere, so the consent
+      rate was unknown and every change to this banner was a guess. The only
+      number anyone had was "9 of 20 buyers had the pixel" — a biased sample,
+      since people who buy are people who already trust the site.
+
+      **THE `denied` BRANCH IS REPORTED TOO, AND IT IS NOT TRACKING THEM.** This
+      carries no identifier and nothing about the person; under Consent Mode a
+      denied visitor still sends a cookieless ping, which is exactly how a
+      consent rate is counted without following anybody. Reporting only the
+      accepts would make the denominator unknowable — the one number that
+      matters.
+
+      It is pushed AFTER `apply()`, so a granted choice is already in force when
+      the event goes out and lands as a normal, consented hit.
+    */
+    pushDataLayer({ event: 'cookie_consent', consent_choice: choice });
     try {
       window.localStorage.setItem(STORAGE_KEY, choice);
     } catch {
