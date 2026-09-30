@@ -106,7 +106,30 @@ interface OrderQueryContract
      * the PSP who is paying. The id is what scopes; the uuid is what may leave the
      * application (non-negotiable #7).
      *
-     * @return array{id: int, uuid: string, email: string}|null
+     * **`name` JOINED 2026-09-30, AND IT REPLACES A LIE.** Payment had no way to
+     * ask for it, so it sent the buyer's EMAIL in PayTR's name field: somebody
+     * who had just typed their name and address reached the payment page and was
+     * shown "Ad Soyad: ayse@gmail.com" over a dash for the address. A shopper who
+     * has been careful reads that as a site that did not take their details
+     * properly, and 22 of them left that page without paying.
+     *
+     * Empty when the account has gone, for the same reason `email` is — a charge
+     * is not worth refusing over a missing label.
+     *
+     * **`phone` JOINED WITH IT (owner's decision, 2026-09-30).** A PSP scores the
+     * risk of a card payment partly on who is making it, and a blank buyer looks
+     * like a stranger: PayTR was being handed `-` for both the phone and the
+     * address, and four shoppers failed to get through 3-D Secure in a month.
+     * The DELIVERY phone, not the account's — it is mandatory, it is validated
+     * (`TurkishPhone`), and it is the number that is already going to a courier.
+     *
+     * **THE ADDRESS IS STILL WITHHELD**, deliberately and unchanged: it buys far
+     * less than the phone and would put a home address in a third party's logs.
+     *
+     * Empty strings rather than nulls when the account or the number has gone —
+     * a charge is not worth refusing over a missing label.
+     *
+     * @return array{id: int, uuid: string, email: string, name: string, phone: string}|null
      */
     public function checkoutGroupCustomer(string $checkoutGroupUuid): ?array;
 

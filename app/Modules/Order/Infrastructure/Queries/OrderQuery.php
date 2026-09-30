@@ -12,6 +12,7 @@ use App\Modules\Order\Domain\Enums\OrderStatus;
 use App\Modules\Order\Domain\Models\Cart;
 use App\Modules\Order\Domain\Models\Order;
 use App\Modules\Order\Domain\Models\OrderLine;
+use App\Shared\Rules\TurkishPhone;
 use Carbon\CarbonInterface;
 use Illuminate\Support\Facades\DB;
 
@@ -112,24 +113,46 @@ final class OrderQuery implements OrderQueryContract
      * users table by id rather than joined: Order holds the ADR-040 pair and no
      * relation to `User`, and the PSP needs an address to send a receipt to.
      *
-     * @return array{id: int, uuid: string, email: string}|null
+     * @return array{id: int, uuid: string, name: string, phone: string, email: string}|null
      */
     public function checkoutGroupCustomer(string $checkoutGroupUuid): ?array
     {
         $order = Order::query()
             ->inCheckoutGroup($checkoutGroupUuid)
             ->orderBy('id')
-            ->first(['customer_id', 'customer_uuid']);
+            ->first(['customer_id', 'customer_uuid', 'shipping_address']);
 
         if ($order === null) {
             return null;
         }
 
-        $email = DB::table('users')->where('id', $order->customer_id)->value('email');
+        $user = DB::table('users')
+            ->where('id', $order->customer_id)
+            ->first(['email', 'first_name', 'last_name']);
+
+        $email = $user?->email;
+
+        // ADR-012: the display name is computed, never stored, so it is built
+        // here the same way the accessor does rather than read from a column
+        // that does not exist.
+        $name = $user === null
+            ? ''
+            : trim(((string) ($user->first_name ?? '')).' '.((string) ($user->last_name ?? '')));
+
+        /*
+        | THE DELIVERY NUMBER, NORMALISED. Legacy rows predate `TurkishPhone` and
+        | hold nine digits; those normalise to null and travel as an empty string
+        | rather than as a number nobody can ring.
+        */
+        $snapshot = (array) $order->shipping_address;
+        $rawPhone = $snapshot['phone'] ?? null;
+        $phone = is_string($rawPhone) ? (TurkishPhone::normalise($rawPhone) ?? '') : '';
 
         return [
             'id' => (int) $order->customer_id,
             'uuid' => (string) $order->customer_uuid,
+            'name' => $name,
+            'phone' => $phone,
             // Empty rather than null when the account has gone: a payment is not
             // worth refusing over a missing receipt address, and the PSP will take
             // the charge either way.

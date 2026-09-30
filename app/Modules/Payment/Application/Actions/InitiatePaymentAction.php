@@ -190,13 +190,30 @@ final class InitiatePaymentAction extends BaseAction
             amountMinor: $payableMinor,
             currencyCode: $currency->code,
             buyerEmail: $customer['email'],
-            buyerName: $customer['email'],
-            // Address and phone are PayTR form requirements, not data this module
-            // owns: the real delivery address is snapshotted on each order, and
-            // sending it here would put a home address in a third party's logs for
-            // no benefit.
+            /*
+            | THEIR NAME, NOT THEIR ADDRESS LINE. This sent the e-mail here until
+            | 2026-09-30, so the payment page greeted a shopper who had just
+            | filled in their details with "Ad Soyad: ayse@gmail.com" — which
+            | reads as a site that got them wrong, at the exact moment they are
+            | deciding whether to hand over a card. It falls back to the e-mail
+            | only when the account carries no name at all, because PayTR
+            | requires the field.
+            */
+            buyerName: $customer['name'] !== '' ? $customer['name'] : $customer['email'],
+            /*
+            | **THE ADDRESS IS STILL WITHHELD, THE PHONE IS NOT** (owner's
+            | decision, 2026-09-30). Sending a home address to a PSP buys little
+            | and costs privacy, so it stays a dash. The phone is a different
+            | trade: a PSP scores risk partly on who is buying, a blank buyer
+            | scores like a stranger, and four shoppers failed 3-D Secure in the
+            | month this was measured. That number is already on its way to a
+            | courier, so the PSP holding it is not a new exposure.
+            |
+            | A dash when the order carries no usable number — the field is
+            | required and a nine-digit legacy row is not a phone number.
+            */
             buyerAddress: '-',
-            buyerPhone: '-',
+            buyerPhone: $customer['phone'] !== '' ? $customer['phone'] : '-',
             buyerIp: $buyerIp,
             basket: $basket,
         ));
