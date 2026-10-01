@@ -5,6 +5,7 @@ declare(strict_types=1);
 namespace App\Modules\Order;
 
 use App\Core\Domain\Contracts\OrderQueryContract;
+use App\Core\Support\AccountPanelRegistry;
 use App\Modules\Order\Application\Listeners\SendOrderConfirmation;
 use App\Modules\Order\Application\Listeners\SendShipmentNotification;
 use App\Modules\Order\Application\Listeners\SettleOrdersOnPayment;
@@ -18,6 +19,7 @@ use App\Modules\Order\Infrastructure\Queries\OrderQuery;
 use App\Modules\Order\Infrastructure\Repositories\CartRepository;
 use App\Modules\Order\Infrastructure\Repositories\CustomerAddressRepository;
 use App\Modules\Order\Infrastructure\Repositories\OrderRepository;
+use App\Modules\Order\Presentation\Accounts\CustomerOrdersPanel;
 use App\Modules\Order\Presentation\Policies\OrderPolicy;
 use App\Modules\Order\Presentation\Support\OrderPartyLabels;
 use App\Shared\Enums\UserType;
@@ -97,6 +99,13 @@ final class OrderServiceProvider extends ServiceProvider
 
     public function boot(): void
     {
+        /*
+        | The orders panel on a shopper's account page (§17). Registered here so
+        | Identity renders it without ever naming this module — the same seam the
+        | storefront uses (ADR-036).
+        */
+        AccountPanelRegistry::register(CustomerOrdersPanel::class);
+
         $this->loadMigrationsFrom(database_path('Modules/Order/migrations'));
 
         Gate::policy(Order::class, OrderPolicy::class);

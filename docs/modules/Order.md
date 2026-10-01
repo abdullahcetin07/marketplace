@@ -793,3 +793,29 @@ sweep, and that is now its only caller: a seller refusing a PAID order does it b
 refunding, through the line-level "gönderemiyorum" (ADR-065 C1), which was always
 the path that mattered.
 
+---
+
+## 17 A shopper's orders on their account page (2026-10-01)
+
+An admin answering *what did this person order* had to leave the customer page
+and search a name in the orders list. The customer page belongs to **Identity,
+which is FROZEN** — and the same request was going to arrive for loyalty points,
+reviews and questions, each one re-opening a frozen module.
+
+So the answer is composition, not another import: **`AccountPanelRegistry`**, the
+account-page twin of ADR-036's `StorefrontRegistry`.
+
+| Decision | Why |
+|---|---|
+| **A registry, not a direct panel** (owner's decision) | One post-freeze touch to Identity serves every future contributor. Loyalty, Reviews and Questions can each add a panel in their own provider without Identity changing again. |
+| **Identity names no module** | `ViewCustomer` asks the registry for widgets by `UserType` and renders them. Nothing in Identity imports anything outside Core — `LayeringTest` stays green in both directions. |
+| **The contributor hands over a WIDGET, not data** | A Filament relation manager needs an Eloquent relation and there is none to have: an order holds `customer_uuid` as a bare string (ADR-040) so neither module knows the other's tables. A widget lives in the contributing module and reads its own models — so no Core query method has to be invented per panel. |
+| **`appliesTo(UserType)`** | A shopper's orders have no business on a staff page, and a seller's own purchases are a different question. |
+| **A broken contributor costs its own panel, never the page** | Resolution is guarded. The account page is where an admin goes to answer a question about a person; it must open even when a panel on it cannot be built. |
+| **EVERY status, unlike the seller's list** (§16) | A seller sees only what became a sale because the rest is not their work. An admin here is answering a question about a person, and "they tried four times and it never went through" is very often the answer. |
+| **`currency` eager-loaded** | Strict mode throws on a lazy load, and Laravel only arms that guard above one row — a one-order customer would render and a two-order one would 500 (CLAUDE.md). |
+
+**Identity's post-freeze change is recorded in `ViewCustomer`'s docblock**, under
+the category the freeze notice requires: an owner decision, Presentation only,
+and the only one this page carries.
+

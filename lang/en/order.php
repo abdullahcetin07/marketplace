@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 return [
 
+    'account' => [
+        'no_orders' => 'This customer has no orders.',
+    ],
+
     'shipped' => [
         'subject' => 'Order :number has shipped',
         'greeting' => 'Your order is on its way!',

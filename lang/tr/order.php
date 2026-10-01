@@ -11,6 +11,10 @@ declare(strict_types=1);
 
 return [
 
+    'account' => [
+        'no_orders' => 'Bu müşterinin siparişi yok.',
+    ],
+
     'shipped' => [
         'subject' => ':number numaralı siparişiniz kargoya verildi',
         'greeting' => 'Siparişiniz yola çıktı!',
