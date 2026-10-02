@@ -152,8 +152,22 @@ export function AddressForm({
       </Row>
 
       <div className="grid gap-3 sm:grid-cols-2">
-        <Row label="Alıcı adı" error={errors.recipient_name?.[0]}>
-          <input type="text" required autoComplete="name" className={input} {...bind('recipientName')} />
+        {/*
+          IT USED TO SAY "Alıcı adı" — recipient's NAME — so a shopper who typed
+          "Taha" had answered the question correctly. Six of twenty-six paid
+          orders carried a single word, two of them waiting for a carrier when
+          this was found. A cargo label needs a surname, so the field now asks
+          for one; `FullName` on the server is what holds it.
+        */}
+        <Row label="Alıcı adı ve soyadı" error={errors.recipient_name?.[0]}>
+          <input
+            type="text"
+            required
+            autoComplete="name"
+            placeholder="Ad Soyad"
+            className={input}
+            {...bind('recipientName')}
+          />
         </Row>
         {/*
           THE MASK USED TO HIDE THE BUG. It formats as AAA-BBB-CCCC while you

@@ -160,6 +160,8 @@ return [
 
     'email_typo' => 'E-posta adresinde yazım hatası var gibi görünüyor. Bunu mu demek istediniz: :suggestion',
 
+    'full_name' => 'Kargonun teslim edilebilmesi için alıcının adını ve soyadını birlikte yazın.',
+
     'custom' => [
         'attribute-name' => [
             'rule-name' => 'custom-message',

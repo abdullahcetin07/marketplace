@@ -7,6 +7,7 @@ namespace App\Modules\Order\Presentation\Requests;
 use App\Core\Presentation\Requests\BaseRequest;
 use App\Modules\Order\Domain\DTOs\CustomerAddressDTO;
 use App\Shared\Enums\UserType;
+use App\Shared\Rules\FullName;
 use App\Shared\Rules\TurkishPhone;
 
 /**
@@ -40,7 +41,13 @@ final class CustomerAddressRequest extends BaseRequest
     {
         return [
             'label' => ['required', 'string', 'max:60'],
-            'recipient_name' => ['required', 'string', 'max:255'],
+            /*
+            | A CARGO LABEL NEEDS A SURNAME. `required|string` alone let "Taha"
+            | through, and six of twenty-six paid orders carried a single word.
+            | @see FullName — and note it is deliberately NOT applied to a user's
+            | own name, which ADR-012 allows to be one word.
+            */
+            'recipient_name' => ['required', 'string', 'max:255', new FullName],
             /*
             | THE COURIER RINGS THIS. `max:32` alone accepted `534-320-588` —
             | nine digits, the last one missing — twice on production, once onto
