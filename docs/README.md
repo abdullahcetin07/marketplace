@@ -75,6 +75,7 @@ wait for approval — never guess.
 | [security.md](security.md) | CSRF, rate limits, passwords, headers, known gaps |
 | [testing.md](testing.md) | Suite layout, database strategy, architecture rules |
 | [deployment.md](deployment.md) | Image build, migration ordering, rollback |
+| [timestamp-skew.md](timestamp-skew.md) | Verifying stored instants, and the backfill runbook |
 
 ---
 
