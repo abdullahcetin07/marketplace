@@ -10,7 +10,7 @@ import { RaftabulAssistant } from '@/components/RaftabulAssistant';
 import { HeaderActions } from '@/components/HeaderActions';
 import { SearchAutocomplete } from '@/components/SearchAutocomplete';
 import { SessionProvider } from '@/components/SessionProvider';
-import { SITE_URL } from '@/lib/site';
+import { COMPANY_ADDRESS, SITE_URL } from '@/lib/site';
 import './globals.css';
 
 // The approved §2.3 face, self-hosted (latin-ext covers Turkish diacritics).
@@ -184,8 +184,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
               {/* Corporate identity — verifiable business info on every page (transparency
                   signal for trust and Google Merchant Center). Full details on /sayfa/iletisim. */}
               <p className="mb-3 text-[.72rem] leading-relaxed text-ink-400">
-                AMIAY İlaç Kozmetik Medikal İnşaat Bilişim Sanayi ve Ticaret Ltd. Şti. · Baraj Mah.
-                Prof. Dr. Necmettin Erbakan Cad. A No: 71 C, Kepez / Antalya · Tel: 0850 455 33 66 ·{' '}
+                AMIAY İlaç Kozmetik Medikal İnşaat Bilişim Sanayi ve Ticaret Ltd. Şti. ·{' '}
+                {COMPANY_ADDRESS} · Tel: 0850 455 33 66 ·{' '}
                 <a href="mailto:destek@raftabul.com" className="hover:text-brand-600">destek@raftabul.com</a>
               </p>
               {/* Regulatory disclaimer — kept quiet, but present site-wide: these are

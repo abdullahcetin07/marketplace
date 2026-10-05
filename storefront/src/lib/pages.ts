@@ -1,3 +1,5 @@
+import { COMPANY_ADDRESS } from '@/lib/site';
+
 /**
  * Static content pages — the footer's "Kurumsal / Yardım / Güven" links.
  *
@@ -30,7 +32,7 @@ const SUPPORT_PHONE = '0850 455 33 66';
 // Google Merchant Center misrepresentation review looks for this to be transparent
 // and easy to find — so it is surfaced here on İletişim, not only in the fine print.
 const COMPANY_LEGAL = 'AMIAY İlaç Kozmetik Medikal İnşaat Bilişim Sanayi ve Ticaret Limited Şirketi';
-const COMPANY_ADDRESS = 'Baraj Mah. Prof. Dr. Necmettin Erbakan Cad. A No: 71 C, Kepez / Antalya';
+// The address itself lives in `lib/site` — see the note there for why.
 const COMPANY_MERSIS = '0069110568500001';
 const COMPANY_TAX = '0691105685 — Antalya Kurumlar Vergi Dairesi';
 
@@ -195,7 +197,7 @@ export const contentPages: Record<string, ContentPage> = {
     body: [
 	  {
         ul: [
-          'BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA adresinde mukim AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI ("Amiay "), kullanıcıların raftabul.com ("Websitesi") üzerinden ilettikleri kişisel bilgilerini, Gizlilik Politikası ile belirlenen amaçlar ve kapsam dışında kullanmayacak, ayrıca izinsiz olarak üçüncü kişilerle paylaşmayacaktır. Bununla beraber kullanıcı, paylaşmış olduğu bilgilerinin kendisine özel avantajların sunulabilmesi, satış, pazarlama ve benzer amaçlı her türlü iletişim faaliyetlerinin bildirimi maksatlarıyla, tüm Amiay iştirakleri ile de paylaşımına izin vermektedir.',
+          `${COMPANY_ADDRESS} adresinde mukim AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI ("Amiay "), kullanıcıların raftabul.com ("Websitesi") üzerinden ilettikleri kişisel bilgilerini, Gizlilik Politikası ile belirlenen amaçlar ve kapsam dışında kullanmayacak, ayrıca izinsiz olarak üçüncü kişilerle paylaşmayacaktır. Bununla beraber kullanıcı, paylaşmış olduğu bilgilerinin kendisine özel avantajların sunulabilmesi, satış, pazarlama ve benzer amaçlı her türlü iletişim faaliyetlerinin bildirimi maksatlarıyla, tüm Amiay iştirakleri ile de paylaşımına izin vermektedir.`,
           'Kişisel bilgiler; ad soyad, doğum tarihi, ev adresi, mobil ve sabit telefon numarası, e-posta adresi gibi kullanıcıyı doğrudan ya da dolaylı olarak tanımlamaya yönelik her türlü kişisel bilgiyi içermekte olup, kısaca “Gizli Bilgiler” olarak anılacaktır.',
           'Amiay, kişisel bilgileri kendi bünyesinde profilleme, istatistiksel çalışmalar, reklam, tanıtım, pazarlama ve sair iletişim faaliyetleri amacıyla kullanabilecek ve sadece bu çalışmaların yapılması amacıyla bilginiz dahilinde olan 3.kişiler ile paylaşabilecektir.',
           'Amiay, kişisel bilgileri kesinlikle gizli tutmayı, bunu bir sır saklama yükümlülüğü olarak addetmeyi, gizliliğin sağlanması ve sürdürülmesi, gizli bilginin tamamının veya herhangi bir kısmının kamu alanına girmesini veya yetkisiz kullanımını veya üçüncü bir kişiye ifşasını önlemek için gerekli tedbirleri almayı ve gerekli özeni göstermeyi taahhüt etmektedir. Amiay’ın gerekli bilgi güvenliği önlemlerini almasına karşın websitesine ve sisteme yapılan saldırılar sonucunda gizli bilgilerin zarar görmesi veya üçüncü kişilerin eline geçmesi durumunda, Amiay’ın herhangi bir sorumluluğu olmayacaktır.',
@@ -258,7 +260,7 @@ export const contentPages: Record<string, ContentPage> = {
       { note: 'Bu sayfanın resmi metni henüz eklenmedi. 6698 sayılı KVKK kapsamındaki aydınlatma metnini bir hukuk danışmanıyla hazırlayıp buraya ekleyin.' },
       { h: 'Veri sorumlusu' },
       { p: '6698 sayılı Kişisel Verilerin Korunması Kanunu ("KVKK") uyarınca, kişisel verileriniz veri sorumlusu sıfatıyla AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI tarafından işlenmektedir.' },
-      { p: 'Veri sorumlusunun iletişim bilgileri: Adres: BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA, E-posta:destek@raftabul.com' },
+      { p: `Veri sorumlusunun iletişim bilgileri: Adres: ${COMPANY_ADDRESS}, E-posta:destek@raftabul.com` },
 	  {h: '2. İşlenen Kişisel Veriler',},
 		{
 		p: 'Raftabul internet sitesi ve ilgili hizmetler üzerinden gerçekleştirilen işlemler kapsamında; kimlik bilgileri, iletişim bilgileri, adres bilgileri, müşteri işlem bilgileri, sipariş ve alışveriş bilgileri, fatura bilgileri, işlem güvenliği bilgileri, internet sitesi kullanım bilgileri ve mevzuatın izin verdiği ölçüde işlem güvenliğine ilişkin teknik veriler işlenebilmektedir.'
@@ -328,7 +330,7 @@ export const contentPages: Record<string, ContentPage> = {
 		h: '9. Başvuru Yöntemi',
 		},
 		{
-		p: 'KVKK kapsamındaki haklarınızı kullanmak için talebinizi destek@raftabul.com adresine e-posta yoluyla veya BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA adresine yazılı olarak iletebilirsiniz.'
+		p: `KVKK kapsamındaki haklarınızı kullanmak için talebinizi destek@raftabul.com adresine e-posta yoluyla veya ${COMPANY_ADDRESS} adresine yazılı olarak iletebilirsiniz.`
 		},
 		{
 		p: 'Başvurularınız, KVKK ve ilgili ikincil mevzuatta öngörülen usul ve esaslar çerçevesinde değerlendirilerek sonuçlandırılır. Başvurunun niteliğine göre kimlik doğrulaması yapılması veya ek bilgi ve belge talep edilmesi mümkündür.'
@@ -402,7 +404,7 @@ export const contentPages: Record<string, ContentPage> = {
 		{ p: 'Tüketici işlemlerinden doğan uyuşmazlıklarda, yürürlükteki mevzuat uyarınca Tüketici Hakem Heyetleri ve Tüketici Mahkemelerinin görev ve yetkilerine ilişkin hükümler uygulanır.' },
 
 		{ h: '13. İletişim' },
-		{ p: 'Kullanım Şartları hakkında sorularınız, talepleriniz veya bildirimleriniz için destek@raftabul.com adresinden veya BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA üzerinden Raftabul ile iletişime geçebilirsiniz.' }
+		{ p: `Kullanım Şartları hakkında sorularınız, talepleriniz veya bildirimleriniz için destek@raftabul.com adresinden veya ${COMPANY_ADDRESS} üzerinden Raftabul ile iletişime geçebilirsiniz.` }
     ],
   },
 
@@ -429,7 +431,7 @@ export const contentPages: Record<string, ContentPage> = {
       },
 
       { h: '3. Satıcı ve Aracı Hizmet Sağlayıcı Bilgileri' },
-      { p: 'Aracı Hizmet Sağlayıcı: AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI — Adres: BARAJ MAH. PROF.DR.NECMETTIN ERBAKAN CAD. A NO: 71 C KEPEZ/ ANTALYA — MERSIS: 0069110568500001 — Vergi No/Dairesi: 0691105685 / Antalya Kurumlar — Telefon: 08504553366 — E-posta: destek@raftabul.com' },
+      { p: `Aracı Hizmet Sağlayıcı: AMIAY ILAÇ KOZMETIK MEDIKAL INSAAT BILISIM SANAYI VE TICARET LIMITED SIRKETI — Adres: ${COMPANY_ADDRESS} — MERSIS: 0069110568500001 — Vergi No/Dairesi: 0691105685 / Antalya Kurumlar — Telefon: 08504553366 — E-posta: destek@raftabul.com` },
       { p: 'Satıcı bilgileri (ticaret unvanı, adres, MERSIS/vergi no, iletişim) her siparişe özel olarak, ilgili siparişin ön bilgilendirme/özet ekranında ve Sipariş Detayı sayfasında gösterilir.' },
 
       { h: '4. Ürün/Hizmet ve Ödeme Bilgileri' },

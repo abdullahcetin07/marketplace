@@ -39,3 +39,20 @@ export function whatsappLink(message: string = WHATSAPP_DEFAULT_MESSAGE): string
   if (WHATSAPP_NUMBER.length < 11 || WHATSAPP_NUMBER.includes('X')) return null;
   return `https://wa.me/${WHATSAPP_NUMBER}?text=${encodeURIComponent(message)}`;
 }
+
+/**
+ * The company's registered address, as it must appear on the legal pages.
+ *
+ * **IT LIVES HERE BECAUSE IT USED TO LIVE IN SEVEN PLACES.** The site footer carried
+ * its own copy and the legal pages carried five more, hand-written in ALL CAPS, so
+ * moving office meant finding every one of them — and a copy that gets missed leaves
+ * a stale address on a distance-selling contract, which is the one place it has to be
+ * right. `lib/site` rather than `lib/pages` so the footer can read it without pulling
+ * every legal page's copy into the bundle of every route.
+ *
+ * **VERBATIM AS THE OWNER SUPPLIED IT** (2026-10-05, moved from Kepez to Muratpaşa).
+ * Lower-casing it would read better in the footer and is not a safe tidy-up: in Turkish
+ * "SARGINLAR" could be Sargınlar or Sarginlar, and guessing misspells a proper name on
+ * a legal page. A readable form needs the owner to spell it, not us to infer it.
+ */
+export const COMPANY_ADDRESS = 'ETİLER MAH. ADNAN MENDERES BUL. SARGINLAR İŞMERKEZİ NO:55C MURATPAŞA / ANTALYA';
